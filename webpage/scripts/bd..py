@@ -1,32 +1,31 @@
-from mysql.connector import Error
-import os
 from dotenv import load_dotenv
+import os
 
 import mysql.connector
 
-def connect_to_database():
+try:
     load_dotenv()
 
-    try:
-        connection = mysql.connector.connect(
-            host=os.getenv('DB_HOST'),
-            database=os.getenv('DB_NAME'),
-            user=os.getenv('DB_USER'),
-            password=os.getenv('DB_PASSWORD')
-        )
-        if connection.is_connected():
-            print("Conexión exitosa a la base de datos")
-            return connection
-    except Error as e:
-        print(f"Error al conectar a la base de datos: {e}")
-        return None
+    conexion = mysql.connector.connect(
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME")
+    )
+    print("Conexión exitosa")
 
-def close_connection(connection):
-    if connection and connection.is_connected():
-        connection.close()
-        print("Conexión cerrada")
+    cursor = conexion.cursor()
+    
+    query = "SELECT * FROM clientes;"
+    cursor.execute(query)
 
-if __name__ == "__main__":
-    db_connection = connect_to_database()
-    # Aquí puedes realizar operaciones con la base de datos
-    close_connection(db_connection)
+    resultados = cursor.fetchall()
+    
+    for fila in resultados:
+        print(fila)
+
+    cursor.close()
+    conexion.close()
+
+except mysql.connector.Error as err:
+    print(f"Error al conectar a la base de datos: {err}")
