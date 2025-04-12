@@ -1,7 +1,7 @@
 const Login = () => {
     return (
-        <h1> Hellolelele</h1>
+        <h1> Hello </h1>
       );
 }
  
-export default Login;
+export default Login; 

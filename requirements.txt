@@ -1,0 +1,5 @@
+# Library for the SQL connection
+mysql-connector-python
+
+# Library for the management of .env
+python-dotenv
