@@ -16,7 +16,7 @@ try:
 
     cursor = conexion.cursor()
     
-    query = "SELECT * FROM clientes;"
+    query = "SELECT id_cliente, nombre_cliente, RFC FROM clientes;"
     cursor.execute(query)
 
     resultados = cursor.fetchall()
