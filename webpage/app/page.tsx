@@ -1,5 +1,13 @@
-/* This page shows the login page*/
-
+/*
+ * @file page.tsx
+ * @date 13/04/2025
+ * @author Hector Tovar
+ * 
+ * @description
+ * This file shows the login page of the application.
+ *
+ * @version 1.0
+*/
 import Login from "../components/login";
 import TransitionPage from "@/components/transition-page";
 
