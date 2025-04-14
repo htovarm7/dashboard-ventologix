@@ -1,4 +1,4 @@
-![Ventologix Logo](webpage/public/Ventologix_02.jpg)
+<img src="webpage/public/Ventologix_02.jpg" alt="Ventologix Logo" width="100">
 
 # Ventologix
 
