@@ -1,4 +1,4 @@
-import TransitionPage from './TransitionPage';
+import TransitionPage from "@/components/transition-page";
 
 export default function Main() {
     return (
