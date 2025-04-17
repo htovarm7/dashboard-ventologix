@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@auth0/auth0-react": "^2.3.0",
     "chart.js": "^4.4.8",
     "framer-motion": "^12.6.5",
     "next": "15.3.0",

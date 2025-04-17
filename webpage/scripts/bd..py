@@ -43,7 +43,10 @@ try:
     """
     Query 2.2: Retrieve data from the 'pruebas' table only ua ub uc ia ib ic
     Dictionary
+    Motor trifasico
+    Trabajan con ia, ib, ic
     """
+    
     query_device = "SELECT device_id, ua, ub, uc, ia, ib, ic FROM pruebas;"
     cursor.execute(query_device)
     device_data = cursor.fetchall()
