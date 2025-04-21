@@ -9,10 +9,10 @@
  * @version 1.0
 */
 
-import LoginButton from "@/components/loginButton";
+import LoginButton from "@/components/login";
 import TransitionPage from "@/components/transition-page";
 
-export default function Login() {
+export default function LoginPage() {
     return (
       <main>
         <TransitionPage />
