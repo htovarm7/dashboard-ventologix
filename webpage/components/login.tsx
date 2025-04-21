@@ -1,15 +1,22 @@
 'use client'
 
-import React from "react";
-import { useAuth0 } from "@auth0/auth0-react";
+import layout from
 
 const Login = () => {
-  const { loginWithRedirect } = useAuth0();
-  
-  <main>
+    const [mail, setMail] = useState("");
+    const [password, setPassword] = useState("");
+    return (  
+        <form className="form">
+            <h1>Ingresa</h1>
+            <label>Correo</label>
+            <input type="text"/>
 
-  </main>
-  return <button onClick={() => loginWithRedirect()}>Log In</button>;
-};
+            <label>Contraseña</label>
+            <input type="text"/>
 
+            <button>Acceder</button>
+        </form>
+    );
+}
+ 
 export default Login;

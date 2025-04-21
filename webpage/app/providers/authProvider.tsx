@@ -1,20 +1,15 @@
-"use client";
+import { useContext, createContext, useState, useEffect } from "react";
 
-import { Auth0Provider } from "@auth0/auth0-react";
-import { ReactNode } from "react";
+interface AuthProviderProps{
+    children: React.ReactNode;
+}
 
-const AuthProvider = ({ children }: { children: ReactNode }) => {
-  return (
-    <Auth0Provider
-      domain={process.env.AUTH0_DOMAIN!}
-      clientId={process.env.AUTH0_CLIENT!}
-      authorizationParams={{
-        redirect_uri: typeof window !== "undefined" ? window.location.origin : "",
-      }}
-    >
-      {children}
-    </Auth0Provider>
-  );
-};
+const AuthContext = createContext({
+    isAuthenticated: false,
+});
 
-export default AuthProvider;
+export function AuthProvider({children}: AuthProviderProps){
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+    return <AuthContext.Provider value={{isAuthenticated, setIsAuthenticated}}>{children}</AuthContext.Provider>
+}

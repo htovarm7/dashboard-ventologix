@@ -9,7 +9,8 @@
  * @version 1.0
 */
 
-import LoginButton from "@/components/login";
+import LoginAuth from "@/components/loginAuth";
+import Login from "@/components/login"
 import TransitionPage from "@/components/transition-page";
 
 export default function LoginPage() {
@@ -17,7 +18,7 @@ export default function LoginPage() {
       <main>
         <TransitionPage />
         <div className="flex min-h-[100vh] h-full bg-no-repeat bg-gradient-cover">
-          <LoginButton/>
+          <Login/>
         </div>
       </main>
     );

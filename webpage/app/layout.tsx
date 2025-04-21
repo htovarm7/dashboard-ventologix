@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import AuthProvider from "./providers/authProvider"; // 👈 Asegúrate que la ruta es correcta
+import AuthProvider from "./providers/auth0Provider"; // 👈 Asegúrate que la ruta es correcta
 
 export const metadata: Metadata = {
   title: "VTOs Dashboard",
