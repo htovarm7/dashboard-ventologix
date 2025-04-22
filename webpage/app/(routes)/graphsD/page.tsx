@@ -1,10 +1,10 @@
 /*
  * @file page.tsx
- * @date 13/04/2025
+ * @date 22/04/2025
  * @author Hector Tovar
  * 
  * @description
- * This file implements main page where the clients can see their graphs
+ * This file implements the daily graphs, such as the pie chart and the gauge chart.
  *
  * @version 1.0
 */
@@ -20,16 +20,29 @@ import {
   Legend
 } from "chart.js";
 import ReactECharts from 'echarts-for-react';
+import React, { useEffect, useState } from 'react';
 
 
-// Registrar los elementos de Chart.js que vas a usar
 ChartJS.register(ArcElement, Tooltip, Legend);
 
+const [chartData, setChartData] = useState([300, 50, 100]); // valores por defecto
+
+  useEffect(() => {
+    fetch("http://localhost:8000/api/pie-data") // URL de tu API en FastAPI
+      .then(response => response.json())
+      .then(data => {
+        setChartData(data.data);
+      })
+      .catch(error => console.error("Error fetching pie data:", error));
+  }, []);
+
+
+// Pie graph
 const data = {
   labels: ['Red', 'Blue', 'Yellow'],
   datasets: [{
     label: 'My First Dataset',
-    data: [300, 50, 100],
+    data: chartData,
     backgroundColor: [
       'rgb(255, 99, 132)',
       'rgb(54, 162, 235)',
@@ -39,6 +52,7 @@ const data = {
   }]
 };
 
+// Gauge graph
 const option = {
   series: [
     {
@@ -134,10 +148,11 @@ export default function Main() {
       <div className="flex flex-col items-center justify-center min-h-[100vh] bg-gradient-to-b from-white to-gray-100">
         <h1 className="text-2xl font-bold mb-6">Diario</h1>
         <div className="w-full max-w-md mx-auto">
-          {/* <Pie data={data} /> */}
-          <ReactECharts option={option} />;
+          <Pie data={data} />
+          {/* <ReactECharts option={option} />; */}
         </div>
       </div>
     </main>
   );
 }
+  

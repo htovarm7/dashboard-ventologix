@@ -1,6 +1,6 @@
 """
 @file bd.py
-@date 13/04/2025
+@date 22/04/2025
 @author Hector Tovar
 
 @description
