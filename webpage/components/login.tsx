@@ -1,21 +1,21 @@
 'use client'
 
-import layout from
-
 const Login = () => {
-    const [mail, setMail] = useState("");
-    const [password, setPassword] = useState("");
     return (  
-        <form className="form">
-            <h1>Ingresa</h1>
-            <label>Correo</label>
-            <input type="text"/>
-
-            <label>Contraseña</label>
-            <input type="text"/>
-
-            <button>Acceder</button>
-        </form>
+        <div className="login-container centered">
+            <form className="login-form">
+            <h1 className="login-title">Ingresa</h1>
+            <div className="form-group">
+                <label htmlFor="email" className="form-label">Correo</label>
+                <input type="email" id="email" name="email" className="form-input" />
+            </div>
+            <div className="form-group">
+                <label htmlFor="password" className="form-label">Contraseña</label>
+                <input type="password" id="password" name="password" className="form-input" />
+            </div>
+            <button type="submit" className="form-button">Acceder</button>
+            </form>
+        </div>
     );
 }
  

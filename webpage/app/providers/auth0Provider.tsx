@@ -1,6 +1,6 @@
 "use client";
 
-  import { Auth0Provider } from "@auth0/auth0-react";
+import { Auth0Provider } from "@auth0/auth0-react";
 import { ReactNode } from "react";
 
 const AuthProvider = ({ children }: { children: ReactNode }) => {

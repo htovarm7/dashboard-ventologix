@@ -17,6 +17,7 @@ export default function Main() {
       <main>
         <TransitionPage />
         <div className="flex min-h-[100vh] h-full bg-no-repeat bg-gradient-cover">
+          <h1>Semanal</h1>
         </div>
       </main>
     );
