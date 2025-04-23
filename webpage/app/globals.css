@@ -3,8 +3,8 @@
 
 *This doesnt change anything*
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #000000;
   --font-sans: 'Outfit', sans-serif;
 }
 
@@ -17,7 +17,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #001a5c;
-    --foreground: #ffffff;
+    --foreground: #ffffff; /* Font color */
   }
 }
 

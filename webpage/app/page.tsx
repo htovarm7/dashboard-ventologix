@@ -28,12 +28,14 @@ export default function LoginPage() {
       <TransitionPage />
       <div className="flex min-h-[100vh] h-full bg-no-repeat bg-gradient-cover">
         {/* <Login/> */}
-        <button
-          onClick={handleNavigate}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Go to Graphs
-        </button>
+        <div className="flex items-center justify-center w-full">
+          <button
+            onClick={handleNavigate}
+            className="px-10 py-10 bg-blue-500 text-white rounded hover:bg-blue-600 transition-transform duration-300 hover:scale-110 shadow-lg"
+          >
+            Ver Gráficas
+          </button>
+        </div>
       </div>
     </main>
   );

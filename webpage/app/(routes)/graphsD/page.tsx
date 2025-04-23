@@ -1,6 +1,6 @@
 /*
  * @file page.tsx
- * @date 22/04/2025
+ * @date 23/04/2025
  * @author Hector Tovar
  * 
  * @description
@@ -25,32 +25,6 @@ import React, { useEffect, useState } from 'react';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const [chartData, setChartData] = useState([300, 50, 100]); // valores por defecto
-
-  useEffect(() => {
-    fetch("http://localhost:8000/api/pie-data") // URL de tu API en FastAPI
-      .then(response => response.json())
-      .then(data => {
-        setChartData(data.data);
-      })
-      .catch(error => console.error("Error fetching pie data:", error));
-  }, []);
-
-
-// Pie graph
-const data = {
-  labels: ['Red', 'Blue', 'Yellow'],
-  datasets: [{
-    label: 'My First Dataset',
-    data: chartData,
-    backgroundColor: [
-      'rgb(255, 99, 132)',
-      'rgb(54, 162, 235)',
-      'rgb(255, 205, 86)'
-    ],
-    hoverOffset: 4
-  }]
-};
 
 // Gauge graph
 const option = {
@@ -140,16 +114,43 @@ const option = {
 };
 
 
-
 export default function Main() {
+    
+  const [chartData, setChartData] = useState([300, 50, 100]); // valores por defecto
+
+  useEffect(() => {
+    fetch("http://localhost:8000/api/pie-data") // URL de tu API en FastAPI
+      .then(response => response.json())
+      .then(data => {
+        setChartData(data.data);
+      })
+      .catch(error => console.error("Error fetching pie data:", error));
+  }, []);
+
+  // Pie graph
+  const data = {
+  labels: ['LOAD', 'NO LOAD', 'OFF'],
+  datasets: [{
+    label: 'Estados del Compresor',
+    data: chartData,
+    backgroundColor: [
+      'rgb(0, 191, 255)',
+      'rgb(229, 255, 0)',
+      'rgb(126, 126, 126)'
+    ],
+    hoverOffset: 50
+  }]
+  };
   return (
     <main>
       <TransitionPage />
+      <div>
+        <h1 className="text-3xl font-bold mb-5 text-center">Diario</h1>
+      </div>
       <div className="flex flex-col items-center justify-center min-h-[100vh] bg-gradient-to-b from-white to-gray-100">
-        <h1 className="text-2xl font-bold mb-6">Diario</h1>
-        <div className="w-full max-w-md mx-auto">
+        <div className="w-[250px] h-[250px]">
           <Pie data={data} />
-          {/* <ReactECharts option={option} />; */}
+          <ReactECharts option={option} />
         </div>
       </div>
     </main>
