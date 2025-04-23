@@ -4,29 +4,31 @@
  * @author Hector Tovar
  * 
  * @description
- * This file implements the daily graphs, such as the pie chart and the gauge chart.
+ * This file implements the daily graphs, including a Line Chart and a Gauge Chart using both Chart.js and ECharts.
  *
  * @version 1.0
 */
 
 "use client" 
 
+// Components from anothers files
 import TransitionPage from "@/components/transition-page";
-import { Pie } from "react-chartjs-2";
-import {
- Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend
-} from "chart.js";
-import ReactECharts from 'echarts-for-react';
+import NavBar from "@/components/navBar";
+
 import React, { useEffect, useState } from 'react';
 
+// Libraries for charts
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement} from "chart.js";
+import { Line, Pie } from "react-chartjs-2";
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+// ECharts for the gauge chart
+import ReactECharts from 'echarts-for-react';
 
 
-// Gauge graph
+// Register the necessary components for Chart.js
+ChartJS.register(ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement);
+
+// Gauge chart configuration for ECharts
 const option = {
   series: [
     {
@@ -113,13 +115,39 @@ const option = {
   ]
 };
 
+// Line chart data with boundaries
+const lineChartData = {
+  labels: ['January', 'February', 'March', 'April', 'May', 'June'],
+  datasets: [
+    {
+      label: 'Corriente consumida en el día',
+      data: [65, 59, 80, 81, 56, 55],
+      borderColor: 'rgb(13, 9, 255)',
+      backgroundColor: 'rgba(75, 192, 192, 0.2)',
+      fill: true,
+    }
+  ],
+};
+
+// Line bOundaries options
+const lineChartOptions = {
+  responsive: true,
+  scales: {
+    y: {
+      min: 50, // Lower boundary of the Y-axis
+      max: 100, // Upper boundary of the Y-axis
+      ticks: {
+        stepSize: 10,
+      },
+    },
+  },
+};
 
 export default function Main() {
-    
-  const [chartData, setChartData] = useState([300, 50, 100]); // valores por defecto
+  const [chartData, setChartData] = useState([300, 50, 100]); // default values
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/pie-data") // URL de tu API en FastAPI
+    fetch("http://localhost:8000/api/pie-data") // URL of your FastAPI endpoint
       .then(response => response.json())
       .then(data => {
         setChartData(data.data);
@@ -127,33 +155,38 @@ export default function Main() {
       .catch(error => console.error("Error fetching pie data:", error));
   }, []);
 
-  // Pie graph
-  const data = {
-  labels: ['LOAD', 'NO LOAD', 'OFF'],
-  datasets: [{
-    label: 'Estados del Compresor',
-    data: chartData,
-    backgroundColor: [
-      'rgb(0, 191, 255)',
-      'rgb(229, 255, 0)',
-      'rgb(126, 126, 126)'
-    ],
-    hoverOffset: 50
-  }]
+  const dataPie = {
+    labels: ['LOAD', 'NO LOAD', 'OFF'],
+    datasets: [{
+      label: 'Estados del Compresor',
+      data: chartData,
+      backgroundColor: [
+        'rgb(0, 191, 255)',
+        'rgb(229, 255, 0)',
+        'rgb(126, 126, 126)'
+      ],
+      hoverOffset: 50
+    }]
   };
+
   return (
     <main>
       <TransitionPage />
+      <NavBar />
       <div>
-        <h1 className="text-3xl font-bold mb-5 text-center">Diario</h1>
+        <h1 className="text-3xl font-bold mb-5 text-center">Reporte Diario</h1>
       </div>
-      <div className="flex flex-col items-center justify-center min-h-[100vh] bg-gradient-to-b from-white to-gray-100">
+      <div className="flex flex-col items-center justify-center min-h-[150vh] bg-gradient-to-b from-white to-gray-100">
+        <div className="w-[250px] h-[250px] mb-8">
+          <Pie data={dataPie} />
+        </div>
+        <div className="w-[600px] h-[400px] mb-8">
+          <Line data={lineChartData} options={lineChartOptions} />
+        </div>
         <div className="w-[250px] h-[250px]">
-          <Pie data={data} />
           <ReactECharts option={option} />
         </div>
       </div>
     </main>
   );
 }
-  
