@@ -2,7 +2,7 @@ export const itemsNavbar = [
     {
         id: 1,
         text: "Diario",
-        link: "/graphsD",
+        link: "/",
     },
     {
         id: 2,
