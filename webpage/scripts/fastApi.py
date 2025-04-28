@@ -12,9 +12,17 @@
 
 """
 * @Observations:
-* For checking the API response, you can use the following URL:
+* To check the API response, you can use the following URL:
 * http://127.0.0.1:8000/docs
 * For PENOX use device_id = 7
+* If the API is not updating, check the following:
+* 1. Run in terminal:
+    tasklist | findstr python
+* 2. If the process is running, kill it using:
+    taskkill /F /PID <PID>
+* 3. Where <PID> is the process ID obtained from the previous command, which in this case is 18168.
+    python.exe                   18168 Console                    1    67,276 KB
+* 4. Run the API again using:
 """
 
 from fastapi import FastAPI
@@ -79,12 +87,10 @@ DB_NAME = os.getenv("DB_NAME")
 #         # Return error message in case of database error
 #         return {"error": str(err)}
 
-
-
 @app.get("/api/pie-data")
 def get_pie_data():
     try:
-        # Conectar a la base de datos
+        # Connect to the database
         conn = mysql.connector.connect(
             host=DB_HOST,
             user=DB_USER,
@@ -93,7 +99,7 @@ def get_pie_data():
         )
         cursor = conn.cursor()
 
-        # Ejecutar consulta para obtener datos de TempConEstadoAnterior el 12 de enero de 2025
+        # Execute query to fetch data from TempConEstadoAnterior on January 12, 2025
         cursor.execute("""
             SELECT time, estado, corriente
             FROM TempConEstadoAnterior
@@ -102,137 +108,239 @@ def get_pie_data():
 
         results = cursor.fetchall()
 
-        # Cerrar recursos
+        # Close resources
         cursor.close()
         conn.close()
 
-        # Verifica si los resultados están llegando correctamente
+        # Check if results are fetched correctly
         if not results:
             return {"error": "No data found for the specified date."}
 
-        # Convertir resultados en una lista de diccionarios
+        # Convert results into a list of dictionaries
         data = [
             {"time": row[0], "estado": row[1], "corriente": row[2]}
             for row in results
         ]
 
-        # # Verificar los datos antes de procesarlos
-        # print(f"Data fetched from database: {data}")
+        # Verify data before processing
+        print(f"Data fetched from database: {data}")
 
-        # # Calcular porcentajes
-        # load_percentage = porcentaje_load(data)
-        # noload_percentage = porcentaje_noload(data)
-        # off_percentage = porcentaje_off(data)
+        # Calculate percentages
+        load_percentage = percentage_load(data)
+        noload_percentage = percentage_noload(data)
+        off_percentage = percentage_off(data)
 
-        # # Devolver los porcentajes en formato adecuado para graficar
-        # return {
-        #     "data": {
-        #         "LOAD": load_percentage,
-        #         "NOLOAD": noload_percentage,
-        #         "OFF": off_percentage
-        #     }
-        # }
-
-        return  {"data": data}
+        # Return percentages in a format suitable for graphing
+        return {
+            "data": {
+                "LOAD": load_percentage,
+                "NOLOAD": noload_percentage,
+                "OFF": off_percentage
+            }
+        }
 
     except mysql.connector.Error as err:
-        # Retornar mensaje de error en caso de error de base de datos
+        # Return error message in case of database error
         return {"error": str(err)}
 
     
-def porcentaje_load(data):
-    registros_load = [registro for registro in data if registro['estado'] == "LOAD"]
-    total_load = len(registros_load)
-    total_registros = len(data)
-    return (total_load / total_registros) * 100 if total_registros > 0 else 0
+def percentage_load(data):
+    load_records = [record for record in data if record['estado'] == "LOAD"]
+    total_load = len(load_records)
+    total_records = len(data)
+    return (total_load / total_records) * 100 if total_records > 0 else 0
 
-def porcentaje_noload(data):
-    registros_noload = [registro for registro in data if registro['estado'] == "NOLOAD"]
-    total_noload = len(registros_noload)
-    total_registros = len(data)
-    return (total_noload / total_registros) * 100 if total_registros > 0 else 0
+def percentage_noload(data):
+    noload_records = [record for record in data if record['estado'] == "NOLOAD"]
+    total_noload = len(noload_records)
+    total_records = len(data)
+    return (total_noload / total_records) * 100 if total_records > 0 else 0
 
-def porcentaje_off(data):
-    registros_off = [registro for registro in data if registro['estado'] == "OFF"]
-    total_off = len(registros_off)
-    total_registros = len(data)
-    return (total_off / total_registros) * 100 if total_registros > 0 else 0
+def percentage_off(data):
+    off_records = [record for record in data if record['estado'] == "OFF"]
+    total_off = len(off_records)
+    total_records = len(data)
+    return (total_off / total_records) * 100 if total_records > 0 else 0
 
+@app.get("/api/line-data")
+def get_line_data():
+    try:
+        # Connect to the database
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        # Execute query to fetch data from TempConEstadoAnterior on January 12, 2025
+        cursor.execute("""
+            SELECT time, estado, corriente
+            FROM TempConEstadoAnterior
+            WHERE DATE(time) = '2025-01-12'
+        """)
+
+        results = cursor.fetchall()
+
+        # Close resources
+        cursor.close()
+        conn.close()
+
+        # Check if results are fetched correctly
+        if not results:
+            return {"error": "No data found for the specified date."}
+
+        # Convert results into a list of dictionaries
+        data = [
+            {"time": row[0], "estado": row[1], "corriente": row[2]}
+            for row in results
+        ]
+
+        # Verify data before processing
+        print(f"Data fetched from database: {data}")
+
+        return {
+            "data": data
+        }
+
+    except mysql.connector.Error as err:
+        # Return error message in case of database error
+        return {"error": str(err)}
+
+@app.get("/api/gauge-data")
+def get_gauge_data():
+    try:
+        # Connect to the database
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        # Execute query to fetch data from TempConEstadoAnterior on January 12, 2025
+        cursor.execute("""
+            SELECT time, estado, corriente
+            FROM TempConEstadoAnterior
+            WHERE DATE(time) = '2025-01-12'
+        """)
+
+        results = cursor.fetchall()
+
+        # Close resources
+        cursor.close()
+        conn.close()
+
+        # Check if results are fetched correctly
+        if not results:
+            return {"error": "No data found for the specified date."}
+
+        # Convert results into a list of dictionaries
+        data = [
+            {"time": row[0], "estado": row[1], "corriente": row[2]}
+            for row in results
+        ]
+
+        # Verify data before processing
+        print(f"Data fetched from database: {data}")
+
+        return {
+            "data": data
+        }
+
+    except mysql.connector.Error as err:
+        # Return error message in case of database error
+        return {"error": str(err)}
+    
+    def gauge_equivalent_usage_percentage(current_equivalent_hp, installed_hp):
+        # Calculate usage percentage
+        usage_percentage = (current_equivalent_hp / installed_hp) * 100 if installed_hp > 0 else 0
+
+        # Adjust the needle value
+        needle = (
+            30 if usage_percentage < 30 else
+            120 if usage_percentage > 120 else
+            usage_percentage
+        )
+
+        return needle
 
 """
 
-Functions to calculate the percentage of LOAD, NOLOAD, and OFF states from the POWERBI
-def porcentaje_load(data):
+Functions to calculate the percentage of LOAD, NOLOAD, and OFF states from POWERBI
+def percentage_load(data):
     # Filter records where estado is not "OFF"
-    registros_no_off = [registro for registro in data if registro['estado'] != "OFF"]
+    no_off_records = [record for record in data if record['estado'] != "OFF"]
 
-    if not registros_no_off:
+    if not no_off_records:
         return 0  # Return 0 if no records are found
 
     # Get the first and last timestamps where estado is not "OFF"
-    primer_registro_no_off = min(registros_no_off, key=lambda x: x['time'])['time']
-    ultimo_registro_no_off = max(registros_no_off, key=lambda x: x['time'])['time']
+    first_no_off_record = min(no_off_records, key=lambda x: x['time'])['time']
+    last_no_off_record = max(no_off_records, key=lambda x: x['time'])['time']
 
     # Filter records within the range of the first and last timestamps
-    registros_rango = [
-        registro for registro in registros_no_off
-        if primer_registro_no_off <= registro['time'] <= ultimo_registro_no_off
+    range_records = [
+        record for record in no_off_records
+        if first_no_off_record <= record['time'] <= last_no_off_record
     ]
 
     # Count records where estado is "LOAD"
-    total_load = sum(1 for registro in registros_rango if registro['estado'] == "LOAD")
-    total_registros_rango = len(registros_rango)
+    total_load = sum(1 for record in range_records if record['estado'] == "LOAD")
+    total_range_records = len(range_records)
 
     # Calculate percentage
-    return (total_load / total_registros_rango) * 100 if total_registros_rango > 0 else 0
+    return (total_load / total_range_records) * 100 if total_range_records > 0 else 0
 
 
-def porcentaje_noload(data):
+def percentage_noload(data):
     # Filter records where estado is not "OFF"
-    registros_no_off = [registro for registro in data if registro['estado'] != "OFF"]
+    no_off_records = [record for record in data if record['estado'] != "OFF"]
 
-    if not registros_no_off:
+    if not no_off_records:
         return 0  # Return 0 if no records are found
 
     # Get the first and last timestamps where estado is not "OFF"
-    primer_registro_no_off = min(registros_no_off, key=lambda x: x['time'])['time']
-    ultimo_registro_no_off = max(registros_no_off, key=lambda x: x['time'])['time']
+    first_no_off_record = min(no_off_records, key=lambda x: x['time'])['time']
+    last_no_off_record = max(no_off_records, key=lambda x: x['time'])['time']
 
     # Filter records within the range of the first and last timestamps
-    registros_rango = [
-        registro for registro in registros_no_off
-        if primer_registro_no_off <= registro['time'] <= ultimo_registro_no_off
+    range_records = [
+        record for record in no_off_records
+        if first_no_off_record <= record['time'] <= last_no_off_record
     ]
 
     # Count records where estado is "NOLOAD"
-    total_noload = sum(1 for registro in registros_rango if registro['estado'] == "NOLOAD")
-    total_registros_rango = len(registros_rango)
+    total_noload = sum(1 for record in range_records if record['estado'] == "NOLOAD")
+    total_range_records = len(range_records)
 
     # Calculate percentage
-    return (total_noload / total_registros_rango) * 100 if total_registros_rango > 0 else 0
+    return (total_noload / total_range_records) * 100 if total_range_records > 0 else 0
 
 
-def porcentaje_off(data):
+def percentage_off(data):
     # Filter records where estado is not "OFF"
-    registros_no_off = [registro for registro in data if registro['estado'] != "OFF"]
+    no_off_records = [record for record in data if record['estado'] != "OFF"]
 
-    if not registros_no_off:
+    if not no_off_records:
         return 0  # Return 0 if no records are found
 
     # Get the first and last timestamps where estado is not "OFF"
-    primer_registro_no_off = min(registros_no_off, key=lambda x: x['time'])['time']
-    ultimo_registro_no_off = max(registros_no_off, key=lambda x: x['time'])['time']
+    first_no_off_record = min(no_off_records, key=lambda x: x['time'])['time']
+    last_no_off_record = max(no_off_records, key=lambda x: x['time'])['time']
 
     # Filter records within the range of the first and last timestamps
-    registros_rango = [
-        registro for registro in registros_no_off
-        if primer_registro_no_off <= registro['time'] <= ultimo_registro_no_off
+    range_records = [
+        record for record in no_off_records
+        if first_no_off_record <= record['time'] <= last_no_off_record
     ]
 
     # Count records where estado is "OFF"
-    total_off = sum(1 for registro in registros_rango if registro['estado'] == "OFF")
-    total_registros_rango = len(registros_rango)
+    total_off = sum(1 for record in range_records if record['estado'] == "OFF")
+    total_range_records = len(range_records)
 
     # Calculate percentage
-    return (total_off / total_registros_rango) * 100 if total_registros_rango > 0 else 0
+    return (total_off / total_range_records) * 100 if total_range_records > 0 else 0
 """
