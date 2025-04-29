@@ -29,6 +29,88 @@ import { li } from "framer-motion/client";
 // Register the necessary components for Chart.js
 ChartJS.register(ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement);
 
+
+
+export default function Main() {
+  const [chartData, setChartData] = useState([0, 0, 0]); // default values
+
+  useEffect(() => {
+    fetch("http://127.0.0.1:8000/api/pie-data-proc") // URL of your FastAPI endpoint
+      .then(response => response.json())
+      .then(data => {
+        const { LOAD, NOLOAD, OFF } = data.data;
+        setChartData([LOAD, NOLOAD, OFF]);
+      })
+      .catch(error => console.error("Error fetching pie data:", error));
+  }, []);
+
+  const dataPie = {
+    labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
+    datasets: [
+      {
+        label: "Estados del Compresor", // Título del gráfico
+        data: chartData, // Los datos que provienen del backend
+        backgroundColor: [
+          "rgb(0, 191, 255)", // Color para "LOAD"
+          "rgb(229, 255, 0)", // Color para "NO LOAD"
+          "rgb(126, 126, 126)", // Color para "OFF"
+        ],
+        hoverOffset: 50, // Efecto al pasar el mouse
+      },
+    ],
+  };
+
+  const [lineChartData, setLineChartData] = useState([0, 0, 0]); // default values
+  useEffect(() => {
+    fetch("http://localhost:8000/api/line-data") // URL of your FastAPI endpoint
+      .then(response => response.json())
+      .then(data => {
+        const { NOLOAD_LOAD, CURRENT } = data.data;
+        setLineChartData([CURRENT, NOLOAD_LOAD]);
+      })
+      .catch(error => console.error("Error fetching line data:", error));
+  }, []);
+
+  // Line bOundaries options
+  const lineChartOptions = {
+    responsive: true,
+    scales: {
+      y: {
+        min: 50, // Lower boundary of the Y-axis
+        max: 100, // Upper boundary of the Y-axis
+        ticks: {
+          stepSize: 10,
+        },
+      },
+    },
+  };
+
+  // Line chart data with boundaries
+  const dataLine = {
+    labels: ['Corriente', 'LOAD-NOLOAD'],
+    datasets: [
+      {
+        label: 'Corriente consumida en el día',
+        data: lineChartData,
+        borderColor: 'rgb(13, 9, 255)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        fill: true,
+      }
+    ],
+  };
+  
+/*
+const [gaugeChartData, setGaugeChartData] = useState([0, 0, 0]); // default values
+useEffect(() => {
+  fetch("http://127.0.0.1:8000/api/gauge-data") // URL of your FastAPI endpoint
+    .then(response => response.json())
+    .then(data => {
+      const { LOAD, NOLOAD, OFF } = data.data;
+      setChartData([LOAD, NOLOAD, OFF]);
+    })
+    .catch(error => console.error("Error fetching pie data:", error));
+}, []);
+
 // Gauge chart configuration for ECharts
 const option = {
   series: [
@@ -115,76 +197,7 @@ const option = {
     }
   ]
 };
-
-
-
-// Line bOundaries options
-const lineChartOptions = {
-  responsive: true,
-  scales: {
-    y: {
-      min: 50, // Lower boundary of the Y-axis
-      max: 100, // Upper boundary of the Y-axis
-      ticks: {
-        stepSize: 10,
-      },
-    },
-  },
-};
-
-export default function Main() {
-  const [chartData, setChartData] = useState([0, 0, 0]); // default values
-
-  const [lineChartData, setLineChartData] = useState([0, 0, 0]); // default values
-  useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/pie-data-proc") // URL of your FastAPI endpoint
-      .then(response => response.json())
-      .then(data => {
-        const { LOAD, NOLOAD, OFF } = data.data;
-        setChartData([LOAD, NOLOAD, OFF]);
-      })
-      .catch(error => console.error("Error fetching pie data:", error));
-  }, []);
-
-  const dataPie = {
-    labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
-    datasets: [
-      {
-        label: "Estados del Compresor", // Título del gráfico
-        data: chartData, // Los datos que provienen del backend
-        backgroundColor: [
-          "rgb(0, 191, 255)", // Color para "LOAD"
-          "rgb(229, 255, 0)", // Color para "NO LOAD"
-          "rgb(126, 126, 126)", // Color para "OFF"
-        ],
-        hoverOffset: 50, // Efecto al pasar el mouse
-      },
-    ],
-  };
-
-  useEffect(() => {
-    fetch("http://localhost:8000/api/line-data") // URL of your FastAPI endpoint
-      .then(response => response.json())
-      .then(data => {
-        const { NOLOAD_LOAD, CURRENT } = data.data;
-        setLineChartData([CURRENT, NOLOAD_LOAD]);
-      })
-      .catch(error => console.error("Error fetching line data:", error));
-  }, []);
-
-  // Line chart data with boundaries
-  const dataLine = {
-    labels: ['Corriente', 'LOAD-NOLOAD'],
-    datasets: [
-      {
-        label: 'Corriente consumida en el día',
-        data: lineChartData,
-        borderColor: 'rgb(13, 9, 255)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        fill: true,
-      }
-    ],
-  };
+*/
 
   return (
     <main>
