@@ -137,7 +137,7 @@ export default function Main() {
 
   const [lineChartData, setLineChartData] = useState([0, 0, 0]); // default values
   useEffect(() => {
-    fetch("http://localhost:8000/api/pie-data") // URL of your FastAPI endpoint
+    fetch("http://127.0.0.1:8000/api/pie-data-proc") // URL of your FastAPI endpoint
       .then(response => response.json())
       .then(data => {
         const { LOAD, NOLOAD, OFF } = data.data;

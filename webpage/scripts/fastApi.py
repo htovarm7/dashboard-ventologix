@@ -64,22 +64,20 @@ def get_pie_data_proc():
         cursor = conn.cursor()
 
         # Call the stored procedure
-        cursor.callproc('DataFiltradaDay', [7, 7, 'A'])
+        cursor.execute("call DataFiltradaDay(7,7,'A')")
 
-        # Get the result
-        for result in cursor.stored_results():
-            results = result.fetchall()
+        results = cursor.fetchall()
 
-        # Close connections
+        # Close resources
         cursor.close()
         conn.close()
-
+        
         if not results:
             return {"error": "No data from procedure"}
 
         # Map the results (adjust column names)
         data = [
-            {"time": row[0], "estado": row[1], "corriente": row[2]}
+            {"time": row[1], "estado": row[3], "estado_anterior": row[4]}
             for row in results
         ]
 
@@ -88,8 +86,7 @@ def get_pie_data_proc():
         noload_percentage = percentage_noload(data)
         off_percentage = percentage_off(data)
 
-        return
-        {
+        return{
             "data": {
                 "LOAD": load_percentage,
                 "NOLOAD": noload_percentage,
