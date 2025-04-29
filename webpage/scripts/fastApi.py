@@ -51,46 +51,10 @@ DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")
 
-
-# @app.get("/api/clients")
-# def get_clients():
-#     try:
-#         # Connect to the database
-#         conn = mysql.connector.connect(
-#             host=DB_HOST,
-#             user=DB_USER,
-#             password=DB_PASSWORD,
-#             database=DB_NAME
-#         )
-#         cursor = conn.cursor()
-        
-#         # Execute query
-#         cursor.execute("""
-#             SELECT RFC, nombre_cliente 
-#             FROM clientes 
-#         """)
-#         results = cursor.fetchall()
-
-#         # Close resources
-#         cursor.close()
-#         conn.close()
-
-#         # Convert results into a list of dictionaries
-#         data = [
-#             {"RFC": row[0], "count": row[1]}
-#             for row in results
-#         ]
-
-#         return {"data": data}
-
-#     except mysql.connector.Error as err:
-#         # Return error message in case of database error
-#         return {"error": str(err)}
-
-@app.get("/api/pie-data")
-def get_pie_data():
+@app.get("/api/pie-data-proc")
+def get_pie_data_proc():
     try:
-        # Connect to the database
+        # Connect to DB
         conn = mysql.connector.connect(
             host=DB_HOST,
             user=DB_USER,
@@ -99,39 +63,33 @@ def get_pie_data():
         )
         cursor = conn.cursor()
 
-        # Execute query to fetch data from TempConEstadoAnterior on January 12, 2025
-        cursor.execute("""
-            SELECT time, estado, corriente
-            FROM TempConEstadoAnterior
-            WHERE DATE(time) = '2025-01-12'
-        """)
+        # Call the stored procedure
+        cursor.callproc('DataFiltradaDay', [7, 7, 'A'])
 
-        results = cursor.fetchall()
+        # Get the result
+        for result in cursor.stored_results():
+            results = result.fetchall()
 
-        # Close resources
+        # Close connections
         cursor.close()
         conn.close()
 
-        # Check if results are fetched correctly
         if not results:
-            return {"error": "No data found for the specified date."}
+            return {"error": "No data from procedure"}
 
-        # Convert results into a list of dictionaries
+        # Map the results (adjust column names)
         data = [
             {"time": row[0], "estado": row[1], "corriente": row[2]}
             for row in results
         ]
-
-        # Verify data before processing
-        print(f"Data fetched from database: {data}")
 
         # Calculate percentages
         load_percentage = percentage_load(data)
         noload_percentage = percentage_noload(data)
         off_percentage = percentage_off(data)
 
-        # Return percentages in a format suitable for graphing
-        return {
+        return
+        {
             "data": {
                 "LOAD": load_percentage,
                 "NOLOAD": noload_percentage,
@@ -140,9 +98,7 @@ def get_pie_data():
         }
 
     except mysql.connector.Error as err:
-        # Return error message in case of database error
         return {"error": str(err)}
-
     
 def percentage_load(data):
     load_records = [record for record in data if record['estado'] == "LOAD"]
