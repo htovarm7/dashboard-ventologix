@@ -19,15 +19,17 @@ import React, { useEffect, useState } from 'react';
 
 // Libraries for charts
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement} from "chart.js";
-import { Line, Pie } from "react-chartjs-2";
+import { Line, Pie, Chart } from "react-chartjs-2";
+import { useRef } from 'react';
+
 
 // ECharts for the gauge chart
 import ReactECharts from 'echarts-for-react';
 import { li } from "framer-motion/client";
 
 import Boton from "@/components/refreshButton";
-
-
+import Image from "next/image";
+import { Chart as ChartJSInstance } from 'chart.js';
 
 // Register the necessary components for Chart.js
 ChartJS.register(ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement);
@@ -35,9 +37,12 @@ ChartJS.register(ArcElement, Tooltip, Legend, LineElement, CategoryScale, Linear
 
 
 export default function Main() {
+  const chartRef = useRef<ChartJSInstance>(null);
+
   const [chartData, setChartData] = useState([0, 0, 0]); // default values
   const [lineChartData, setLineChartData] = useState<number[]>([]); // default values
   const [lineChartLabels, setLineChartLabels] = useState<string[]>([]); // default labels
+  const [maxData, setMaxData] = useState(0); // default max value
 
 // Gauge chart configuration for ECharts
 const option = {
@@ -142,55 +147,74 @@ const dataPie = {
   ],
 };
 
+useEffect(() => {
+  if (chartRef.current) {
+    const chart = chartRef.current;
+    const ctx = chart.ctx;
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(13, 9, 255, 0.5)');
+    gradient.addColorStop(1, 'rgba(13, 9, 255, 0)');
+
+    chart.data.datasets[0].backgroundColor = gradient;
+    chart.update();
+  }
+}, [lineChartData]);
+
+
 
 // Line boundaries options
 const lineChartOptions = {
   responsive: true,
   scales: {
     y: {
-      min: 50, // Lower boundary of the Y-axis
-      max: 100, // Upper boundary of the Y-axis
+      min: 0, // Lower boundary of the Y-axis
+      max: maxData, // Upper boundary of the Y-axis
       ticks: {
-        stepSize: 10,
+        stepSize: 1,
       },
     },
   },
 };
 
 const dataLine = {
-  labels: lineChartLabels, // <- Esto toma los tiempos del backend como etiquetas del eje X
+  labels: lineChartLabels, // Labels for the X-axis of the line chart
   datasets: [
     {
-      label: 'Corriente consumida en el día',
-      data: lineChartData, // <- Corrientes asociadas a cada tiempo
-      borderColor: 'rgb(13, 9, 255)',
-      backgroundColor: 'rgba(0, 0, 0, 0.2)',
-      fill: true,
-      tension: 0.4, // hace la línea más suave
+      label: 'Corriente consumida en el dia', // Title of the dataset
+      data: lineChartData, // Data points for the line chart
+      borderColor: 'rgb(13, 9, 255)', // Line color
+      backgroundColor: 'rgba(82, 94, 255, 0.2)', // Area fill color
+      fill: 'origin', // Fill from the origin of the Y-axis
+      tension: 0.4, // Line smoothing
+      pointBackgroundColor: 'rgb(13, 9, 255)', // Color of the data points
+      pointRadius: 3, // Radius of the data points
+      borderWidth: 2, // Width of the line
     }
   ],
 };
-
 
   return (
 
     <main>
       <TransitionPage />
       <NavBar />
-      <div>
-        <h1 className="text-3xl font-bold mb-5 text-center">Reporte Diario</h1>
+      <div className="flex justify-between items-center mb-3">
+        <h1 className="text-3xl font-bold text-center flex-1">Reporte Diario</h1>
+        <img src="/Ventologix_03.png" alt="logo" className="h-7 w-35 px" />
       </div>
       <div className="flex flex-col items-center justify-center min-h-[150vh] bg-gradient-to-b from-white to-gray-100">
         <Boton 
           setChartData={setChartData} 
           setLineChartLabels={setLineChartLabels} 
           setLineChartData={setLineChartData} 
+          setMaxCurrent={setMaxData}
         />
         <div className="w-[250px] h-[250px] mb-8">
           <Pie data={dataPie} />
         </div>
         <div className="w-[600px] h-[400px] mb-8">
-          <Line data={dataLine} options={lineChartOptions} />
+          <Chart ref={chartRef} type='line' data={dataLine} options={lineChartOptions} />
         </div>
         <div className="w-[250px] h-[250px]">
           <ReactECharts option={option} />

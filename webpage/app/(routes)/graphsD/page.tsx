@@ -14,6 +14,7 @@
 // Components from anothers files
 import TransitionPage from "@/components/transition-page";
 import NavBar from "@/components/navBar";
+import { usePathname } from "next/navigation";
 
 import React, { useEffect, useState } from 'react';
 
@@ -175,6 +176,7 @@ export default function Main() {
       <NavBar />
       <div>
         <h1 className="text-3xl font-bold mb-5 text-center">Reporte Diario</h1>
+        <img src="public/Ventologix_03.png" alt="logo"/>
       </div>
       <div className="flex flex-col items-center justify-center min-h-[150vh] bg-gradient-to-b from-white to-gray-100">
         <div className="w-[250px] h-[250px] mb-8">

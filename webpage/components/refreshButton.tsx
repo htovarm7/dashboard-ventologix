@@ -5,9 +5,10 @@ type BotonProps = {
     setChartData: React.Dispatch<React.SetStateAction<number[]>>;
     setLineChartLabels: React.Dispatch<React.SetStateAction<string[]>>;
     setLineChartData: React.Dispatch<React.SetStateAction<number[]>>;
+    setMaxCurrent: React.Dispatch<React.SetStateAction<number>>;
 };
 
-const Boton: React.FC<BotonProps> = ({ setChartData, setLineChartLabels, setLineChartData }) => {
+const Boton: React.FC<BotonProps> = ({ setChartData, setLineChartLabels, setLineChartData, setMaxCurrent }) => {
     const handleClick = () => {
         // Pie chart data
         fetch("http://127.0.0.1:8000/api/pie-data-proc")
@@ -43,6 +44,7 @@ const Boton: React.FC<BotonProps> = ({ setChartData, setLineChartLabels, setLine
 
                 setLineChartLabels(times);
                 setLineChartData(currents);
+                setMaxCurrent(Math.max(...currents) + (Math.max(...currents)*0.30)); // Actualizar el valor máximo
             })
             .catch((error) => console.error("Error fetching line data:", error));
     };

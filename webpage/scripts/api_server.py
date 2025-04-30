@@ -12,6 +12,8 @@
 
 """
 * @Observations:
+* 1. To run the API, use the command:
+* uvicorn scripts.api_server:app --reload
 * To check the API response, you can use the following URL:
 * http://127.0.0.1:8000/docs
 * For PENOX use device_id = 7
