@@ -30,6 +30,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import mysql.connector
 import os
 from dotenv import load_dotenv
+import numpy as np
 
 # Load environment variables
 load_dotenv()
@@ -64,7 +65,7 @@ def get_pie_data_proc():
         cursor = conn.cursor()
 
         # Call the stored procedure
-        cursor.execute("call DataFiltradaDay(7,7,'A')")
+        cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
 
         results = cursor.fetchall()
 
@@ -82,9 +83,14 @@ def get_pie_data_proc():
         ]
 
         # Calculate percentages
-        load_percentage = percentage_load(data)
-        noload_percentage = percentage_noload(data)
-        off_percentage = percentage_off(data)
+        load_percentage = np.round(percentage_load(data),3)
+        noload_percentage = np.round(percentage_noload(data),3)
+        off_percentage = np.round(percentage_off(data),3)
+        
+        # LOAD / NO LOAD /  OFF
+        arr = [load_percentage,noload_percentage,off_percentage]
+        
+        print(arr)
 
         return{
             "data": {
@@ -96,26 +102,8 @@ def get_pie_data_proc():
 
     except mysql.connector.Error as err:
         return {"error": str(err)}
-    
-def percentage_load(data):
-    load_records = [record for record in data if record['estado'] == "LOAD"]
-    total_load = len(load_records)
-    total_records = len(data)
-    return (total_load / total_records) * 100 if total_records > 0 else 0
 
-def percentage_noload(data):
-    noload_records = [record for record in data if record['estado'] == "NOLOAD"]
-    total_noload = len(noload_records)
-    total_records = len(data)
-    return (total_noload / total_records) * 100 if total_records > 0 else 0
-
-def percentage_off(data):
-    off_records = [record for record in data if record['estado'] == "OFF"]
-    total_off = len(off_records)
-    total_records = len(data)
-    return (total_off / total_records) * 100 if total_records > 0 else 0
-
-@app.get("/api/line-data")
+@app.get("/api/line-data-proc")
 def get_line_data():
     try:
         # Connect to the database
@@ -128,11 +116,7 @@ def get_line_data():
         cursor = conn.cursor()
 
         # Execute query to fetch data from TempConEstadoAnterior on January 12, 2025
-        cursor.execute("""
-            SELECT time, estado, corriente
-            FROM TempConEstadoAnterior
-            WHERE DATE(time) = '2025-01-12'
-        """)
+        cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
 
         results = cursor.fetchall()
 
@@ -146,10 +130,10 @@ def get_line_data():
 
         # Convert results into a list of dictionaries
         data = [
-            {"time": row[0], "estado": row[1], "corriente": row[2]}
+            {"time": row[1], "corriente": row[2]}
             for row in results
         ]
-
+        
         # Verify data before processing
         print(f"Data fetched from database: {data}")
 
@@ -219,6 +203,80 @@ def get_gauge_data():
         )
 
         return needle
+@app.get("/api/kWh-usage")
+def get_kWh_usage():
+    try:
+        # Connect to the database
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        # Execute stored procedure
+        cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
+        results1 = cursor.fetchall()
+        
+        while cursor.nextset():
+            pass
+
+        # Now safe to execute another query
+        cursor.execute("select hp, voltaje from compresores where id_cliente = 7")
+        results2 = cursor.fetchall()
+
+        # Close resources
+        cursor.close()
+        conn.close()
+
+        if not results1 or not results2:
+            return {"error": "No data found for the specified queries."}
+
+        data1 = [{"corriente": row[2]} for row in results1]
+        data2 = [{"hp": row[0], "voltage": row[1]} for row in results2]
+
+        # kwhPercentage = energy_calculated(data1, data2)
+
+        print(f"Data fetched from first query: {data1}")
+        print(f"Data fetched from second query: {data2}")
+
+        return {
+            "data1": data1,
+            "data2": data2
+        }
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
+    
+def percentage_load(data):
+    load_records = [record for record in data if record['estado'] == "LOAD"]
+    total_load = len(load_records)
+    total_records = len(data)
+    return (total_load / total_records) * 100 if total_records > 0 else 0
+
+def percentage_noload(data):
+    noload_records = [record for record in data if record['estado'] == "NOLOAD"]
+    total_noload = len(noload_records)
+    total_records = len(data)
+    return (total_noload / total_records) * 100 if total_records > 0 else 0
+
+def percentage_off(data):
+    off_records = [record for record in data if record['estado'] == "OFF"]
+    total_off = len(off_records)
+    total_records = len(data)
+    return (total_off / total_records) * 100 if total_records > 0 else 0
+
+def energy_calculated(data1,data2):
+    hours_records = [record for record in data1 if record['tiempo']]
+    hours = len(hours_records)
+    voltage = [record for record in data2 if record['voltaje']]
+    
+    current_records = [record for record in data2 if record['corriente'] > 0]
+    averageKw = current_records * 1.732 * voltage * 1 / 1000
+    hourTime = hours / 3600
+    return averageKw * hourTime
+
 
 """
 
