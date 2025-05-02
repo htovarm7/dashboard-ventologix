@@ -147,7 +147,7 @@ def get_line_data():
         # Return error message in case of database error
         return {"error": str(err)}
 
-@app.get("/api/gauge-data")
+@app.get("/api/gauge-data-proc")
 def get_gauge_data():
     try:
         # Connect to the database
@@ -205,10 +205,11 @@ def get_gauge_data():
         )
 
         return needle
-@app.get("/api/kWh-usage")
-def get_kWh_usage():
+    
+@app.get("/api/stats-data")
+def get_stats_data():
     try:
-        # Connect to the database
+        # Conectar a la base de datos
         conn = mysql.connector.connect(
             host=DB_HOST,
             user=DB_USER,
@@ -217,40 +218,46 @@ def get_kWh_usage():
         )
         cursor = conn.cursor()
 
-        # Execute stored procedure
+        # Ejecutar procedimiento almacenado
         cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
         results1 = cursor.fetchall()
-        
+
         while cursor.nextset():
             pass
 
-        # Now safe to execute another query
+        # Consultar voltaje y HP
         cursor.execute("select hp, voltaje from compresores where id_cliente = 7")
         results2 = cursor.fetchall()
 
-        # Close resources
+        # Cerrar recursos
         cursor.close()
         conn.close()
 
         if not results1 or not results2:
             return {"error": "No data found for the specified queries."}
 
-        data1 = [{"corriente": row[2]} for row in results1]
-        data2 = [{"hp": row[0], "voltage": row[1]} for row in results2]
+        # Preparar datos
+        data = [{"time": row[1], "corriente": row[2], "estado": row[3]} for row in results1]
+        compresor_config = [{"hp": row[0], "voltage": row[1]} for row in results2]
 
-        # kwhPercentage = energy_calculated(data1, data2)
-
-        print(f"Data fetched from first query: {data1}")
-        print(f"Data fetched from second query: {data2}")
+        # Calcular kWh y horas trabajadas
+        kwh_total = energy_calculated(data, compresor_config)
+        horas_total = np.round(horas_trabajadas(data),2)
+        usd_por_kwh = 0.12  # aquí puedes parametrizarlo desde BD o env var
+        costo_usd = costo_energia_usd(kwh_total, usd_por_kwh)
 
         return {
-            "data1": data1,
-            "data2": data2
+            "data": {
+                "kWh": kwh_total,
+                "hours_worked": horas_total,
+                "usd_cost": costo_usd
+            }
         }
 
     except mysql.connector.Error as err:
         return {"error": str(err)}
-    
+
+
 def percentage_load(data):
     load_records = [record for record in data if record['estado'] == "LOAD"]
     total_load = len(load_records)
@@ -269,15 +276,53 @@ def percentage_off(data):
     total_records = len(data)
     return (total_off / total_records) * 100 if total_records > 0 else 0
 
-def energy_calculated(data1,data2):
-    hours_records = [record for record in data1 if record['tiempo']]
-    hours = len(hours_records)
-    voltage = [record for record in data2 if record['voltaje']]
-    
-    current_records = [record for record in data2 if record['corriente'] > 0]
-    averageKw = current_records * 1.732 * voltage * 1 / 1000
-    hourTime = hours / 3600
-    return averageKw * hourTime
+def energy_calculated(data, compresor_data, segundos_por_registro=60):
+    filtered_currents = [record['corriente'] for record in data if record['corriente'] > 0]
+    if not filtered_currents:
+        return 0
+
+    voltage_values = [record['voltage'] for record in compresor_data if record['voltage'] is not None]
+    if not voltage_values:
+        return 0
+
+    average_voltage = np.mean(voltage_values)
+    tiempo_horas = segundos_por_registro / 3600
+
+    energia_calculada = sum(
+        corriente * 1.732 * average_voltage * 1 / 1000 * tiempo_horas
+        for corriente in filtered_currents
+    )
+
+    return round(energia_calculada, 3)
+
+def horas_trabajadas(data, segundos_por_registro=5):
+    if not data:
+        return 0
+
+    registros_no_off = [record for record in data if record['estado'] != "OFF"]
+
+    total_registros = len(data)
+    registros_no_off_count = len(registros_no_off)
+
+    if total_registros == 0 or registros_no_off_count == 0:
+        return 0
+
+    primer_no_off_time = min(record['time'] for record in registros_no_off)
+    ultimo_no_off_time = max(record['time'] for record in registros_no_off)
+
+    registros_rango = [
+        record for record in data
+        if primer_no_off_time <= record['time'] <= ultimo_no_off_time
+    ]
+
+    total_registros_rango = len(registros_rango)
+    total_segundos = total_registros_rango * segundos_por_registro
+    total_horas = total_segundos / 3600
+
+    return round(total_horas, 3)
+
+def costo_energia_usd(kwh_total, usd_por_kwh=0.12):
+    return round(kwh_total * usd_por_kwh, 2)
 
 
 """
