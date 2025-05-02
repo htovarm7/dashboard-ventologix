@@ -19,16 +19,16 @@ import React, { useEffect, useState } from 'react';
 
 // Libraries for charts
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement} from "chart.js";
-import { Line, Pie, Chart } from "react-chartjs-2";
+import { Pie, Chart } from "react-chartjs-2";
 import { useRef } from 'react';
 
 
 // ECharts for the gauge chart
 import ReactECharts from 'echarts-for-react';
-import { li } from "framer-motion/client";
+// Removed unused import
 
 import Boton from "@/components/refreshButton";
-import Image from "next/image";
+// Removed unused import
 import { Chart as ChartJSInstance } from 'chart.js';
 
 // Register the necessary components for Chart.js
@@ -43,94 +43,138 @@ export default function Main() {
   const [lineChartData, setLineChartData] = useState<number[]>([]); // default values
   const [lineChartLabels, setLineChartLabels] = useState<string[]>([]); // default labels
   const [maxData, setMaxData] = useState(0); // default max value
+  const [gaugeValue, setGaugeValue] = useState<number>(0);
 
-// Gauge chart configuration for ECharts
-const option = {
-  series: [
-    {
-      type: 'gauge',
-      startAngle: 180,
-      endAngle: 0,
-      center: ['50%', '75%'],
-      radius: '90%',
-      min: 0,
-      max: 1,
-      splitNumber: 8,
-      axisLine: {
-        lineStyle: {
-          width: 6,
-          color: [
-            [0.25, '#FF6E76'],
-            [0.5, '#FDDD60'],
-            [0.75, '#58D9F9'],
-            [1, '#7CFFB2']
-          ]
-        }
-      },
-      pointer: {
-        icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
-        length: '12%',
-        width: 20,
-        offsetCenter: [0, '-60%'],
-        itemStyle: {
-          color: 'auto'
-        }
-      },
-      axisTick: {
-        length: 12,
-        lineStyle: {
-          color: 'auto',
-          width: 2
-        }
-      },
-      splitLine: {
-        length: 20,
-        lineStyle: {
-          color: 'auto',
-          width: 5
-        }
-      },
-      axisLabel: {
-        color: '#464646',
-        fontSize: 20,
-        distance: -60,
-        rotate: 'tangential',
-        formatter: function (value: number) {
-          if (value === 0.875) {
-            return 'Grade A';
-          } else if (value === 0.625) {
-            return 'Grade B';
-          } else if (value === 0.375) {
-            return 'Grade C';
-          } else if (value === 0.125) {
-            return 'Grade D';
-          }
-          return '';
-        }
-      },
-      title: {
-        offsetCenter: [0, '-10%'],
-        fontSize: 20
-      },
-      detail: {
-        fontSize: 30,
-        offsetCenter: [0, '-35%'],
-        valueAnimation: true,
-        formatter: function (value: number) {
-          return Math.round(value * 100) + '';
-        },
-        color: 'inherit'
-      },
-      data: [
-        {
-          value: 0.7,
-          name: 'Grade Rating'
-        }
-      ]
-    }
-  ]
-};
+  const [clientData, setClientData] = useState<{
+    numero_cliente: number;
+    nombre_cliente: string;
+    RFC: string;
+    direccion: string;
+  } | null>(null);
 
+  useEffect(() => {
+    fetch("http://127.0.0.1:8000/api/client-data")
+      .then(response => response.json())
+      .then(data => {
+        if (data.data && data.data.length > 0) {
+          setClientData(data.data[0]); // toma el primer elemento del array
+        }
+      })
+      .catch(error => console.error("Error fetching client data:", error));
+  }, []);
+
+  const [compressorData, setCompresorData] = useState<{
+    hp: number;
+    tipo: string;
+    voltaje: number;
+    marca: string;
+    numero_serie: number;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("http://127.0.0.1:8000/api/compressor-data")
+      .then(response => response.json())
+      .then(data => {
+        if (data.data && data.data.length > 0) {
+          setCompresorData(data.data[0]); // toma el primer elemento del array
+        }
+      })
+      .catch(error => console.error("Error fetching compressor data:", error));
+    }, []);
+
+  // const getGaugeOption = (gaugeValue) => ({
+  //   series: [{
+  //     type: 'gauge',
+  //     startAngle: 155,
+  //     endAngle: -75,
+  //     min: 30,
+  //     max: 120,
+  //     splitNumber: 9,
+  
+  //     axisLine: {
+  //       lineStyle: {
+  //         width: 30,
+  //         color: [
+  //           [64/120, '#FF0000'],    // Rojo hasta 64
+  //           [79/120, '#FFFF00'],    // Amarillo hasta 79
+  //           [92/120, '#00FF00'],    // Verde hasta 92
+  //           [99/120, '#418FDE'],    // Azul hasta 99
+  //           [110/120, '#FFFF00'],   // Amarillo hasta 110
+  //           [1,      '#FF0000']     // Rojo hasta 120
+  //         ]
+  //       }
+  //     },
+  
+  //     pointer: {
+  //       length: '75%',
+  //       width: 6,
+  //       itemStyle: {
+  //         color: 'black'
+  //       }
+  //     },
+  
+  //     axisTick: {
+  //       length: 10,
+  //       lineStyle: {
+  //         color: '#333',
+  //         width: 2
+  //       }
+  //     },
+  
+  //     splitLine: {
+  //       length: 20,
+  //       lineStyle: {
+  //         color: '#333',
+  //         width: 4
+  //       }
+  //     },
+  
+  //     axisLabel: {
+  //       fontSize: 14,
+  //       color: '#333',
+  //       formatter: function (val) {
+  //         // Solo muestra los valores clave
+  //         if ([30, 64, 79, 92, 99, 110, 120].includes(val)) {
+  //           return val + '%';
+  //         }
+  //         return '';
+  //       }
+  //     },
+  
+  //     title: {
+  //       fontSize: 18,
+  //       offsetCenter: [0, '70%']
+  //     },
+  
+  //     detail: {
+  //       formatter: '{value}%',
+  //       fontSize: 24,
+  //       color: 'inherit'
+  //     },
+  
+  //     data: [{
+  //       value: gaugeValue,
+  //       name: 'Uso Equivalente'
+  //     }],
+  
+  //     // Línea negra fija sobre el 100%
+  //     markLine: {
+  //       silent: true,
+  //       lineStyle: {
+  //         color: 'black',
+  //         width: 5
+  //       },
+  //       data: [
+  //         [
+  //           { coord: [100, 0], symbol: 'none' },
+  //           { coord: [100, 1], symbol: 'none' }
+  //         ]
+  //       ]
+  //     }
+  //   }]
+  // });  
+    
+  
 const dataPie = {
   labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
   datasets: [
@@ -160,8 +204,6 @@ useEffect(() => {
     chart.update();
   }
 }, [lineChartData]);
-
-
 
 // Line boundaries options
 const lineChartOptions = {
@@ -199,16 +241,71 @@ const dataLine = {
     <main>
       <TransitionPage />
       <NavBar />
-      <div className="flex justify-between items-center mb-3">
-        <h1 className="text-3xl font-bold text-center flex-1">Reporte Diario</h1>
-        <img src="/Ventologix_03.png" alt="logo" className="h-7 w-35 px" />
+      {/* Here its the top section*/}
+      <div className="flex flex-col items-center mb-3">
+        <h1 className="text-3xl font-bold text-center">Reporte Diario</h1>
+        <h2 className="text-2xl font-bold text-center">Compresor 1</h2>
+        <h3 className="text-xl font-bold text-center">Fecha: {new Date().toLocaleDateString()}</h3>
+        <img src="/Ventologix_03.png" alt="logo" className="h-10 w-45 mt-3 absolute top-0 right-0 m-3" />
+      </div> 
+
+      <div className="mt-4 p-4">
+
+        <h2 className="text-xl font-bold mb-2">Información Compresor</h2>
+        <div className="flex flex-row gap-60 items-center justify-center text-center">
+          <div className="text-center">
+            <p className="text-lg">{compressorData?.numero_serie}</p>
+            <p className="text-l font-bold">Número de Serie</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg">{compressorData?.marca}</p>
+            <p className="text-l font-bold">Marca</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg">{compressorData?.tipo}</p>
+            <p className="text-l font-bold">Tipo</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg">{compressorData?.voltaje}</p>
+            <p className="text-l font-bold">Voltaje</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg">{compressorData?.hp}</p>
+            <p className="text-l font-bold">HP</p>
+          </div>
+        </div>
+
+        <h2 className="text-xl font-bold mb-2"> Informacion del Cliente </h2>
+        <div className="flex flex-row gap-60 items-center justify-center text-center">
+          <div className="text-center">
+            <p className="text-lg">{clientData?.nombre_cliente}</p>
+            <p className="text-l font-bold">Nombre</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg">{clientData?.numero_cliente}</p>
+            <p className="text-l font-bold">Número de Cliente</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg">{clientData?.RFC}</p>
+            <p className="text-l font-bold">RFC</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg">{clientData?.direccion}</p>
+            <p className="text-l font-bold">Direccion</p>
+          </div>
+        </div>
       </div>
+
+  
+        {/* Here its the graphs */}
       <div className="flex flex-col items-center justify-center min-h-[150vh] bg-gradient-to-b from-white to-gray-100">
+        <
         <Boton 
           setChartData={setChartData} 
           setLineChartLabels={setLineChartLabels} 
           setLineChartData={setLineChartData} 
           setMaxCurrent={setMaxData}
+          setGaugeValue={setGaugeValue}
         />
         <div className="w-[250px] h-[250px] mb-8">
           <Pie data={dataPie} />
@@ -217,7 +314,7 @@ const dataLine = {
           <Chart ref={chartRef} type='line' data={dataLine} options={lineChartOptions} />
         </div>
         <div className="w-[250px] h-[250px]">
-          <ReactECharts option={option} />
+        {/* <ReactECharts option={getGaugeOption(gaugeValue)} /> */}
         </div>
         <div className="">
           <h1>kWh utilizados</h1>

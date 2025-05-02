@@ -1,3 +1,6 @@
+"use client";
+
+
 // components/refreshButton.tsx
 import React from "react";
 
@@ -6,9 +9,10 @@ type BotonProps = {
     setLineChartLabels: React.Dispatch<React.SetStateAction<string[]>>;
     setLineChartData: React.Dispatch<React.SetStateAction<number[]>>;
     setMaxCurrent: React.Dispatch<React.SetStateAction<number>>;
+    setGaugeValue: React.Dispatch<React.SetStateAction<number>>;
 };
 
-const Boton: React.FC<BotonProps> = ({ setChartData, setLineChartLabels, setLineChartData, setMaxCurrent }) => {
+const Boton: React.FC<BotonProps> = ({ setChartData, setLineChartLabels, setLineChartData, setMaxCurrent, setGaugeValue }) => {
     const handleClick = () => {
         // Pie chart data
         fetch("http://127.0.0.1:8000/api/pie-data-proc")
@@ -29,12 +33,12 @@ const Boton: React.FC<BotonProps> = ({ setChartData, setLineChartLabels, setLine
                 }));
 
                 // Ordenar por tiempo
-                rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
+                rawData.sort((a: { time: Date }, b: { time: Date }) => a.time.getTime() - b.time.getTime());
 
-                const times = rawData.map(item =>
+                const times = rawData.map((item: { time: Date }) =>
                     item.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                 );
-                const currents = rawData.map(item => item.corriente);
+                const currents = rawData.map((item: { corriente: number }) => item.corriente);
 
                 // Agregar 23:59:59 si no está al final
                 if (!times.includes("23:59:59")) {
@@ -47,6 +51,13 @@ const Boton: React.FC<BotonProps> = ({ setChartData, setLineChartLabels, setLine
                 setMaxCurrent(Math.max(...currents) + (Math.max(...currents)*0.30)); // Actualizar el valor máximo
             })
             .catch((error) => console.error("Error fetching line data:", error));
+        
+            fetch("http://127.0.0.1:8000/api/gauge-data-proc")
+                .then(response => response.json())
+                .then(data => {
+                    setGaugeValue(data.porcentaje_uso);
+                })
+                .catch(error => console.error("Error fetching gauge data:", error));
     };
 
     return (

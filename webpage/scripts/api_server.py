@@ -92,7 +92,7 @@ def get_pie_data_proc():
         # LOAD / NO LOAD /  OFF
         arr = [load_percentage,noload_percentage,off_percentage]
         
-        print(arr)
+        # print(arr)
 
         return{
             "data": {
@@ -137,7 +137,7 @@ def get_line_data():
         ]
         
         # Verify data before processing
-        print(f"Data fetched from database: {data}")
+        # print(f"Data fetched from database: {data}")
 
         return {
             "data": data
@@ -159,52 +159,38 @@ def get_gauge_data():
         )
         cursor = conn.cursor()
 
-        # Execute query to fetch data from TempConEstadoAnterior on January 12, 2025
-        cursor.execute("""
-            SELECT time, estado, corriente
-            FROM TempConEstadoAnterior
-            WHERE DATE(time) = '2025-01-12'
-        """)
-
+        # Fetch hp values for id_cliente 7
+        cursor.execute("SELECT hp FROM compresores WHERE id_cliente = 7")
         results = cursor.fetchall()
 
-        # Close resources
+        # Close DB connections
         cursor.close()
         conn.close()
 
-        # Check if results are fetched correctly
         if not results:
-            return {"error": "No data found for the specified date."}
+            return {"error": "No data found for the specified client."}
 
-        # Convert results into a list of dictionaries
-        data = [
-            {"time": row[0], "estado": row[1], "corriente": row[2]}
-            for row in results
-        ]
+        # Convert results to list of dicts
+        data = [{"hp": row[0]} for row in results]
 
-        # Verify data before processing
-        print(f"Data fetched from database: {data}")
+        # print(f"Results from DB: {results}")
+        # print(f"Data processed: {data}")
+
+        hp_instalado = 70.0
+
+        # Sum hp values safely
+        total_hp = sum(item["hp"] for item in data if isinstance(item["hp"], (int, float))) / 2
+
+        porcentaje_uso = np.round((total_hp / hp_instalado) * 100,2)
+        normalized_value = max(0, min(1, (porcentaje_uso - 30) / (120 - 30)))
 
         return {
-            "data": data
+            "porcentaje_uso": porcentaje_uso,
+            "normalized_value": normalized_value
         }
 
-    except mysql.connector.Error as err:
-        # Return error message in case of database error
-        return {"error": str(err)}
-    
-    def gauge_equivalent_usage_percentage(current_equivalent_hp, installed_hp):
-        # Calculate usage percentage
-        usage_percentage = (current_equivalent_hp / installed_hp) * 100 if installed_hp > 0 else 0
-
-        # Adjust the needle value
-        needle = (
-            30 if usage_percentage < 30 else
-            120 if usage_percentage > 120 else
-            usage_percentage
-        )
-
-        return needle
+    except Exception as e:
+        return {"error": str(e)}
     
 @app.get("/api/stats-data")
 def get_stats_data():
@@ -252,6 +238,72 @@ def get_stats_data():
                 "hours_worked": horas_total,
                 "usd_cost": costo_usd
             }
+        }
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
+
+@app.get("/api/compressor-data")
+def get_compressor_data():
+    try:
+        # Connect to the database
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        # Fetch data from the compressor table for id_cliente 7
+        cursor.execute("SELECT hp, tipo, voltaje, marca, numero_serie FROM compresores WHERE id_cliente = 7 and linea= 'A'")
+        results = cursor.fetchall()
+
+        # Close resources
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return {"error": "No data found for the specified client."}
+
+        # Convert results into a list of dictionaries
+        data = [{"hp": row[0], "tipo": row[1], "voltaje": row[2], "marca": row[3], "numero_serie": row[4]} for row in results]
+
+        return {
+            "data": data
+        }
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
+
+@app.get("/api/client-data")
+def get_client_data():
+    try:
+        # Connect to the database
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        # Fetch data from the clientes table for id_cliente 7
+        cursor.execute("SELECT numero_cliente, nombre_cliente, RFC, direccion FROM clientes WHERE id_cliente = 7")
+        results = cursor.fetchall()
+
+        # Close resources
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return {"error": "No data found for the specified client."}
+
+        # Convert results into a list of dictionaries
+        data = [{"numero_cliente": row[0], "nombre_cliente": row[1], "RFC": row[2], "direccion": row[3]} for row in results]
+
+        return {
+            "data": data
         }
 
     except mysql.connector.Error as err:
