@@ -1,87 +1,152 @@
-/*
- * @file page.tsx
- * @date 23/04/2025
- * @author Hector Tovar
- * 
- * @description
- * This file implements the daily graphs, including a Line Chart and a Gauge Chart using both Chart.js and ECharts.
- *
- * @version 1.0
-*/
+  /*
+  * @file page.tsx
+  * @date 23/04/2025
+  * @author Hector Tovar
+  * 
+  * @description
+  * This file implements the daily graphs, including a Line Chart and a Gauge Chart using both Chart.js and ECharts.
+  *
+  * @version 1.0
+  */
 
-"use client" 
+  "use client" 
 
-// Components from anothers files
-import TransitionPage from "@/components/transition-page";
-import NavBar from "@/components/navBar";
+  // Components from anothers files
+  import TransitionPage from "@/components/transition-page";
+  import NavBar from "@/components/navBar";
+  import Boton from "@/components/refreshButton";
 
-import React, { useEffect, useState } from 'react';
+  import React, { useEffect, useState } from 'react';
 
-// Libraries for charts
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement} from "chart.js";
-import { Pie, Chart } from "react-chartjs-2";
-import { useRef } from 'react';
-
-
-// ECharts for the gauge chart
-import ReactECharts from 'echarts-for-react';
-// Removed unused import
-
-import Boton from "@/components/refreshButton";
-// Removed unused import
-import { Chart as ChartJSInstance } from 'chart.js';
-
-// Register the necessary components for Chart.js
-ChartJS.register(ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement);
+  // Libraries for charts
+  import ChartDataLabels from 'chartjs-plugin-datalabels';
+  import { Chart as ChartJS, ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement} from "chart.js";
+  import { Pie, Chart} from "react-chartjs-2";
+  import { useRef } from 'react';
 
 
+  // ECharts for the gauge chart
+  import ReactECharts from 'echarts-for-react';
+  import { Chart as ChartJSInstance } from 'chart.js';
 
-export default function Main() {
-  const chartRef = useRef<ChartJSInstance>(null);
+  // Register the necessary components for Chart.js
+  ChartJS.register(ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement);
 
-  const [chartData, setChartData] = useState([0, 0, 0]); // default values
-  const [lineChartData, setLineChartData] = useState<number[]>([]); // default values
-  const [lineChartLabels, setLineChartLabels] = useState<string[]>([]); // default labels
-  const [maxData, setMaxData] = useState(0); // default max value
-  const [gaugeValue, setGaugeValue] = useState<number>(0);
+  export default function Main() {
+    const chartRef = useRef<ChartJSInstance>(null);
 
-  const [clientData, setClientData] = useState<{
-    numero_cliente: number;
-    nombre_cliente: string;
-    RFC: string;
-    direccion: string;
-  } | null>(null);
+    const [chartData, setChartData] = useState([0, 0, 0]); // default values
+    const [lineChartData, setLineChartData] = useState<number[]>([]); // default values
+    const [lineChartLabels, setLineChartLabels] = useState<string[]>([]); // default labels
+    const [maxData, setMaxData] = useState(0); // default max value
+    const [gaugeValue, setGaugeValue] = useState<number>(0);
+    const [kWh, setKWh] = useState<number>(0); // default kWh value
+    const [hoursWorked, setHoursWorked] = useState<number>(0); // default hours worked value
+    const [usdCost, setUsdCost] = useState<number>(0); // default USD cost value
 
-  useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/client-data")
-      .then(response => response.json())
-      .then(data => {
-        if (data.data && data.data.length > 0) {
-          setClientData(data.data[0]); // toma el primer elemento del array
-        }
-      })
-      .catch(error => console.error("Error fetching client data:", error));
-  }, []);
+    const [clientData, setClientData] = useState<{
+      numero_cliente: number;
+      nombre_cliente: string;
+      RFC: string;
+      direccion: string;
+    } | null>(null);
 
-  const [compressorData, setCompresorData] = useState<{
-    hp: number;
-    tipo: string;
-    voltaje: number;
-    marca: string;
-    numero_serie: number;
-  } | null>(null);
+    const [compressorData, setCompresorData] = useState<{
+      hp: number;
+      tipo: string;
+      voltaje: number;
+      marca: string;
+      numero_serie: number;
+    } | null>(null);
+    
+    const fetchChartData = () => {
+      // Pie chart data
+      fetch("http://127.0.0.1:8000/api/pie-data-proc")
+        .then((response) => response.json())
+        .then((data) => {
+          const { LOAD, NOLOAD, OFF } = data.data;
+          setChartData([LOAD, NOLOAD, OFF]);
+        })
+        .catch((error) => console.error("Error fetching pie data:", error));
+    
+      // Line chart data
+      fetch("http://127.0.0.1:8000/api/line-data-proc")
+        .then((response) => response.json())
+        .then((data) => {
+          const rawData = data.data.map((item: { time: string, corriente: number }) => ({
+            time: new Date(item.time),
+            corriente: item.corriente,
+          }));
+    
+          // Ordenar por tiempo
+          rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
+    
+          const times = rawData.map((item) =>
+            item.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          );
+          const currents = rawData.map((item) => item.corriente);
+    
+          // Agregar 23:59:59 si no está al final
+          if (!times.includes("23:59:59")) {
+            times.push("23:59:59");
+            currents.push(null); // o currents.at(-1) o 0, según prefieras
+          }
+    
+          setLineChartLabels(times);
+          setLineChartData(currents);
+          setMaxData(Math.max(...currents) + (Math.max(...currents) * 0.3)); // 30% extra
+        })
+        .catch((error) => console.error("Error fetching line data:", error));
+    
+      // Gauge chart data
+      fetch("http://127.0.0.1:8000/api/gauge-data-proc")
+        .then((response) => response.json())
+        .then((data) => {
+          setGaugeValue(data.porcentaje_uso);
+        })
+        .catch((error) => console.error("Error fetching gauge data:", error));
+    };
 
-  useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/compressor-data")
-      .then(response => response.json())
-      .then(data => {
-        if (data.data && data.data.length > 0) {
-          setCompresorData(data.data[0]); // toma el primer elemento del array
-        }
-      })
-      .catch(error => console.error("Error fetching compressor data:", error));
+    useEffect(() => {
+      fetch("http://127.0.0.1:8000/api/client-data")
+        .then(response => response.json())
+        .then(data => {
+          if (data.data && data.data.length > 0) {
+            setClientData(data.data[0]); // toma el primer elemento del array
+          }
+        })
+        .catch(error => console.error("Error fetching client data:", error));
     }, []);
 
+
+    useEffect(() => {
+      fetch("http://127.0.0.1:8000/api/compressor-data")
+        .then(response => response.json())
+        .then(data => {
+          if (data.data && data.data.length > 0) {
+            setCompresorData(data.data[0]); // toma el primer elemento del array
+          }
+        })
+        .catch(error => console.error("Error fetching compressor data:", error));
+      }, []);
+    
+    useEffect(() => {
+      fetch("http://127.0.0.1:8000/api/stats-data")
+          .then((response) => response.json())
+          .then((data) => {
+              const { kWh, hours_worked, usd_cost } = data.data;
+              setKWh(kWh);
+              setHoursWorked(hours_worked);
+              setUsdCost(usd_cost);
+          })
+          .catch((error) => console.error("Error fetching stats data:", error));
+    }, []);
+
+  useEffect(() => {
+      fetchChartData();
+    }, []);
+        
+    
   // const getGaugeOption = (gaugeValue) => ({
   //   series: [{
   //     type: 'gauge',
@@ -90,7 +155,7 @@ export default function Main() {
   //     min: 30,
   //     max: 120,
   //     splitNumber: 9,
-  
+
   //     axisLine: {
   //       lineStyle: {
   //         width: 30,
@@ -104,7 +169,7 @@ export default function Main() {
   //         ]
   //       }
   //     },
-  
+
   //     pointer: {
   //       length: '75%',
   //       width: 6,
@@ -112,7 +177,7 @@ export default function Main() {
   //         color: 'black'
   //       }
   //     },
-  
+
   //     axisTick: {
   //       length: 10,
   //       lineStyle: {
@@ -120,7 +185,7 @@ export default function Main() {
   //         width: 2
   //       }
   //     },
-  
+
   //     splitLine: {
   //       length: 20,
   //       lineStyle: {
@@ -128,7 +193,7 @@ export default function Main() {
   //         width: 4
   //       }
   //     },
-  
+
   //     axisLabel: {
   //       fontSize: 14,
   //       color: '#333',
@@ -140,23 +205,23 @@ export default function Main() {
   //         return '';
   //       }
   //     },
-  
+
   //     title: {
   //       fontSize: 18,
   //       offsetCenter: [0, '70%']
   //     },
-  
+
   //     detail: {
   //       formatter: '{value}%',
   //       fontSize: 24,
   //       color: 'inherit'
   //     },
-  
+
   //     data: [{
   //       value: gaugeValue,
   //       name: 'Uso Equivalente'
   //     }],
-  
+
   //     // Línea negra fija sobre el 100%
   //     markLine: {
   //       silent: true,
@@ -174,197 +239,186 @@ export default function Main() {
   //   }]
   // });  
     
+  const dataPie = {
+    labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
+    datasets: [
+      {
+        label: "Estados del Compresor", // Título del gráfico
+        data: chartData, // Los datos que provienen del backend
+        backgroundColor: [
+          "rgb(0, 191, 255)", // Color para "LOAD"
+          "rgb(229, 255, 0)", // Color para "NO LOAD"
+          "rgb(126, 126, 126)", // Color para "OFF"
+        ],
+        hoverOffset: 30, // Efecto al pasar el mouse
+      },
+    ],
+    options: {
+      layout: {
+        padding: 20,
+      },
+      responsive: true,
+      maintainAspectRatio: false, // Muy útil si le defines height/width al canvas contenedor
+      cutout: '0%',
+    }
+  };
+
   
-const dataPie = {
-  labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
-  datasets: [
-    {
-      label: "Estados del Compresor", // Título del gráfico
-      data: chartData, // Los datos que provienen del backend
-      backgroundColor: [
-        "rgb(0, 191, 255)", // Color para "LOAD"
-        "rgb(229, 255, 0)", // Color para "NO LOAD"
-        "rgb(126, 126, 126)", // Color para "OFF"
-      ],
-      hoverOffset: 50, // Efecto al pasar el mouse
-    },
-  ],
-};
+  useEffect(() => {
+    if (chartRef.current) {
+      const chart = chartRef.current;
+      const ctx = chart.ctx;
 
-useEffect(() => {
-  if (chartRef.current) {
-    const chart = chartRef.current;
-    const ctx = chart.ctx;
+      const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+      gradient.addColorStop(0, 'rgba(13, 9, 255, 0.5)');
+      gradient.addColorStop(1, 'rgba(13, 9, 255, 0)');
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(13, 9, 255, 0.5)');
-    gradient.addColorStop(1, 'rgba(13, 9, 255, 0)');
+      chart.data.datasets[0].backgroundColor = gradient;
+      chart.update();
+    }
+  }, [lineChartData]);
 
-    chart.data.datasets[0].backgroundColor = gradient;
-    chart.update();
-  }
-}, [lineChartData]);
-
-// Line boundaries options
-const lineChartOptions = {
-  responsive: true,
-  scales: {
-    y: {
-      min: 0, // Lower boundary of the Y-axis
-      max: maxData, // Upper boundary of the Y-axis
-      ticks: {
-        stepSize: 1,
+  // Line boundaries options
+  const lineChartOptions = {
+    responsive: true,
+    scales: {
+      y: {
+        min: 0, // Lower boundary of the Y-axis
+        max: maxData, // Upper boundary of the Y-axis
+        ticks: {
+          stepSize: 1,
+        },
       },
     },
-  },
-};
+  };
 
-const dataLine = {
-  labels: lineChartLabels, // Labels for the X-axis of the line chart
-  datasets: [
-    {
-      label: 'Corriente consumida en el dia', // Title of the dataset
-      data: lineChartData, // Data points for the line chart
-      borderColor: 'rgb(13, 9, 255)', // Line color
-      backgroundColor: 'rgba(82, 94, 255, 0.2)', // Area fill color
-      fill: 'origin', // Fill from the origin of the Y-axis
-      tension: 0.4, // Line smoothing
-      pointBackgroundColor: 'rgb(13, 9, 255)', // Color of the data points
-      pointRadius: 3, // Radius of the data points
-      borderWidth: 2, // Width of the line
-    }
-  ],
-};
+  const dataLine = {
+    labels: lineChartLabels, // Labels for the X-axis of the line chart
+    datasets: [
+      {
+        label: 'Corriente consumida en el dia', // Title of the dataset
+        data: lineChartData, // Data points for the line chart
+        borderColor: 'rgb(13, 9, 255)', // Line color
+        backgroundColor: 'rgba(82, 94, 255, 0.2)', // Area fill color
+        fill: 'origin', // Fill from the origin of the Y-axis
+        tension: 0.4, // Line smoothing
+        pointBackgroundColor: 'rgb(13, 9, 255)', // Color of the data points
+        pointRadius: 1, // Radius of the data points
+        borderWidth: 1, // Width of the line
+      }
+    ],
+  };
 
-  return (
+    return (
+      
+      <main>
+        <TransitionPage />
+        <NavBar />
+        {/* Here its the top section*/}
+        <div className="flex flex-col items-center mb-3">
+          <h1 className="text-3xl font-bold text-center">Reporte Diario</h1>
+          <h2 className="text-2xl font-bold text-center">Compresor 1</h2>
+          <h3 className="text-xl font-bold text-center">Fecha: {new Date().toLocaleDateString()}</h3>
+          <img src="/Ventologix_03.png" alt="logo" className="h-10 w-45 mt-3 absolute top-0 right-0 m-3" />
+        </div> 
 
-    <main>
-      <TransitionPage />
-      <NavBar />
-      {/* Here its the top section*/}
-      <div className="flex flex-col items-center mb-3">
-        <h1 className="text-3xl font-bold text-center">Reporte Diario</h1>
-        <h2 className="text-2xl font-bold text-center">Compresor 1</h2>
-        <h3 className="text-xl font-bold text-center">Fecha: {new Date().toLocaleDateString()}</h3>
-        <img src="/Ventologix_03.png" alt="logo" className="h-10 w-45 mt-3 absolute top-0 right-0 m-3" />
-      </div> 
+        <div className="mt-4 p-4">
 
-      <div className="mt-4 p-4">
-
-        <h2 className="text-xl font-bold mb-2">Información Compresor</h2>
-        <div className="flex flex-row gap-60 items-center justify-center text-center">
-          <div className="text-center">
-            <p className="text-lg">{compressorData?.numero_serie}</p>
-            <p className="text-l font-bold">Número de Serie</p>
+          <h2 className="text-xl font-bold mb-2">Información Compresor</h2>
+          <div className="flex flex-row gap-60 items-center justify-center text-center">
+            <div className="text-center">
+              <p className="text-lg">{compressorData?.numero_serie}</p>
+              <p className="text-l font-bold">Número de Serie</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg">{compressorData?.marca}</p>
+              <p className="text-l font-bold">Marca</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg">{compressorData?.tipo}</p>
+              <p className="text-l font-bold">Tipo</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg">{compressorData?.voltaje}</p>
+              <p className="text-l font-bold">Voltaje</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg">{compressorData?.hp}</p>
+              <p className="text-l font-bold">HP</p>
+            </div>
           </div>
-          <div className="text-center">
-            <p className="text-lg">{compressorData?.marca}</p>
-            <p className="text-l font-bold">Marca</p>
-          </div>
-          <div className="text-center">
-            <p className="text-lg">{compressorData?.tipo}</p>
-            <p className="text-l font-bold">Tipo</p>
-          </div>
-          <div className="text-center">
-            <p className="text-lg">{compressorData?.voltaje}</p>
-            <p className="text-l font-bold">Voltaje</p>
-          </div>
-          <div className="text-center">
-            <p className="text-lg">{compressorData?.hp}</p>
-            <p className="text-l font-bold">HP</p>
+
+          <h2 className="text-xl font-bold mb-2"> Informacion del Cliente </h2>
+          <div className="flex flex-row gap-60 items-center justify-center text-center">
+            <div className="text-center">
+              <p className="text-lg">{clientData?.nombre_cliente}</p>
+              <p className="text-l font-bold">Nombre</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg">{clientData?.numero_cliente}</p>
+              <p className="text-l font-bold">Número de Cliente</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg">{clientData?.RFC}</p>
+              <p className="text-l font-bold">RFC</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg">{clientData?.direccion}</p>
+              <p className="text-l font-bold">Direccion</p>
+            </div>
           </div>
         </div>
 
-        <h2 className="text-xl font-bold mb-2"> Informacion del Cliente </h2>
-        <div className="flex flex-row gap-60 items-center justify-center text-center">
-          <div className="text-center">
-            <p className="text-lg">{clientData?.nombre_cliente}</p>
-            <p className="text-l font-bold">Nombre</p>
-          </div>
-          <div className="text-center">
-            <p className="text-lg">{clientData?.numero_cliente}</p>
-            <p className="text-l font-bold">Número de Cliente</p>
-          </div>
-          <div className="text-center">
-            <p className="text-lg">{clientData?.RFC}</p>
-            <p className="text-l font-bold">RFC</p>
-          </div>
-          <div className="text-center">
-            <p className="text-lg">{clientData?.direccion}</p>
-            <p className="text-l font-bold">Direccion</p>
-          </div>
-        </div>
-      </div>
-
-  
+        {/* <div className="flex flex-row gap-4 items-center justify-center text-center">
+          <Boton 
+                setChartData={setChartData} 
+                setLineChartLabels={setLineChartLabels} 
+                setLineChartData={setLineChartData} 
+                setMaxCurrent={setMaxData}
+                setGaugeValue={setGaugeValue}
+              />
+        </div> */}
+        
         {/* Here its the graphs */}
-      <div className="flex flex-col items-center justify-center min-h-[150vh] bg-gradient-to-b from-white to-gray-100">
-        <
-        <Boton 
-          setChartData={setChartData} 
-          setLineChartLabels={setLineChartLabels} 
-          setLineChartData={setLineChartData} 
-          setMaxCurrent={setMaxData}
-          setGaugeValue={setGaugeValue}
-        />
-        <div className="w-[250px] h-[250px] mb-8">
-          <Pie data={dataPie} />
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-green to-gray-100 p-6 gap-8">
+
+        {/* KPIs */}
+        <div className="flex flex-row gap-8">
+          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+            <h2 className="text-sm text-black">Gasto USD*</h2>
+            <p className="text-3xl font-bold text-black">${usdCost.toFixed(2)}</p>
+          </div>
+          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+            <h2 className="text-sm text-black">kWh Utilizados</h2>
+            <p className="text-3xl font-bold text-black">{kWh.toFixed(2)} kWh</p>
+          </div>
+          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+            <h2 className="text-sm text-black">Horas Trabajadas</h2>
+            <p className="text-3xl font-bold text-black">{hoursWorked.toFixed(2)} h</p>
+          </div>
         </div>
-        <div className="w-[600px] h-[400px] mb-8">
-          <Chart ref={chartRef} type='line' data={dataLine} options={lineChartOptions} />
+
+        {/* Gráficas */}
+        <div className="flex flex-row flex-wrap justify-center gap-4">
+          <div className="bg-white rounded-s shadow p-4 w-[300] h-[300] flex flex-col items-center justify-center">
+            <h3 className="text-center text-black mb-2">Estados del Compresor</h3>
+            <Pie data={dataPie} />
+          </div>
+
+          <div className="bg-white rounded-2xl shadow p-4 w-[650px] h-[400px] flex flex-col">
+            <h3 className="text-center text-black mb-2">Corriente consumida en el día</h3>
+            <Chart ref={chartRef} type="line" data={dataLine} options={lineChartOptions} />
+          </div>
+
+          <div className="bg-white rounded-2xl shadow p-4 w-[280px] h-[280px] flex items-center justify-center">
+            {/* <ReactECharts option={getGaugeOption(gaugeValue)} /> */}
+          </div>
         </div>
-        <div className="w-[250px] h-[250px]">
-        {/* <ReactECharts option={getGaugeOption(gaugeValue)} /> */}
-        </div>
-        <div className="">
-          <h1>kWh utilizados</h1>
-          <p></p>
+
+        <div>
+          <h1> Comentarios</h1>
         </div>
       </div>
-    </main>
-  );
-}
-
-
-/*
-
-// const [chartData, setChartData] = useState([0, 0, 0]); // default values
-
-  // useEffect(() => {
-  //   fetch("http://127.0.0.1:8000/api/pie-data-proc") // URL of your FastAPI endpoint
-  //     .then(response => response.json())
-  //     .then(data => {
-  //       const { LOAD, NOLOAD, OFF } = data.data;
-  //       setChartData([LOAD, NOLOAD, OFF]);
-  //     })
-  //     .catch(error => console.error("Error fetching pie data:", error));
-  // }, []);
-
-  // const [lineChartData, setLineChartData] = useState<number[]>([]); // default values
-  // const [lineChartLabels, setLineChartLabels] = useState<string[]>([]); // default labels
-  // useEffect(() => { 
-  //   fetch("http://127.0.0.1:8000/api/line-data-proc") // URL of your FastAPI endpoint
-  //     .then(response => response.json())
-  //     .then(data => {
-  //       const times = data.data.map((item: { time: string }) =>
-  //         new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-  //       );        
-  //       const currents = data.data.map((item: { corriente: number }) => item.corriente);
-  //       setLineChartLabels(times);
-  //       setLineChartData(currents);
-  //     })
-  //     .catch(error => console.error("Error fetching line data:", error));
-  // }, []);
-/*
-const [gaugeChartData, setGaugeChartData] = useState([0, 0, 0]); // default values
-useEffect(() => {
-  fetch("http://127.0.0.1:8000/api/gauge-data") // URL of your FastAPI endpoint
-    .then(response => response.json())
-    .then(data => {
-      const { LOAD, NOLOAD, OFF } = data.data;
-      setChartData([LOAD, NOLOAD, OFF]);
-    })
-    .catch(error => console.error("Error fetching pie data:", error));
-}, []);
-
-*/
+      </main>
+    );
+  }
