@@ -319,7 +319,7 @@
           <h1 className="text-3xl font-bold text-center">Reporte Diario</h1>
           <h2 className="text-2xl font-bold text-center">Compresor 1</h2>
           <h3 className="text-xl font-bold text-center">Fecha: {new Date().toLocaleDateString()}</h3>
-          <img src="/Ventologix_03.png" alt="logo" className="h-10 w-45 mt-3 absolute top-0 right-0 m-3" />
+          <img src="/Ventologix_04.png" alt="logo" className="h-10 w-45 mt-3 absolute top-0 right-0 m-3" />
         </div> 
 
         <div className="mt-4 p-4">
@@ -380,7 +380,7 @@
         </div> */}
         
         {/* Here its the graphs */}
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-green to-gray-100 p-6 gap-8">
+        <div className="flex flex-col items-center justify-center min-h-screen p-6 gap-8">
 
         {/* KPIs */}
         <div className="flex flex-row gap-8">
@@ -415,9 +415,64 @@
           </div>
         </div>
 
-        <div>
-          <h1> Comentarios</h1>
-        </div>
+        <div className="gap-10 items-left justify-left text-left">
+        <h1 className="text-3xl font-bold">Comentarios</h1>
+
+        <p className="text-lg text-left">
+          • El día de ayer {} se iniciaron labores a las {} y se concluyeron a las {}
+        </p>
+
+        <p className="text-lg text-left mt-2">
+          • Entre las horas de {} y {}, el compresor operó de la siguiente manera:
+        </p>
+
+        <ul className="list-disc ml-8 text-lg text-left">
+          <li>LOAD: {}%</li>
+          <li>NO LOAD: {}%</li>
+          <li>OFF: {}%</li>
+        </ul>
+
+        <p className="text-lg text-left mt-2">
+          • Durante el día se completaron un total de {} ciclos de trabajo. Un ciclo se define como un cambio desde el estado <strong>LOAD</strong> a <strong>NO LOAD</strong> consecutivamente.
+        </p>
+        
+        <p className="text-lg text-left mt-2">
+          • El promedio de ciclos por hora trabajada es de <strong>{}</strong> ciclos/hora.
+        </p>
+
+        <p className="text-lg text-left mt-2">
+          • El costo total de operación del compresor fue de <strong>${usdCost.toFixed(2)}</strong>.
+        </p>
+
+        <p className="text-lg text-left mt-2">
+          • El promedio de ciclos por hora trabajada está fuera del rango recomendado de 12 a 15 ciclos/hora. Se recomienda realizar un análisis en el compresor para identificar posibles anomalías
+        </p>
+        
+        <p className="text-lg text-left mt-2">
+          • No se detectaron consumos con valores fuera de lo común.
+        </p>
+
+        <p className="text-lg text-left mt-2">
+          • El HP equvialente es mayor que el HP nominal del compresor, lo que sugiere que el compresor podría estar forzado. Se recomienda revisar su operación.
+        </p>
+
+        <p className="text-sm text-left mt-2">
+          • El costo por kilovatio-hora (kWh) utilizado en este análisis es de <strong>$0.17 USD/kWh</strong>, que es el estándar actualmente aplicado. Sin embargo, si requiere confirmar este valor o necesita ajustar la tarifa, puede verificar con su contacto en <strong>VENTOLOGIX</strong>
+        </p>
+
+        <h1 className="text-xl text-left mt-2 font-bold"> Información Contacto VENTOLOGIX</h1>
+        <p className="text-xl text-left mt-2" >Nombre: Andrés Mirazo</p>
+        <p className="text-xl text-left mt-2">
+        Correo:{" "}
+        <a
+          href="mailto:Andres.Mirazo@ventologix.com"
+          className="text-blue-600 hover:scale-120 hover:text-blue-800  duration-300"
+        >
+          Andres.Mirazo@ventologix.com
+        </a>
+      </p>
+      </div>
+      
       </div>
       </main>
     );
