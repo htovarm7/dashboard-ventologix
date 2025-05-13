@@ -33,6 +33,7 @@ import mysql.connector
 import os
 from dotenv import load_dotenv
 import numpy as np
+from datetime import datetime, timedelta
 
 # Load environment variables
 load_dotenv()
@@ -229,7 +230,7 @@ def get_stats_data():
         # Calcular kWh y horas trabajadas
         kwh_total = energy_calculated(data, compresor_config)
         horas_total = np.round(horas_trabajadas(data),2)
-        usd_por_kwh = 0.12  # aquí puedes parametrizarlo desde BD o env var
+        usd_por_kwh = 0.17  # aquí puedes parametrizarlo desde BD o env var
         costo_usd = costo_energia_usd(kwh_total, usd_por_kwh)
 
         return {
@@ -309,6 +310,107 @@ def get_client_data():
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
+@app.get("/api/comments-data")
+def get_comments_data():
+    try:
+        # Connect to the database
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        # Fetch data from the clientes table for id_cliente 7
+        cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
+        results = cursor.fetchall()
+
+        # Close resources
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return {"error": "No data found for the specified client."}
+
+        # Convert results into a list of dictionaries
+        data = [
+            {"time": row[1]}
+            for row in results
+        ]
+
+        # Get the first and last timestamps
+        first_time = results[0][1]
+        last_time = results[-1][1]
+
+        #Get the hour only
+        first_time = first_time.strftime("%H:%M:%S")
+        last_time = last_time.strftime("%H:%M:%S")
+        
+        return {
+            "first_time": first_time,
+            "last_time": last_time
+        }
+    
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
+
+
+@app.get("/api/report-html")
+def get_report_html():
+    try:
+        # Conectar a la base de datos
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        # Ejecutar procedimiento para ayer
+        cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
+        results = cursor.fetchall()
+
+        if not results:
+            return {"error": "No data found for the previous day."}
+
+        data = [{"time": row[1], "estado": row[3]} for row in results]
+
+        estados_no_off = [d for d in data if d["estado"] != "OFF"]
+
+        if not estados_no_off:
+            return {
+                "html": "<div style='font-size:36px; font-family: DIN, sans-serif;'>El compresor permaneció apagado durante todo el día.</div>"
+            }
+
+        total_registros = len(estados_no_off)
+
+        # Conteo de ciclos
+        ciclos = 0
+        for i in range(1, len(estados_no_off)):
+            if estados_no_off[i-1]['estado'] == "LOAD" and estados_no_off[i]['estado'] == "NOLOAD":
+                ciclos += 1
+        ciclos = ciclos // 2  # porque LOAD->NOLOAD->LOAD sería 1 ciclo
+
+        # Horas trabajadas
+        segundos_por_registro = 10  # ajustar según tu muestreo real
+        total_segundos = total_registros * segundos_por_registro
+        horas_trabajadas = total_segundos / 3600
+
+        # Promedio ciclos por hora
+        promedio_ciclos_hora = round(ciclos / horas_trabajadas, 1) if horas_trabajadas else 0
+
+        # Comentarios ciclos
+        comentario_ciclos = promedio_ciclos_hora
+
+        cursor.close()
+        conn.close()
+
+        return {"ciclos": promedio_ciclos_hora }
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
 
 def percentage_load(data):
     load_records = [record for record in data if record['estado'] == "LOAD"]
@@ -328,20 +430,15 @@ def percentage_off(data):
     total_records = len(data)
     return (total_off / total_records) * 100 if total_records > 0 else 0
 
-def energy_calculated(data, compresor_data, segundos_por_registro=60):
+def energy_calculated(data, compresor_data, segundos_por_registro=5):
     filtered_currents = [record['corriente'] for record in data if record['corriente'] > 0]
     if not filtered_currents:
         return 0
 
-    voltage_values = [record['voltage'] for record in compresor_data if record['voltage'] is not None]
-    if not voltage_values:
-        return 0
-
-    average_voltage = np.mean(voltage_values)
     tiempo_horas = segundos_por_registro / 3600
 
     energia_calculada = sum(
-        corriente * 1.732 * average_voltage * 1 / 1000 * tiempo_horas
+        corriente * 1.732 * 440 * 1 / 1000 * tiempo_horas
         for corriente in filtered_currents
     )
 
@@ -373,7 +470,7 @@ def horas_trabajadas(data, segundos_por_registro=5):
 
     return round(total_horas, 3)
 
-def costo_energia_usd(kwh_total, usd_por_kwh=0.12):
+def costo_energia_usd(kwh_total, usd_por_kwh=0.17):
     return round(kwh_total * usd_por_kwh, 2)
 
 

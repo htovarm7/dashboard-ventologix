@@ -43,6 +43,12 @@
     const [kWh, setKWh] = useState<number>(0); // default kWh value
     const [hoursWorked, setHoursWorked] = useState<number>(0); // default hours worked value
     const [usdCost, setUsdCost] = useState<number>(0); // default USD cost value
+    const [Load, setLoad] = useState<number>(0); // default load values
+    const [NoLoad, setNoLoad] = useState<number>(0); // default no load values
+    const [Off, setOff] = useState<number>(0); // default off values
+    const [first_hour, setFirstHour] = useState<string>(""); // default first hour value
+    const [last_hour, setLastHour] = useState<string>(""); // default last hour value
+
 
     const [clientData, setClientData] = useState<{
       numero_cliente: number;
@@ -58,7 +64,7 @@
       marca: string;
       numero_serie: number;
     } | null>(null);
-    
+
     const fetchChartData = () => {
       // Pie chart data
       fetch("http://127.0.0.1:8000/api/pie-data-proc")
@@ -140,6 +146,29 @@
               setUsdCost(usd_cost);
           })
           .catch((error) => console.error("Error fetching stats data:", error));
+    }, []);
+
+    useEffect(() => {
+      fetch("http://127.0.0.1:8000/api/pie-data-proc")
+      .then((response) => response.json())
+      .then((data) => {
+        const { LOAD, NOLOAD, OFF } = data.data;
+        setLoad(LOAD);
+        setNoLoad(NOLOAD);
+        setOff(OFF);
+      })
+      .catch((error) => console.error("Error fetching pie data:", error));
+    },[]);
+
+    useEffect(() => {
+      fetch("http://127.0.0.1:8000/api/comments-data")
+        .then((response) => response.json())
+        .then((data) => {
+          const { first_time, last_time } = data.data;
+          setFirstHour(first_time);
+          setLastHour(last_time);
+        })
+        .catch((error) => console.error("Error fetching comments data:", error));
     }, []);
 
   useEffect(() => {
@@ -419,17 +448,17 @@
         <h1 className="text-3xl font-bold">Comentarios</h1>
 
         <p className="text-lg text-left">
-          • El día de ayer {} se iniciaron labores a las {} y se concluyeron a las {}
+          • El día de ayer <strong>{new Date(new Date().setDate(new Date().getDate() - 1)).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</strong> se iniciaron labores a las {first_hour} y se concluyeron a las {last_hour}
         </p>
 
         <p className="text-lg text-left mt-2">
-          • Entre las horas de {} y {}, el compresor operó de la siguiente manera:
+          • Entre las horas de {first_hour} y {last_hour}, el compresor operó de la siguiente manera:
         </p>
 
         <ul className="list-disc ml-8 text-lg text-left">
-          <li>LOAD: {}%</li>
-          <li>NO LOAD: {}%</li>
-          <li>OFF: {}%</li>
+          <li><strong>LOAD:</strong> {Load}%</li>
+          <li><strong>NO LOAD:</strong> {NoLoad}%</li>
+          <li><strong>OFF:</strong> {Off}%</li>
         </ul>
 
         <p className="text-lg text-left mt-2">
@@ -460,7 +489,7 @@
           • El costo por kilovatio-hora (kWh) utilizado en este análisis es de <strong>$0.17 USD/kWh</strong>, que es el estándar actualmente aplicado. Sin embargo, si requiere confirmar este valor o necesita ajustar la tarifa, puede verificar con su contacto en <strong>VENTOLOGIX</strong>
         </p>
 
-        <h1 className="text-xl text-left mt-2 font-bold"> Información Contacto VENTOLOGIX</h1>
+        <h1 className="text-xl text-left mt-7 font-bold"> Información Contacto VENTOLOGIX</h1>
         <p className="text-xl text-left mt-2" >Nombre: Andrés Mirazo</p>
         <p className="text-xl text-left mt-2">
         Correo:{" "}
