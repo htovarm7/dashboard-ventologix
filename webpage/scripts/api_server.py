@@ -355,7 +355,6 @@ def get_comments_data():
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-
 @app.get("/api/report-html")
 def get_report_html():
     try:
@@ -412,6 +411,8 @@ def get_report_html():
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
+
+# Functions to calculate different metrics
 def percentage_load(data):
     load_records = [record for record in data if record['estado'] == "LOAD"]
     total_load = len(load_records)
