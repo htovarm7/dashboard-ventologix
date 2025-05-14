@@ -61,6 +61,233 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")
 
 @app.get("/api/pie-data-proc")
+def get_pie_data_proc():
+    try:
+        # Connect to DB
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        # Call the stored procedure
+        cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
+
+        results = cursor.fetchall()
+
+        # Close resources
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return {"error": "No data from procedure"}
+
+        # Map the results (adjust column names)
+        data = [
+            {"time": row[1], "estado": row[3], "estado_anterior": row[4]}
+            for row in results
+        ]
+
+        # Calculate percentages
+        load_percentage = np.round(percentage_load(data),3)
+        noload_percentage = np.round(percentage_noload(data),3)
+        off_percentage = np.round(percentage_off(data),3)
+
+        # LOAD / NO LOAD /  OFF
+        arr = [load_percentage,noload_percentage,off_percentage]
+
+        # print(arr)
+
+        return{
+            "data": {
+                "LOAD": load_percentage,
+                "NOLOAD": noload_percentage,
+                "OFF": off_percentage
+            }
+        }
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
+
+@app.get("/api/line-data-proc")
+def get_line_data():
+    try:
+        
+        # Conectar a la base de datos
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        # Ejecutar SP con la fecha proporcionada
+        cursor.execute("call DataFiltradaDayFecha(7,7,'A', CURDATE())")
+        results = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return {"error": "No data found for the specified date."}
+
+        # Organizar los datos por tiempo
+        data = [
+            {"time": row[1], "corriente": row[2]} for row in results
+        ]
+        
+        # Ordenar los datos por tiempo
+        data.sort(key=lambda x: x["time"])
+
+        # Agrupar los datos en intervalos de 30 segundos y calcular el promedio
+        grouped_data = []
+        temp_data = []
+        start_time = data[0]["time"]  # Empezar desde el primer registro
+
+        for entry in data:
+            # Si la diferencia entre el tiempo actual y el primer registro del grupo es mayor a 30 segundos, hacer un promedio
+            if (entry["time"] - start_time) >= timedelta(seconds=30):
+                if temp_data:
+                    avg_corriente = np.round(np.mean([item["corriente"] for item in temp_data]), 2)
+                    grouped_data.append({
+                        "time": start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                        "corriente": avg_corriente
+                    })
+                # Resetear el grupo y actualizar el tiempo de inicio
+                temp_data = [entry]
+                start_time = entry["time"]
+            else:
+                temp_data.append(entry)
+        
+        # Para el último grupo
+        if temp_data:
+            avg_corriente = np.round(np.mean([item["corriente"] for item in temp_data]), 2)
+            grouped_data.append({
+                "time": start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                "corriente": avg_corriente
+            })
+
+        # Devolver los datos agrupados
+        return JSONResponse(content={"data": grouped_data})
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)})
+
+@app.get("/api/comments-data")
+def get_comments_data():
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
+        results = cursor.fetchall()
+
+        if not results:
+            return {"data": None, "message": "No data found."}
+
+        data = [{"time": row[1], "estado": row[3]} for row in results]
+        estados_no_off = [d for d in data if d["estado"] != "OFF"]
+
+        if not estados_no_off:
+            return {
+                "data": {
+                    "first_time": None,
+                    "last_time": None,
+                    "total_ciclos": 0,
+                    "promedio_ciclos_hora": 0,
+                    "comentario_ciclos": "El compresor permaneció apagado durante todo el día."
+                }
+            }
+
+        first_time = estados_no_off[0]["time"].strftime("%H:%M:%S")
+        last_time = estados_no_off[-1]["time"].strftime("%H:%M:%S")
+
+        # Ciclos de trabajo: LOAD → NOLOAD
+        ciclos = 0
+        for i in range(1, len(estados_no_off)):
+            if estados_no_off[i-1]['estado'] == "LOAD" and estados_no_off[i]['estado'] == "NOLOAD":
+                ciclos += 1
+        ciclos = ciclos // 2  # por pares consecutivos
+
+        segundos_por_registro = 10  # ajusta si cambia tu muestreo
+        total_registros = len(estados_no_off)
+        total_segundos = total_registros * segundos_por_registro
+        horas_trabajadas = total_segundos / 3600
+
+        promedio_ciclos_hora = round(ciclos / horas_trabajadas, 1) if horas_trabajadas else 0
+
+        # Comentario según rango recomendado
+        if promedio_ciclos_hora >= 12 and promedio_ciclos_hora <= 15:
+            comentario = "El promedio de ciclos por hora trabajada está dentro del rango recomendado de 12 a 15 ciclos/hora, por lo que parece estar funcionando correctamente."
+        else:
+            comentario = "El promedio de ciclos por hora trabajada está fuera del rango recomendado de 12 a 15 ciclos/hora. Se recomienda realizar un análisis en el compresor para identificar posibles anomalías."
+
+        cursor.close()
+        conn.close()
+
+        return {
+            "data": {
+                "first_time": first_time,
+                "last_time": last_time,
+                "total_ciclos": ciclos,
+                "promedio_ciclos_hora": promedio_ciclos_hora,
+                "comentario_ciclos": comentario
+            }
+        }
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
+
+@app.get("/api/raw-data-excel")
+def get_raw_data_excel():
+    try:
+        # Connect to the database
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
+        results = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return {"error": "No data found for the specified date."}
+
+        # Convert to DataFrame
+        df = pd.DataFrame(results, columns=["id", "time", "corriente", "estado", "estado_anterior"])
+
+        # Save to Excel in memory
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='RawData')
+
+        output.seek(0)
+        
+        # Return as streaming response
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=raw_data.xlsx"}
+        )
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
+
+"""
+@app.get("/api/pie-data-proc")
 def get_pie_data_proc(fecha: str = Query(...)):
     try:
         fecha_dt = datetime.strptime(fecha, '%Y-%m-%d')
@@ -173,7 +400,6 @@ def get_line_data(fecha: str = Query(...)):
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)})
-
 
 @app.get("/api/comments-data")
 def get_comments_data(fecha: str = Query(...)):
@@ -297,8 +523,8 @@ def get_raw_data_excel(fecha: str = Query(...)):
     except Exception as e:
         # Cualquier otro error inesperado
         return {"error": f"Unexpected error: {str(e)}"}
-    
-
+"""
+        
 # These remains the same as before
 @app.get("/api/stats-data")
 def get_stats_data():
