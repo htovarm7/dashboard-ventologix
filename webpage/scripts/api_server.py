@@ -147,51 +147,6 @@ def get_line_data():
     except mysql.connector.Error as err:
         # Return error message in case of database error
         return {"error": str(err)}
-
-@app.get("/api/gauge-data-proc")
-def get_gauge_data():
-    try:
-        # Connect to the database
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME
-        )
-        cursor = conn.cursor()
-
-        # Fetch hp values for id_cliente 7
-        cursor.execute("SELECT hp FROM compresores WHERE id_cliente = 7")
-        results = cursor.fetchall()
-
-        # Close DB connections
-        cursor.close()
-        conn.close()
-
-        if not results:
-            return {"error": "No data found for the specified client."}
-
-        # Convert results to list of dicts
-        data = [{"hp": row[0]} for row in results]
-
-        # print(f"Results from DB: {results}")
-        # print(f"Data processed: {data}")
-
-        hp_instalado = 70.0
-
-        # Sum hp values safely
-        total_hp = sum(item["hp"] for item in data if isinstance(item["hp"], (int, float))) / 2
-
-        porcentaje_uso = np.round((total_hp / hp_instalado) * 100,2)
-        normalized_value = max(0, min(1, (porcentaje_uso - 30) / (120 - 30)))
-
-        return {
-            "porcentaje_uso": porcentaje_uso,
-            "normalized_value": normalized_value
-        }
-
-    except Exception as e:
-        return {"error": str(e)}
     
 @app.get("/api/stats-data")
 def get_stats_data():
@@ -313,7 +268,6 @@ def get_client_data():
 @app.get("/api/comments-data")
 def get_comments_data():
     try:
-        # Connect to the database
         conn = mysql.connector.connect(
             host=DB_HOST,
             user=DB_USER,
@@ -322,95 +276,64 @@ def get_comments_data():
         )
         cursor = conn.cursor()
 
-        # Fetch data from the clientes table for id_cliente 7
-        cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
-        results = cursor.fetchall()
-
-        # Close resources
-        cursor.close()
-        conn.close()
-
-        if not results:
-            return {"error": "No data found for the specified client."}
-
-        # Convert results into a list of dictionaries
-        data = [
-            {"time": row[1]}
-            for row in results
-        ]
-
-        # Get the first and last timestamps
-        first_time = results[0][1]
-        last_time = results[-1][1]
-
-        #Get the hour only
-        first_time = first_time.strftime("%H:%M:%S")
-        last_time = last_time.strftime("%H:%M:%S")
-        
-        return {
-            "first_time": first_time,
-            "last_time": last_time
-        }
-    
-    except mysql.connector.Error as err:
-        return {"error": str(err)}
-
-@app.get("/api/report-html")
-def get_report_html():
-    try:
-        # Conectar a la base de datos
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME
-        )
-        cursor = conn.cursor()
-
-        # Ejecutar procedimiento para ayer
         cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
         results = cursor.fetchall()
 
         if not results:
-            return {"error": "No data found for the previous day."}
+            return {"data": None, "message": "No data found."}
 
         data = [{"time": row[1], "estado": row[3]} for row in results]
-
         estados_no_off = [d for d in data if d["estado"] != "OFF"]
 
         if not estados_no_off:
             return {
-                "html": "<div style='font-size:36px; font-family: DIN, sans-serif;'>El compresor permaneció apagado durante todo el día.</div>"
+                "data": {
+                    "first_time": None,
+                    "last_time": None,
+                    "total_ciclos": 0,
+                    "promedio_ciclos_hora": 0,
+                    "comentario_ciclos": "El compresor permaneció apagado durante todo el día."
+                }
             }
 
-        total_registros = len(estados_no_off)
+        first_time = estados_no_off[0]["time"].strftime("%H:%M:%S")
+        last_time = estados_no_off[-1]["time"].strftime("%H:%M:%S")
 
-        # Conteo de ciclos
+        # Ciclos de trabajo: LOAD → NOLOAD
         ciclos = 0
         for i in range(1, len(estados_no_off)):
             if estados_no_off[i-1]['estado'] == "LOAD" and estados_no_off[i]['estado'] == "NOLOAD":
                 ciclos += 1
-        ciclos = ciclos // 2  # porque LOAD->NOLOAD->LOAD sería 1 ciclo
+        ciclos = ciclos // 2  # por pares consecutivos
 
-        # Horas trabajadas
-        segundos_por_registro = 10  # ajustar según tu muestreo real
+        segundos_por_registro = 10  # ajusta si cambia tu muestreo
+        total_registros = len(estados_no_off)
         total_segundos = total_registros * segundos_por_registro
         horas_trabajadas = total_segundos / 3600
 
-        # Promedio ciclos por hora
         promedio_ciclos_hora = round(ciclos / horas_trabajadas, 1) if horas_trabajadas else 0
 
-        # Comentarios ciclos
-        comentario_ciclos = promedio_ciclos_hora
+        # Comentario según rango recomendado
+        if promedio_ciclos_hora >= 12 and promedio_ciclos_hora <= 15:
+            comentario = "El promedio de ciclos por hora trabajada está dentro del rango recomendado de 12 a 15 ciclos/hora, por lo que parece estar funcionando correctamente."
+        else:
+            comentario = "El promedio de ciclos por hora trabajada está fuera del rango recomendado de 12 a 15 ciclos/hora. Se recomienda realizar un análisis en el compresor para identificar posibles anomalías."
 
         cursor.close()
         conn.close()
 
-        return {"ciclos": promedio_ciclos_hora }
+        return {
+            "data": {
+                "first_time": first_time,
+                "last_time": last_time,
+                "total_ciclos": ciclos,
+                "promedio_ciclos_hora": promedio_ciclos_hora,
+                "comentario_ciclos": comentario
+            }
+        }
 
     except mysql.connector.Error as err:
         return {"error": str(err)}
-
 
 # Functions to calculate different metrics
 def percentage_load(data):
@@ -473,7 +396,6 @@ def horas_trabajadas(data, segundos_por_registro=5):
 
 def costo_energia_usd(kwh_total, usd_por_kwh=0.17):
     return round(kwh_total * usd_por_kwh, 2)
-
 
 """
 

@@ -14,26 +14,21 @@
   // Components from anothers files
   import TransitionPage from "@/components/transition-page";
   import NavBar from "@/components/navBar";
-  import Boton from "@/components/refreshButton";
 
   import React, { useEffect, useState } from 'react';
 
   // Libraries for charts
-  import ChartDataLabels from 'chartjs-plugin-datalabels';
   import { Chart as ChartJS, ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement} from "chart.js";
   import { Pie, Chart} from "react-chartjs-2";
-  import { useRef } from 'react';
 
 
   // ECharts for the gauge chart
   import ReactECharts from 'echarts-for-react';
-  import { Chart as ChartJSInstance } from 'chart.js';
 
   // Register the necessary components for Chart.js
   ChartJS.register(ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement);
 
   export default function Main() {
-    const chartRef = useRef<ChartJSInstance>(null);
 
     const [chartData, setChartData] = useState([0, 0, 0]); // default values
     const [lineChartData, setLineChartData] = useState<number[]>([]); // default values
@@ -46,9 +41,12 @@
     const [Load, setLoad] = useState<number>(0); // default load values
     const [NoLoad, setNoLoad] = useState<number>(0); // default no load values
     const [Off, setOff] = useState<number>(0); // default off values
-    const [first_hour, setFirstHour] = useState<string>(""); // default first hour value
-    const [last_hour, setLastHour] = useState<string>(""); // default last hour value
-
+    const [firstHour, setFirstHour] = useState("");
+    const [lastHour, setLastHour] = useState("");
+    const [totalCiclos, setTotalCiclos] = useState(0);
+    const [promedioCiclosHora, setPromedioCiclosHora] = useState(0);
+    const [comentarioCiclos, setComentarioCiclos] = useState("");
+    const [data, setData] = useState({ hp_equivalente: 0, hp_instalado: 1 });
 
     const [clientData, setClientData] = useState<{
       numero_cliente: number;
@@ -164,18 +162,105 @@
       fetch("http://127.0.0.1:8000/api/comments-data")
         .then((response) => response.json())
         .then((data) => {
-          const { first_time, last_time } = data.data;
-          setFirstHour(first_time);
-          setLastHour(last_time);
+          const d = data.data;
+          if (d) {
+            setFirstHour(d.first_time);
+            setLastHour(d.last_time);
+            setTotalCiclos(d.total_ciclos);
+            setPromedioCiclosHora(d.promedio_ciclos_hora);
+            setComentarioCiclos(d.comentario_ciclos);
+          }
         })
         .catch((error) => console.error("Error fetching comments data:", error));
     }, []);
 
-  useEffect(() => {
-      fetchChartData();
+    useEffect(() => {
+        fetchChartData();
+      }, []);
+
+    useEffect(() => {
+      fetch("http://localhost:8000/api/gauge_datos")
+        .then((response) => response.json())
+        .then((json) => setData(json))
+        .catch((error) => console.error("Error cargando datos:", error));
     }, []);
-        
-    
+  
+  const hp_instalado = 50
+  const hp_equivalente = 70
+  const porcentajeUso = (hp_equivalente / hp_instalado) * 100;
+  
+  const option = {
+    series: [
+      {
+        type: "gauge",
+        startAngle: 205,
+        endAngle: -25,
+        min: 30,
+        max: 120,
+        splitNumber: 9,
+        axisLine: {
+          lineStyle: {
+            width: 30,
+            color: [
+              [0.377, "red"],
+              [0.544, "yellow"],
+              [0.689, "green"],
+              [0.766, "#418FDE"],
+              [0.889, "yellow"],
+              [1, "red"],
+            ],
+          },
+        },
+        pointer: {
+          show: true,
+          length: "80%",
+          width: 5,
+        },
+        axisTick: {
+          distance: -35,
+          length: 8,
+          lineStyle: {
+            color: "#fff",
+            width: 1,
+          },
+        },
+        splitLine: {
+          distance: -40,
+          length: 10,
+          lineStyle: {
+            color: "#fff",
+            width: 2,
+          },
+        },
+        axisLabel: {
+          distance: -50,
+          color: "#000",
+          fontSize: 14,
+        },
+        detail: {
+          valueAnimation: true,
+          fontSize: 22,
+          offsetCenter: [0, "60%"],
+          formatter: `{value}%`,
+          color: (() => {
+            if (porcentajeUso <= 64) return "red";
+            if (porcentajeUso <= 79) return "black";
+            if (porcentajeUso <= 92) return "green";
+            if (porcentajeUso <= 99) return "#418FDE";
+            if (porcentajeUso <= 110) return "black";
+            if (porcentajeUso <= 120) return "red";
+            return "black";
+          })(),
+        },
+        data: [
+          {
+            value: porcentajeUso.toFixed(0),
+          },
+        ],
+      },
+    ],
+  };
+
   // const getGaugeOption = (gaugeValue) => ({
   //   series: [{
   //     type: 'gauge',
@@ -292,21 +377,6 @@
     }
   };
 
-  
-  useEffect(() => {
-    if (chartRef.current) {
-      const chart = chartRef.current;
-      const ctx = chart.ctx;
-
-      const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-      gradient.addColorStop(0, 'rgba(13, 9, 255, 0.5)');
-      gradient.addColorStop(1, 'rgba(13, 9, 255, 0)');
-
-      chart.data.datasets[0].backgroundColor = gradient;
-      chart.update();
-    }
-  }, [lineChartData]);
-
   // Line boundaries options
   const lineChartOptions = {
     responsive: true,
@@ -343,6 +413,7 @@
       <main>
         <TransitionPage />
         <NavBar />
+
         {/* Here its the top section*/}
         <div className="flex flex-col items-center mb-3">
           <h1 className="text-3xl font-bold text-center">Reporte Diario</h1>
@@ -397,20 +468,19 @@
             </div>
           </div>
         </div>
-
-        {/* <div className="flex flex-row gap-4 items-center justify-center text-center">
-          <Boton 
-                setChartData={setChartData} 
-                setLineChartLabels={setLineChartLabels} 
-                setLineChartData={setLineChartData} 
-                setMaxCurrent={setMaxData}
-                setGaugeValue={setGaugeValue}
-              />
-        </div> */}
         
         {/* Here its the graphs */}
         <div className="flex flex-col items-center justify-center min-h-screen p-6 gap-8">
 
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Recargar Página
+          </button>
+        </div>
+        
         {/* KPIs */}
         <div className="flex flex-row gap-8">
           <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
@@ -419,11 +489,11 @@
           </div>
           <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
             <h2 className="text-sm text-black">kWh Utilizados</h2>
-            <p className="text-3xl font-bold text-black">{kWh.toFixed(2)} kWh</p>
+            <p className="text-3xl font-bold text-black">{kWh.toFixed(0)} kWh</p>
           </div>
           <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
             <h2 className="text-sm text-black">Horas Trabajadas</h2>
-            <p className="text-3xl font-bold text-black">{hoursWorked.toFixed(2)} h</p>
+            <p className="text-3xl font-bold text-black">{hoursWorked.toFixed(1)} h</p>
           </div>
         </div>
 
@@ -436,11 +506,19 @@
 
           <div className="bg-white rounded-2xl shadow p-4 w-[650px] h-[400px] flex flex-col">
             <h3 className="text-center text-black mb-2">Corriente consumida en el día</h3>
-            <Chart ref={chartRef} type="line" data={dataLine} options={lineChartOptions} />
+            <Chart type="line" data={dataLine} options={lineChartOptions} />
           </div>
 
-          <div className="bg-white rounded-2xl shadow p-4 w-[280px] h-[280px] flex items-center justify-center">
-            {/* <ReactECharts option={getGaugeOption(gaugeValue)} /> */}
+          <div className="bg-white rounded-2xl shadow p-4 w-[280px] h-[280px] items-center justify-center">
+            <h2 style={{ textAlign: "center" }}><strong>Hp Equivalente:</strong> {hp_equivalente} Hp</h2>
+            <h2 style={{ textAlign: "center" }}><strong>Hp Instalado:</strong> {hp_instalado} Hp</h2>
+            <ReactECharts
+              option={option}
+              style={{ height: "350px", width: "100%" }}
+              notMerge={true}
+              lazyUpdate={true}
+              theme={"light"}
+            />
           </div>
         </div>
 
@@ -448,11 +526,11 @@
         <h1 className="text-3xl font-bold">Comentarios</h1>
 
         <p className="text-lg text-left">
-          • El día de ayer <strong>{new Date(new Date().setDate(new Date().getDate() - 1)).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</strong> se iniciaron labores a las {first_hour} y se concluyeron a las {last_hour}
+          • El día de ayer <strong>({new Date(new Date().setDate(new Date().getDate() - 1)).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })})</strong> se iniciaron labores a las <strong>{firstHour}</strong> y se concluyeron a las <strong>{lastHour}</strong>
         </p>
 
         <p className="text-lg text-left mt-2">
-          • Entre las horas de {first_hour} y {last_hour}, el compresor operó de la siguiente manera:
+          • Entre las horas de <strong>{firstHour}</strong> y <strong>{lastHour}</strong>, el compresor operó de la siguiente manera:
         </p>
 
         <ul className="list-disc ml-8 text-lg text-left">
@@ -462,11 +540,11 @@
         </ul>
 
         <p className="text-lg text-left mt-2">
-          • Durante el día se completaron un total de {} ciclos de trabajo. Un ciclo se define como un cambio desde el estado <strong>LOAD</strong> a <strong>NO LOAD</strong> consecutivamente.
+          • Durante el día se completaron un total de <strong>{totalCiclos}</strong> ciclos de trabajo. Un ciclo se define como un cambio desde el estado <strong>LOAD</strong> a <strong>NO LOAD</strong> consecutivamente.
         </p>
         
         <p className="text-lg text-left mt-2">
-          • El promedio de ciclos por hora trabajada es de <strong>{}</strong> ciclos/hora.
+          • El promedio de ciclos por hora trabajada fue de <strong>{promedioCiclosHora}</strong> ciclos/hora.
         </p>
 
         <p className="text-lg text-left mt-2">
@@ -474,7 +552,7 @@
         </p>
 
         <p className="text-lg text-left mt-2">
-          • El promedio de ciclos por hora trabajada está fuera del rango recomendado de 12 a 15 ciclos/hora. Se recomienda realizar un análisis en el compresor para identificar posibles anomalías
+          • {comentarioCiclos}
         </p>
         
         <p className="text-lg text-left mt-2">
@@ -505,4 +583,4 @@
       </div>
       </main>
     );
-  }
+}

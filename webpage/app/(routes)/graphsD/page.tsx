@@ -1,194 +1,586 @@
-/*
- * @file page.tsx
- * @date 23/04/2025
- * @author Hector Tovar
- * 
- * @description
- * This file implements the daily graphs, including a Line Chart and a Gauge Chart using both Chart.js and ECharts.
- *
- * @version 1.0
-*/
+  /*
+  * @file page.tsx
+  * @date 23/04/2025
+  * @author Hector Tovar
+  * 
+  * @description
+  * This file implements the daily graphs, including a Line Chart and a Gauge Chart using both Chart.js and ECharts.
+  *
+  * @version 1.0
+  */
 
-"use client" 
+  "use client" 
 
-// Components from anothers files
-import TransitionPage from "@/components/transition-page";
-import NavBar from "@/components/navBar";
-import { usePathname } from "next/navigation";
+  // Components from anothers files
+  import TransitionPage from "@/components/transition-page";
+  import NavBar from "@/components/navBar";
 
-import React, { useEffect, useState } from 'react';
+  import React, { useEffect, useState } from 'react';
 
-// Libraries for charts
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement} from "chart.js";
-import { Line, Pie } from "react-chartjs-2";
-
-// ECharts for the gauge chart
-import ReactECharts from 'echarts-for-react';
+  // Libraries for charts
+  import { Chart as ChartJS, ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement} from "chart.js";
+  import { Pie, Chart} from "react-chartjs-2";
 
 
-// Register the necessary components for Chart.js
-ChartJS.register(ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement);
+  // ECharts for the gauge chart
+  import ReactECharts from 'echarts-for-react';
 
-// Gauge chart configuration for ECharts
-const option = {
-  series: [
-    {
-      type: 'gauge',
-      startAngle: 180,
-      endAngle: 0,
-      center: ['50%', '75%'],
-      radius: '90%',
-      min: 0,
-      max: 1,
-      splitNumber: 8,
-      axisLine: {
-        lineStyle: {
-          width: 6,
-          color: [
-            [0.25, '#FF6E76'],
-            [0.5, '#FDDD60'],
-            [0.75, '#58D9F9'],
-            [1, '#7CFFB2']
-          ]
-        }
-      },
-      pointer: {
-        icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
-        length: '12%',
-        width: 20,
-        offsetCenter: [0, '-60%'],
-        itemStyle: {
-          color: 'auto'
-        }
-      },
-      axisTick: {
-        length: 12,
-        lineStyle: {
-          color: 'auto',
-          width: 2
-        }
-      },
-      splitLine: {
-        length: 20,
-        lineStyle: {
-          color: 'auto',
-          width: 5
-        }
-      },
-      axisLabel: {
-        color: '#464646',
-        fontSize: 20,
-        distance: -60,
-        rotate: 'tangential',
-        formatter: function (value: number) {
-          if (value === 0.875) {
-            return 'Grade A';
-          } else if (value === 0.625) {
-            return 'Grade B';
-          } else if (value === 0.375) {
-            return 'Grade C';
-          } else if (value === 0.125) {
-            return 'Grade D';
+  // Register the necessary components for Chart.js
+  ChartJS.register(ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement);
+
+  export default function Main() {
+
+    const [chartData, setChartData] = useState([0, 0, 0]); // default values
+    const [lineChartData, setLineChartData] = useState<number[]>([]); // default values
+    const [lineChartLabels, setLineChartLabels] = useState<string[]>([]); // default labels
+    const [maxData, setMaxData] = useState(0); // default max value
+    const [gaugeValue, setGaugeValue] = useState<number>(0);
+    const [kWh, setKWh] = useState<number>(0); // default kWh value
+    const [hoursWorked, setHoursWorked] = useState<number>(0); // default hours worked value
+    const [usdCost, setUsdCost] = useState<number>(0); // default USD cost value
+    const [Load, setLoad] = useState<number>(0); // default load values
+    const [NoLoad, setNoLoad] = useState<number>(0); // default no load values
+    const [Off, setOff] = useState<number>(0); // default off values
+    const [firstHour, setFirstHour] = useState("");
+    const [lastHour, setLastHour] = useState("");
+    const [totalCiclos, setTotalCiclos] = useState(0);
+    const [promedioCiclosHora, setPromedioCiclosHora] = useState(0);
+    const [comentarioCiclos, setComentarioCiclos] = useState("");
+    const [data, setData] = useState({ hp_equivalente: 0, hp_instalado: 1 });
+
+    const [clientData, setClientData] = useState<{
+      numero_cliente: number;
+      nombre_cliente: string;
+      RFC: string;
+      direccion: string;
+    } | null>(null);
+
+    const [compressorData, setCompresorData] = useState<{
+      hp: number;
+      tipo: string;
+      voltaje: number;
+      marca: string;
+      numero_serie: number;
+    } | null>(null);
+
+    const fetchChartData = () => {
+      // Pie chart data
+      fetch("http://127.0.0.1:8000/api/pie-data-proc")
+        .then((response) => response.json())
+        .then((data) => {
+          const { LOAD, NOLOAD, OFF } = data.data;
+          setChartData([LOAD, NOLOAD, OFF]);
+        })
+        .catch((error) => console.error("Error fetching pie data:", error));
+    
+      // Line chart data
+      fetch("http://127.0.0.1:8000/api/line-data-proc")
+        .then((response) => response.json())
+        .then((data) => {
+          const rawData = data.data.map((item: { time: string, corriente: number }) => ({
+            time: new Date(item.time),
+            corriente: item.corriente,
+          }));
+    
+          // Ordenar por tiempo
+          rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
+    
+          const times = rawData.map((item) =>
+            item.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          );
+          const currents = rawData.map((item) => item.corriente);
+    
+          // Agregar 23:59:59 si no está al final
+          if (!times.includes("23:59:59")) {
+            times.push("23:59:59");
+            currents.push(null); // o currents.at(-1) o 0, según prefieras
           }
-          return '';
-        }
-      },
-      title: {
-        offsetCenter: [0, '-10%'],
-        fontSize: 20
-      },
-      detail: {
-        fontSize: 30,
-        offsetCenter: [0, '-35%'],
-        valueAnimation: true,
-        formatter: function (value: number) {
-          return Math.round(value * 100) + '';
-        },
-        color: 'inherit'
-      },
-      data: [
-        {
-          value: 0.7,
-          name: 'Grade Rating'
-        }
-      ]
-    }
-  ]
-};
+    
+          setLineChartLabels(times);
+          setLineChartData(currents);
+          setMaxData(Math.max(...currents) + (Math.max(...currents) * 0.3)); // 30% extra
+        })
+        .catch((error) => console.error("Error fetching line data:", error));
+    
+      // Gauge chart data
+      fetch("http://127.0.0.1:8000/api/gauge-data-proc")
+        .then((response) => response.json())
+        .then((data) => {
+          setGaugeValue(data.porcentaje_uso);
+        })
+        .catch((error) => console.error("Error fetching gauge data:", error));
+    };
 
-// Line chart data with boundaries
-const lineChartData = {
-  labels: ['January', 'February', 'March', 'April', 'May', 'June'],
-  datasets: [
-    {
-      label: 'Corriente consumida en el día',
-      data: [65, 59, 80, 81, 56, 55],
-      borderColor: 'rgb(13, 9, 255)',
-      backgroundColor: 'rgba(75, 192, 192, 0.2)',
-      fill: true,
-    }
-  ],
-};
+    useEffect(() => {
+      fetch("http://127.0.0.1:8000/api/client-data")
+        .then(response => response.json())
+        .then(data => {
+          if (data.data && data.data.length > 0) {
+            setClientData(data.data[0]); // toma el primer elemento del array
+          }
+        })
+        .catch(error => console.error("Error fetching client data:", error));
+    }, []);
 
-// Line bOundaries options
-const lineChartOptions = {
-  responsive: true,
-  scales: {
-    y: {
-      min: 50, // Lower boundary of the Y-axis
-      max: 100, // Upper boundary of the Y-axis
-      ticks: {
-        stepSize: 10,
-      },
-    },
-  },
-};
 
-export default function Main() {
-  const [chartData, setChartData] = useState([300, 50, 100]); // default values
+    useEffect(() => {
+      fetch("http://127.0.0.1:8000/api/compressor-data")
+        .then(response => response.json())
+        .then(data => {
+          if (data.data && data.data.length > 0) {
+            setCompresorData(data.data[0]); // toma el primer elemento del array
+          }
+        })
+        .catch(error => console.error("Error fetching compressor data:", error));
+      }, []);
+    
+    useEffect(() => {
+      fetch("http://127.0.0.1:8000/api/stats-data")
+          .then((response) => response.json())
+          .then((data) => {
+              const { kWh, hours_worked, usd_cost } = data.data;
+              setKWh(kWh);
+              setHoursWorked(hours_worked);
+              setUsdCost(usd_cost);
+          })
+          .catch((error) => console.error("Error fetching stats data:", error));
+    }, []);
 
-  useEffect(() => {
-    fetch("http://localhost:8000/api/pie-data") // URL of your FastAPI endpoint
-      .then(response => response.json())
-      .then(data => {
-        setChartData(data.data);
+    useEffect(() => {
+      fetch("http://127.0.0.1:8000/api/pie-data-proc")
+      .then((response) => response.json())
+      .then((data) => {
+        const { LOAD, NOLOAD, OFF } = data.data;
+        setLoad(LOAD);
+        setNoLoad(NOLOAD);
+        setOff(OFF);
       })
-      .catch(error => console.error("Error fetching pie data:", error));
-  }, []);
+      .catch((error) => console.error("Error fetching pie data:", error));
+    },[]);
 
-  const dataPie = {
-    labels: ['LOAD', 'NO LOAD', 'OFF'],
-    datasets: [{
-      label: 'Estados del Compresor',
-      data: chartData,
-      backgroundColor: [
-        'rgb(0, 191, 255)',
-        'rgb(229, 255, 0)',
-        'rgb(126, 126, 126)'
-      ],
-      hoverOffset: 50
-    }]
+    useEffect(() => {
+      fetch("http://127.0.0.1:8000/api/comments-data")
+        .then((response) => response.json())
+        .then((data) => {
+          const d = data.data;
+          if (d) {
+            setFirstHour(d.first_time);
+            setLastHour(d.last_time);
+            setTotalCiclos(d.total_ciclos);
+            setPromedioCiclosHora(d.promedio_ciclos_hora);
+            setComentarioCiclos(d.comentario_ciclos);
+          }
+        })
+        .catch((error) => console.error("Error fetching comments data:", error));
+    }, []);
+
+    useEffect(() => {
+        fetchChartData();
+      }, []);
+
+    useEffect(() => {
+      fetch("http://localhost:8000/api/gauge_datos")
+        .then((response) => response.json())
+        .then((json) => setData(json))
+        .catch((error) => console.error("Error cargando datos:", error));
+    }, []);
+  
+  const hp_instalado = 50
+  const hp_equivalente = 70
+  const porcentajeUso = (hp_equivalente / hp_instalado) * 100;
+  
+  const option = {
+    series: [
+      {
+        type: "gauge",
+        startAngle: 205,
+        endAngle: -25,
+        min: 30,
+        max: 120,
+        splitNumber: 9,
+        axisLine: {
+          lineStyle: {
+            width: 30,
+            color: [
+              [0.377, "red"],
+              [0.544, "yellow"],
+              [0.689, "green"],
+              [0.766, "#418FDE"],
+              [0.889, "yellow"],
+              [1, "red"],
+            ],
+          },
+        },
+        pointer: {
+          show: true,
+          length: "80%",
+          width: 5,
+        },
+        axisTick: {
+          distance: -35,
+          length: 8,
+          lineStyle: {
+            color: "#fff",
+            width: 1,
+          },
+        },
+        splitLine: {
+          distance: -40,
+          length: 10,
+          lineStyle: {
+            color: "#fff",
+            width: 2,
+          },
+        },
+        axisLabel: {
+          distance: -50,
+          color: "#000",
+          fontSize: 14,
+        },
+        detail: {
+          valueAnimation: true,
+          fontSize: 22,
+          offsetCenter: [0, "60%"],
+          formatter: `{value}%`,
+          color: (() => {
+            if (porcentajeUso <= 64) return "red";
+            if (porcentajeUso <= 79) return "black";
+            if (porcentajeUso <= 92) return "green";
+            if (porcentajeUso <= 99) return "#418FDE";
+            if (porcentajeUso <= 110) return "black";
+            if (porcentajeUso <= 120) return "red";
+            return "black";
+          })(),
+        },
+        data: [
+          {
+            value: porcentajeUso.toFixed(0),
+          },
+        ],
+      },
+    ],
   };
 
-  return (
-    <main>
-      <TransitionPage />
-      <NavBar />
-      <div>
-        <h1 className="text-3xl font-bold mb-5 text-center">Reporte Diario</h1>
-        <img src="public/Ventologix_03.png" alt="logo"/>
+  // const getGaugeOption = (gaugeValue) => ({
+  //   series: [{
+  //     type: 'gauge',
+  //     startAngle: 155,
+  //     endAngle: -75,
+  //     min: 30,
+  //     max: 120,
+  //     splitNumber: 9,
+
+  //     axisLine: {
+  //       lineStyle: {
+  //         width: 30,
+  //         color: [
+  //           [64/120, '#FF0000'],    // Rojo hasta 64
+  //           [79/120, '#FFFF00'],    // Amarillo hasta 79
+  //           [92/120, '#00FF00'],    // Verde hasta 92
+  //           [99/120, '#418FDE'],    // Azul hasta 99
+  //           [110/120, '#FFFF00'],   // Amarillo hasta 110
+  //           [1,      '#FF0000']     // Rojo hasta 120
+  //         ]
+  //       }
+  //     },
+
+  //     pointer: {
+  //       length: '75%',
+  //       width: 6,
+  //       itemStyle: {
+  //         color: 'black'
+  //       }
+  //     },
+
+  //     axisTick: {
+  //       length: 10,
+  //       lineStyle: {
+  //         color: '#333',
+  //         width: 2
+  //       }
+  //     },
+
+  //     splitLine: {
+  //       length: 20,
+  //       lineStyle: {
+  //         color: '#333',
+  //         width: 4
+  //       }
+  //     },
+
+  //     axisLabel: {
+  //       fontSize: 14,
+  //       color: '#333',
+  //       formatter: function (val) {
+  //         // Solo muestra los valores clave
+  //         if ([30, 64, 79, 92, 99, 110, 120].includes(val)) {
+  //           return val + '%';
+  //         }
+  //         return '';
+  //       }
+  //     },
+
+  //     title: {
+  //       fontSize: 18,
+  //       offsetCenter: [0, '70%']
+  //     },
+
+  //     detail: {
+  //       formatter: '{value}%',
+  //       fontSize: 24,
+  //       color: 'inherit'
+  //     },
+
+  //     data: [{
+  //       value: gaugeValue,
+  //       name: 'Uso Equivalente'
+  //     }],
+
+  //     // Línea negra fija sobre el 100%
+  //     markLine: {
+  //       silent: true,
+  //       lineStyle: {
+  //         color: 'black',
+  //         width: 5
+  //       },
+  //       data: [
+  //         [
+  //           { coord: [100, 0], symbol: 'none' },
+  //           { coord: [100, 1], symbol: 'none' }
+  //         ]
+  //       ]
+  //     }
+  //   }]
+  // });  
+    
+  const dataPie = {
+    labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
+    datasets: [
+      {
+        label: "Estados del Compresor", // Título del gráfico
+        data: chartData, // Los datos que provienen del backend
+        backgroundColor: [
+          "rgb(0, 191, 255)", // Color para "LOAD"
+          "rgb(229, 255, 0)", // Color para "NO LOAD"
+          "rgb(126, 126, 126)", // Color para "OFF"
+        ],
+        hoverOffset: 30, // Efecto al pasar el mouse
+      },
+    ],
+    options: {
+      layout: {
+        padding: 20,
+      },
+      responsive: true,
+      maintainAspectRatio: false, // Muy útil si le defines height/width al canvas contenedor
+      cutout: '0%',
+    }
+  };
+
+  // Line boundaries options
+  const lineChartOptions = {
+    responsive: true,
+    scales: {
+      y: {
+        min: 0, // Lower boundary of the Y-axis
+        max: maxData, // Upper boundary of the Y-axis
+        ticks: {
+          stepSize: 1,
+        },
+      },
+    },
+  };
+
+  const dataLine = {
+    labels: lineChartLabels, // Labels for the X-axis of the line chart
+    datasets: [
+      {
+        label: 'Corriente consumida en el dia', // Title of the dataset
+        data: lineChartData, // Data points for the line chart
+        borderColor: 'rgb(13, 9, 255)', // Line color
+        backgroundColor: 'rgba(82, 94, 255, 0.2)', // Area fill color
+        fill: 'origin', // Fill from the origin of the Y-axis
+        tension: 0.4, // Line smoothing
+        pointBackgroundColor: 'rgb(13, 9, 255)', // Color of the data points
+        pointRadius: 1, // Radius of the data points
+        borderWidth: 1, // Width of the line
+      }
+    ],
+  };
+
+    return (
+      
+      <main>
+        <TransitionPage />
+        <NavBar />
+
+        {/* Here its the top section*/}
+        <div className="flex flex-col items-center mb-3">
+          <h1 className="text-3xl font-bold text-center">Reporte Diario</h1>
+          <h2 className="text-2xl font-bold text-center">Compresor 1</h2>
+          <h3 className="text-xl font-bold text-center">Fecha: {new Date().toLocaleDateString()}</h3>
+          <img src="/Ventologix_04.png" alt="logo" className="h-10 w-45 mt-3 absolute top-0 right-0 m-3" />
+        </div> 
+
+        <div className="mt-4 p-4">
+
+          <h2 className="text-xl font-bold mb-2">Información Compresor</h2>
+          <div className="flex flex-row gap-60 items-center justify-center text-center">
+            <div className="text-center">
+              <p className="text-lg">{compressorData?.numero_serie}</p>
+              <p className="text-l font-bold">Número de Serie</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg">{compressorData?.marca}</p>
+              <p className="text-l font-bold">Marca</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg">{compressorData?.tipo}</p>
+              <p className="text-l font-bold">Tipo</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg">{compressorData?.voltaje}</p>
+              <p className="text-l font-bold">Voltaje</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg">{compressorData?.hp}</p>
+              <p className="text-l font-bold">HP</p>
+            </div>
+          </div>
+
+          <h2 className="text-xl font-bold mb-2"> Informacion del Cliente </h2>
+          <div className="flex flex-row gap-60 items-center justify-center text-center">
+            <div className="text-center">
+              <p className="text-lg">{clientData?.nombre_cliente}</p>
+              <p className="text-l font-bold">Nombre</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg">{clientData?.numero_cliente}</p>
+              <p className="text-l font-bold">Número de Cliente</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg">{clientData?.RFC}</p>
+              <p className="text-l font-bold">RFC</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg">{clientData?.direccion}</p>
+              <p className="text-l font-bold">Direccion</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Here its the graphs */}
+        <div className="flex flex-col items-center justify-center min-h-screen p-6 gap-8">
+
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Recargar Página
+          </button>
+        </div>
+        
+        {/* KPIs */}
+        <div className="flex flex-row gap-8">
+          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+            <h2 className="text-sm text-black">Gasto USD*</h2>
+            <p className="text-3xl font-bold text-black">${usdCost.toFixed(2)}</p>
+          </div>
+          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+            <h2 className="text-sm text-black">kWh Utilizados</h2>
+            <p className="text-3xl font-bold text-black">{kWh.toFixed(0)} kWh</p>
+          </div>
+          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+            <h2 className="text-sm text-black">Horas Trabajadas</h2>
+            <p className="text-3xl font-bold text-black">{hoursWorked.toFixed(1)} h</p>
+          </div>
+        </div>
+
+        {/* Gráficas */}
+        <div className="flex flex-row flex-wrap justify-center gap-4">
+          <div className="bg-white rounded-s shadow p-4 w-[300] h-[300] flex flex-col items-center justify-center">
+            <h3 className="text-center text-black mb-2">Estados del Compresor</h3>
+            <Pie data={dataPie} />
+          </div>
+
+          <div className="bg-white rounded-2xl shadow p-4 w-[650px] h-[400px] flex flex-col">
+            <h3 className="text-center text-black mb-2">Corriente consumida en el día</h3>
+            <Chart type="line" data={dataLine} options={lineChartOptions} />
+          </div>
+
+          <div className="bg-white rounded-2xl shadow p-4 w-[280px] h-[280px] items-center justify-center">
+            <h2 style={{ textAlign: "center" }}><strong>Hp Equivalente:</strong> {hp_equivalente} Hp</h2>
+            <h2 style={{ textAlign: "center" }}><strong>Hp Instalado:</strong> {hp_instalado} Hp</h2>
+            <ReactECharts
+              option={option}
+              style={{ height: "350px", width: "100%" }}
+              notMerge={true}
+              lazyUpdate={true}
+              theme={"light"}
+            />
+          </div>
+        </div>
+
+        <div className="gap-10 items-left justify-left text-left">
+        <h1 className="text-3xl font-bold">Comentarios</h1>
+
+        <p className="text-lg text-left">
+          • El día de ayer <strong>({new Date(new Date().setDate(new Date().getDate() - 1)).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })})</strong> se iniciaron labores a las <strong>{firstHour}</strong> y se concluyeron a las <strong>{lastHour}</strong>
+        </p>
+
+        <p className="text-lg text-left mt-2">
+          • Entre las horas de <strong>{firstHour}</strong> y <strong>{lastHour}</strong>, el compresor operó de la siguiente manera:
+        </p>
+
+        <ul className="list-disc ml-8 text-lg text-left">
+          <li><strong>LOAD:</strong> {Load}%</li>
+          <li><strong>NO LOAD:</strong> {NoLoad}%</li>
+          <li><strong>OFF:</strong> {Off}%</li>
+        </ul>
+
+        <p className="text-lg text-left mt-2">
+          • Durante el día se completaron un total de <strong>{totalCiclos}</strong> ciclos de trabajo. Un ciclo se define como un cambio desde el estado <strong>LOAD</strong> a <strong>NO LOAD</strong> consecutivamente.
+        </p>
+        
+        <p className="text-lg text-left mt-2">
+          • El promedio de ciclos por hora trabajada fue de <strong>{promedioCiclosHora}</strong> ciclos/hora.
+        </p>
+
+        <p className="text-lg text-left mt-2">
+          • El costo total de operación del compresor fue de <strong>${usdCost.toFixed(2)}</strong>.
+        </p>
+
+        <p className="text-lg text-left mt-2">
+          • {comentarioCiclos}
+        </p>
+        
+        <p className="text-lg text-left mt-2">
+          • No se detectaron consumos con valores fuera de lo común.
+        </p>
+
+        <p className="text-lg text-left mt-2">
+          • El HP equvialente es mayor que el HP nominal del compresor, lo que sugiere que el compresor podría estar forzado. Se recomienda revisar su operación.
+        </p>
+
+        <p className="text-sm text-left mt-2">
+          • El costo por kilovatio-hora (kWh) utilizado en este análisis es de <strong>$0.17 USD/kWh</strong>, que es el estándar actualmente aplicado. Sin embargo, si requiere confirmar este valor o necesita ajustar la tarifa, puede verificar con su contacto en <strong>VENTOLOGIX</strong>
+        </p>
+
+        <h1 className="text-xl text-left mt-7 font-bold"> Información Contacto VENTOLOGIX</h1>
+        <p className="text-xl text-left mt-2" >Nombre: Andrés Mirazo</p>
+        <p className="text-xl text-left mt-2">
+        Correo:{" "}
+        <a
+          href="mailto:Andres.Mirazo@ventologix.com"
+          className="text-blue-600 hover:scale-120 hover:text-blue-800  duration-300"
+        >
+          Andres.Mirazo@ventologix.com
+        </a>
+      </p>
       </div>
-      <div className="flex flex-col items-center justify-center min-h-[150vh] bg-gradient-to-b from-white to-gray-100">
-        <div className="w-[250px] h-[250px] mb-8">
-          <Pie data={dataPie} />
-        </div>
-        <div className="w-[600px] h-[400px] mb-8">
-          <Line data={lineChartData} options={lineChartOptions} />
-        </div>
-        <div className="w-[250px] h-[250px]">
-          <ReactECharts option={option} />
-        </div>
+      
       </div>
-    </main>
-  );
+      </main>
+    );
 }
