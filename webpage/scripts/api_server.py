@@ -286,56 +286,7 @@ def get_raw_data_excel():
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-"""
-@app.get("/api/pie-data-proc")
-def get_pie_data_proc(fecha: str = Query(...)):
-    try:
-        fecha_dt = datetime.strptime(fecha, '%Y-%m-%d')
-
-        # Connect to DB
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME
-        )
-        cursor = conn.cursor()
-
-        # Call the stored procedure
-        cursor.execute("call DataFiltradaDayFecha(7,7,'A', %s)", (fecha_dt,))
-
-        results = cursor.fetchall()
-
-        # Close resources
-        cursor.close()
-        conn.close()
-        
-        if not results:
-            return {"error": "No data from procedure"}
-
-        # Map the results (adjust column names)
-        data = [
-            {"time": row[1], "estado": row[3], "estado_anterior": row[4]}
-            for row in results
-        ]
-
-        # Calculate percentages
-        load_percentage = np.round(percentage_load(data),3)
-        noload_percentage = np.round(percentage_noload(data),3)
-        off_percentage = np.round(percentage_off(data),3)
-
-        return JSONResponse(content={
-            "data": {
-                "LOAD": load_percentage,
-                "NOLOAD": noload_percentage,
-                "OFF": off_percentage
-            }
-        })
-
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)})
-
-@app.get("/api/line-data-proc")
+@app.get("/api/line-data-proc-date")
 def get_line_data(fecha: str = Query(...)):
     try:
         fecha_dt = datetime.strptime(fecha, '%Y-%m-%d')
@@ -400,6 +351,55 @@ def get_line_data(fecha: str = Query(...)):
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)})
+
+"""
+@app.get("/api/pie-data-proc")
+def get_pie_data_proc(fecha: str = Query(...)):
+    try:
+        fecha_dt = datetime.strptime(fecha, '%Y-%m-%d')
+
+        # Connect to DB
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        # Call the stored procedure
+        cursor.execute("call DataFiltradaDayFecha(7,7,'A', %s)", (fecha_dt,))
+
+        results = cursor.fetchall()
+
+        # Close resources
+        cursor.close()
+        conn.close()
+        
+        if not results:
+            return {"error": "No data from procedure"}
+
+        # Map the results (adjust column names)
+        data = [
+            {"time": row[1], "estado": row[3], "estado_anterior": row[4]}
+            for row in results
+        ]
+
+        # Calculate percentages
+        load_percentage = np.round(percentage_load(data),3)
+        noload_percentage = np.round(percentage_noload(data),3)
+        off_percentage = np.round(percentage_off(data),3)
+
+        return JSONResponse(content={
+            "data": {
+                "LOAD": load_percentage,
+                "NOLOAD": noload_percentage,
+                "OFF": off_percentage
+            }
+        })
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}
 
 @app.get("/api/comments-data")
 def get_comments_data(fecha: str = Query(...)):

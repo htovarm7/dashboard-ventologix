@@ -464,7 +464,7 @@
         <div className="flex flex-col items-center mb-3">
           <h1 className="text-3xl font-bold text-center">Reporte Diario</h1>
           <h2 className="text-2xl font-bold text-center">Compresor 1</h2>
-          <h3 className="text-xl font-bold text-center">Fecha: ({new Date(new Date().setDate(new Date().getDate() - 1)).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })})</h3>
+          <h3 className="text-xl font-bold text-center">Fecha: {new Date(new Date().setDate(new Date().getDate())).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</h3>
           <img src="/Ventologix_04.png" alt="logo" className="h-10 w-45 mt-3 absolute top-0 right-0 m-3" />
         </div> 
 
@@ -494,6 +494,7 @@
             </div>
           </div>
 
+          {/* Informaion del clinte */}
           <h2 className="text-xl font-bold mb-2"> Informacion del Cliente </h2>
           <div className="flex flex-row gap-60 items-center justify-center text-center">
             <div className="text-center">
@@ -524,12 +525,6 @@
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           >
             Recargar Página
-          </button>
-          <button
-            onClick={handleDownload}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Descargar Raw Data
           </button>
           <button
             onClick={() => window.location.href = "/rawData"}
@@ -638,8 +633,8 @@
           • El costo por kilovatio-hora (kWh) utilizado en este análisis es de <strong>$0.17 USD/kWh</strong>, que es el estándar actualmente aplicado. Sin embargo, si requiere confirmar este valor o necesita ajustar la tarifa, puede verificar con su contacto en <strong>VENTOLOGIX</strong>
         </p>
 
-        <h1 className="text-xl text-left mt-7 font-bold"> Información Contacto VENTOLOGIX</h1>
-        <p className="text-xl text-left mt-2" >Nombre: Andrés Mirazo</p>
+        <h1 className="text-xl text-left mt-7 font-bold">IQgineer VENTOLOGIX asignado:</h1>
+        <p className="text-xl text-left mt-2" >Nombre: Ing. Andrés Mirazo</p>
         <p className="text-xl text-left mt-2">
         Correo:{" "}
         <a

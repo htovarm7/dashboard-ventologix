@@ -20,7 +20,7 @@ const LineChartWithDateFilter: React.FC = () => {
   useEffect(() => {
     const formattedDate = selectedDate.toISOString().split("T")[0];
 
-    fetch(`http://127.0.0.1:8000/api/line-data-proc?fecha=${formattedDate}`)
+    fetch(`http://127.0.0.1:8000/api/line-data-proc-date?fecha=${formattedDate}`)
       .then((response) => response.json())
       .then((data) => {
         const rawData = data.data.map((item: { time: string, corriente: number }) => ({
