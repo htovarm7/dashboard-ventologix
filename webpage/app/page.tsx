@@ -16,6 +16,8 @@
   import NavBar from "@/components/navBar";
 
   import React, { useEffect, useState } from 'react';
+  import DatePicker from "react-datepicker";
+  import "react-datepicker/dist/react-datepicker.css";
 
   // Libraries for charts
   import { Chart as ChartJS, ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement} from "chart.js";
@@ -47,6 +49,8 @@
     const [promedioCiclosHora, setPromedioCiclosHora] = useState(0);
     const [comentarioCiclos, setComentarioCiclos] = useState("");
     const [data, setData] = useState({ hp_equivalente: 0, hp_instalado: 1 });
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    
 
     const [clientData, setClientData] = useState<{
       numero_cliente: number;
@@ -62,54 +66,6 @@
       marca: string;
       numero_serie: number;
     } | null>(null);
-
-    const fetchChartData = () => {
-      // Pie chart data
-      fetch("http://127.0.0.1:8000/api/pie-data-proc")
-        .then((response) => response.json())
-        .then((data) => {
-          const { LOAD, NOLOAD, OFF } = data.data;
-          setChartData([LOAD, NOLOAD, OFF]);
-        })
-        .catch((error) => console.error("Error fetching pie data:", error));
-    
-      // Line chart data
-      fetch("http://127.0.0.1:8000/api/line-data-proc")
-        .then((response) => response.json())
-        .then((data) => {
-          const rawData = data.data.map((item: { time: string, corriente: number }) => ({
-            time: new Date(item.time),
-            corriente: item.corriente,
-          }));
-    
-          // Ordenar por tiempo
-          rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
-    
-          const times = rawData.map((item) =>
-            item.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-          );
-          const currents = rawData.map((item) => item.corriente);
-    
-          // Agregar 23:59:59 si no está al final
-          if (!times.includes("23:59:59")) {
-            times.push("23:59:59");
-            currents.push(null); // o currents.at(-1) o 0, según prefieras
-          }
-    
-          setLineChartLabels(times);
-          setLineChartData(currents);
-          setMaxData(Math.max(...currents) + (Math.max(...currents) * 0.3)); // 30% extra
-        })
-        .catch((error) => console.error("Error fetching line data:", error));
-    
-      // Gauge chart data
-      fetch("http://127.0.0.1:8000/api/gauge-data-proc")
-        .then((response) => response.json())
-        .then((data) => {
-          setGaugeValue(data.porcentaje_uso);
-        })
-        .catch((error) => console.error("Error fetching gauge data:", error));
-    };
 
     useEffect(() => {
       fetch("http://127.0.0.1:8000/api/client-data")
@@ -147,18 +103,6 @@
     }, []);
 
     useEffect(() => {
-      fetch("http://127.0.0.1:8000/api/pie-data-proc")
-      .then((response) => response.json())
-      .then((data) => {
-        const { LOAD, NOLOAD, OFF } = data.data;
-        setLoad(LOAD);
-        setNoLoad(NOLOAD);
-        setOff(OFF);
-      })
-      .catch((error) => console.error("Error fetching pie data:", error));
-    },[]);
-
-    useEffect(() => {
       fetch("http://127.0.0.1:8000/api/comments-data")
         .then((response) => response.json())
         .then((data) => {
@@ -173,17 +117,56 @@
         })
         .catch((error) => console.error("Error fetching comments data:", error));
     }, []);
+    
 
-    useEffect(() => {
-        fetchChartData();
-      }, []);
+    const fetchChartData = () => {
+      // Formatear la fecha seleccionada
+      const formattedDate = selectedDate.toISOString().split("T")[0];
 
-    useEffect(() => {
-      fetch("http://localhost:8000/api/gauge_datos")
+      // Pie chart data
+      fetch(`http://127.0.0.1:8000/api/pie-data-proc?fecha=${formattedDate}`)
         .then((response) => response.json())
-        .then((json) => setData(json))
-        .catch((error) => console.error("Error cargando datos:", error));
-    }, []);
+        .then((data) => {
+          const { LOAD, NOLOAD, OFF } = data.data;
+          setChartData([LOAD, NOLOAD, OFF]);
+        })
+        .catch((error) => console.error("Error fetching pie data:", error));
+
+      // Line chart data
+      fetch(`http://127.0.0.1:8000/api/line-data-proc?fecha=${formattedDate}`)
+        .then((response) => response.json())
+        .then((data) => {
+          const rawData = data.data.map((item: { time: string, corriente: number }) => ({
+            time: new Date(item.time),
+            corriente: item.corriente,
+          }));
+
+          // Ordenar por tiempo
+          rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
+
+          const times = rawData.map((item) =>
+            item.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          );
+          const currents = rawData.map((item) => item.corriente);
+
+          // Agregar 23:59:59 si no está al final
+          if (!times.includes("23:59:59")) {
+            times.push("23:59:59");
+            currents.push(null); // o currents.at(-1) o 0, según prefieras
+          }
+
+          setLineChartLabels(times);
+          setLineChartData(currents);
+          setMaxData(Math.max(...currents.filter(c => c !== null)) * 1.3); // 30% extra
+        })
+        .catch((error) => console.error("Error fetching line data:", error));
+    };
+
+    // En el useEffect donde se obtiene la data para las gráficas:
+    useEffect(() => {
+      fetchChartData(); // Esto asegura que se obtengan los datos cada vez que cambie la fecha
+    }, [selectedDate]); // Agregar selectedDate como dependencia para que se actualicen los datos
+
 
     const handleDownload = async () => {
       const response = await fetch("http://localhost:8000/api/raw-data-excel");
@@ -495,17 +478,20 @@
           <button onClick={handleDownload} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
             Descargar Raw Data
           </button>
-        </div>
-        
-        {/* KPIs */}
-        <div className="flex flex-row gap-8">
-          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-            <h2 className="text-sm text-black">Gasto USD*</h2>
-            <p className="text-3xl font-bold text-black">${usdCost.toFixed(2)}</p>
+          <button onClick={() => window.location.href = "/rawData"} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            Visualizar Excel
+          </button>
           </div>
-          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-            <h2 className="text-sm text-black">kWh Utilizados</h2>
-            <p className="text-3xl font-bold text-black">{kWh.toFixed(0)} kWh</p>
+
+          {/* KPIs */}
+          <div className="flex flex-row gap-8">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+              <h2 className="text-sm text-black">Gasto USD*</h2>
+              <p className="text-3xl font-bold text-black">${usdCost.toFixed(2)}</p>
+            </div>
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+              <h2 className="text-sm text-black">kWh Utilizados</h2>
+              <p className="text-3xl font-bold text-black">{kWh.toFixed(0)} kWh</p>
           </div>
           <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
             <h2 className="text-sm text-black">Horas Trabajadas</h2>
@@ -515,6 +501,11 @@
 
         {/* Gráficas */}
         <div className="flex flex-row flex-wrap justify-center gap-4">
+          <DatePicker
+            selected={selectedDate}
+            onChange={(date) => setSelectedDate(date as Date)}
+            dateFormat="yyyy-MM-dd"
+          />  
           <div className="bg-white rounded-s shadow p-4 w-[300] h-[300] flex flex-col items-center justify-center">
             <h3 className="text-center text-black mb-2">Estados del Compresor</h3>
             <Pie data={dataPie} />
