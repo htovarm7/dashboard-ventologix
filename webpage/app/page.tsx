@@ -184,6 +184,18 @@
         .then((json) => setData(json))
         .catch((error) => console.error("Error cargando datos:", error));
     }, []);
+
+    const handleDownload = async () => {
+      const response = await fetch("http://localhost:8000/api/raw-data-excel");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "raw_data.xlsx";
+      a.click();
+      window.URL.revokeObjectURL(url);
+    };
+
   
   const hp_instalado = 50
   const hp_equivalente = 70
@@ -408,6 +420,7 @@
     ],
   };
 
+
     return (
       
       <main>
@@ -472,12 +485,15 @@
         {/* Here its the graphs */}
         <div className="flex flex-col items-center justify-center min-h-screen p-6 gap-8">
 
-        <div className="flex justify-center mt-4">
+        <div className="flex justify-center mt-4 gap-10">
           <button
             onClick={() => window.location.reload()}
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           >
             Recargar Página
+          </button>
+          <button onClick={handleDownload} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            Descargar Raw Data
           </button>
         </div>
         
@@ -583,4 +599,4 @@
       </div>
       </main>
     );
-}
+  }

@@ -34,6 +34,9 @@ import os
 from dotenv import load_dotenv
 import numpy as np
 from datetime import datetime, timedelta
+from fastapi.responses import StreamingResponse
+import pandas as pd
+from io import BytesIO
 
 # Load environment variables
 load_dotenv()
@@ -334,6 +337,47 @@ def get_comments_data():
 
     except mysql.connector.Error as err:
         return {"error": str(err)}
+
+@app.get("/api/raw-data-excel")
+def get_raw_data_excel():
+    try:
+        # Connect to the database
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
+        results = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return {"error": "No data found for the specified date."}
+
+        # Convert to DataFrame
+        df = pd.DataFrame(results, columns=["id", "time", "corriente", "estado", "estado_anterior"])
+
+        # Save to Excel in memory
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='RawData')
+
+        output.seek(0)
+        
+        # Return as streaming response
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=raw_data.xlsx"}
+        )
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
+    
 
 # Functions to calculate different metrics
 def percentage_load(data):
