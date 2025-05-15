@@ -442,7 +442,7 @@
         {/* Here its the top section*/}
         <div className="flex flex-col items-center mb-3">
           <h1 className="text-3xl font-bold text-center">Reporte Diario</h1>
-          <h2 className="text-2xl font-bold text-center">"Compresor 1"</h2>
+          <h2 className="text-2xl font-bold text-center">"Compresor 2"</h2> {/* Esta hardcodeado */}
           <h3 className="text-xl font-bold text-center">Fecha: {new Date(new Date().setDate(new Date().getDate())).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</h3>
           <img src="/Ventologix_04.png" alt="logo" className="h-16 w-auto mt-3 absolute top-0 left-0 m-3" />
         </div> 
