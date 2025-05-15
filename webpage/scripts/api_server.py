@@ -73,7 +73,7 @@ def get_pie_data_proc():
         cursor = conn.cursor()
 
         # Call the stored procedure
-        cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
+        cursor.execute("call DataFiltradaDayFecha(7,7,'B',CURDATE())")
 
         results = cursor.fetchall()
 
@@ -91,14 +91,9 @@ def get_pie_data_proc():
         ]
 
         # Calculate percentages
-        load_percentage = np.round(percentage_load(data),3)
-        noload_percentage = np.round(percentage_noload(data),3)
-        off_percentage = np.round(percentage_off(data),3)
-
-        # LOAD / NO LOAD /  OFF
-        arr = [load_percentage,noload_percentage,off_percentage]
-
-        # print(arr)
+        load_percentage = np.round(percentage_load(data),2)
+        noload_percentage = np.round(percentage_noload(data),2)
+        off_percentage = np.round(percentage_off(data),2)
 
         return{
             "data": {
@@ -125,7 +120,7 @@ def get_line_data():
         cursor = conn.cursor()
 
         # Ejecutar SP con la fecha proporcionada
-        cursor.execute("call DataFiltradaDayFecha(7,7,'A', CURDATE())")
+        cursor.execute("call DataFiltradaDayFecha(7,7,'B', CURDATE())")
         results = cursor.fetchall()
 
         cursor.close()
@@ -187,7 +182,7 @@ def get_comments_data():
         )
         cursor = conn.cursor()
 
-        cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
+        cursor.execute("call DataFiltradaDayFecha(7,7,'B',CURDATE())")
         results = cursor.fetchall()
 
         if not results:
@@ -258,7 +253,7 @@ def get_raw_data_excel():
         )
         cursor = conn.cursor()
 
-        cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
+        cursor.execute("call DataFiltradaDayFecha(7,7,'B',CURDATE())")
         results = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -539,7 +534,7 @@ def get_stats_data():
         cursor = conn.cursor()
 
         # Ejecutar procedimiento almacenado
-        cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
+        cursor.execute("call DataFiltradaDayFecha(7,7,'B',CURDATE())")
         results1 = cursor.fetchall()
 
         while cursor.nextset():
@@ -646,7 +641,6 @@ def get_client_data():
 
     except mysql.connector.Error as err:
         return {"error": str(err)}
-
 
 # Functions to calculate different metrics
 def percentage_load(data):
@@ -767,7 +761,7 @@ def get_line_data():
         )
         cursor = conn.cursor()
 
-        cursor.execute("call DataFiltradaDayFecha(7,7,'A',CURDATE())")
+        cursor.execute("call DataFiltradaDayFecha(7,7,'B',CURDATE())")
         results = cursor.fetchall()
 
         cursor.close()

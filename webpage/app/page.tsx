@@ -32,6 +32,7 @@
 
   export default function Main() {
 
+    // Constant Declarations
     const [chartData, setChartData] = useState([0, 0, 0]); // default values
     const [lineChartData, setLineChartData] = useState<number[]>([]); // default values
     const [lineChartLabels, setLineChartLabels] = useState<string[]>([]); // default labels
@@ -48,11 +49,9 @@
     const [totalCiclos, setTotalCiclos] = useState(0);
     const [promedioCiclosHora, setPromedioCiclosHora] = useState(0);
     const [comentarioCiclos, setComentarioCiclos] = useState("");
-    const [data, setData] = useState({ hp_equivalente: 0, hp_instalado: 1 });
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [hpeq, setHPEquivalente] = useState<number>(0);
     const [comentarioHp, setComentarioHp] = useState("");
-    
 
     const [clientData, setClientData] = useState<{
       numero_cliente: number;
@@ -69,66 +68,111 @@
       numero_serie: number;
     } | null>(null);
 
-    useEffect(() => {
-      fetch("http://127.0.0.1:8000/api/client-data")
-        .then(response => response.json())
-        .then(data => {
-          if (data.data && data.data.length > 0) {
-            setClientData(data.data[0]); // toma el primer elemento del array
-          }
-        })
-        .catch(error => console.error("Error fetching client data:", error));
-    }, []);
+    // useEffect(() => {
+    //   fetch("http://127.0.0.1:8000/api/client-data")
+    //     .then(response => response.json())
+    //     .then(data => {
+    //       if (data.data && data.data.length > 0) {
+    //         setClientData(data.data[0]); // toma el primer elemento del array
+    //       }
+    //     })
+    //     .catch(error => console.error("Error fetching client data:", error));
+    // }, []);
 
 
-    useEffect(() => {
-      fetch("http://127.0.0.1:8000/api/compressor-data")
-        .then(response => response.json())
-        .then(data => {
-          if (data.data && data.data.length > 0) {
-            setCompresorData(data.data[0]); // toma el primer elemento del array
-          }
-        })
-        .catch(error => console.error("Error fetching compressor data:", error));
-      }, []);
+    // useEffect(() => {
+    //   fetch("http://127.0.0.1:8000/api/compressor-data")
+    //     .then(response => response.json())
+    //     .then(data => {
+    //       if (data.data && data.data.length > 0) {
+    //         setCompresorData(data.data[0]); // toma el primer elemento del array
+    //       }
+    //     })
+    //     .catch(error => console.error("Error fetching compressor data:", error));
+    //   }, []);
     
-    useEffect(() => {
-      fetch("http://127.0.0.1:8000/api/stats-data")
-          .then((response) => response.json())
-          .then((data) => {
-              const { kWh, hours_worked, usd_cost, hp_equivalente, comentario_hp_equivalente} = data.data;
-              setKWh(kWh);
-              setHoursWorked(hours_worked);
-              setUsdCost(usd_cost);
-              setHPEquivalente(hp_equivalente);
-              setComentarioHp(comentario_hp_equivalente);
-          })
-          .catch((error) => console.error("Error fetching stats data:", error));
-    }, []);
+    // useEffect(() => {
+    //   fetch("http://127.0.0.1:8000/api/stats-data")
+    //       .then((response) => response.json())
+    //       .then((data) => {
+    //           const { kWh, hours_worked, usd_cost, hp_equivalente, comentario_hp_equivalente} = data.data;
+    //           setKWh(kWh);
+    //           setHoursWorked(hours_worked);
+    //           setUsdCost(usd_cost);
+    //           setHPEquivalente(hp_equivalente);
+    //           setComentarioHp(comentario_hp_equivalente);
+    //       })
+    //       .catch((error) => console.error("Error fetching stats data:", error));
+    // }, []);
 
-    useEffect(() => {
-      fetch("http://127.0.0.1:8000/api/comments-data")
-        .then((response) => response.json())
-        .then((data) => {
-          const d = data.data;
-          if (d) {
-            setFirstHour(d.first_time);
-            setLastHour(d.last_time);
-            setTotalCiclos(d.total_ciclos);
-            setPromedioCiclosHora(d.promedio_ciclos_hora);
-            setComentarioCiclos(d.comentario_ciclos);
-          }
-        })
-        .catch((error) => console.error("Error fetching comments data:", error));
-    }, []);
+    // useEffect(() => {
+    //   fetch("http://127.0.0.1:8000/api/comments-data")
+    //     .then((response) => response.json())
+    //     .then((data) => {
+    //       const d = data.data;
+    //       if (d) {
+    //         setFirstHour(d.first_time);
+    //         setLastHour(d.last_time);
+    //         setTotalCiclos(d.total_ciclos);
+    //         setPromedioCiclosHora(d.promedio_ciclos_hora);
+    //         setComentarioCiclos(d.comentario_ciclos);
+    //       }
+    //     })
+    //     .catch((error) => console.error("Error fetching comments data:", error));
+    // }, []);
     
+
+
+    // // const fetchChartData = () => {
+    // //   // Formatear la fecha seleccionada
+    // //   const formattedDate = selectedDate.toISOString().split("T")[0];
+
+    // //   // Pie chart data
+    // //   fetch(`http://127.0.0.1:8000/api/pie-data-proc?fecha=${formattedDate}`)
+    // //     .then((response) => response.json())
+    // //     .then((data) => {
+    // //       const { LOAD, NOLOAD, OFF } = data.data;
+    // //       setChartData([LOAD, NOLOAD, OFF]);
+    // //     })
+    // //     .catch((error) => console.error("Error fetching pie data:", error));
+
+    // //   // Line chart data
+    // //   fetch(`http://127.0.0.1:8000/api/line-data-proc?fecha=${formattedDate}`)
+    // //     .then((response) => response.json())
+    // //     .then((data) => {
+    // //       const rawData = data.data.map((item: { time: string, corriente: number }) => ({
+    // //         time: new Date(item.time),
+    // //         corriente: item.corriente,
+    // //       }));
+
+    // //       // Ordenar por tiempo
+    // //       rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
+
+    // //       const times = rawData.map((item) =>
+    // //         item.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    // //       );
+    // //       const currents = rawData.map((item) => item.corriente);
+
+    // //       // Agregar 23:59:59 si no está al final
+    // //       if (!times.includes("23:59:59")) {
+    // //         times.push("23:59:59");
+    // //         currents.push(null); // o currents.at(-1) o 0, según prefieras
+    // //       }
+
+    // //       setLineChartLabels(times);
+    // //       setLineChartData(currents);
+    // //       setMaxData(Math.max(...currents.filter(c => c !== null)) * 1.3); // 30% extra
+    // //     })
+    // //     .catch((error) => console.error("Error fetching line data:", error));
+    // // };
+
+    // // // En el useEffect donde se obtiene la data para las gráficas:
+    // // useEffect(() => {
+    // //   fetchChartData(); // Esto asegura que se obtengan los datos cada vez que cambie la fecha
 
     // const fetchChartData = () => {
-    //   // Formatear la fecha seleccionada
-    //   const formattedDate = selectedDate.toISOString().split("T")[0];
-
     //   // Pie chart data
-    //   fetch(`http://127.0.0.1:8000/api/pie-data-proc?fecha=${formattedDate}`)
+    //   fetch("http://127.0.0.1:8000/api/pie-data-proc")
     //     .then((response) => response.json())
     //     .then((data) => {
     //       const { LOAD, NOLOAD, OFF } = data.data;
@@ -137,7 +181,7 @@
     //     .catch((error) => console.error("Error fetching pie data:", error));
 
     //   // Line chart data
-    //   fetch(`http://127.0.0.1:8000/api/line-data-proc?fecha=${formattedDate}`)
+    //   fetch("http://127.0.0.1:8000/api/line-data-proc")
     //     .then((response) => response.json())
     //     .then((data) => {
     //       const rawData = data.data.map((item: { time: string, corriente: number }) => ({
@@ -161,66 +205,89 @@
 
     //       setLineChartLabels(times);
     //       setLineChartData(currents);
-    //       setMaxData(Math.max(...currents.filter(c => c !== null)) * 1.3); // 30% extra
+    //       setMaxData(Math.max(...currents) + (Math.max(...currents) * 0.3)); // 30% extra
     //     })
     //     .catch((error) => console.error("Error fetching line data:", error));
+
+    //   // Gauge chart data
+    //   fetch("http://127.0.0.1:8000/api/gauge-data-proc")
+    //     .then((response) => response.json())
+    //     .then((data) => {
+    //       setGaugeValue(data.porcentaje_uso);
+    //     })
+    //     .catch((error) => console.error("Error fetching gauge data:", error));
     // };
 
-    // // En el useEffect donde se obtiene la data para las gráficas:
     // useEffect(() => {
-    //   fetchChartData(); // Esto asegura que se obtengan los datos cada vez que cambie la fecha
+    //     fetchChartData();
+    //   }, []);
 
-    const fetchChartData = () => {
-      // Pie chart data
-      fetch("http://127.0.0.1:8000/api/pie-data-proc")
-        .then((response) => response.json())
-        .then((data) => {
-          const { LOAD, NOLOAD, OFF } = data.data;
+    useEffect(() => {
+      const fetchAllData = async () => {
+        try {
+          const [clientRes, compressorRes, statsRes, commentsRes, pieRes, lineRes, gaugeRes] = await Promise.all([
+            fetch("http://127.0.0.1:8000/api/client-data").then(r => r.json()),
+            fetch("http://127.0.0.1:8000/api/compressor-data").then(r => r.json()),
+            fetch("http://127.0.0.1:8000/api/stats-data").then(r => r.json()),
+            fetch("http://127.0.0.1:8000/api/comments-data").then(r => r.json()),
+            fetch("http://127.0.0.1:8000/api/pie-data-proc").then(r => r.json()),
+            fetch("http://127.0.0.1:8000/api/line-data-proc").then(r => r.json()),
+            fetch("http://127.0.0.1:8000/api/gauge-data-proc").then(r => r.json())
+          ]);
+
+          if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
+          if (compressorRes.data.length > 0) setCompresorData(compressorRes.data[0]);
+
+          const stats = statsRes.data;
+          setKWh(stats.kWh);
+          setHoursWorked(stats.hours_worked);
+          setUsdCost(stats.usd_cost);
+          setHPEquivalente(stats.hp_equivalente);
+          setComentarioHp(stats.comentario_hp_equivalente);
+
+          const comments = commentsRes.data;
+          setFirstHour(comments.first_time);
+          setLastHour(comments.last_time);
+          setTotalCiclos(comments.total_ciclos);
+          setPromedioCiclosHora(comments.promedio_ciclos_hora);
+          setComentarioCiclos(comments.comentario_ciclos);
+
+          const { LOAD, NOLOAD, OFF } = pieRes.data;
           setChartData([LOAD, NOLOAD, OFF]);
-        })
-        .catch((error) => console.error("Error fetching pie data:", error));
-
-      // Line chart data
-      fetch("http://127.0.0.1:8000/api/line-data-proc")
-        .then((response) => response.json())
-        .then((data) => {
-          const rawData = data.data.map((item: { time: string, corriente: number }) => ({
+          
+          setLoad(LOAD);
+          setNoLoad(NOLOAD);
+          setOff(OFF);
+          
+          const rawData = lineRes.data.map((item: { time: string, corriente: number }) => ({
             time: new Date(item.time),
             corriente: item.corriente,
           }));
-
-          // Ordenar por tiempo
           rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
 
-          const times = rawData.map((item) =>
+          const times = rawData.map(item =>
             item.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
           );
-          const currents = rawData.map((item) => item.corriente);
+          const currents = rawData.map(item => item.corriente);
 
-          // Agregar 23:59:59 si no está al final
           if (!times.includes("23:59:59")) {
             times.push("23:59:59");
-            currents.push(null); // o currents.at(-1) o 0, según prefieras
+            currents.push(null);
           }
 
           setLineChartLabels(times);
           setLineChartData(currents);
-          setMaxData(Math.max(...currents) + (Math.max(...currents) * 0.3)); // 30% extra
-        })
-        .catch((error) => console.error("Error fetching line data:", error));
+          setMaxData(Math.max(...currents.filter(c => c !== null)) * 1.3);
 
-      // Gauge chart data
-      fetch("http://127.0.0.1:8000/api/gauge-data-proc")
-        .then((response) => response.json())
-        .then((data) => {
-          setGaugeValue(data.porcentaje_uso);
-        })
-        .catch((error) => console.error("Error fetching gauge data:", error));
-    };
+          setGaugeValue(gaugeRes.porcentaje_uso);
 
-    useEffect(() => {
-        fetchChartData();
-      }, []);
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        }
+      };
+
+    fetchAllData();
+  }, []);
 
     const handleDownload = async () => {
       const response = await fetch("http://localhost:8000/api/raw-data-excel");
@@ -375,7 +442,7 @@
         {/* Here its the top section*/}
         <div className="flex flex-col items-center mb-3">
           <h1 className="text-3xl font-bold text-center">Reporte Diario</h1>
-          <h2 className="text-2xl font-bold text-center">Compresor 1</h2>
+          <h2 className="text-2xl font-bold text-center">"Compresor 1"</h2>
           <h3 className="text-xl font-bold text-center">Fecha: {new Date(new Date().setDate(new Date().getDate())).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</h3>
           <img src="/Ventologix_04.png" alt="logo" className="h-16 w-auto mt-3 absolute top-0 left-0 m-3" />
         </div> 
@@ -446,6 +513,7 @@
           </button>
           
           <div className="relative">
+            <h2 className="text-center font-bold text-blue-600 animate-bounce"> Elige una fecha</h2>
             <DatePicker
               selected={selectedDate}
               onChange={(date) => setSelectedDate(date as Date)}
