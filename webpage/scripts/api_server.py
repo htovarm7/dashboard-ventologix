@@ -225,10 +225,10 @@ def get_comments_data():
         promedio_ciclos_hora = round(ciclos / horas_trabajadas, 1) if horas_trabajadas else 0
 
         # Comentario según rango recomendado
-        if promedio_ciclos_hora >= 12 and promedio_ciclos_hora <= 15:
-            comentario = "El promedio de ciclos por hora trabajada está dentro del rango recomendado de 12 a 15 ciclos/hora, por lo que parece estar funcionando correctamente."
+        if promedio_ciclos_hora >= 6 and promedio_ciclos_hora <= 15:
+            comentario = "El promedio de ciclos por hora trabajada está dentro del rango recomendado de 6 a 15 ciclos/hora, por lo que parece estar funcionando correctamente."
         else:
-            comentario = "El promedio de ciclos por hora trabajada está fuera del rango recomendado de 12 a 15 ciclos/hora. Se recomienda realizar un análisis en el compresor para identificar posibles anomalías."
+            comentario = "El promedio de ciclos por hora trabajada está fuera del rango recomendado de 6 a 15 ciclos/hora. Se recomienda realizar un análisis en el compresor para identificar posibles anomalías."
 
         cursor.close()
         conn.close()
@@ -565,12 +565,16 @@ def get_stats_data():
         horas_total = np.round(horas_trabajadas(data),2)
         usd_por_kwh = 0.17  # aquí puedes parametrizarlo desde BD o env var
         costo_usd = costo_energia_usd(kwh_total, usd_por_kwh)
+        hp_eq = hp_equivalente(data, compresor_config)
+        comentario_hp = comentario_hp_equivalente(hp_eq, 50) # Esta hardcodeado
 
         return {
             "data": {
                 "kWh": kwh_total,
                 "hours_worked": horas_total,
-                "usd_cost": costo_usd
+                "usd_cost": costo_usd,
+                "hp_equivalente": hp_eq,
+                "comentario_hp_equivalente": comentario_hp
             }
         }
 
@@ -643,6 +647,7 @@ def get_client_data():
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
+
 # Functions to calculate different metrics
 def percentage_load(data):
     load_records = [record for record in data if record['estado'] == "LOAD"]
@@ -704,6 +709,49 @@ def horas_trabajadas(data, segundos_por_registro=5):
 
 def costo_energia_usd(kwh_total, usd_por_kwh=0.17):
     return round(kwh_total * usd_por_kwh, 2)
+
+def hp_equivalente(data, compresor_config, segundos_por_registro=10):
+    voltaje = compresor_config[0]["voltage"]  # tomamos el voltaje del primer compresor
+    factor_seguridad = 1.4
+    factor_conversion = 0.7457  # kW a HP
+
+    # Filtrar registros con estado LOAD
+    data_load = [row for row in data if row["estado"] == "LOAD"]
+
+    if not data_load:
+        return 0
+
+    # Calcular kWh total solo en estado LOAD
+    total_kwh = sum(
+        (1.732 * row["corriente"] * voltaje * (segundos_por_registro / 3600)) / 1000
+        for row in data_load
+    )
+
+    # Calcular total de horas trabajadas
+    total_horas = len(data) * (segundos_por_registro / 3600)
+
+    if total_horas == 0:
+        return 0
+
+    hp_equivalente = round((total_kwh / total_horas) / factor_conversion * factor_seguridad, 0)
+    return hp_equivalente
+
+def comentario_hp_equivalente(hp_eq, hp_nominal):
+    if hp_nominal == 0:
+        return "No se tiene configurado el HP nominal del compresor."
+
+    if hp_nominal * 0.9 <= hp_eq <= hp_nominal * 1.1:
+        return (
+            "El HP Equivalente está dentro del 10% de diferencia del HP nominal del compresor, lo que indica que está operando de manera óptima."
+        )
+    elif hp_eq > hp_nominal * 1.1:
+        return (
+            "El HP Equivalente es mayor que el HP nominal del compresor, lo que sugiere que el compresor podría estar forzado. Se recomienda revisar su operación."
+        )
+    else:
+        return (
+            "El HP Equivalente es mucho menor que el HP nominal del compresor, lo que sugiere que la demanda podría aumentarse para mejorar la eficiencia."
+        )
 
 """
 # APIs that worked without the need of filtering the date

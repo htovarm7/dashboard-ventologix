@@ -177,13 +177,6 @@
     useEffect(() => {
         fetchChartData();
       }, []);
-
-    useEffect(() => {
-      fetch("http://localhost:8000/api/gauge_datos")
-        .then((response) => response.json())
-        .then((json) => setData(json))
-        .catch((error) => console.error("Error cargando datos:", error));
-    }, []);
   
   const hp_instalado = 50
   const hp_equivalente = 70
