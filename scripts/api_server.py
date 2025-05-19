@@ -208,7 +208,7 @@ def get_line_data(id_cliente: int = Query(..., description="ID del cliente")):
         return JSONResponse(content={"error": str(e)})
 
 @app.get("/api/comments-data")
-def get_comments_data():
+def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")):
     try:
         conn = mysql.connector.connect(
             host=DB_HOST,
@@ -218,7 +218,7 @@ def get_comments_data():
         )
         cursor = conn.cursor()
 
-        cursor.execute("call DataFiltradaDayFecha(7,7,'B',CURDATE())")
+        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},'A',CURDATE())")
         results = cursor.fetchall()
 
         if not results:
@@ -278,7 +278,7 @@ def get_comments_data():
         return {"error": str(err)}
 
 @app.get("/api/raw-data-excel")
-def get_raw_data_excel():
+def get_raw_data_excel(id_cliente: int = Query(..., description="ID del cliente")):
     try:
         # Connect to the database
         conn = mysql.connector.connect(
@@ -289,7 +289,7 @@ def get_raw_data_excel():
         )
         cursor = conn.cursor()
 
-        cursor.execute("call DataFiltradaDayFecha(7,7,'B',CURDATE())")
+        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},'A',CURDATE())")
         results = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -317,6 +317,7 @@ def get_raw_data_excel():
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
+# Check this endpoint
 @app.get("/api/line-data-proc-date")
 def get_line_data(fecha: str = Query(...)):
     try:
@@ -558,7 +559,7 @@ def get_raw_data_excel(fecha: str = Query(...)):
         
 # These remains the same as before
 @app.get("/api/stats-data")
-def get_stats_data():
+def get_stats_data(id_cliente: int = Query(..., description="ID del cliente")):
     try:
         # Conectar a la base de datos
         conn = mysql.connector.connect(
@@ -570,14 +571,14 @@ def get_stats_data():
         cursor = conn.cursor()
 
         # Ejecutar procedimiento almacenado
-        cursor.execute("call DataFiltradaDayFecha(7,7,'B',CURDATE())")
+        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},'A',CURDATE())")
         results1 = cursor.fetchall()
 
         while cursor.nextset():
             pass
 
         # Consultar voltaje y HP
-        cursor.execute("select hp, voltaje from compresores where id_cliente = 7")
+        cursor.execute(f"select hp, voltaje from compresores where id_cliente = {id_cliente}")
         results2 = cursor.fetchall()
 
         # Cerrar recursos
@@ -613,7 +614,7 @@ def get_stats_data():
         return {"error": str(err)}
 
 @app.get("/api/compressor-data")
-def get_compressor_data():
+def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente")):
     try:
         # Connect to the database
         conn = mysql.connector.connect(
@@ -625,7 +626,7 @@ def get_compressor_data():
         cursor = conn.cursor()
 
         # Fetch data from the compressor table for id_cliente 7
-        cursor.execute("SELECT hp, tipo, voltaje, marca, numero_serie FROM compresores WHERE id_cliente = 7 and linea= 'A'")
+        cursor.execute(f"SELECT hp, tipo, voltaje, marca, numero_serie FROM compresores WHERE id_cliente = {id_cliente} and linea= 'A'")
         results = cursor.fetchall()
 
         # Close resources
@@ -658,7 +659,7 @@ def get_client_data():
         cursor = conn.cursor()
 
         # Fetch data from the clientes table for id_cliente 7
-        cursor.execute("SELECT numero_cliente, nombre_cliente, RFC, direccion FROM clientes WHERE id_cliente = 7")
+        cursor.execute(f"SELECT numero_cliente, nombre_cliente, RFC, direccion FROM clientes WHERE id_cliente = {id_cliente}")
         results = cursor.fetchall()
 
         # Close resources
@@ -835,6 +836,7 @@ def get_line_data():
         return {"error": str(err)}
 
 """
+
 
 
 

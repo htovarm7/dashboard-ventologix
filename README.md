@@ -35,16 +35,7 @@ To run the webpage, follow the steps below:
 1. Open two terminals from your text editor or IDE:
     - Go to the top menu and select `Terminal -> New Terminal`.
 
-2. In both terminals, navigate to the project directory by running:
-    ```bash
-    cd webpage
-    ```
-    You should see something like this in the terminal:
-    ```plaintext
-    PS C:\Users\Vento\Desktop\Ventologix\webpage>
-    ```
-
-3. In the **first terminal**, run the following command to start the backend server:
+2. In the **first terminal**, run the following command to start the backend server:
     ```bash
     uvicorn scripts.api_server:app --reload
     ```
@@ -53,7 +44,7 @@ To run the webpage, follow the steps below:
 
     If it does not open automatically, make sure to add `/docs` at the end of the URL.
 
-4. In the **second terminal**, run the following command to start the frontend server:
+3. In the **second terminal**, run the following command to start the frontend server:
     ```bash
     npm run dev
     ```
