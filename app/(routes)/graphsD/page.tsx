@@ -23,7 +23,6 @@
   import { Chart as ChartJS, ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement} from "chart.js";
   import { Pie, Chart} from "react-chartjs-2";
 
-
   // ECharts for the gauge chart
   import ReactECharts from 'echarts-for-react';
 
@@ -386,7 +385,7 @@
             <DatePicker
               selected={selectedDate}
               onChange={(date) => setSelectedDate(date as Date)}
-              dateFormat="yyyy-MM-dd"
+              dateFormat="dd-MM-yyyy"
               className="py-2 px-4 text-center font-bold border border-blue-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             <span className="absolute top-2 right-2 text-gray-400">
