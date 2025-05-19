@@ -27,7 +27,7 @@
 * 4. Run the API again using:
 """
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.responses import StreamingResponse
@@ -39,6 +39,7 @@ import numpy as np
 from datetime import datetime, timedelta
 import pandas as pd
 from io import BytesIO
+from pydantic import BaseModel
 
 # Load environment variables
 load_dotenv()
@@ -60,8 +61,43 @@ DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")
 
+class LoginRequest(BaseModel):
+    correo: str
+    password: str
+
+# Login endpoint
+@app.post("/api/login")
+def login(request: LoginRequest):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        query = "SELECT id_cliente, nombre_cliente FROM clientes WHERE Correo = %s AND Contraseña = %s"
+        cursor.execute(query, (request.correo, request.password))
+        user = cursor.fetchone()
+
+        if user:
+            return {"success": True, "message": "Login exitoso", "user": user}
+        else:
+            raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+
+    except mysql.connector.Error as err:
+        raise HTTPException(status_code=500, detail=f"Error de base de datos: {err}")
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+    
+
 @app.get("/api/pie-data-proc")
-def get_pie_data_proc():
+def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente")):
     try:
         # Connect to DB
         conn = mysql.connector.connect(
@@ -72,8 +108,8 @@ def get_pie_data_proc():
         )
         cursor = conn.cursor()
 
-        # Call the stored procedure
-        cursor.execute("call DataFiltradaDayFecha(7,7,'B',CURDATE())")
+        # Llamar al procedimiento con id_cliente en vez de 7,7
+        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},'A',CURDATE())")
 
         results = cursor.fetchall()
 
@@ -84,18 +120,18 @@ def get_pie_data_proc():
         if not results:
             return {"error": "No data from procedure"}
 
-        # Map the results (adjust column names)
+        # Map the results (ajustar columnas)
         data = [
             {"time": row[1], "estado": row[3], "estado_anterior": row[4]}
             for row in results
         ]
 
-        # Calculate percentages
-        load_percentage = np.round(percentage_load(data),2)
-        noload_percentage = np.round(percentage_noload(data),2)
-        off_percentage = np.round(percentage_off(data),2)
+        # Calcular porcentajes
+        load_percentage = np.round(percentage_load(data), 2)
+        noload_percentage = np.round(percentage_noload(data), 2)
+        off_percentage = np.round(percentage_off(data), 2)
 
-        return{
+        return {
             "data": {
                 "LOAD": load_percentage,
                 "NOLOAD": noload_percentage,
@@ -107,7 +143,7 @@ def get_pie_data_proc():
         return {"error": str(err)}
 
 @app.get("/api/line-data-proc")
-def get_line_data():
+def get_line_data(id_cliente: int = Query(..., description="ID del cliente")):
     try:
         
         # Conectar a la base de datos
@@ -120,7 +156,7 @@ def get_line_data():
         cursor = conn.cursor()
 
         # Ejecutar SP con la fecha proporcionada
-        cursor.execute("call DataFiltradaDayFecha(7,7,'B', CURDATE())")
+        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},'A',CURDATE())")
         results = cursor.fetchall()
 
         cursor.close()

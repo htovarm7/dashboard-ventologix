@@ -16,6 +16,8 @@
   import NavBar from "@/components/navBar";
 
   import React, { useEffect, useState } from 'react';
+  import DatePicker from "react-datepicker";
+  import "react-datepicker/dist/react-datepicker.css";
 
   // Libraries for charts
   import { Chart as ChartJS, ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement} from "chart.js";
@@ -30,6 +32,7 @@
 
   export default function Main() {
 
+    // Constant Declarations
     const [chartData, setChartData] = useState([0, 0, 0]); // default values
     const [lineChartData, setLineChartData] = useState<number[]>([]); // default values
     const [lineChartLabels, setLineChartLabels] = useState<string[]>([]); // default labels
@@ -46,7 +49,9 @@
     const [totalCiclos, setTotalCiclos] = useState(0);
     const [promedioCiclosHora, setPromedioCiclosHora] = useState(0);
     const [comentarioCiclos, setComentarioCiclos] = useState("");
-    const [data, setData] = useState({ hp_equivalente: 0, hp_instalado: 1 });
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [hpeq, setHPEquivalente] = useState<number>(0);
+    const [comentarioHp, setComentarioHp] = useState("");
 
     const [clientData, setClientData] = useState<{
       numero_cliente: number;
@@ -63,123 +68,110 @@
       numero_serie: number;
     } | null>(null);
 
-    const fetchChartData = () => {
-      // Pie chart data
-      fetch("http://127.0.0.1:8000/api/pie-data-proc")
-        .then((response) => response.json())
-        .then((data) => {
-          const { LOAD, NOLOAD, OFF } = data.data;
+    const id_cliente = localStorage.getItem("id_cliente");
+
+    useEffect(() => {
+      const fetchAllData = async () => {
+        try {
+          const [clientRes, compressorRes, statsRes, commentsRes, pieRes, lineRes, gaugeRes] = await Promise.all([
+            (async () => { 
+              const res = await fetch(`http://127.0.0.1:8000/api/client-data?id_cliente=${id_cliente}`); 
+              return res.json(); 
+            })(),
+            (async () => { 
+              const res = await fetch(`http://127.0.0.1:8000/api/compressor-data?id_cliente=${id_cliente}`); 
+              return res.json(); 
+            })(),
+            (async () => { 
+              const res = await fetch(`http://127.0.0.1:8000/api/stats-data?id_cliente=${id_cliente}`); 
+              return res.json(); 
+            })(),
+            (async () => { 
+              const res = await fetch(`http://127.0.0.1:8000/api/comments-data?id_cliente=${id_cliente}`); 
+              return res.json(); 
+            })(),
+            (async () => { 
+              const res = await fetch(`http://127.0.0.1:8000/api/pie-data-proc?id_cliente=${id_cliente}`); 
+              return res.json(); 
+            })(),
+            (async () => { 
+              const res = await fetch(`http://127.0.0.1:8000/api/line-data-proc?id_cliente=${id_cliente}`); 
+              return res.json(); 
+            })(),
+            (async () => { 
+              const res = await fetch(`http://127.0.0.1:8000/api/gauge-data-proc?id_cliente=${id_cliente}`); 
+              return res.json(); 
+            })(),
+          ]);
+
+          if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
+          if (compressorRes.data.length > 0) setCompresorData(compressorRes.data[0]);
+
+          const stats = statsRes.data;
+          setKWh(stats.kWh);
+          setHoursWorked(stats.hours_worked);
+          setUsdCost(stats.usd_cost);
+          setHPEquivalente(stats.hp_equivalente);
+          setComentarioHp(stats.comentario_hp_equivalente);
+
+          const comments = commentsRes.data;
+          setFirstHour(comments.first_time);
+          setLastHour(comments.last_time);
+          setTotalCiclos(comments.total_ciclos);
+          setPromedioCiclosHora(comments.promedio_ciclos_hora);
+          setComentarioCiclos(comments.comentario_ciclos);
+
+          const { LOAD, NOLOAD, OFF } = pieRes.data;
           setChartData([LOAD, NOLOAD, OFF]);
-        })
-        .catch((error) => console.error("Error fetching pie data:", error));
-    
-      // Line chart data
-      fetch("http://127.0.0.1:8000/api/line-data-proc")
-        .then((response) => response.json())
-        .then((data) => {
-          const rawData = data.data.map((item: { time: string, corriente: number }) => ({
+
+          setLoad(LOAD);
+          setNoLoad(NOLOAD);
+          setOff(OFF);
+
+          const rawData = lineRes.data.map((item) => ({
             time: new Date(item.time),
             corriente: item.corriente,
           }));
-    
-          // Ordenar por tiempo
           rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
-    
-          const times = rawData.map((item) =>
+
+          const times = rawData.map(item =>
             item.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
           );
-          const currents = rawData.map((item) => item.corriente);
-    
-          // Agregar 23:59:59 si no está al final
+          const currents = rawData.map(item => item.corriente);
+
           if (!times.includes("23:59:59")) {
             times.push("23:59:59");
-            currents.push(null); // o currents.at(-1) o 0, según prefieras
+            currents.push(null);
           }
-    
+
           setLineChartLabels(times);
           setLineChartData(currents);
-          setMaxData(Math.max(...currents) + (Math.max(...currents) * 0.3)); // 30% extra
-        })
-        .catch((error) => console.error("Error fetching line data:", error));
-    
-      // Gauge chart data
-      fetch("http://127.0.0.1:8000/api/gauge-data-proc")
-        .then((response) => response.json())
-        .then((data) => {
-          setGaugeValue(data.porcentaje_uso);
-        })
-        .catch((error) => console.error("Error fetching gauge data:", error));
+          setMaxData(Math.max(...currents.filter(c => c !== null)) * 1.3);
+
+          setGaugeValue(gaugeRes.porcentaje_uso);
+
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        }
+      };
+
+      fetchAllData();
+    }, [id_cliente]);
+
+    const handleDownload = async () => {
+      const response = await fetch("http://localhost:8000/api/raw-data-excel");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "raw_data.xlsx";
+      a.click();
+      window.URL.revokeObjectURL(url);
     };
 
-    useEffect(() => {
-      fetch("http://127.0.0.1:8000/api/client-data")
-        .then(response => response.json())
-        .then(data => {
-          if (data.data && data.data.length > 0) {
-            setClientData(data.data[0]); // toma el primer elemento del array
-          }
-        })
-        .catch(error => console.error("Error fetching client data:", error));
-    }, []);
-
-
-    useEffect(() => {
-      fetch("http://127.0.0.1:8000/api/compressor-data")
-        .then(response => response.json())
-        .then(data => {
-          if (data.data && data.data.length > 0) {
-            setCompresorData(data.data[0]); // toma el primer elemento del array
-          }
-        })
-        .catch(error => console.error("Error fetching compressor data:", error));
-      }, []);
-    
-    useEffect(() => {
-      fetch("http://127.0.0.1:8000/api/stats-data")
-          .then((response) => response.json())
-          .then((data) => {
-              const { kWh, hours_worked, usd_cost } = data.data;
-              setKWh(kWh);
-              setHoursWorked(hours_worked);
-              setUsdCost(usd_cost);
-          })
-          .catch((error) => console.error("Error fetching stats data:", error));
-    }, []);
-
-    useEffect(() => {
-      fetch("http://127.0.0.1:8000/api/pie-data-proc")
-      .then((response) => response.json())
-      .then((data) => {
-        const { LOAD, NOLOAD, OFF } = data.data;
-        setLoad(LOAD);
-        setNoLoad(NOLOAD);
-        setOff(OFF);
-      })
-      .catch((error) => console.error("Error fetching pie data:", error));
-    },[]);
-
-    useEffect(() => {
-      fetch("http://127.0.0.1:8000/api/comments-data")
-        .then((response) => response.json())
-        .then((data) => {
-          const d = data.data;
-          if (d) {
-            setFirstHour(d.first_time);
-            setLastHour(d.last_time);
-            setTotalCiclos(d.total_ciclos);
-            setPromedioCiclosHora(d.promedio_ciclos_hora);
-            setComentarioCiclos(d.comentario_ciclos);
-          }
-        })
-        .catch((error) => console.error("Error fetching comments data:", error));
-    }, []);
-
-    useEffect(() => {
-        fetchChartData();
-      }, []);
   
   const hp_instalado = 50
-  const hp_equivalente = 70
+  const hp_equivalente = hpeq;
   const porcentajeUso = (hp_equivalente / hp_instalado) * 100;
   
   const option = {
@@ -253,98 +245,6 @@
       },
     ],
   };
-
-  // const getGaugeOption = (gaugeValue) => ({
-  //   series: [{
-  //     type: 'gauge',
-  //     startAngle: 155,
-  //     endAngle: -75,
-  //     min: 30,
-  //     max: 120,
-  //     splitNumber: 9,
-
-  //     axisLine: {
-  //       lineStyle: {
-  //         width: 30,
-  //         color: [
-  //           [64/120, '#FF0000'],    // Rojo hasta 64
-  //           [79/120, '#FFFF00'],    // Amarillo hasta 79
-  //           [92/120, '#00FF00'],    // Verde hasta 92
-  //           [99/120, '#418FDE'],    // Azul hasta 99
-  //           [110/120, '#FFFF00'],   // Amarillo hasta 110
-  //           [1,      '#FF0000']     // Rojo hasta 120
-  //         ]
-  //       }
-  //     },
-
-  //     pointer: {
-  //       length: '75%',
-  //       width: 6,
-  //       itemStyle: {
-  //         color: 'black'
-  //       }
-  //     },
-
-  //     axisTick: {
-  //       length: 10,
-  //       lineStyle: {
-  //         color: '#333',
-  //         width: 2
-  //       }
-  //     },
-
-  //     splitLine: {
-  //       length: 20,
-  //       lineStyle: {
-  //         color: '#333',
-  //         width: 4
-  //       }
-  //     },
-
-  //     axisLabel: {
-  //       fontSize: 14,
-  //       color: '#333',
-  //       formatter: function (val) {
-  //         // Solo muestra los valores clave
-  //         if ([30, 64, 79, 92, 99, 110, 120].includes(val)) {
-  //           return val + '%';
-  //         }
-  //         return '';
-  //       }
-  //     },
-
-  //     title: {
-  //       fontSize: 18,
-  //       offsetCenter: [0, '70%']
-  //     },
-
-  //     detail: {
-  //       formatter: '{value}%',
-  //       fontSize: 24,
-  //       color: 'inherit'
-  //     },
-
-  //     data: [{
-  //       value: gaugeValue,
-  //       name: 'Uso Equivalente'
-  //     }],
-
-  //     // Línea negra fija sobre el 100%
-  //     markLine: {
-  //       silent: true,
-  //       lineStyle: {
-  //         color: 'black',
-  //         width: 5
-  //       },
-  //       data: [
-  //         [
-  //           { coord: [100, 0], symbol: 'none' },
-  //           { coord: [100, 1], symbol: 'none' }
-  //         ]
-  //       ]
-  //     }
-  //   }]
-  // });  
     
   const dataPie = {
     labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
@@ -401,6 +301,7 @@
     ],
   };
 
+
     return (
       
       <main>
@@ -410,14 +311,14 @@
         {/* Here its the top section*/}
         <div className="flex flex-col items-center mb-3">
           <h1 className="text-3xl font-bold text-center">Reporte Diario</h1>
-          <h2 className="text-2xl font-bold text-center">Compresor 1</h2>
-          <h3 className="text-xl font-bold text-center">Fecha: {new Date().toLocaleDateString()}</h3>
-          <img src="/Ventologix_04.png" alt="logo" className="h-10 w-45 mt-3 absolute top-0 right-0 m-3" />
+          <h2 className="text-2xl font-bold text-center">"Compresor 2"</h2> {/* Esta hardcodeado */}
+          <h3 className="text-xl font-bold text-center">Fecha: {new Date(new Date().setDate(new Date().getDate())).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</h3>
+          <img src="/Ventologix_04.png" alt="logo" className="h-16 w-auto mt-3 absolute top-0 left-0 m-3" />
         </div> 
 
         <div className="mt-4 p-4">
 
-          <h2 className="text-xl font-bold mb-2">Información Compresor</h2>
+          <h2 className="text-xl font-bold mb-2 p-15">Información Compresor</h2>
           <div className="flex flex-row gap-60 items-center justify-center text-center">
             <div className="text-center">
               <p className="text-lg">{compressorData?.numero_serie}</p>
@@ -441,7 +342,8 @@
             </div>
           </div>
 
-          <h2 className="text-xl font-bold mb-2"> Informacion del Cliente </h2>
+          {/* Informaion del clinte */}
+          <h2 className="text-xl font-bold mb-2 p-15"> Informacion del Cliente </h2>
           <div className="flex flex-row gap-60 items-center justify-center text-center">
             <div className="text-center">
               <p className="text-lg">{clientData?.nombre_cliente}</p>
@@ -465,24 +367,44 @@
         {/* Here its the graphs */}
         <div className="flex flex-col items-center justify-center min-h-screen p-6 gap-8">
 
-        <div className="flex justify-center mt-4">
+        <div className="flex justify-center mt-4 gap-10 items-center">
           <button
             onClick={() => window.location.reload()}
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           >
             Recargar Página
           </button>
-        </div>
-        
-        {/* KPIs */}
-        <div className="flex flex-row gap-8">
-          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-            <h2 className="text-sm text-black">Gasto USD*</h2>
-            <p className="text-3xl font-bold text-black">${usdCost.toFixed(2)}</p>
+          <button
+            onClick={handleDownload}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Descargar Raw Data
+          </button>
+          
+          <div className="relative">
+            <h2 className="text-center font-bold text-blue-600 animate-bounce"> Elige una fecha</h2>
+            <DatePicker
+              selected={selectedDate}
+              onChange={(date) => setSelectedDate(date as Date)}
+              dateFormat="yyyy-MM-dd"
+              className="py-2 px-4 text-center font-bold border border-blue-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            <span className="absolute top-2 right-2 text-gray-400">
+              <i className="fas fa-calendar-alt"></i>
+            </span>
           </div>
-          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-            <h2 className="text-sm text-black">kWh Utilizados</h2>
-            <p className="text-3xl font-bold text-black">{kWh.toFixed(0)} kWh</p>
+        </div>
+
+
+          {/* KPIs */}
+          <div className="flex flex-row gap-8">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+              <h2 className="text-sm text-black">Gasto USD*</h2>
+              <p className="text-3xl font-bold text-black">${usdCost.toFixed(2)}</p>
+            </div>
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+              <h2 className="text-sm text-black">kWh Utilizados</h2>
+              <p className="text-3xl font-bold text-black">{kWh.toFixed(0)} kWh</p>
           </div>
           <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
             <h2 className="text-sm text-black">Horas Trabajadas</h2>
@@ -519,7 +441,7 @@
         <h1 className="text-3xl font-bold">Comentarios</h1>
 
         <p className="text-lg text-left">
-          • El día de ayer <strong>({new Date(new Date().setDate(new Date().getDate() - 1)).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })})</strong> se iniciaron labores a las <strong>{firstHour}</strong> y se concluyeron a las <strong>{lastHour}</strong>
+          • El día de ayer <strong>({new Date(new Date().setDate(new Date().getDate())).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })})</strong> se iniciaron labores a las <strong>{firstHour}</strong> y se concluyeron a las <strong>{lastHour}</strong>
         </p>
 
         <p className="text-lg text-left mt-2">
@@ -553,17 +475,18 @@
         </p>
 
         <p className="text-lg text-left mt-2">
-          • El HP equvialente es mayor que el HP nominal del compresor, lo que sugiere que el compresor podría estar forzado. Se recomienda revisar su operación.
+          • {comentarioHp}
         </p>
 
         <p className="text-sm text-left mt-2">
           • El costo por kilovatio-hora (kWh) utilizado en este análisis es de <strong>$0.17 USD/kWh</strong>, que es el estándar actualmente aplicado. Sin embargo, si requiere confirmar este valor o necesita ajustar la tarifa, puede verificar con su contacto en <strong>VENTOLOGIX</strong>
         </p>
 
-        <h1 className="text-xl text-left mt-7 font-bold"> Información Contacto VENTOLOGIX</h1>
-        <p className="text-xl text-left mt-2" >Nombre: Andrés Mirazo</p>
+        <h1 className="text-xl text-left mt-7 font-bold">IQgineer VENTOLOGIX asignado:</h1>
+        <p className="text-xl text-left mt-2" ><strong>Nombre:</strong> Ing. Andrés Mirazo</p>
+        <p className="text-xl text-left mt-2"><strong>Teléfono:</strong> 81 8477 7023</p>
         <p className="text-xl text-left mt-2">
-        Correo:{" "}
+        <strong>Correo:</strong>{" "}
         <a
           href="mailto:Andres.Mirazo@ventologix.com"
           className="text-blue-600 hover:scale-120 hover:text-blue-800  duration-300"
@@ -576,4 +499,4 @@
       </div>
       </main>
     );
-}
+  }
