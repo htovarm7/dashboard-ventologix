@@ -1,4 +1,4 @@
-<img src="webpage/public/Ventologix_02.jpg" alt="Ventologix Logo" width="300">
+<img src="public/Ventologix_02.jpg" alt="Ventologix Logo" width="300">
 
 # Ventologix
 
