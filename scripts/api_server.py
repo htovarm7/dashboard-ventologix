@@ -647,7 +647,7 @@ def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente
         return {"error": str(err)}
 
 @app.get("/api/client-data")
-def get_client_data():
+def get_client_data(id_cliente: int = Query(..., description="ID del cliente")):
     try:
         # Connect to the database
         conn = mysql.connector.connect(
