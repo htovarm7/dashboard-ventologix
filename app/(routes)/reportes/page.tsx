@@ -366,35 +366,6 @@
         {/* Here its the graphs */}
         <div className="flex flex-col items-center justify-center min-h-screen p-6 gap-8">
 
-        <div className="flex justify-center mt-4 gap-10 items-center">
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Recargar Página
-          </button>
-          <button
-            onClick={handleDownload}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Descargar Raw Data
-          </button>
-          
-          <div className="relative">
-            <h2 className="text-center font-bold text-blue-600 animate-bounce"> Elige una fecha</h2>
-            <DatePicker
-              selected={selectedDate}
-              onChange={(date) => setSelectedDate(date as Date)}
-              dateFormat="dd-MM-yyyy"
-              className="py-2 px-4 text-center font-bold border border-blue-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            <span className="absolute top-2 right-2 text-gray-400">
-              <i className="fas fa-calendar-alt"></i>
-            </span>
-          </div>
-        </div>
-
-
           {/* KPIs */}
           <div className="flex flex-row gap-8">
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
