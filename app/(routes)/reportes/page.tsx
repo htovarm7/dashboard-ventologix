@@ -49,6 +49,7 @@
     const [promedioCiclosHora, setPromedioCiclosHora] = useState(0);
     const [comentarioCiclos, setComentarioCiclos] = useState("");
     const [selectedDate, setSelectedDate] = useState(new Date());
+    const [hpNominal, setHPNominal] = useState<number>(0);
     const [hpeq, setHPEquivalente] = useState<number>(0);
     const [comentarioHp, setComentarioHp] = useState("");
 
@@ -65,6 +66,7 @@
       voltaje: number;
       marca: string;
       numero_serie: number;
+      alias: string;
     } | null>(null);
 
     const id_cliente = localStorage.getItem("id_cliente");
@@ -72,33 +74,29 @@
     useEffect(() => {
       const fetchAllData = async () => {
         try {
-          const [clientRes, compressorRes, statsRes, commentsRes, pieRes, lineRes, gaugeRes] = await Promise.all([
+          const [pieRes, lineRes, commentsRes, statsRes, clientRes, compressorRes] = await Promise.all([
             (async () => { 
-              const res = await fetch(`http://127.0.0.1:8000/api/client-data?id_cliente=${id_cliente}`); 
+              const res = await fetch(`http://127.0.0.1:8000/web/pie-data-proc?id_cliente=${id_cliente}`); 
               return res.json(); 
             })(),
             (async () => { 
-              const res = await fetch(`http://127.0.0.1:8000/api/compressor-data?id_cliente=${id_cliente}`); 
+              const res = await fetch(`http://127.0.0.1:8000/web/line-data-proc?id_cliente=${id_cliente}`); 
               return res.json(); 
             })(),
             (async () => { 
-              const res = await fetch(`http://127.0.0.1:8000/api/stats-data?id_cliente=${id_cliente}`); 
+              const res = await fetch(`http://127.0.0.1:8000/web/comments-data?id_cliente=${id_cliente}`); 
               return res.json(); 
             })(),
             (async () => { 
-              const res = await fetch(`http://127.0.0.1:8000/api/comments-data?id_cliente=${id_cliente}`); 
+              const res = await fetch(`http://127.0.0.1:8000/web/stats-data?id_cliente=${id_cliente}`); 
               return res.json(); 
             })(),
             (async () => { 
-              const res = await fetch(`http://127.0.0.1:8000/api/pie-data-proc?id_cliente=${id_cliente}`); 
+              const res = await fetch(`http://127.0.0.1:8000/web/client-data?id_cliente=${id_cliente}`); 
               return res.json(); 
             })(),
             (async () => { 
-              const res = await fetch(`http://127.0.0.1:8000/api/line-data-proc?id_cliente=${id_cliente}`); 
-              return res.json(); 
-            })(),
-            (async () => { 
-              const res = await fetch(`http://127.0.0.1:8000/api/gauge-data-proc?id_cliente=${id_cliente}`); 
+              const res = await fetch(`http://127.0.0.1:8000/web/compressor-data?id_cliente=${id_cliente}`); 
               return res.json(); 
             })(),
           ]);
@@ -110,6 +108,7 @@
           setKWh(stats.kWh);
           setHoursWorked(stats.hours_worked);
           setUsdCost(stats.usd_cost);
+          setHPNominal(stats.hp_nominal);
           setHPEquivalente(stats.hp_equivalente);
           setComentarioHp(stats.comentario_hp_equivalente);
 
@@ -147,8 +146,6 @@
           setLineChartData(currents);
           setMaxData(Math.max(...currents.filter(c => c !== null)) * 1.3);
 
-          setGaugeValue(gaugeRes.porcentaje_uso);
-
         } catch (error) {
           console.error("Error fetching data:", error);
         }
@@ -156,20 +153,8 @@
 
       fetchAllData();
     }, [id_cliente]);
-
-    const handleDownload = async () => {
-      const response = await fetch("http://localhost:8000/api/raw-data-excel");
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "raw_data.xlsx";
-      a.click();
-      window.URL.revokeObjectURL(url);
-    };
-
   
-  const hp_instalado = 50
+  const hp_instalado = hpNominal
   const hp_equivalente = hpeq;
   const porcentajeUso = (hp_equivalente / hp_instalado) * 100;
   
@@ -310,7 +295,7 @@
         {/* Here its the top section*/}
         <div className="flex flex-col items-center mb-3">
           <h1 className="text-3xl font-bold text-center">Reporte Diario</h1>
-          <h2 className="text-2xl font-bold text-center">"Compresor 2"</h2> {/* Esta hardcodeado */}
+          <h2 className="text-2xl font-bold text-center">{compressorData?.alias}</h2>
           <h3 className="text-xl font-bold text-center">Fecha: {new Date(new Date().setDate(new Date().getDate())).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</h3>
           <img src="/Ventologix_04.png" alt="logo" className="h-16 w-auto mt-3 absolute top-0 left-0 m-3" />
         </div> 
@@ -365,7 +350,6 @@
         
         {/* Here its the graphs */}
         <div className="flex flex-col items-center justify-center min-h-screen p-6 gap-8">
-
           {/* KPIs */}
           <div className="flex flex-row gap-8">
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
