@@ -23,9 +23,9 @@ DB_HOST = os.getenv("DB_HOST")
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")
-    
+
 @report.get("/pie-data-proc")
-def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente")):
+def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         # Connect to DB
         conn = mysql.connector.connect(
@@ -37,7 +37,7 @@ def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente")
         cursor = conn.cursor()
 
         # Llamar al procedimiento con id_cliente en vez de 7,7
-        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},'A',CURDATE())")
+        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},{linea},CURDATE())")
 
         results = cursor.fetchall()
 
@@ -71,7 +71,7 @@ def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente")
         return {"error": str(err)}
 
 @report.get("/line-data-proc")
-def get_line_data(id_cliente: int = Query(..., description="ID del cliente")):
+def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         
         # Conectar a la base de datos
@@ -84,7 +84,7 @@ def get_line_data(id_cliente: int = Query(..., description="ID del cliente")):
         cursor = conn.cursor()
 
         # Ejecutar SP con la fecha proporcionada
-        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},'A',CURDATE())")
+        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},{linea},CURDATE())")
         results = cursor.fetchall()
 
         cursor.close()
@@ -136,7 +136,7 @@ def get_line_data(id_cliente: int = Query(..., description="ID del cliente")):
         return JSONResponse(content={"error": str(e)})
 
 @report.get("/comments-data")
-def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")):
+def get_comments_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         conn = mysql.connector.connect(
             host=DB_HOST,
@@ -146,7 +146,7 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
         )
         cursor = conn.cursor()
 
-        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},'A',CURDATE())")
+        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},{linea},CURDATE())")
         results = cursor.fetchall()
 
         if not results:
@@ -207,7 +207,7 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
 
 # These remains the same as before
 @report.get("/stats-data")
-def get_stats_data(id_cliente: int = Query(..., description="ID del cliente")):
+def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         # Conectar a la base de datos
         conn = mysql.connector.connect(
@@ -219,7 +219,7 @@ def get_stats_data(id_cliente: int = Query(..., description="ID del cliente")):
         cursor = conn.cursor()
 
         # Ejecutar procedimiento almacenado
-        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},'A',CURDATE())")
+        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},{linea},CURDATE())")
         results1 = cursor.fetchall()
 
         while cursor.nextset():
@@ -295,7 +295,7 @@ def get_client_data(id_cliente: int = Query(..., description="ID del cliente")):
         return {"error": str(err)}
 
 @report.get("/compressor-data")
-def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente")):
+def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         # Connect to the database
         conn = mysql.connector.connect(
@@ -307,7 +307,7 @@ def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente
         cursor = conn.cursor()
 
         # Fetch data from the compressor table for id_cliente 7
-        cursor.execute(f"SELECT hp, tipo, voltaje, marca, numero_serie FROM compresores WHERE id_cliente = {id_cliente} and linea= 'A'")
+        cursor.execute(f"SELECT hp, tipo, voltaje, marca, numero_serie FROM compresores WHERE id_cliente = {id_cliente} and linea= {linea}")
         results = cursor.fetchall()
 
         # Close resources
@@ -373,7 +373,7 @@ def get_clients_data():
         cursor = conn.cursor()
 
         # Fetch data from the clientes table
-        cursor.execute("SELECT id_cliente, nombre_cliente FROM clientes")
+        cursor.execute("SELECT c.id_cliente, c.nombre_cliente, comp.linea FROM clientes c JOIN compresores comp ON c.id_cliente = comp.id_cliente WHERE c.id_cliente NOT IN (2, 5, 6);")
         results = cursor.fetchall()
 
         # Close resources
@@ -384,7 +384,7 @@ def get_clients_data():
             return {"error": "No data found for the specified client."}
 
         # Convert results into a list of dictionaries
-        data = [{"id_cliente": row[0], "nombre_cliente": row[1]} for row in results]
+        data = [{"id_cliente": row[0], "nombre_cliente": row[1], "linea": row[2]} for row in results]
 
         return {
             "data": data
@@ -392,6 +392,18 @@ def get_clients_data():
 
     except mysql.connector.Error as err:
         return {"error": str(err)}
+
+def main():
+    clients = get_clients_data()
+    if "data" in clients and clients["data"]:
+        for i in clients["data"]:
+            id_cliente = i["id_cliente"]
+            nombre_cliente = i["nombre_cliente"]
+            linea = i["linea"]
+            print(f"ID: {id_cliente}, Nombre: {nombre_cliente}, Linea: {linea}")
+    else:
+        print("No clients found.")
+
 
 # Functions to calculate different metrics
 def percentage_load(data):

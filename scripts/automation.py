@@ -4,18 +4,30 @@ import smtplib
 from apscheduler.schedulers.blocking import BlockingScheduler
 import json
 
-# Obtiene lista de usuarios desde tu API
-def obtener_usuarios():
+import requests
+import json
+
+def obtener_clientes():
     response = requests.get("http://127.0.0.1:8000/report/clients-data")
-    return json.loads(response.text)
+    return response.json()
 
-for id_cliente in obtener_usuarios().get("data", []):
+def obtener_pie_data(id_cliente, linea):
+    params = {"id_cliente": id_cliente, "linea": linea}
+    response = requests.get("http://127.0.0.1:8000/report/pie-data-proc", params=params)
+    return response.json()
+
+def main():
+    clientes = obtener_clientes().get("data", [])
+    lineas = ["A", "B", "C"]  # o las que correspondan
     
+    for cliente in clientes:
+        id_cliente = cliente["id_cliente"]
+        nombre = cliente["nombre_cliente"]
+        print(f"Procesando cliente {nombre} (ID: {id_cliente})")
 
-    # Obtiene información del email desde la API
-    def obtener_emailInfo(id_cliente):
-        response = requests.get(f"http://127.0.0.1:8000/report/emails-data?id_cliente={id_cliente}")
-        return json.loads(response.text)
+        for linea in lineas:
+            pie_data = obtener_pie_data(id_cliente, linea)
+            print(f"Linea {linea} => {pie_data}")
 
     """
     # Obtiene link del PDF desde la API de generación de PDF
