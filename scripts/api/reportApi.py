@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 from io import BytesIO
 from pydantic import BaseModel
+from reportlab.pdfgen import canvas
 
 # Load environment variables
 load_dotenv()
@@ -392,18 +393,25 @@ def get_clients_data():
 
     except mysql.connector.Error as err:
         return {"error": str(err)}
+    
+class PDFRequest(BaseModel):
+    cliente: str
+    fecha: str
 
-def main():
-    clients = get_clients_data()
-    if "data" in clients and clients["data"]:
-        for i in clients["data"]:
-            id_cliente = i["id_cliente"]
-            nombre_cliente = i["nombre_cliente"]
-            linea = i["linea"]
-            print(f"ID: {id_cliente}, Nombre: {nombre_cliente}, Linea: {linea}")
-    else:
-        print("No clients found.")
+@report.post("/api/generar_pdf")
+def generar_pdf(request: PDFRequest):
+    pdf_path = f"pdfs/{request.cliente}_{request.fecha}.pdf"
 
+    # Crear carpeta si no existe
+    os.makedirs("pdfs", exist_ok=True)
+
+    # Generar PDF con ReportLab
+    c = canvas.Canvas(pdf_path)
+    c.drawString(100, 750, f"Reporte de {request.cliente}")
+    c.drawString(100, 730, f"Fecha del reporte: {request.fecha}")
+    c.save()
+
+    return {"status": "ok", "pdf_path": pdf_path}
 
 # Functions to calculate different metrics
 def percentage_load(data):

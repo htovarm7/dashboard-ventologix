@@ -16,6 +16,7 @@
   import NavBar from "@/components/navBar";
 
   import React, { useEffect, useState } from 'react';
+  import { useRouter } from "next/router";
   import DatePicker from "react-datepicker";
   import "react-datepicker/dist/react-datepicker.css";
 
@@ -297,6 +298,49 @@
     ],
   };
 
+    useEffect(() => {
+      setTimeout(() => {
+        const ready = document.createElement('div');
+        ready.id = 'grafico-listo';
+        document.body.appendChild(ready);
+
+        const ayer = new Date();
+        ayer.setDate(ayer.getDate() - 1);
+        const fechaAyer = ayer.toISOString().split('T')[0];
+
+        fetch('http://localhost:8000/api/generar_pdf', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            cliente: id_cliente,
+            fecha: fechaAyer,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log('Respuesta del backend:', data);
+          })
+          .catch((error) => {
+            console.error('Error al notificar al backend:', error);
+          });
+      }, 2000);
+    }, []);
+
+    const router = useRouter();
+    const { id_cliente } = router.query;
+
+    const [datos, setDatos] = useState(null);
+
+    useEffect(() => {
+      if (id_cliente) {
+        fetch(`/api/reportes/${id_cliente}`)
+          .then(res => res.json())
+          .then(data => setDatos(data));
+      }
+    }, [id_cliente]);
+
 
     return (
       
@@ -317,24 +361,24 @@
           <h2 className="text-xl font-bold mb-2 p-15">Información Compresor</h2>
           <div className="flex flex-wrap gap-60 items-center justify-center text-center">
             <div className="text-center">
-              <p className="text-2xl">{compressorData?.numero_serie}</p>
-              <p className="text-xl font-bold">Número de Serie</p>
+              <p className="text-xl ">{compressorData?.numero_serie}</p>
+              <p className="text-lg font-bold">Número de Serie</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl">{compressorData?.marca}</p>
-              <p className="text-xl font-bold">Marca</p>
+              <p className="text-xl">{compressorData?.marca}</p>
+              <p className="text-lg font-bold">Marca</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl">{compressorData?.tipo}</p>
-              <p className="text-xl font-bold">Tipo</p>
+              <p className="text-xl">{compressorData?.tipo}</p>
+              <p className="text-lg font-bold">Tipo</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl">{compressorData?.voltaje}</p>
-              <p className="text-xl font-bold">Voltaje</p>
+              <p className="text-xl">{compressorData?.voltaje}</p>
+              <p className="text-lg font-bold">Voltaje</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl">{compressorData?.hp}</p>
-              <p className="text-xl font-bold">HP</p>
+              <p className="text-xl">{compressorData?.hp}</p>
+              <p className="text-lg font-bold">HP</p>
             </div>
           </div>
 
@@ -342,20 +386,20 @@
           <h2 className="text-xl font-bold mb-2 p-15"> Informacion del Cliente </h2>
           <div className="flex flex-wrap gap-60 items-center justify-center text-center">
             <div className="text-center">
-              <p className="text-2xl">{clientData?.nombre_cliente}</p>
-              <p className="text-xl font-bold">Nombre</p>
+              <p className="text-xl">{clientData?.nombre_cliente}</p>
+              <p className="text-lg font-bold">Nombre</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl">{clientData?.numero_cliente}</p>
-              <p className="text-xl font-bold">Número de Cliente</p>
+              <p className="text-xl">{clientData?.numero_cliente}</p>
+              <p className="text-lg font-bold">Número de Cliente</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl">{clientData?.RFC}</p>
-              <p className="text-xl font-bold">RFC</p>
+              <p className="text-xl">{clientData?.RFC}</p>
+              <p className="text-lg font-bold">RFC</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl">{clientData?.direccion}</p>
-              <p className="text-xl font-bold">Direccion</p>
+              <p className="text-xl">{clientData?.direccion}</p>
+              <p className="text-lg font-bold">Direccion</p>
             </div>
           </div>
         </div>
@@ -390,7 +434,6 @@
             </span>
           </div>
         </div>
-
 
           {/* KPIs */}
           <div className="flex flex-row gap-8">

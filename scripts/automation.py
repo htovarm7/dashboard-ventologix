@@ -1,72 +1,28 @@
+from playwright.sync_api import sync_playwright
 import requests
-from email.message import EmailMessage
-import smtplib
-from apscheduler.schedulers.blocking import BlockingScheduler
-import json
 
-import requests
-import json
+def generar_pdf_cliente(id_cliente):
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
 
-def obtener_clientes():
-    response = requests.get("http://127.0.0.1:8000/report/clients-data")
-    return response.json()
+        url = f"http://localhost:3000/reportes?id_cliente={id_cliente}"
+        page.goto(url)
 
-def obtener_pie_data(id_cliente, linea):
-    params = {"id_cliente": id_cliente, "linea": linea}
-    response = requests.get("http://127.0.0.1:8000/report/pie-data-proc", params=params)
-    return response.json()
+        # Espera a que se rendericen los gráficos
+        page.wait_for_selector("#grafico-listo", timeout=50000)
 
-def main():
-    clientes = obtener_clientes().get("data", [])
-    lineas = ["A", "B", "C"]  # o las que correspondan
-    
-    for cliente in clientes:
-        id_cliente = cliente["id_cliente"]
-        nombre = cliente["nombre_cliente"]
-        print(f"Procesando cliente {nombre} (ID: {id_cliente})")
+        # Exporta a PDF
+        page.pdf(path=f"./pdfs/reporte_{id_cliente}.pdf", format="A4")
 
-        for linea in lineas:
-            pie_data = obtener_pie_data(id_cliente, linea)
-            print(f"Linea {linea} => {pie_data}")
+        browser.close()
 
-    """
-    # Obtiene link del PDF desde la API de generación de PDF
-    def obtener_link_pdf(id_cliente):
-        response = requests.get(f"http://127.0.0.1:8001/generar-pdf/{id_cliente}")
-        return response.json().get("pdf_url")
+response = requests.get("http://127.0.0.1:8000/report/clients-data")
+clientes_data = response.json().get("data", [])
 
-    # Envía email con link al PDF
-    def enviar_email(destinatario, asunto, cuerpo):
-        email = EmailMessage()
-        email['From'] = 'tucorreo@gmail.com'
-        email['To'] = destinatario
-        email['Subject'] = asunto
-        email.set_content(cuerpo)
+for cliente in clientes_data:
+    id_cliente = cliente.get("id_cliente")
+    generar_pdf_cliente(id_cliente)
 
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-            smtp.login('tucorreo@gmail.com', 'tu_contraseña_app')
-            smtp.send_message(email)
+# Para correrlo en la VM 0 8 * * * /usr/bin/python3 /ruta/script_generar_pdfs.py
 
-    # Proceso completo
-    def enviar_reportes():
-        raw_data = obtener_usuarios()
-        usuarios = [
-            {
-                "id_cliente": item["id_cliente"],
-                "nombre": item["nombre_cliente"],
-                "email": item["email"]  # Asegúrate que tu API lo tenga
-            }
-            for item in raw_data.get("data", [])
-        ]
-
-        for usuario in usuarios:
-            print(f"Generando reporte para {usuario['nombre']}")
-            link_pdf = obtener_link_pdf(usuario['id_cliente'])
-            cuerpo = f"Hola {usuario['nombre']},\n\nAquí tienes tu reporte:\n{link_pdf}"
-            enviar_email(usuario['email'], 'Tu reporte mensual', cuerpo)
-
-    # Scheduler: todos los días a las 8:00 am
-    scheduler = BlockingScheduler()
-    scheduler.add_job(enviar_reportes, 'cron', hour=8, minute=0)
-    scheduler.start()
-    """
