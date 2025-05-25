@@ -18,6 +18,7 @@
   import React, { useEffect, useState } from 'react';
   import DatePicker from "react-datepicker";
   import "react-datepicker/dist/react-datepicker.css";
+  import { useSearchParams } from "next/navigation";
 
   // Libraries for charts
   import { Chart as ChartJS, ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement} from "chart.js";
@@ -69,90 +70,98 @@
       alias: string;
     } | null>(null);
 
-    const id_cliente = localStorage.getItem("id_cliente");
+    const searchParams = useSearchParams();
+    const [idCliente, setIdCliente] = useState<string | null>(null);
+    const [linea, setLinea] = useState<string | null>(null);
 
     useEffect(() => {
-      const fetchAllData = async () => {
-        try {
-          const [pieRes, lineRes, commentsRes, statsRes, clientRes, compressorRes] = await Promise.all([
-            (async () => { 
-              const res = await fetch(`http://127.0.0.1:8000/web/pie-data-proc?id_cliente=${id_cliente}`); 
-              return res.json(); 
-            })(),
-            (async () => { 
-              const res = await fetch(`http://127.0.0.1:8000/web/line-data-proc?id_cliente=${id_cliente}`); 
-              return res.json(); 
-            })(),
-            (async () => { 
-              const res = await fetch(`http://127.0.0.1:8000/web/comments-data?id_cliente=${id_cliente}`); 
-              return res.json(); 
-            })(),
-            (async () => { 
-              const res = await fetch(`http://127.0.0.1:8000/web/stats-data?id_cliente=${id_cliente}`); 
-              return res.json(); 
-            })(),
-            (async () => { 
-              const res = await fetch(`http://127.0.0.1:8000/web/client-data?id_cliente=${id_cliente}`); 
-              return res.json(); 
-            })(),
-            (async () => { 
-              const res = await fetch(`http://127.0.0.1:8000/web/compressor-data?id_cliente=${id_cliente}`); 
-              return res.json(); 
-            })(),
-          ]);
+      const id = searchParams.get("id_cliente");
+      const linea = searchParams.get("linea") || "";
+      if (id) {
+        setIdCliente(id);
+        setLinea(linea)
+        fetchData(id,linea);
+      }
+    }, [searchParams]);
 
-          if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
-          if (compressorRes.data.length > 0) setCompresorData(compressorRes.data[0]);
+    const fetchData = async (id: string, linea: string) => {
+      try {
+        const [pieRes, lineRes, commentsRes, statsRes, clientRes, compressorRes] = await Promise.all([
+          (async () => { 
+            const res = await fetch(`http://127.0.0.1:8000/report/pie-data-proc?id_cliente=${id}&linea=${linea}`); 
+            return res.json(); 
+          })(),
+          (async () => { 
+            const res = await fetch(`http://127.0.0.1:8000/report/line-data-proc?id_cliente=${id}&linea=${linea}`);; 
+            return res.json(); 
+          })(),
+          (async () => { 
+            const res = await fetch(`http://127.0.0.1:8000/report/comments-data?id_cliente=${id}&linea=${linea}`); 
+            return res.json(); 
+          })(),
+          (async () => { 
+            const res = await fetch(`http://127.0.0.1:8000/report/stats-data?id_cliente=${id}&linea=${linea}`); 
+            return res.json(); 
+          })(),
+          (async () => { 
+            const res = await fetch(`http://127.0.0.1:8000/report/client-data?id_cliente=${id}&linea=${linea}`); 
+            return res.json();
+          })(),
+          (async () => { 
+            const res = await fetch(`http://127.0.0.1:8000/report/compressor-data?id_cliente=${id}&linea=${linea}`) 
+            return res.json(); 
+          })(),
+        ]);
 
-          const stats = statsRes.data;
-          setKWh(stats.kWh);
-          setHoursWorked(stats.hours_worked);
-          setUsdCost(stats.usd_cost);
-          setHPNominal(stats.hp_nominal);
-          setHPEquivalente(stats.hp_equivalente);
-          setComentarioHp(stats.comentario_hp_equivalente);
+        if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
+        if (compressorRes.data.length > 0) setCompresorData(compressorRes.data[0]);
 
-          const comments = commentsRes.data;
-          setFirstHour(comments.first_time);
-          setLastHour(comments.last_time);
-          setTotalCiclos(comments.total_ciclos);
-          setPromedioCiclosHora(comments.promedio_ciclos_hora);
-          setComentarioCiclos(comments.comentario_ciclos);
+        const stats = statsRes.data;
+        setKWh(stats.kWh);
+        setHoursWorked(stats.hours_worked);
+        setUsdCost(stats.usd_cost);
+        setHPNominal(stats.hp_nominal);
+        setHPEquivalente(stats.hp_equivalente);
+        setComentarioHp(stats.comentario_hp_equivalente);
 
-          const { LOAD, NOLOAD, OFF } = pieRes.data;
-          setChartData([LOAD, NOLOAD, OFF]);
+        const comments = commentsRes.data;
+        setFirstHour(comments.first_time);
+        setLastHour(comments.last_time);
+        setTotalCiclos(comments.total_ciclos);
+        setPromedioCiclosHora(comments.promedio_ciclos_hora);
+        setComentarioCiclos(comments.comentario_ciclos);
 
-          setLoad(LOAD);
-          setNoLoad(NOLOAD);
-          setOff(OFF);
+        const { LOAD, NOLOAD, OFF } = pieRes.data;
+        setChartData([LOAD, NOLOAD, OFF]);
 
-          const rawData = lineRes.data.map((item) => ({
-            time: new Date(item.time),
-            corriente: item.corriente,
-          }));
-          rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
+        setLoad(LOAD);
+        setNoLoad(NOLOAD);
+        setOff(OFF);
 
-          const times = rawData.map(item =>
-            item.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-          );
-          const currents = rawData.map(item => item.corriente);
+        const rawData = lineRes.data.map((item) => ({
+          time: new Date(item.time),
+          corriente: item.corriente,
+        }));
+        rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
 
-          if (!times.includes("23:59:59")) {
-            times.push("23:59:59");
-            currents.push(null);
-          }
+        const times = rawData.map(item =>
+          item.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        );
+        const currents = rawData.map(item => item.corriente);
 
-          setLineChartLabels(times);
-          setLineChartData(currents);
-          setMaxData(Math.max(...currents.filter(c => c !== null)) * 1.3);
-
-        } catch (error) {
-          console.error("Error fetching data:", error);
+        if (!times.includes("23:59:59")) {
+          times.push("23:59:59");
+          currents.push(null);
         }
-      };
 
-      fetchAllData();
-    }, [id_cliente]);
+        setLineChartLabels(times);
+        setLineChartData(currents);
+        setMaxData(Math.max(...currents.filter(c => c !== null)) * 1.3);
+
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
   
   const hp_instalado = hpNominal
   const hp_equivalente = hpeq;
@@ -296,7 +305,7 @@
         <div className="flex flex-col items-center mb-3">
           <h1 className="text-3xl font-bold text-center">Reporte Diario</h1>
           <h2 className="text-2xl font-bold text-center">{compressorData?.alias}</h2>
-          <h3 className="text-xl font-bold text-center">Fecha: {new Date(new Date().setDate(new Date().getDate())).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</h3>
+          <h3 className="text-xl font-bold text-center">Fecha: {new Date(new Date().setDate(new Date().getDate()-1)).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</h3>
           <img src="/Ventologix_04.png" alt="logo" className="h-16 w-auto mt-3 absolute top-0 left-0 m-3" />
         </div> 
 
@@ -395,7 +404,7 @@
         <h1 className="text-3xl font-bold">Comentarios</h1>
 
         <p className="text-lg text-left">
-          • El día de ayer <strong>({new Date(new Date().setDate(new Date().getDate())).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })})</strong> se iniciaron labores a las <strong>{firstHour}</strong> y se concluyeron a las <strong>{lastHour}</strong>
+          • El día de ayer <strong>({new Date(new Date().setDate(new Date().getDate()-1)).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })})</strong> se iniciaron labores a las <strong>{firstHour}</strong> y se concluyeron a las <strong>{lastHour}</strong>
         </p>
 
         <p className="text-lg text-left mt-2">

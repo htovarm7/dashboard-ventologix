@@ -26,7 +26,8 @@
     "react-datepicker": "^8.3.0",
     "react-day-picker": "^9.7.0",
     "react-dom": "^19.1.0",
-    "react-gauge-component": "^1.2.64"
+    "react-gauge-component": "^1.2.64",
+    "react-router-dom": "^7.6.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

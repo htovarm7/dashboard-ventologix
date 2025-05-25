@@ -38,7 +38,10 @@ def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente")
         cursor = conn.cursor()
 
         # Llamar al procedimiento con id_cliente en vez de 7,7
-        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},{linea},CURDATE())")
+        cursor.execute(
+            "call DataFiltradaDayFecha(%s, %s, %s, CURDATE()-1)",
+            (id_cliente, id_cliente, linea)
+        )
 
         results = cursor.fetchall()
 
@@ -85,7 +88,10 @@ def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), li
         cursor = conn.cursor()
 
         # Ejecutar SP con la fecha proporcionada
-        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},{linea},CURDATE())")
+        cursor.execute(
+            "call DataFiltradaDayFecha(%s, %s, %s, CURDATE()-1)",
+            (id_cliente, id_cliente, linea)
+        )
         results = cursor.fetchall()
 
         cursor.close()
@@ -112,7 +118,7 @@ def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), li
             if (entry["time"] - start_time) >= timedelta(seconds=30):
                 if temp_data:
                     avg_corriente = np.round(np.mean([item["corriente"] for item in temp_data]), 2)
-                    grouped_data.reportend({
+                    grouped_data.append({
                         "time": start_time.strftime('%Y-%m-%d %H:%M:%S'),
                         "corriente": avg_corriente
                     })
@@ -120,12 +126,12 @@ def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), li
                 temp_data = [entry]
                 start_time = entry["time"]
             else:
-                temp_data.reportend(entry)
+                temp_data.append(entry)
         
         # Para el último grupo
         if temp_data:
             avg_corriente = np.round(np.mean([item["corriente"] for item in temp_data]), 2)
-            grouped_data.reportend({
+            grouped_data.append({
                 "time": start_time.strftime('%Y-%m-%d %H:%M:%S'),
                 "corriente": avg_corriente
             })
@@ -147,7 +153,10 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
         )
         cursor = conn.cursor()
 
-        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},{linea},CURDATE())")
+        cursor.execute(
+            "call DataFiltradaDayFecha(%s, %s, %s, CURDATE()-1)",
+            (id_cliente, id_cliente, linea)
+        )
         results = cursor.fetchall()
 
         if not results:
@@ -220,7 +229,10 @@ def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), l
         cursor = conn.cursor()
 
         # Ejecutar procedimiento almacenado
-        cursor.execute(f"call DataFiltradaDayFecha({id_cliente},{id_cliente},{linea},CURDATE())")
+        cursor.execute(
+            "call DataFiltradaDayFecha(%s, %s, %s, CURDATE()-1)",
+            (id_cliente, id_cliente, linea)
+        )
         results1 = cursor.fetchall()
 
         while cursor.nextset():
@@ -246,6 +258,7 @@ def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), l
         horas_total = np.round(horas_trabajadas(data),2)
         usd_por_kwh = 0.17  # aquí puedes parametrizarlo desde BD o env var
         costo_usd = costo_energia_usd(kwh_total, usd_por_kwh)
+        hp_nominal = compresor_config[0]["hp"]  # tomamos el hp del primer compresor
         hp_eq = hp_equivalente(data, compresor_config)
         comentario_hp = comentario_hp_equivalente(hp_eq, 50) # Esta hardcodeado
 
@@ -254,6 +267,7 @@ def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), l
                 "kWh": kwh_total,
                 "hours_worked": horas_total,
                 "usd_cost": costo_usd,
+                "hp_nominal": hp_nominal,
                 "hp_equivalente": hp_eq,
                 "comentario_hp_equivalente": comentario_hp
             }
@@ -308,7 +322,7 @@ def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente
         cursor = conn.cursor()
 
         # Fetch data from the compressor table for id_cliente 7
-        cursor.execute(f"SELECT hp, tipo, voltaje, marca, numero_serie FROM compresores WHERE id_cliente = {id_cliente} and linea= {linea}")
+        cursor.execute(f"SELECT hp, tipo, voltaje, marca, numero_serie FROM compresores WHERE id_cliente = %s and linea= %s", (id_cliente, linea))
         results = cursor.fetchall()
 
         # Close resources

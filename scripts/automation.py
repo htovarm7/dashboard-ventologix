@@ -25,4 +25,3 @@ for cliente in clientes_data:
     generar_pdf_cliente(id_cliente)
 
 # Para correrlo en la VM 0 8 * * * /usr/bin/python3 /ruta/script_generar_pdfs.py
-
