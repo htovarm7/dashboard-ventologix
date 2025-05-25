@@ -9,11 +9,7 @@
   * @version 1.0
   */
 
-  "use client" 
-
-  // Components from anothers files
-  import TransitionPage from "@/components/transition-page";
-  import NavBar from "@/components/navBar";
+  "use client"
 
   import React, { useEffect, useState } from 'react';
   import DatePicker from "react-datepicker";
@@ -23,11 +19,9 @@
   // Libraries for charts
   import { Chart as ChartJS, ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement} from "chart.js";
   import { Pie, Chart} from "react-chartjs-2";
-  import { useRef } from "react";
 
   // ECharts for the gauge chart
   import ReactECharts from 'echarts-for-react';
-import { animate } from "framer-motion";
 
   // Register the necessary components for Chart.js
   ChartJS.register(ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement);
@@ -168,10 +162,11 @@ import { animate } from "framer-motion";
     const porcentajeUso = (hp_equivalente / hp_instalado) * 100;
     
   const option = {
-      series: [
-        {
-          type: "gauge",
-          startAngle: 205,
+    animation: false, // Desactiva animaciones globales
+    series: [
+      {
+        type: "gauge",
+        startAngle: 205,
         endAngle: -25,
         min: 30,
         max: 120,
@@ -240,31 +235,35 @@ import { animate } from "framer-motion";
   };
     
   const dataPie = {
-    labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
+    labels: ["LOAD", "NO LOAD", "OFF"],
     datasets: [
       {
-        label: "Estados del Compresor", // Título del gráfico
-        data: chartData, // Los datos que provienen del backend
+        label: "Estados del Compresor",
+        data: chartData,
         backgroundColor: [
-          "rgb(0, 191, 255)", // Color para "LOAD"
-          "rgb(229, 255, 0)", // Color para "NO LOAD"
-          "rgb(126, 126, 126)", // Color para "OFF"
+          "rgb(0, 191, 255)",
+          "rgb(229, 255, 0)",
+          "rgb(126, 126, 126)",
         ],
-        hoverOffset: 30, // Efecto al pasar el mouse
+        hoverOffset: 30,
       },
     ],
-    options: {
-      layout: {
-        padding: 20,
+  };
+
+  const optionsPie = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
       },
-      responsive: true,
-      maintainAspectRatio: false, // Muy útil si le defines height/width al canvas contenedor
-      cutout: '0%',
-      animation: {
-        animate: false,
-        duration: 0,
+    },
+    layout: {
+      padding: {
+        top: 10,
+        bottom: 10,
       },
-    }
+    },
   };
 
   // Line boundaries options
@@ -393,7 +392,7 @@ import { animate } from "framer-motion";
         >
           <div className="bg-white rounded-s shadow p-4 w-[300] h-[300] flex flex-col items-center justify-center">
             <h3 className="text-center text-black mb-2">Estados del Compresor</h3>
-            <Pie data={dataPie} />
+            <Chart type='pie' data={dataPie} options={optionsPie}/>
           </div>
 
           <div className="bg-white rounded-2xl shadow p-4 w-[650px] h-[400px] flex flex-col">

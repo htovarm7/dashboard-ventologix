@@ -46,14 +46,16 @@ def generar_todos_los_pdfs():
         try:
             print(f"Generando PDF para cliente {id_cliente}, línea {linea}")
             generar_pdf_cliente(id_cliente, linea)
-            enviar_pdf_por_correo(id_cliente, linea)
+            # enviar_pdf_por_correo(id_cliente, linea)
         except Exception as e:
             print(f"❌ Error generando PDF para cliente {id_cliente}, línea {linea}: {e}")
             pass  # Continúa con el siguiente cliente
 
     print("✅ Todos los PDFs generados.")
+    
+generar_todos_los_pdfs()
 
-def enviar_pdf_por_correo(id_cliente, linea):
+# def enviar_pdf_por_correo(id_cliente, linea):
     # # Obtén correos desde tu API
     # response = requests.get(f"http://127.0.0.1:8000/report/emails-data?id_cliente={id_cliente}&linea={linea}")
     # if response.status_code != 200:
@@ -66,32 +68,32 @@ def enviar_pdf_por_correo(id_cliente, linea):
     #     return
 
     # Configuración del correo
-    asunto = f"Reporte PDF Cliente {id_cliente} Línea {linea}"
-    cuerpo = f"Adjunto se encuentra el reporte PDF del cliente {id_cliente}, línea {linea}."
+    # asunto = f"Reporte PDF Cliente {id_cliente} Línea {linea}"
+    # cuerpo = f"Adjunto se encuentra el reporte PDF del cliente {id_cliente}, línea {linea}."
 
-    ruta_pdf = f"./pdfs/reporte_{id_cliente}_linea_{linea}.pdf"
-    if not os.path.exists(ruta_pdf):
-        print(f"❌ No se encontró el PDF: {ruta_pdf}")
-        return
+    # ruta_pdf = f"./pdfs/reporte_{id_cliente}_linea_{linea}.pdf"
+    # if not os.path.exists(ruta_pdf):
+    #     print(f"❌ No se encontró el PDF: {ruta_pdf}")
+    #     return
 
-    msg = EmailMessage()
-    msg['Subject'] = asunto
-    msg['From'] = 'hector.tovar@ventologix.com'
-    # msg['To'] = ', '.join(correos)
-    msg['To'] = 'andres.mirazo@ventologix.com'
-    msg.set_content(cuerpo)
+    # msg = EmailMessage()
+    # msg['Subject'] = asunto
+    # msg['From'] = 'hector.tovar@ventologix.com'
+    # # msg['To'] = ', '.join(correos)
+    # msg['To'] = 'andres.mirazo@ventologix.com'
+    # msg.set_content(cuerpo)
 
-    # Adjuntar PDF
-    with open(ruta_pdf, 'rb') as f:
-        pdf_data = f.read()
-        msg.add_attachment(pdf_data, maintype='application', subtype='pdf', filename=os.path.basename(ruta_pdf))
+    # # Adjuntar PDF
+    # with open(ruta_pdf, 'rb') as f:
+    #     pdf_data = f.read()
+    #     msg.add_attachment(pdf_data, maintype='application', subtype='pdf', filename=os.path.basename(ruta_pdf))
 
-    # Enviar correo
-    try:
-        with smtplib.SMTP('smtp.tudominio.com', 587) as smtp:
-            smtp.starttls()
-            smtp.login('tucorreo@tudominio.com', 'tu_password')
-            smtp.send_message(msg)
-            print(f"📧 Correo enviado a andres con PDF {ruta_pdf}")
-    except Exception as e:
-        print(f"Error al enviar correo: {e}")
+    # # Enviar correo
+    # try:
+    #     with smtplib.SMTP('smtp.tudominio.com', 587) as smtp:
+    #         smtp.starttls()
+    #         smtp.login('tucorreo@tudominio.com', 'tu_password')
+    #         smtp.send_message(msg)
+    #         print(f"📧 Correo enviado a andres con PDF {ruta_pdf}")
+    # except Exception as e:
+    #     print(f"Error al enviar correo: {e}")
