@@ -298,8 +298,6 @@
     return (
       
       <main>
-        <TransitionPage />
-        <NavBar />
 
         {/* Here its the top section*/}
         <div className="flex flex-col items-center mb-3">
@@ -376,7 +374,10 @@
         </div>
 
         {/* Gráficas */}
-        <div className="flex flex-row flex-wrap justify-center gap-4">
+        <div
+          className="flex flex-row flex-wrap justify-center gap-4"
+          id="grafico-listo"
+        >
           <div className="bg-white rounded-s shadow p-4 w-[300] h-[300] flex flex-col items-center justify-center">
             <h3 className="text-center text-black mb-2">Estados del Compresor</h3>
             <Pie data={dataPie} />
@@ -459,6 +460,9 @@
       </p>
       </div>
       
+      {lineChartData.length > 0 && chartData.length > 0 && (
+          <div id="grafico-listo" style={{ display: "none" }}></div>
+      )}
       </div>
       </main>
     );
