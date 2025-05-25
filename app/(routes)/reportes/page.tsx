@@ -23,9 +23,11 @@
   // Libraries for charts
   import { Chart as ChartJS, ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement} from "chart.js";
   import { Pie, Chart} from "react-chartjs-2";
+  import { useRef } from "react";
 
   // ECharts for the gauge chart
   import ReactECharts from 'echarts-for-react';
+import { animate } from "framer-motion";
 
   // Register the necessary components for Chart.js
   ChartJS.register(ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement);
@@ -37,7 +39,6 @@
     const [lineChartData, setLineChartData] = useState<number[]>([]); // default values
     const [lineChartLabels, setLineChartLabels] = useState<string[]>([]); // default labels
     const [maxData, setMaxData] = useState(0); // default max value
-    const [gaugeValue, setGaugeValue] = useState<number>(0);
     const [kWh, setKWh] = useState<number>(0); // default kWh value
     const [hoursWorked, setHoursWorked] = useState<number>(0); // default hours worked value
     const [usdCost, setUsdCost] = useState<number>(0); // default USD cost value
@@ -49,7 +50,6 @@
     const [totalCiclos, setTotalCiclos] = useState(0);
     const [promedioCiclosHora, setPromedioCiclosHora] = useState(0);
     const [comentarioCiclos, setComentarioCiclos] = useState("");
-    const [selectedDate, setSelectedDate] = useState(new Date());
     const [hpNominal, setHPNominal] = useState<number>(0);
     const [hpeq, setHPEquivalente] = useState<number>(0);
     const [comentarioHp, setComentarioHp] = useState("");
@@ -73,7 +73,7 @@
     const searchParams = useSearchParams();
     const [idCliente, setIdCliente] = useState<string | null>(null);
     const [linea, setLinea] = useState<string | null>(null);
-
+    
     useEffect(() => {
       const id = searchParams.get("id_cliente");
       const linea = searchParams.get("linea") || "";
@@ -83,7 +83,7 @@
         fetchData(id,linea);
       }
     }, [searchParams]);
-
+    
     const fetchData = async (id: string, linea: string) => {
       try {
         const [pieRes, lineRes, commentsRes, statsRes, clientRes, compressorRes] = await Promise.all([
@@ -112,10 +112,10 @@
             return res.json(); 
           })(),
         ]);
-
+        
         if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
         if (compressorRes.data.length > 0) setCompresorData(compressorRes.data[0]);
-
+        
         const stats = statsRes.data;
         setKWh(stats.kWh);
         setHoursWorked(stats.hours_worked);
@@ -123,55 +123,55 @@
         setHPNominal(stats.hp_nominal);
         setHPEquivalente(stats.hp_equivalente);
         setComentarioHp(stats.comentario_hp_equivalente);
-
+        
         const comments = commentsRes.data;
         setFirstHour(comments.first_time);
         setLastHour(comments.last_time);
         setTotalCiclos(comments.total_ciclos);
         setPromedioCiclosHora(comments.promedio_ciclos_hora);
         setComentarioCiclos(comments.comentario_ciclos);
-
+        
         const { LOAD, NOLOAD, OFF } = pieRes.data;
         setChartData([LOAD, NOLOAD, OFF]);
-
+        
         setLoad(LOAD);
         setNoLoad(NOLOAD);
         setOff(OFF);
-
+        
         const rawData = lineRes.data.map((item) => ({
           time: new Date(item.time),
           corriente: item.corriente,
         }));
         rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
-
+        
         const times = rawData.map(item =>
           item.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
         );
         const currents = rawData.map(item => item.corriente);
-
+        
         if (!times.includes("23:59:59")) {
           times.push("23:59:59");
           currents.push(null);
         }
-
+        
         setLineChartLabels(times);
         setLineChartData(currents);
         setMaxData(Math.max(...currents.filter(c => c !== null)) * 1.3);
-
+        
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
-  
-  const hp_instalado = hpNominal
-  const hp_equivalente = hpeq;
-  const porcentajeUso = (hp_equivalente / hp_instalado) * 100;
-  
+    
+    const hp_instalado = hpNominal
+    const hp_equivalente = hpeq;
+    const porcentajeUso = (hp_equivalente / hp_instalado) * 100;
+    
   const option = {
-    series: [
-      {
-        type: "gauge",
-        startAngle: 205,
+      series: [
+        {
+          type: "gauge",
+          startAngle: 205,
         endAngle: -25,
         min: 30,
         max: 120,
@@ -216,7 +216,7 @@
           fontSize: 14,
         },
         detail: {
-          valueAnimation: true,
+          valueAnimation: false,
           fontSize: 22,
           offsetCenter: [0, "60%"],
           formatter: `{value}%`,
@@ -260,12 +260,17 @@
       responsive: true,
       maintainAspectRatio: false, // Muy útil si le defines height/width al canvas contenedor
       cutout: '0%',
+      animation: {
+        animate: false,
+        duration: 0,
+      },
     }
   };
 
   // Line boundaries options
   const lineChartOptions = {
     responsive: true,
+    animation: false,
     scales: {
       y: {
         min: 0, // Lower boundary of the Y-axis
@@ -294,13 +299,21 @@
     ],
   };
 
+    useEffect(() => {
+      if (lineChartData.length > 0 && chartData.length > 0) {
+        window.status = "pdf-ready";
+        setTimeout(() => {
+        },5000);
+      }
+    }, [lineChartData, chartData]);
+
 
     return (
       
-      <main>
+      <main className="relative">
 
         {/* Here its the top section*/}
-        <div className="flex flex-col items-center mb-3">
+        <div className="flex flex-col items-center mb-2">
           <h1 className="text-3xl font-bold text-center">Reporte Diario</h1>
           <h2 className="text-2xl font-bold text-center">{compressorData?.alias}</h2>
           <h3 className="text-xl font-bold text-center">Fecha: {new Date(new Date().setDate(new Date().getDate()-1)).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</h3>
@@ -348,17 +361,17 @@
               <p className="text-2xl">{clientData?.RFC}</p>
               <p className="text-xl font-bold">RFC</p>
             </div>
-            <div className="text-center">
+            {/* <div className="text-center">
               <p className="text-2xl">{clientData?.direccion}</p>
               <p className="text-xl font-bold">Direccion</p>
-            </div>
+            </div> */}
           </div>
         </div>
         
         {/* Here its the graphs */}
-        <div className="flex flex-col items-center justify-center min-h-screen p-6 gap-8">
+        <div className="flex flex-col items-center justify-center p-4 gap-6">
           {/* KPIs */}
-          <div className="flex flex-row gap-8">
+          <div className="flex flex-row gap-8 mt-2">
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
               <h2 className="text-sm text-black">Gasto USD*</h2>
               <p className="text-3xl font-bold text-black">${usdCost.toFixed(2)}</p>
@@ -460,10 +473,11 @@
       </p>
       </div>
       
-      {lineChartData.length > 0 && chartData.length > 0 && (
+      {/* {lineChartData.length > 0 && chartData.length > 0 && (
           <div id="grafico-listo" style={{ display: "none" }}></div>
-      )}
+      )} */}
       </div>
       </main>
     );
   }
+  

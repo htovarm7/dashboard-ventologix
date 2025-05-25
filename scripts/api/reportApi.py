@@ -13,6 +13,23 @@ from io import BytesIO
 from pydantic import BaseModel
 from reportlab.pdfgen import canvas
 
+"""
+* @Observations:
+* 1. To run the API, use the command:
+* uvicorn scripts.api_server:webApi --reload
+* To check the API response, you can use the following URL:
+* http://127.0.0.1:8000/docs
+* For PENOX use device_id = 7
+* If the API is not updating, check the following:
+* 1. Run in terminal:
+    tasklist | findstr python
+* 2. If the process is running, kill it using:
+    taskkill /F /PID <PID>
+* 3. Where <PID> is the process ID obtained from the previous command, which in this case is 18168.
+    python.exe                   18168 Console                    1    67,276 KB
+* 4. Run the API again using:
+"""
+
 # Load environment variables
 load_dotenv()
 
@@ -239,7 +256,7 @@ def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), l
             pass
 
         # Consultar voltaje y HP
-        cursor.execute(f"select hp, voltaje from compresores where id_cliente = {id_cliente}")
+        cursor.execute(f"select hp, voltaje, timestamp from compresores where id_cliente = {id_cliente} and linea = '{linea}'")
         results2 = cursor.fetchall()
 
         # Cerrar recursos
@@ -251,24 +268,30 @@ def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), l
 
         # Preparar datos
         data = [{"time": row[1], "corriente": row[2], "estado": row[3]} for row in results1]
-        compresor_config = [{"hp": row[0], "voltage": row[1]} for row in results2]
+        compresor_config = [{"hp": row[0], "voltage": row[1], "timestamp": row[2]} for row in results2]
+
+        print(f"Total registros: {len(data)}")
+        print(f"Registros LOAD: {len([d for d in data if d['estado'] == 'LOAD'])}")
+        print(f"Primera corriente: {data[0]['corriente']}")
+        compresor_config = compresor_config[0]
+        timestamp = compresor_config["timestamp"]
 
         # Calcular kWh y horas trabajadas
-        kwh_total = energy_calculated(data, compresor_config)
-        horas_total = np.round(horas_trabajadas(data),2)
+        kwh_total = energy_calculated(data, compresor_config,timestamp)
+        horas_total = np.round(horas_trabajadas(data,timestamp),2)
         usd_por_kwh = 0.17  # aquí puedes parametrizarlo desde BD o env var
         costo_usd = costo_energia_usd(kwh_total, usd_por_kwh)
-        hp_nominal = compresor_config[0]["hp"]  # tomamos el hp del primer compresor
-        hp_eq = hp_equivalente(data, compresor_config)
-        comentario_hp = comentario_hp_equivalente(hp_eq, 50) # Esta hardcodeado
+        hp_nominal = compresor_config["hp"]  # tomamos el hp del primer compresor
+        hp_eq = hp_equivalente(data, compresor_config,timestamp)
+        comentario_hp = comentario_hp_equivalente(hp_eq, hp_nominal) # Esta hardcodeado
 
         return {
             "data": {
-                "kWh": kwh_total,
-                "hours_worked": horas_total,
-                "usd_cost": costo_usd,
-                "hp_nominal": hp_nominal,
-                "hp_equivalente": hp_eq,
+                "kWh": float(kwh_total),
+                "hours_worked": float(horas_total),
+                "usd_cost": float(costo_usd),
+                "hp_nominal": int(hp_nominal),
+                "hp_equivalente": int(hp_eq),
                 "comentario_hp_equivalente": comentario_hp
             }
         }
@@ -343,7 +366,7 @@ def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente
         return {"error": str(err)}
 
 @report.get("/emails-data")
-def get_emails_data(id_cliente: int = Query(..., description="ID del cliente")):
+def get_emails_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         # Connect to the database
         conn = mysql.connector.connect(
@@ -355,7 +378,11 @@ def get_emails_data(id_cliente: int = Query(..., description="ID del cliente")):
         cursor = conn.cursor()
 
         # Fetch data from the clientes table for id_cliente 7
-        cursor.execute(f"SELECT i.Correo, comp.Alias, comp.linea FROM Ingenieros i JOIN clientes c ON i.id_cliente = c.id_cliente JOIN compresores comp ON c.id_cliente = comp.id_cliente WHERE c.id_cliente = {id_cliente}")
+        cursor.execute(
+            "SELECT i.Correo, comp.Alias, comp.linea FROM Ingenieros i JOIN clientes c ON i.id_cliente = c.id_cliente JOIN compresores comp ON c.id_cliente = comp.id_cliente WHERE c.id_cliente = %s and comp.linea = %s",
+            (id_cliente, linea)
+        )
+
         results = cursor.fetchall()
 
         # Close resources
@@ -446,73 +473,82 @@ def percentage_off(data):
     total_records = len(data)
     return (total_off / total_records) * 100 if total_records > 0 else 0
 
-def energy_calculated(data, compresor_data, segundos_por_registro=5):
+def energy_calculated(data, compresor_data, timestamp):
+    if not data:
+        return 0
+        
+    # Calcular segundos entre registros (asumiendo datos ordenados por tiempo)
+    if len(data) > 1:
+        segundos_por_registro = (data[1]['time'] - data[0]['time']).total_seconds()
+    else:
+        segundos_por_registro = 10  # Valor por defecto
+    
+    voltaje = compresor_data["voltage"]
     filtered_currents = [record['corriente'] for record in data if record['corriente'] > 0]
+    
     if not filtered_currents:
         return 0
 
     tiempo_horas = segundos_por_registro / 3600
-
     energia_calculada = sum(
-        corriente * 1.732 * 440 * 1 / 1000 * tiempo_horas
+        corriente * 1.732 * voltaje * tiempo_horas / 1000
         for corriente in filtered_currents
     )
-
     return round(energia_calculada, 3)
 
-def horas_trabajadas(data, segundos_por_registro=5):
+def horas_trabajadas(data, timestamp):
     if not data:
         return 0
-
+        
+    # Calcular segundos entre registros
+    if len(data) > 1:
+        segundos_por_registro = (data[1]['time'] - data[0]['time']).total_seconds()
+    else:
+        segundos_por_registro = 10  # Valor por defecto
+    
     registros_no_off = [record for record in data if record['estado'] != "OFF"]
-
-    total_registros = len(data)
-    registros_no_off_count = len(registros_no_off)
-
-    if total_registros == 0 or registros_no_off_count == 0:
+    if not registros_no_off:
         return 0
-
-    primer_no_off_time = min(record['time'] for record in registros_no_off)
-    ultimo_no_off_time = max(record['time'] for record in registros_no_off)
-
-    registros_rango = [
-        record for record in data
-        if primer_no_off_time <= record['time'] <= ultimo_no_off_time
-    ]
-
-    total_registros_rango = len(registros_rango)
-    total_segundos = total_registros_rango * segundos_por_registro
-    total_horas = total_segundos / 3600
-
-    return round(total_horas, 3)
+        
+    total_registros_no_off = len(registros_no_off)
+    total_segundos = total_registros_no_off * segundos_por_registro
+    return round(total_segundos / 3600, 2)
 
 def costo_energia_usd(kwh_total, usd_por_kwh=0.17):
     return round(kwh_total * usd_por_kwh, 2)
 
-def hp_equivalente(data, compresor_config, segundos_por_registro=10):
-    voltaje = compresor_config[0]["voltage"]  # tomamos el voltaje del primer compresor
+def hp_equivalente(data, compresor_config, timestamp):
+    if not data:
+        return 0
+        
+    # Calcular segundos entre registros
+    if len(data) > 1:
+        segundos_por_registro = (data[1]['time'] - data[0]['time']).total_seconds()
+    else:
+        segundos_por_registro = 10  # Valor por defecto
+        
+    voltaje = compresor_config["voltage"]
     factor_seguridad = 1.4
     factor_conversion = 0.7457  # kW a HP
 
     # Filtrar registros con estado LOAD
     data_load = [row for row in data if row["estado"] == "LOAD"]
-
     if not data_load:
         return 0
 
     # Calcular kWh total solo en estado LOAD
+    tiempo_horas = segundos_por_registro / 3600
     total_kwh = sum(
-        (1.732 * row["corriente"] * voltaje * (segundos_por_registro / 3600)) / 1000
+        (1.732 * row["corriente"] * voltaje * tiempo_horas) / 1000
         for row in data_load
     )
 
-    # Calcular total de horas trabajadas
-    total_horas = len(data) * (segundos_por_registro / 3600)
-
-    if total_horas == 0:
+    # Calcular total de horas trabajadas (solo LOAD)
+    total_horas_load = len(data_load) * tiempo_horas
+    if total_horas_load == 0:
         return 0
 
-    hp_equivalente = round((total_kwh / total_horas) / factor_conversion * factor_seguridad, 0)
+    hp_equivalente = round((total_kwh / total_horas_load) / factor_conversion * factor_seguridad, 0)
     return hp_equivalente
 
 def comentario_hp_equivalente(hp_eq, hp_nominal):
