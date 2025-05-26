@@ -235,35 +235,31 @@
   };
     
   const dataPie = {
-    labels: ["LOAD", "NO LOAD", "OFF"],
+    labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
     datasets: [
       {
-        label: "Estados del Compresor",
-        data: chartData,
+        label: "Estados del Compresor", // Título del gráfico
+        data: chartData, // Los datos que provienen del backend
         backgroundColor: [
-          "rgb(0, 191, 255)",
-          "rgb(229, 255, 0)",
-          "rgb(126, 126, 126)",
+          "rgb(0, 191, 255)", // Color para "LOAD"
+          "rgb(229, 255, 0)", // Color para "NO LOAD"
+          "rgb(126, 126, 126)", // Color para "OFF"
         ],
-        hoverOffset: 30,
+        hoverOffset: 30, // Efecto al pasar el mouse
       },
     ],
-  };
-
-  const optionsPie = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom',
+    options: {
+      layout: {
+        padding: 20,
       },
-    },
-    layout: {
-      padding: {
-        top: 10,
-        bottom: 10,
+      responsive: true,
+      maintainAspectRatio: false, // Muy útil si le defines height/width al canvas contenedor
+      cutout: '0%',
+      animation: {
+        animate: false,
+        duration: 0,
       },
-    },
+    }
   };
 
   // Line boundaries options
@@ -315,7 +311,18 @@
         <div className="flex flex-col items-center mb-2">
           <h1 className="text-3xl font-bold text-center">Reporte Diario</h1>
           <h2 className="text-2xl font-bold text-center">{compressorData?.alias}</h2>
-          <h3 className="text-xl font-bold text-center">Fecha: {new Date(new Date().setDate(new Date().getDate()-1)).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</h3>
+          <h3 className="text-xl font-bold text-center">
+            Fecha: {
+              new Date(new Date().setDate(new Date().getDate() - 1))
+                .toLocaleDateString('es-ES', { 
+                  weekday: 'long', 
+                  day: '2-digit', 
+                  month: 'long', 
+                  year: 'numeric' 
+                })
+                .replace(/^\w/, c => c.toUpperCase())
+            }
+          </h3>
           <img src="/Ventologix_04.png" alt="logo" className="h-16 w-auto mt-3 absolute top-0 left-0 m-3" />
         </div> 
 
@@ -391,12 +398,12 @@
           id="grafico-listo"
         >
           <div className="bg-white rounded-s shadow p-4 w-[300] h-[300] flex flex-col items-center justify-center">
-            <h3 className="text-center text-black mb-2">Estados del Compresor</h3>
-            <Chart type='pie' data={dataPie} options={optionsPie}/>
+            <h3 className="text-center text-black mb-2 font-bold">Estados del Compresor</h3>
+            <Chart type='pie' data={dataPie}/>
           </div>
 
           <div className="bg-white rounded-2xl shadow p-4 w-[650px] h-[400px] flex flex-col">
-            <h3 className="text-center text-black mb-2">Corriente consumida en el día</h3>
+            <h3 className="text-center text-black mb-2 font-bold">Corriente consumida en el día</h3>
             <Chart type="line" data={dataLine} options={lineChartOptions} />
           </div>
 
