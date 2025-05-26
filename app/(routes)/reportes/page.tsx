@@ -11,7 +11,7 @@
 
   "use client"
 
-  import React, { useEffect, useState } from 'react';
+  import React, { useEffect, useState, useRef } from 'react';
   import DatePicker from "react-datepicker";
   import "react-datepicker/dist/react-datepicker.css";
   import { useSearchParams } from "next/navigation";
@@ -47,6 +47,8 @@
     const [hpNominal, setHPNominal] = useState<number>(0);
     const [hpeq, setHPEquivalente] = useState<number>(0);
     const [comentarioHp, setComentarioHp] = useState("");
+    const chartRef = useRef(null);
+    const [pdfReady, setPdfReady] = useState(false);
 
     const [clientData, setClientData] = useState<{
       numero_cliente: number;
@@ -161,150 +163,149 @@
     const hp_equivalente = hpeq;
     const porcentajeUso = (hp_equivalente / hp_instalado) * 100;
     
-  const option = {
-    animation: false, // Desactiva animaciones globales
-    series: [
-      {
-        type: "gauge",
-        startAngle: 205,
-        endAngle: -25,
-        min: 30,
-        max: 120,
-        splitNumber: 9,
-        axisLine: {
-          lineStyle: {
-            width: 30,
-            color: [
-              [0.377, "red"],
-              [0.544, "yellow"],
-              [0.689, "green"],
-              [0.766, "#418FDE"],
-              [0.889, "yellow"],
-              [1, "red"],
-            ],
+    const option = {
+      animation: false, // Desactiva animaciones globales
+      series: [
+        {
+          type: "gauge",
+          startAngle: 205,
+          endAngle: -25,
+          min: 30,
+          max: 120,
+          splitNumber: 9,
+          axisLine: {
+            lineStyle: {
+              width: 30,
+              color: [
+                [0.377, "red"],
+                [0.544, "yellow"],
+                [0.689, "green"],
+                [0.766, "#418FDE"],
+                [0.889, "yellow"],
+                [1, "red"],
+              ],
+            },
           },
-        },
-        pointer: {
-          show: true,
-          length: "80%",
-          width: 5,
-        },
-        axisTick: {
-          distance: -35,
-          length: 8,
-          lineStyle: {
-            color: "#fff",
-            width: 1,
+          pointer: {
+            show: true,
+            length: "80%",
+            width: 5,
           },
-        },
-        splitLine: {
-          distance: -40,
-          length: 10,
-          lineStyle: {
-            color: "#fff",
-            width: 2,
+          axisTick: {
+            distance: -35,
+            length: 8,
+            lineStyle: {
+              color: "#fff",
+              width: 1,
+            },
           },
-        },
-        axisLabel: {
-          distance: -50,
-          color: "#000",
-          fontSize: 14,
-        },
-        detail: {
-          valueAnimation: false,
-          fontSize: 22,
-          offsetCenter: [0, "60%"],
-          formatter: `{value}%`,
-          color: (() => {
-            if (porcentajeUso <= 64) return "red";
-            if (porcentajeUso <= 79) return "black";
-            if (porcentajeUso <= 92) return "green";
-            if (porcentajeUso <= 99) return "#418FDE";
-            if (porcentajeUso <= 110) return "black";
-            if (porcentajeUso <= 120) return "red";
-            return "black";
-          })(),
-        },
-        data: [
-          {
-            value: porcentajeUso.toFixed(0),
+          splitLine: {
+            distance: -40,
+            length: 10,
+            lineStyle: {
+              color: "#fff",
+              width: 2,
+            },
           },
-        ],
-      },
-    ],
-  };
-    
-  const dataPie = {
-    labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
-    datasets: [
-      {
-        label: "Estados del Compresor", // Título del gráfico
-        data: chartData, // Los datos que provienen del backend
-        backgroundColor: [
-          "rgb(0, 191, 255)", // Color para "LOAD"
-          "rgb(229, 255, 0)", // Color para "NO LOAD"
-          "rgb(126, 126, 126)", // Color para "OFF"
-        ],
-        hoverOffset: 30, // Efecto al pasar el mouse
-      },
-    ],
-    options: {
-      layout: {
-        padding: 20,
-      },
-      responsive: true,
-      maintainAspectRatio: false, // Muy útil si le defines height/width al canvas contenedor
-      cutout: '0%',
-      animation: {
-        animate: false,
-        duration: 0,
-      },
-    }
-  };
-
-  // Line boundaries options
-  const lineChartOptions = {
-    responsive: true,
-    animation: false,
-    scales: {
-      y: {
-        min: 0, // Lower boundary of the Y-axis
-        max: maxData, // Upper boundary of the Y-axis
-        ticks: {
-          stepSize: 1,
+          axisLabel: {
+            distance: -50,
+            color: "#000",
+            fontSize: 14,
+          },
+          detail: {
+            valueAnimation: false,
+            fontSize: 22,
+            offsetCenter: [0, "60%"],
+            formatter: `{value}%`,
+            color: (() => {
+              if (porcentajeUso <= 64) return "red";
+              if (porcentajeUso <= 79) return "black";
+              if (porcentajeUso <= 92) return "green";
+              if (porcentajeUso <= 99) return "#418FDE";
+              if (porcentajeUso <= 110) return "black";
+              if (porcentajeUso <= 120) return "red";
+              return "black";
+            })(),
+          },
+          data: [
+            {
+              value: porcentajeUso.toFixed(0),
+            },
+          ],
         },
-      },
-    },
-  };
-
-  const dataLine = {
-    labels: lineChartLabels, // Labels for the X-axis of the line chart
-    datasets: [
-      {
-        label: 'Corriente consumida en el dia', // Title of the dataset
-        data: lineChartData, // Data points for the line chart
-        borderColor: 'rgb(13, 9, 255)', // Line color
-        backgroundColor: 'rgba(82, 94, 255, 0.2)', // Area fill color
-        fill: 'origin', // Fill from the origin of the Y-axis
-        tension: 0.4, // Line smoothing
-        pointBackgroundColor: 'rgb(13, 9, 255)', // Color of the data points
-        pointRadius: 1, // Radius of the data points
-        borderWidth: 1, // Width of the line
+      ],
+    };
+      
+    const dataPie = {
+      labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
+      datasets: [
+        {
+          label: "Estados del Compresor", // Título del gráfico
+          data: chartData, // Los datos que provienen del backend
+          backgroundColor: [
+            "rgb(0, 191, 255)", // Color para "LOAD"
+            "rgb(229, 255, 0)", // Color para "NO LOAD"
+            "rgb(126, 126, 126)", // Color para "OFF"
+          ],
+          hoverOffset: 30, // Efecto al pasar el mouse
+        },
+      ],
+      options: {
+        layout: {
+          padding: 20,
+        },
+        responsive: true,
+        maintainAspectRatio: false, // Muy útil si le defines height/width al canvas contenedor
+        cutout: '0%',
+        animation: {
+          animate: false,
+          duration: 0,
+        },
       }
-    ],
-  };
+    };
+
+
+    // Line boundaries options
+    const lineChartOptions = {
+      responsive: true,
+      animation: false,
+      scales: {
+        y: {
+          min: 0, // Lower boundary of the Y-axis
+          max: maxData, // Upper boundary of the Y-axis
+          ticks: {
+            stepSize: 1,
+          },
+        },
+      },
+    };
+
+    const dataLine = {
+      labels: lineChartLabels, // Labels for the X-axis of the line chart
+      datasets: [
+        {
+          label: 'Corriente consumida en el dia', // Title of the dataset
+          data: lineChartData, // Data points for the line chart
+          borderColor: 'rgb(13, 9, 255)', // Line color
+          backgroundColor: 'rgba(82, 94, 255, 0.2)', // Area fill color
+          fill: 'origin', // Fill from the origin of the Y-axis
+          tension: 0.4, // Line smoothing
+          pointBackgroundColor: 'rgb(13, 9, 255)', // Color of the data points
+          pointRadius: 1, // Radius of the data points
+          borderWidth: 1, // Width of the line
+        }
+      ],
+    };
 
     useEffect(() => {
       if (lineChartData.length > 0 && chartData.length > 0) {
         window.status = "pdf-ready";
         setTimeout(() => {
-        },5000);
+        },250000);
       }
     }, [lineChartData, chartData]);
 
-
     return (
-      
       <main className="relative">
 
         {/* Here its the top section*/}
@@ -397,9 +398,10 @@
           className="flex flex-row flex-wrap justify-center gap-4"
           id="grafico-listo"
         >
+          {/*bg-white rounded-s shadow p-4 w-[300] h-[300] flex flex-col items-center justify-center*/}
           <div className="bg-white rounded-s shadow p-4 w-[300] h-[300] flex flex-col items-center justify-center">
             <h3 className="text-center text-black mb-2 font-bold">Estados del Compresor</h3>
-            <Chart type='pie' data={dataPie}/>
+            <Pie ref={chartRef} data={dataPie}/>
           </div>
 
           <div className="bg-white rounded-2xl shadow p-4 w-[650px] h-[400px] flex flex-col">
@@ -407,12 +409,12 @@
             <Chart type="line" data={dataLine} options={lineChartOptions} />
           </div>
 
-          <div className="bg-white rounded-2xl shadow p-4 w-[280px] h-[280px] items-center justify-center">
+          <div className="bg-white rounded-2xl shadow p-4 w-[280px] items-center justify-center">
             <h2 style={{ textAlign: "center" }}><strong>Hp Equivalente:</strong> {hp_equivalente} Hp</h2>
             <h2 style={{ textAlign: "center" }}><strong>Hp Instalado:</strong> {hp_instalado} Hp</h2>
             <ReactECharts
               option={option}
-              style={{ height: "350px", width: "100%" }}
+              style={{ height: "280px", width: "100%" }}
               notMerge={true}
               lazyUpdate={true}
               theme={"light"}
