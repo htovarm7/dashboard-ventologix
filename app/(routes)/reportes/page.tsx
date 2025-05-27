@@ -12,7 +12,7 @@
   "use client"
 
   import React, { useEffect, useState, useRef } from 'react';
-  import DatePicker from "react-datepicker";
+  import ChartDataLabels from 'chartjs-plugin-datalabels';
   import "react-datepicker/dist/react-datepicker.css";
   import { useSearchParams } from "next/navigation";
 
@@ -236,6 +236,34 @@
       ],
     };
       
+    // const dataPie = {
+    //   labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
+    //   datasets: [
+    //     {
+    //       label: "Estados del Compresor", // Título del gráfico
+    //       data: chartData, // Los datos que provienen del backend
+    //       backgroundColor: [
+    //         "rgb(0, 191, 255)", // Color para "LOAD"
+    //         "rgb(229, 255, 0)", // Color para "NO LOAD"
+    //         "rgb(126, 126, 126)", // Color para "OFF"
+    //       ],
+    //       hoverOffset: 30, // Efecto al pasar el mouse
+    //     },
+    //   ],
+    //   options: {
+    //     layout: {
+    //       padding: 20,
+    //     },
+    //     responsive: true,
+    //     maintainAspectRatio: false, // Muy útil si le defines height/width al canvas contenedor
+    //     cutout: '0%',
+    //     animation: {
+    //       animate: false,
+    //       duration: 0,
+    //     },
+    //   }
+    // };
+
     const dataPie = {
       labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
       datasets: [
@@ -250,18 +278,14 @@
           hoverOffset: 30, // Efecto al pasar el mouse
         },
       ],
-      options: {
-        layout: {
-          padding: 20,
-        },
-        responsive: true,
-        maintainAspectRatio: false, // Muy útil si le defines height/width al canvas contenedor
-        cutout: '0%',
-        animation: {
-          animate: false,
-          duration: 0,
-        },
-      }
+    };
+
+    const pieOptions = {
+      layout: { padding: 20 },
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '0%',
+      animation: { animate: false, duration: 0 },
     };
 
 
@@ -399,11 +423,10 @@
           id="grafico-listo"
         >
           {/*bg-white rounded-s shadow p-4 w-[300] h-[300] flex flex-col items-center justify-center*/}
-          <div className="bg-white rounded-s shadow p-4 w-[300] h-[300] flex flex-col items-center justify-center">
+          <div className="bg-white rounded-s shadow p-4 w-[280px] h-[400px] flex flex-col items-center justify-center">
             <h3 className="text-center text-black mb-2 font-bold">Estados del Compresor</h3>
-            <Pie ref={chartRef} data={dataPie}/>
+            <Pie data={dataPie} options={pieOptions} />
           </div>
-
           <div className="bg-white rounded-2xl shadow p-4 w-[650px] h-[400px] flex flex-col">
             <h3 className="text-center text-black mb-2 font-bold">Corriente consumida en el día</h3>
             <Chart type="line" data={dataLine} options={lineChartOptions} />
