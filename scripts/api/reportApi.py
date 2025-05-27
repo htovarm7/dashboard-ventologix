@@ -269,10 +269,6 @@ def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), l
         # Preparar datos
         data = [{"time": row[1], "corriente": row[2], "estado": row[3]} for row in results1]
         compresor_config = [{"hp": row[0], "voltage": row[1], "timestamp": row[2]} for row in results2]
-
-        print(f"Total registros: {len(data)}")
-        print(f"Registros LOAD: {len([d for d in data if d['estado'] == 'LOAD'])}")
-        print(f"Primera corriente: {data[0]['corriente']}")
         compresor_config = compresor_config[0]
         timestamp = compresor_config["timestamp"]
 
@@ -345,7 +341,7 @@ def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente
         cursor = conn.cursor()
 
         # Fetch data from the compressor table for id_cliente 7
-        cursor.execute(f"SELECT hp, tipo, voltaje, marca, numero_serie, Alias FROM compresores WHERE id_cliente = %s and linea= %s", (id_cliente, linea))
+        cursor.execute(f"SELECT hp, tipo, voltaje, marca, numero_serie, Alias, LOAD_NO_LOAD  FROM compresores WHERE id_cliente = %s and linea= %s", (id_cliente, linea))
         results = cursor.fetchall()
 
         # Close resources
@@ -356,7 +352,7 @@ def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente
             return {"error": "No data found for the specified client."}
 
         # Convert results into a list of dictionaries
-        data = [{"hp": row[0], "tipo": row[1], "voltaje": row[2], "marca": row[3], "numero_serie": row[4], "alias": row[5]} for row in results]
+        data = [{"hp": row[0], "tipo": row[1], "voltaje": row[2], "marca": row[3], "numero_serie": row[4], "alias": row[5], "LoadNoLoad": row[6]} for row in results]
 
         return {
             "data": data

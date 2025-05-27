@@ -15,6 +15,7 @@
   import ChartDataLabels from 'chartjs-plugin-datalabels';
   import "react-datepicker/dist/react-datepicker.css";
   import { useSearchParams } from "next/navigation";
+  import annotationPlugin from 'chartjs-plugin-annotation';
 
   // Libraries for charts
   import { Chart as ChartJS, ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement} from "chart.js";
@@ -24,7 +25,7 @@
   import ReactECharts from 'echarts-for-react';
 
   // Register the necessary components for Chart.js
-  ChartJS.register(ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement);
+  ChartJS.register(ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement, annotationPlugin);
 
   export default function Main() {
 
@@ -47,7 +48,6 @@
     const [hpNominal, setHPNominal] = useState<number>(0);
     const [hpeq, setHPEquivalente] = useState<number>(0);
     const [comentarioHp, setComentarioHp] = useState("");
-    const chartRef = useRef(null);
     const [pdfReady, setPdfReady] = useState(false);
 
     const [clientData, setClientData] = useState<{
@@ -64,8 +64,10 @@
       marca: string;
       numero_serie: number;
       alias: string;
+      limite: number;
     } | null>(null);
-
+    
+    
     const searchParams = useSearchParams();
     const [idCliente, setIdCliente] = useState<string | null>(null);
     const [linea, setLinea] = useState<string | null>(null);
@@ -159,6 +161,7 @@
       }
     };
     
+    const limite = compressorData?.limite ?? 0;
     const hp_instalado = hpNominal
     const hp_equivalente = hpeq;
     const porcentajeUso = (hp_equivalente / hp_instalado) * 100;
@@ -235,34 +238,6 @@
         },
       ],
     };
-      
-    // const dataPie = {
-    //   labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
-    //   datasets: [
-    //     {
-    //       label: "Estados del Compresor", // Título del gráfico
-    //       data: chartData, // Los datos que provienen del backend
-    //       backgroundColor: [
-    //         "rgb(0, 191, 255)", // Color para "LOAD"
-    //         "rgb(229, 255, 0)", // Color para "NO LOAD"
-    //         "rgb(126, 126, 126)", // Color para "OFF"
-    //       ],
-    //       hoverOffset: 30, // Efecto al pasar el mouse
-    //     },
-    //   ],
-    //   options: {
-    //     layout: {
-    //       padding: 20,
-    //     },
-    //     responsive: true,
-    //     maintainAspectRatio: false, // Muy útil si le defines height/width al canvas contenedor
-    //     cutout: '0%',
-    //     animation: {
-    //       animate: false,
-    //       duration: 0,
-    //     },
-    //   }
-    // };
 
     const dataPie = {
       labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
@@ -281,28 +256,67 @@
     };
 
     const pieOptions = {
-      layout: { padding: 20 },
+      layout: {
+        padding: 20,
+      },
       responsive: true,
       maintainAspectRatio: false,
       cutout: '0%',
-      animation: { animate: false, duration: 0 },
-    };
-
-
-    // Line boundaries options
-    const lineChartOptions = {
-      responsive: true,
-      animation: false,
-      scales: {
-        y: {
-          min: 0, // Lower boundary of the Y-axis
-          max: maxData, // Upper boundary of the Y-axis
-          ticks: {
-            stepSize: 1,
+      plugins: {
+        datalabels: {
+          color: 'black',
+          font: {
+            weight: 'bold',
+            size: 14,
+          },
+          formatter: (value, context) => {
+            // Si quieres mostrar el valor o porcentaje
+            return value + '%';
           },
         },
+        legend: {
+          display: true,
+          position: 'bottom',
+        },
+      },
+      animation: {
+        animate: false,
+        duration: 0,
       },
     };
+
+  // Line boundaries options
+  const lineChartOptions = {
+    responsive: true,
+    animation: false,
+    plugins: {
+      annotation: {
+        annotations: {
+          limite: {
+            type: 'line',
+            yMin: limite,
+            yMax: limite,
+            borderColor: 'black',
+            borderWidth: 4,
+            label: {
+              content: `Límite: ${limite} A`,
+              enabled: true,
+              position: 'start',
+            }
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        min: 0,
+        max: maxData,
+        ticks: {
+          stepSize: 1,
+        },
+      },
+    },
+  };
 
     const dataLine = {
       labels: lineChartLabels, // Labels for the X-axis of the line chart
@@ -312,11 +326,11 @@
           data: lineChartData, // Data points for the line chart
           borderColor: 'rgb(13, 9, 255)', // Line color
           backgroundColor: 'rgba(82, 94, 255, 0.2)', // Area fill color
-          fill: 'origin', // Fill from the origin of the Y-axis
           tension: 0.4, // Line smoothing
           pointBackgroundColor: 'rgb(13, 9, 255)', // Color of the data points
           pointRadius: 1, // Radius of the data points
           borderWidth: 1, // Width of the line
+          fill: 'start', // Fill from the origin of the Y-axis
         }
       ],
     };
@@ -334,9 +348,9 @@
 
         {/* Here its the top section*/}
         <div className="flex flex-col items-center mb-2">
-          <h1 className="text-3xl font-bold text-center">Reporte Diario</h1>
-          <h2 className="text-2xl font-bold text-center">{compressorData?.alias}</h2>
-          <h3 className="text-xl font-bold text-center">
+          <h1 className="text-4xl font-bold text-center">Reporte Diario</h1>
+          <h2 className="text-4xl font-bold text-center">{compressorData?.alias}</h2>
+          <h3 className="text-3xl font-bold text-center">
             Fecha: {
               new Date(new Date().setDate(new Date().getDate() - 1))
                 .toLocaleDateString('es-ES', { 
@@ -348,12 +362,12 @@
                 .replace(/^\w/, c => c.toUpperCase())
             }
           </h3>
-          <img src="/Ventologix_04.png" alt="logo" className="h-16 w-auto mt-3 absolute top-0 left-0 m-3" />
+          <img src="/Ventologix_04.png" alt="logo" className="h-32 w-auto mt-3 absolute top-0 left-0 m-3" />
         </div> 
 
         <div className="mt-4 p-4">
 
-          <h2 className="text-xl font-bold mb-2 p-15">Información Compresor</h2>
+          <h2 className="text-3xl font-bold p-15">Información Compresor</h2>
           <div className="flex flex-wrap gap-60 items-center justify-center text-center">
             <div className="text-center">
               <p className="text-2xl">{compressorData?.numero_serie}</p>
@@ -378,7 +392,7 @@
           </div>
 
           {/* Informaion del clinte */}
-          <h2 className="text-xl font-bold mb-2 p-15"> Informacion del Cliente </h2>
+          <h2 className="text-3xl font-bold p-15"> Informacion del Cliente </h2>
           <div className="flex flex-wrap gap-60 items-center justify-center text-center">
             <div className="text-center">
               <p className="text-2xl">{clientData?.nombre_cliente}</p>
@@ -404,15 +418,15 @@
           {/* KPIs */}
           <div className="flex flex-row gap-8 mt-2">
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-              <h2 className="text-sm text-black">Gasto USD*</h2>
+              <h2 className="text-xl text-black">Gasto USD*</h2>
               <p className="text-3xl font-bold text-black">${usdCost.toFixed(2)}</p>
             </div>
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-              <h2 className="text-sm text-black">kWh Utilizados</h2>
+              <h2 className="text-xl text-black">kWh Utilizados</h2>
               <p className="text-3xl font-bold text-black">{kWh.toFixed(0)} kWh</p>
           </div>
           <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-            <h2 className="text-sm text-black">Horas Trabajadas</h2>
+            <h2 className="text-xl text-black">Horas Trabajadas</h2>
             <p className="text-3xl font-bold text-black">{hoursWorked.toFixed(1)} h</p>
           </div>
         </div>
@@ -422,71 +436,73 @@
           className="flex flex-row flex-wrap justify-center gap-4"
           id="grafico-listo"
         >
-          {/*bg-white rounded-s shadow p-4 w-[300] h-[300] flex flex-col items-center justify-center*/}
-          <div className="bg-white rounded-s shadow p-4 w-[280px] h-[400px] flex flex-col items-center justify-center">
-            <h3 className="text-center text-black mb-2 font-bold">Estados del Compresor</h3>
-            <Pie data={dataPie} options={pieOptions} />
+          <div className="bg-white rounded-2xl shadow p-4 w-[280px] items-center justify-center">
+              <h2 className='text-xl' style={{ textAlign: "center" }}><strong>Hp Equivalente:</strong> {hp_equivalente} Hp</h2>
+              <h2 className= 'text-xl' style={{ textAlign: "center" }}><strong>Hp Instalado:</strong> {hp_instalado} Hp</h2>
+              <ReactECharts
+                option={option}
+                style={{ height: "280px", width: "100%" }}
+                notMerge={true}
+                lazyUpdate={true}
+                theme={"light"}
+              />
           </div>
+
           <div className="bg-white rounded-2xl shadow p-4 w-[650px] h-[400px] flex flex-col">
             <h3 className="text-center text-black mb-2 font-bold">Corriente consumida en el día</h3>
             <Chart type="line" data={dataLine} options={lineChartOptions} />
           </div>
 
-          <div className="bg-white rounded-2xl shadow p-4 w-[280px] items-center justify-center">
-            <h2 style={{ textAlign: "center" }}><strong>Hp Equivalente:</strong> {hp_equivalente} Hp</h2>
-            <h2 style={{ textAlign: "center" }}><strong>Hp Instalado:</strong> {hp_instalado} Hp</h2>
-            <ReactECharts
-              option={option}
-              style={{ height: "280px", width: "100%" }}
-              notMerge={true}
-              lazyUpdate={true}
-              theme={"light"}
-            />
+          <div className="bg-white rounded-s shadow p-4 w-[280px] h-[400px] flex flex-col items-center justify-center">
+            <h3 className="text-center text-black  font-bold text-xl">Estados del Compresor</h3>
+            <Pie data={dataPie} options={pieOptions} />
           </div>
         </div>
 
+
+        {Off == 100 ?(
         <div className="gap-10 items-left justify-left text-left">
         <h1 className="text-3xl font-bold">Comentarios</h1>
 
-        <p className="text-lg text-left">
+        <p className="text-xl text-left">
           • El día de ayer <strong>({new Date(new Date().setDate(new Date().getDate()-1)).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })})</strong> se iniciaron labores a las <strong>{firstHour}</strong> y se concluyeron a las <strong>{lastHour}</strong>
         </p>
 
-        <p className="text-lg text-left mt-2">
+        <p className="text-xl text-left mt-2">
           • Entre las horas de <strong>{firstHour}</strong> y <strong>{lastHour}</strong>, el compresor operó de la siguiente manera:
         </p>
 
-        <ul className="list-disc ml-8 text-lg text-left">
+        <ul className="list-disc ml-8 text-xl text-left">
           <li><strong>LOAD:</strong> {Load}%</li>
           <li><strong>NO LOAD:</strong> {NoLoad}%</li>
           <li><strong>OFF:</strong> {Off}%</li>
         </ul>
 
-        <p className="text-lg text-left mt-2">
+        <p className="text-xl text-left mt-2">
           • Durante el día se completaron un total de <strong>{totalCiclos}</strong> ciclos de trabajo. Un ciclo se define como un cambio desde el estado <strong>LOAD</strong> a <strong>NO LOAD</strong> consecutivamente.
         </p>
         
-        <p className="text-lg text-left mt-2">
+        <p className="text-xl text-left mt-2">
           • El promedio de ciclos por hora trabajada fue de <strong>{promedioCiclosHora}</strong> ciclos/hora.
         </p>
 
-        <p className="text-lg text-left mt-2">
+        <p className="text-xl text-left mt-2">
           • El costo total de operación del compresor fue de <strong>${usdCost.toFixed(2)}</strong>.
         </p>
 
-        <p className="text-lg text-left mt-2">
+        <p className="text-xl text-left mt-2">
           • {comentarioCiclos}
         </p>
-        
-        <p className="text-lg text-left mt-2">
+              
+        <p className="text-xl text-left mt-2">
           • No se detectaron consumos con valores fuera de lo común.
         </p>
 
-        <p className="text-lg text-left mt-2">
+        <p className="text-xl text-left mt-2">
           • {comentarioHp}
         </p>
 
-        <p className="text-sm text-left mt-2">
+        <p className="text-xl text-left mt-2">
           • El costo por kilovatio-hora (kWh) utilizado en este análisis es de <strong>$0.17 USD/kWh</strong>, que es el estándar actualmente aplicado. Sin embargo, si requiere confirmar este valor o necesita ajustar la tarifa, puede verificar con su contacto en <strong>VENTOLOGIX</strong>
         </p>
 
@@ -503,10 +519,9 @@
         </a>
       </p>
       </div>
-      
-      {/* {lineChartData.length > 0 && chartData.length > 0 && (
-          <div id="grafico-listo" style={{ display: "none" }}></div>
-      )} */}
+      ): (
+        <p className='text-3xl text-left mt-4'> El compresor estuvo apagado todo el dia</p>
+      )}
       </div>
       </main>
     );
