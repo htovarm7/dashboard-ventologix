@@ -25,7 +25,7 @@ def generar_pdf_cliente(id_cliente, linea):
         page.goto(url)
 
         print("Esperando que frontend avise que terminó de renderizar...")
-        page.wait_for_function("window.status === 'pdf-ready'", timeout=100000)
+        page.wait_for_function("window.status === 'pdf-ready'", timeout=180000)
         print("Frontend listo, generando PDF...")
 
         # page.screenshot(path=f"./pdfs/debug_{id_cliente}_linea_{linea}.png", full_page=True)

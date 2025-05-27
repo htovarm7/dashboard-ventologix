@@ -362,7 +362,7 @@
                 .replace(/^\w/, c => c.toUpperCase())
             }
           </h3>
-          <img src="/Ventologix_04.png" alt="logo" className="h-32 w-auto mt-3 absolute top-0 left-0 m-3" />
+          <img src="/Ventologix_04.png" alt="logo" className="h-28 w-auto mt-3 absolute top-0 left-0 m-3" />
         </div> 
 
         <div className="mt-4 p-4">
@@ -459,8 +459,9 @@
           </div>
         </div>
 
-
         {Off == 100 ?(
+          <p className='text-5xl text-left mt-4 text-blue-700 text-bold'> El compresor estuvo apagado todo el dia</p>
+         ): (
         <div className="gap-10 items-left justify-left text-left">
         <h1 className="text-3xl font-bold">Comentarios</h1>
 
@@ -519,8 +520,6 @@
         </a>
       </p>
       </div>
-      ): (
-        <p className='text-3xl text-left mt-4'> El compresor estuvo apagado todo el dia</p>
       )}
       </div>
       </main>
