@@ -352,7 +352,7 @@ def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente
             return {"error": "No data found for the specified client."}
 
         # Convert results into a list of dictionaries
-        data = [{"hp": row[0], "tipo": row[1], "voltaje": row[2], "marca": row[3], "numero_serie": row[4], "alias": row[5], "LoadNoLoad": row[6]} for row in results]
+        data = [{"hp": row[0], "tipo": row[1], "voltaje": row[2], "marca": row[3], "numero_serie": row[4], "alias": row[5], "limite": row[6]} for row in results]
 
         return {
             "data": data

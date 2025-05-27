@@ -362,10 +362,10 @@
                 .replace(/^\w/, c => c.toUpperCase())
             }
           </h3>
-          <img src="/Ventologix_04.png" alt="logo" className="h-28 w-auto mt-3 absolute top-0 left-0 m-3" />
+          <img src="/Ventologix_04.png" alt="logo" className="h-20 w-auto mt-3 absolute top-0 left-0 m-3" />
         </div> 
 
-        <div className="mt-4 p-4">
+        <div className="mt-2 p-4">
 
           <h2 className="text-3xl font-bold p-15">Información Compresor</h2>
           <div className="flex flex-wrap gap-60 items-center justify-center text-center">
@@ -413,7 +413,6 @@
           </div>
         </div>
         
-        {/* Here its the graphs */}
         <div className="flex flex-col items-center justify-center p-4 gap-6">
           {/* KPIs */}
           <div className="flex flex-row gap-8 mt-2">
@@ -432,20 +431,11 @@
         </div>
 
         {/* Gráficas */}
-        <div
-          className="flex flex-row flex-wrap justify-center gap-4"
-          id="grafico-listo"
-        >
+        <div className="flex flex-row flex-wrap justify-center gap-4" id="grafico-listo">
           <div className="bg-white rounded-2xl shadow p-4 w-[280px] items-center justify-center">
               <h2 className='text-xl' style={{ textAlign: "center" }}><strong>Hp Equivalente:</strong> {hp_equivalente} Hp</h2>
               <h2 className= 'text-xl' style={{ textAlign: "center" }}><strong>Hp Instalado:</strong> {hp_instalado} Hp</h2>
-              <ReactECharts
-                option={option}
-                style={{ height: "280px", width: "100%" }}
-                notMerge={true}
-                lazyUpdate={true}
-                theme={"light"}
-              />
+              <ReactECharts option={option} style={{ height: "280px", width: "100%" }} notMerge={true} lazyUpdate={true} theme={"light"}/>
           </div>
 
           <div className="bg-white rounded-2xl shadow p-4 w-[650px] h-[400px] flex flex-col">
