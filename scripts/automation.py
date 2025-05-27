@@ -29,6 +29,7 @@ def generar_pdf_cliente(id_cliente, linea):
         print("Frontend listo, generando PDF...")
 
         # page.screenshot(path=f"./pdfs/debug_{id_cliente}_linea_{linea}.png", full_page=True)
+        # Reporte Diario NombreCliente Fecha - 1 
         page.pdf(path=f"./pdfs/reporte_{id_cliente}_linea_{linea}.pdf", format="A2", print_background=True)
 
         browser.close()

@@ -25,7 +25,7 @@
   import ReactECharts from 'echarts-for-react';
 
   // Register the necessary components for Chart.js
-  ChartJS.register(ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement, annotationPlugin);
+  ChartJS.register(ArcElement, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement, annotationPlugin, ChartDataLabels);
 
   export default function Main() {
 
@@ -48,7 +48,6 @@
     const [hpNominal, setHPNominal] = useState<number>(0);
     const [hpeq, setHPEquivalente] = useState<number>(0);
     const [comentarioHp, setComentarioHp] = useState("");
-    const [pdfReady, setPdfReady] = useState(false);
 
     const [clientData, setClientData] = useState<{
       numero_cliente: number;
@@ -165,79 +164,65 @@
     const hp_instalado = hpNominal
     const hp_equivalente = hpeq;
     const porcentajeUso = (hp_equivalente / hp_instalado) * 100;
+    const aguja = Math.max(30, Math.min(120, porcentajeUso)); // Limita entre 30% y 120%
     
-    const option = {
-      animation: false, // Desactiva animaciones globales
+    const gaugeOptions = {
       series: [
         {
           type: "gauge",
-          startAngle: 205,
-          endAngle: -25,
-          min: 30,
-          max: 120,
-          splitNumber: 9,
+          min: 30,       
+          max: 120,      
           axisLine: {
             lineStyle: {
               width: 30,
               color: [
-                [0.377, "red"],
-                [0.544, "yellow"],
-                [0.689, "green"],
-                [0.766, "#418FDE"],
-                [0.889, "yellow"],
-                [1, "red"],
+                [0.3, "red"],         
+                [0.53, "yellow"],     
+                [0.66, "green"],      
+                [0.83, "#418FDE"],    
+                [0.92, "yellow"],     
+                [1, "red"],          
               ],
             },
           },
           pointer: {
-            show: true,
-            length: "80%",
-            width: 5,
+            itemStyle: {
+              color: "black",
+            },
+            length: "60%",   
           },
           axisTick: {
-            distance: -35,
-            length: 8,
-            lineStyle: {
-              color: "#fff",
-              width: 1,
-            },
+            distance: -30,  
+            length: 0,
           },
           splitLine: {
-            distance: -40,
-            length: 10,
-            lineStyle: {
-              color: "#fff",
-              width: 2,
-            },
-          },
-          axisLabel: {
-            distance: -50,
-            color: "#000",
-            fontSize: 14,
+            distance: -30,   // Oculta líneas divisorias
+            length: 0,
           },
           detail: {
-            valueAnimation: false,
-            fontSize: 22,
-            offsetCenter: [0, "60%"],
-            formatter: `{value}%`,
-            color: (() => {
-              if (porcentajeUso <= 64) return "red";
-              if (porcentajeUso <= 79) return "black";
-              if (porcentajeUso <= 92) return "green";
-              if (porcentajeUso <= 99) return "#418FDE";
-              if (porcentajeUso <= 110) return "black";
-              if (porcentajeUso <= 120) return "red";
-              return "black";
-            })(),
+            formatter: `${porcentajeUso.toFixed(0)}%`,
+            color: getColor(porcentajeUso),            
+            fontSize: 24,
           },
-          data: [
-            {
-              value: porcentajeUso.toFixed(0),
-            },
-          ],
+          title: {
+            offsetCenter: [0, "70%"],
+            formatter: `HP Equiv: ${hp_equivalente}\nHP Inst: ${hp_instalado}`,
+            fontSize: 14,
+          },
+          data: [{ value: aguja }],
         },
       ],
     };
+
+    function getColor(porcentaje) {
+      if (porcentaje <= 64) return "red";
+      if (porcentaje <= 79) return "black";
+      if (porcentaje <= 92) return "green";
+      if (porcentaje <= 99) return "#418FDE";
+      if (porcentaje <= 110) return "black";
+      if (porcentaje <= 120) return "red";
+      return "black";
+    }
 
     const dataPie = {
       labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
@@ -298,11 +283,6 @@
             yMax: limite,
             borderColor: 'black',
             borderWidth: 4,
-            label: {
-              content: `Límite: ${limite} A`,
-              enabled: true,
-              position: 'start',
-            }
           }
         }
       }
@@ -362,7 +342,7 @@
                 .replace(/^\w/, c => c.toUpperCase())
             }
           </h3>
-          <img src="/Ventologix_04.png" alt="logo" className="h-20 w-auto mt-3 absolute top-0 left-0 m-3" />
+          <img src="/Ventologix_04.png" alt="logo" className="h-28 w-auto mt-3 absolute top-0 left-0 m-3" />
         </div> 
 
         <div className="mt-2 p-4">
@@ -435,7 +415,7 @@
           <div className="bg-white rounded-2xl shadow p-4 w-[280px] items-center justify-center">
               <h2 className='text-xl' style={{ textAlign: "center" }}><strong>Hp Equivalente:</strong> {hp_equivalente} Hp</h2>
               <h2 className= 'text-xl' style={{ textAlign: "center" }}><strong>Hp Instalado:</strong> {hp_instalado} Hp</h2>
-              <ReactECharts option={option} style={{ height: "280px", width: "100%" }} notMerge={true} lazyUpdate={true} theme={"light"}/>
+              <ReactECharts option={gaugeOptions} style={{ height: "280px", width: "100%" }} notMerge={true} lazyUpdate={true} theme={"light"}/>
           </div>
 
           <div className="bg-white rounded-2xl shadow p-4 w-[650px] h-[400px] flex flex-col">
