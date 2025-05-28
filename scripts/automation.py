@@ -3,6 +3,7 @@ import requests
 import smtplib
 from email.message import EmailMessage
 import os
+from datetime import datetime, timedelta
 
 def obtener_clientes_desde_api():
     # Llamada al API de clientes con líneas
@@ -14,7 +15,10 @@ def obtener_clientes_desde_api():
         return []
 
 
-def generar_pdf_cliente(id_cliente, linea):
+# Constante de fecha: día de ayer en formato YYYY-MM-DD
+fecha = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+
+def generar_pdf_cliente(id_cliente, linea, nombre_cliente,fecha):
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page()
@@ -30,7 +34,7 @@ def generar_pdf_cliente(id_cliente, linea):
 
         # page.screenshot(path=f"./pdfs/debug_{id_cliente}_linea_{linea}.png", full_page=True)
         # Reporte Diario NombreCliente Fecha - 1 
-        page.pdf(path=f"./pdfs/reporte_{id_cliente}_linea_{linea}.pdf", format="A2", print_background=True)
+        page.pdf(path=f"./pdfs/Reporte Diario {nombre_cliente} {fecha}.pdf", format="A2", print_background=True)
 
         browser.close()
 
@@ -38,21 +42,22 @@ def generar_todos_los_pdfs():
     clientes = obtener_clientes_desde_api()
     
     if not clientes:
-        print("⚠️ No se encontraron clientes.")
+        print("No se encontraron clientes.")
         return
     
     for cliente in clientes:
         id_cliente = cliente['id_cliente']
         linea = cliente['linea']
+        nombre_cliente = cliente['nombre_cliente']
         try:
-            print(f"Generando PDF para cliente {id_cliente}, línea {linea}")
-            generar_pdf_cliente(id_cliente, linea)
+            print(f"Generando PDF para cliente {nombre_cliente}, línea {linea}")
+            generar_pdf_cliente(id_cliente, linea,nombre_cliente,fecha)
             # enviar_pdf_por_correo(id_cliente, linea)
         except Exception as e:
-            print(f"❌ Error generando PDF para cliente {id_cliente}, línea {linea}: {e}")
+            print(f"Error generando PDF para cliente {nombre_cliente}, línea {linea}: {e}")
             pass  # Continúa con el siguiente cliente
 
-    print("✅ Todos los PDFs generados.")
+    print("Todos los PDFs generados.")
     
 generar_todos_los_pdfs()
 
