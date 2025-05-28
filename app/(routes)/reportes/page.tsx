@@ -180,6 +180,7 @@ export default function Main() {
     series: [
       {
         type: "gauge",
+        animation: false,
         min: 30,
         max: 120,
         axisLine: {

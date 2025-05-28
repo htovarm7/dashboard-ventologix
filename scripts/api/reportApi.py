@@ -411,7 +411,7 @@ def get_clients_data():
         cursor = conn.cursor()
 
         # Fetch data from the clientes table
-        cursor.execute("SELECT c.id_cliente, c.nombre_cliente, comp.linea FROM clientes c JOIN compresores comp ON c.id_cliente = comp.id_cliente WHERE c.id_cliente NOT IN (2, 5, 6);")
+        cursor.execute("SELECT c.id_cliente, c.nombre_cliente, comp.linea, comp.Alias FROM clientes c JOIN compresores comp ON c.id_cliente = comp.id_cliente WHERE c.id_cliente NOT IN (2, 5, 6);")
         results = cursor.fetchall()
 
         # Close resources
@@ -422,7 +422,7 @@ def get_clients_data():
             return {"error": "No data found for the specified client."}
 
         # Convert results into a list of dictionaries
-        data = [{"id_cliente": row[0], "nombre_cliente": row[1], "linea": row[2]} for row in results]
+        data = [{"id_cliente": row[0], "nombre_cliente": row[1], "linea": row[2], "alias": row[3]} for row in results]
 
         return {
             "data": data

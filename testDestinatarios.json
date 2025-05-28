@@ -1,0 +1,14 @@
+{
+  "recipients": [
+    {
+      "email": "octavio.murillo@ventologix.com",
+      "files": [
+        { "fileName": "Reporte Diario ALLTANSA Primario 2025-05-27" },
+        { "fileName": "Reporte Diario Power Paint Solutions Primario 2025-05-27" },
+        { "fileName": "Reporte Diario Power Paint Solutions Secundario 2025-05-27" },
+        { "fileName": "Reporte Diario Penox Mexico Compresor 1 2025-05-27" },
+        { "fileName": "Reporte Diario Penox Mexico Compresor 2 2025-05-27" }
+      ]
+    }
+  ]
+}

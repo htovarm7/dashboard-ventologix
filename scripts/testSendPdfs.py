@@ -4,9 +4,12 @@ from datetime import datetime, timedelta
 import json
 import os
 import smtplib
-import time
 from email.message import EmailMessage
 from email.utils import make_msgid
+from dotenv import load_dotenv
+import time
+
+load_dotenv()
 
 # Configuración general
 downloads_folder = "pdfs"
@@ -15,11 +18,11 @@ smtp_from = "andres.mirazo@ventologix.com"
 from_address = "vto@ventologix.com"
 logo_path = "public/Logo vento firma.jpg"
 ventologix_logo_path = "public/ventologix firma.jpg"
-smtp_password = os.getenv("SMTP_PASSWORD")  # Usa variable de entorno para la contraseña
-
+smtp_password = os.getenv("SMTP_PASSWORD")
 smtp_server = "smtp.gmail.com"
 smtp_port = 587
 
+# Correos importantes
 admin_correo = "hector.tovar@ventologix.com"
 
 # Fecha base de hoy
@@ -36,7 +39,6 @@ def esperar_hasta_hora(hora_objetivo):
     print(f"Esperando {segundos_a_esperar / 60:.2f} minutos hasta las {hora_objetivo}")
     time.sleep(segundos_a_esperar)
 
-# --- Función para obtener clientes desde API ---
 def obtener_clientes_desde_api():
     response = requests.get("http://127.0.0.1:8000/report/clients-data")
     if response.status_code == 200:
@@ -45,8 +47,7 @@ def obtener_clientes_desde_api():
         print("Error al obtener datos de clientes")
         return []
 
-# --- Función para generar PDF con Playwright ---
-def generar_pdf_cliente(id_cliente, linea, nombre_cliente,alias):
+def generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias):
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page()
@@ -61,43 +62,22 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente,alias):
         page.wait_for_function("window.status === 'pdf-ready'", timeout=180000)
         print("Frontend listo, generando PDF...")
 
-        # Usamos fecha hoy pero el renombrado se hace luego
-        # Reporte Diario Cliente Alias Fecha
         pdf_path = os.path.join(downloads_folder, f"Reporte Diario {nombre_cliente} {alias} {fechaAyer}.pdf")
         page.pdf(path=pdf_path, format="A2", print_background=True)
         browser.close()
         return pdf_path
 
-# --- Función para enviar correo ---
-def send_mail(recipientConfig, pdf_file_path):
+def send_mail(destinatario, pdf_file_paths, asunto):
     msg = EmailMessage()
     msg['From'] = f"{alias_name} <{from_address}>"
-
-    # Destinatarios
-    if isinstance(recipientConfig['email'], list):
-        msg['To'] = ", ".join(recipientConfig['email'])
-    else:
-        msg['To'] = recipientConfig['email']
-
-    if 'cc' in recipientConfig and recipientConfig['cc']:
-        if isinstance(recipientConfig['cc'], list):
-            msg['Cc'] = ", ".join(recipientConfig['cc'])
-        else:
-            msg['Cc'] = recipientConfig['cc']
-
-    bcc = []
-    if 'bcc' in recipientConfig and recipientConfig['bcc']:
-        if isinstance(recipientConfig['bcc'], list):
-            bcc = recipientConfig['bcc']
-        else:
-            bcc = [recipientConfig['bcc']]
-
-    msg['Subject'] = recipientConfig['emailSubject']
+    msg['To'] = destinatario
+    msg['Subject'] = asunto
 
     logo_cid = make_msgid(domain='ventologix.com')
     ventologix_logo_cid = make_msgid(domain='ventologix.com')
 
-    body = recipientConfig['emailBody'] + f"""
+    body = f"""
+    <p>Adjunto encontrarás los reportes PDF generados.</p>
     <br><p><img src="cid:{logo_cid[1:-1]}" alt="Logo Ventologix" /></p>
     <p><img src="cid:{ventologix_logo_cid[1:-1]}" alt="Ventologix Firma" /></p>
     <br>VTO logix<br>
@@ -108,26 +88,25 @@ def send_mail(recipientConfig, pdf_file_path):
     msg.set_content("Este mensaje requiere un cliente con soporte HTML.")
     msg.add_alternative(body, subtype='html')
 
-    # Adjuntar imágenes
     for img_path, cid in [(logo_path, logo_cid), (ventologix_logo_path, ventologix_logo_cid)]:
         with open(img_path, 'rb') as img:
             img_data = img.read()
-            maintype, subtype = 'image', 'jpeg'  # Cambia si no son jpeg
+            maintype, subtype = 'image', 'jpeg'
             msg.get_payload()[1].add_related(img_data, maintype=maintype, subtype=subtype, cid=cid)
 
-    # Adjuntar PDF
-    with open(pdf_file_path, 'rb') as pdf:
-        pdf_data = pdf.read()
-        msg.add_attachment(pdf_data, maintype='application', subtype='pdf', filename=os.path.basename(pdf_file_path))
+    for pdf_file_path in pdf_file_paths:
+        with open(pdf_file_path, 'rb') as pdf:
+            pdf_data = pdf.read()
+            msg.add_attachment(pdf_data, maintype='application', subtype='pdf', filename=os.path.basename(pdf_file_path))
 
     try:
         with smtplib.SMTP(smtp_server, smtp_port) as smtp:
             smtp.starttls()
             smtp.login(smtp_from, smtp_password)
-            smtp.send_message(msg, to_addrs=[*msg['To'].split(','), *msg.get('Cc', '').split(','), *bcc])
-        print(f"Correo enviado a {msg['To']}")
+            smtp.send_message(msg)
+        print(f"Correo enviado a {destinatario} con {len(pdf_file_paths)} archivos adjuntos")
     except Exception as e:
-        print(f"Error al enviar correo: {e}")
+        print(f"Error al enviar correo a {destinatario}: {e}")
 
 def send_error_mail(missing_files):
     if not missing_files:
@@ -155,16 +134,9 @@ def send_error_mail(missing_files):
     except Exception as e:
         print(f"Error al enviar correo de advertencia: {e}")
 
-# --- Función principal que junta todo ---
 def main():
-    # Crear carpeta pdfs si no existe
     os.makedirs(downloads_folder, exist_ok=True)
 
-    # Leer configuración destinatarios
-    with open("Destinatarios.json", "r", encoding="utf-8-sig") as f:
-        config = json.load(f)
-
-    # Obtener clientes y generar PDFs (sin fecha todavía)
     clientes = obtener_clientes_desde_api()
     if not clientes:
         print("No se encontraron clientes.")
@@ -181,36 +153,34 @@ def main():
         except Exception as e:
             print(f"Error generando PDF para cliente {nombre_cliente}: {e}")
 
-    # Ahora procesar envíos con renombrado basado en destinatarios
-    for recipient in config['recipients']:
-        for fileConfig in recipient.get('files', []):
-            base_name = fileConfig['fileName']
-            # date_offset = fileConfig.get('dateOffset', 0)
-            # target_date = (fecha_hoy + timedelta(days=date_offset)).strftime("%Y-%m-%d")
-            target_date = fecha_hoy.strftime("%Y-%m-%d")  # Usar fecha de hoy para simplificar
+    hora = datetime.now().strftime("%H:%M")
+    missing_files = []
 
-            # Nombre archivo original sin fecha
-            pdf_name = f"{base_name}.pdf"
-            pdf_path = os.path.join(downloads_folder, pdf_name)
+    recipient_email = "octavio.murillo@ventologix.com"
+    pdf_paths_to_send = []
 
+    for filename in os.listdir(downloads_folder):
+        if filename.lower().endswith(".pdf"):
+            pdf_path = os.path.join(downloads_folder, filename)
             if os.path.isfile(pdf_path):
-                # Enviar correo con archivo adjunto
-                send_mail(recipient, pdf_name)
-
-                # Borrar el PDF después de enviar
-                try:
-                    os.remove(pdf_name)
-                except Exception as e:
-                    print(f"No se pudo eliminar {pdf_name}: {e}")
+                pdf_paths_to_send.append(pdf_path)
             else:
-                print(f"No se encontró archivo esperado: {pdf_name}")
+                print(f"No se encontró archivo esperado: {filename}")
+                missing_files.append(filename)
+    if pdf_paths_to_send:
+        send_mail(recipient_email, pdf_paths_to_send, f"Reportes Diarios VENTOLOGIX {hora}")
+        for path in pdf_paths_to_send:
+            try:
+                os.remove(path)
+            except Exception as e:
+                print(f"No se pudo eliminar {path}: {e}")
 
+    send_error_mail(missing_files)
     print("Proceso finalizado.")
 
 if __name__ == "__main__":
-    hora_envio = datetime.strptime("7:55", "%H:%M").time()
+    hora_envio = datetime.strptime("11:03", "%H:%M").time()
 
     while True:
         esperar_hasta_hora(hora_envio)
         main()
-
