@@ -19,6 +19,4 @@ uvicorn
 # Data validation (already included with FastAPI, but can be specified)
 pydantic
 
-smtplib
-
 playwright
