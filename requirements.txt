@@ -4,9 +4,21 @@
 # Library for the SQL connection
 mysql-connector-python
 
+# ORM for database management
+sqlalchemy
 
 # Library for the management of .env
 python-dotenv
 
 # Library for the management of the API
 fastapi
+
+# ASGI server for FastAPI
+uvicorn
+
+# Data validation (already included with FastAPI, but can be specified)
+pydantic
+
+smtplib
+
+playwright
