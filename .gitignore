@@ -41,3 +41,5 @@ yarn-error.log*
 next-env.d.ts
 
 /pdfs
+
+/scripts/enviar_reportes.ps1
