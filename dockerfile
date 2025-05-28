@@ -1,13 +1,12 @@
-# Imagen base con Python
 FROM python:3.13
 
 # Instalar dependencias necesarias para Playwright y navegadores
 RUN apt-get update && apt-get install -y \
     curl \
-    libgstreamer-1.0-0 \
+    libgstreamer1.0-0 \
     libgtk-4-1 \
     libgraphene-1.0-0 \
-    libwoff2-1 \
+    libwoff1 \
     libvpx7 \
     libopus0 \
     gstreamer1.0-plugins-base \
@@ -22,8 +21,7 @@ RUN apt-get update && apt-get install -y \
     libsecret-1-0 \
     libhyphen0 \
     libgles2-mesa \
-    libx264-163 \
- && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 # Crear directorio de trabajo dentro del contenedor
 WORKDIR /app
@@ -34,10 +32,9 @@ COPY . /app
 # Actualizar pip e instalar dependencias (incluye playwright)
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
-RUN playwright install 
 
 # Instalar navegadores de Playwright
-RUN python -m playwright install
+RUN playwright install
 
-# Por defecto ejecutar tu app o abrir shell
+# Por defecto ejecutar bash
 CMD ["bash"]
