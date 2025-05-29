@@ -156,7 +156,7 @@ def main():
     hora = datetime.now().strftime("%H:%M")
     missing_files = []
 
-    recipient_email = "octavio.murillo@ventologix.com"
+    recipient_email = "hector.tovar@ventologix.com"
     pdf_paths_to_send = []
 
     for filename in os.listdir(downloads_folder):
@@ -179,8 +179,4 @@ def main():
     print("Proceso finalizado.")
 
 if __name__ == "__main__":
-    hora_envio = datetime.strptime("11:03", "%H:%M").time()
-
-    while True:
-        esperar_hasta_hora(hora_envio)
-        main()
+	main()

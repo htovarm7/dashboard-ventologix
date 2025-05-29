@@ -44,4 +44,6 @@ next-env.d.ts
 
 /scripts/enviar_reportes.ps1
 
+/vento
+
 Destinatarios.json
