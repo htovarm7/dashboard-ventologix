@@ -1,6 +1,14 @@
 # To install the dependencies, run the following command:
 # pip install -r requirements.txt
 
+pandas
+
+numpy
+
+reportlab
+
+requests
+
 # Library for the SQL connection
 mysql-connector-python
 
