@@ -31,7 +31,7 @@ wait_for_port() {
 # Levantar API
 cd $SCRIPTS_DIR
 source $VENV
-uvicorn scripts.api_server:app --reload & 
+uvicorn scripts.api_server:app & 
 API_PID=$!
 echo "API iniciada con PID $API_PID" >> $LOGFILE
 
