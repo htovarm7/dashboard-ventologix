@@ -208,7 +208,7 @@ def main():
     print("Proceso finalizado.")
 
 if __name__ == "__main__":
-    hora_envio = datetime.strptime("6:55", "%H:%M").time()
+    hora_envio = datetime.strptime("9:25", "%H:%M").time()
 
     while True:
         esperar_hasta_hora(hora_envio)
