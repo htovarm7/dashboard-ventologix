@@ -15,19 +15,28 @@ npm run dev &
 WEB_PID=$!
 echo "Web iniciada con PID $WEB_PID" >> $LOGFILE
 
+# Activar entorno virtual
+source /home/hector_tovar/Ventologix/vento/bin/activate
+echo "Entorno virtual activado" >> $LOGFILE
+
 # Iniciar la API
 cd /home/hector_tovar/Ventologix/scripts/
 uvicorn scripts.api_server:app --reload &
 API_PID=$!
 echo "API iniciada con PID $API_PID" >> $LOGFILE
 
-# Esperar a que levanten servicios
-sleep 20
-echo "Esperados 20 segundos para levantar servicios" >> $LOGFILE
-
-# Activar entorno virtual
-source /home/hector_tovar/Ventologix/vento/bin/activate
-echo "Entorno virtual activado" >> $LOGFILE
+# Esperar a que la API esté disponible (máximo 60 segundos)
+for i in {1..60}
+do
+  if curl -s http://127.0.0.1:8000/docs > /dev/null
+  then
+    echo "API disponible después de $i segundos" >> $LOGFILE
+    break
+  else
+    echo "Esperando API... ($i s)" >> $LOGFILE
+    sleep 1
+  fi
+done
 
 # Ejecutar el script de generación de PDFs
 python /home/hector_tovar/Ventologix/scripts/testSendPdfs.py >> $LOGFILE 2>&1
@@ -45,4 +54,3 @@ deactivate
 echo "Entorno virtual desactivado" >> $LOGFILE
 
 echo "==== Tarea finalizada: $(date) ====" >> $LOGFILE
-
