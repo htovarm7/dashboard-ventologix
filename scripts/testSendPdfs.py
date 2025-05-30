@@ -16,8 +16,8 @@ downloads_folder = "pdfs"
 alias_name = "VTO LOGIX"
 smtp_from = "andres.mirazo@ventologix.com"
 from_address = "vto@ventologix.com"
-logo_path = "public/Logo vento firma.jpg"
-ventologix_logo_path = "public/ventologix firma.jpg"
+logo_path = "/home/hector_tovar/Ventologix/public/Logo vento firma.jpg"
+ventologix_logo_path = "/home/hector_tovar/Ventologix/public/ventologix firma.jpg"
 smtp_password = os.getenv("SMTP_PASSWORD")
 smtp_server = "smtp.gmail.com"
 smtp_port = 587
@@ -27,17 +27,6 @@ admin_correo = "hector.tovar@ventologix.com"
 
 # Fecha base de hoy
 fecha_hoy = datetime.now()
-
-def esperar_hasta_hora(hora_objetivo):
-    ahora = datetime.now()
-    if ahora.time() > hora_objetivo:
-        manana = ahora + timedelta(days=1)
-        objetivo = datetime.combine(manana.date(), hora_objetivo)
-    else:
-        objetivo = datetime.combine(ahora.date(), hora_objetivo)
-    segundos_a_esperar = (objetivo - ahora).total_seconds()
-    print(f"Esperando {segundos_a_esperar / 60:.2f} minutos hasta las {hora_objetivo}")
-    time.sleep(segundos_a_esperar)
 
 def obtener_clientes_desde_api():
     response = requests.get("http://127.0.0.1:8000/report/clients-data")
