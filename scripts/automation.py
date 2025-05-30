@@ -6,15 +6,18 @@ import os
 import smtplib
 import time
 from email.message import EmailMessage
+from dotenv import load_dotenv
 from email.utils import make_msgid
+
+load_dotenv()
 
 # Configuración general
 downloads_folder = "pdfs"
 alias_name = "VTO LOGIX"
 smtp_from = "andres.mirazo@ventologix.com"
 from_address = "vto@ventologix.com"
-logo_path = "public/Logo vento firma.jpg"
-ventologix_logo_path = "public/ventologix firma.jpg"
+logo_path = "/home/hector_tovar/Ventologix/public/Logo vento firma.jpg"
+ventologix_logo_path = "/home/hector_tovar/Ventologix/public/ventologix firma.jpg"
 smtp_password = os.getenv("SMTP_PASSWORD")  # Usa variable de entorno para la contraseña
 
 smtp_server = "smtp.gmail.com"
@@ -161,7 +164,7 @@ def main():
     os.makedirs(downloads_folder, exist_ok=True)
 
     # Leer configuración destinatarios
-    with open("Destinatarios.json", "r", encoding="utf-8-sig") as f:
+    with open("../Destinatarios.json", "r", encoding="utf-8-sig") as f:
         config = json.load(f)
 
     # Obtener clientes y generar PDFs (sin fecha todavía)
@@ -195,11 +198,11 @@ def main():
 
             if os.path.isfile(pdf_path):
                 # Enviar correo con archivo adjunto
-                send_mail(recipient, pdf_name)
+                send_mail(recipient, pdf_path)
 
                 # Borrar el PDF después de enviar
                 try:
-                    os.remove(pdf_name)
+                    os.remove(pdf_path)
                 except Exception as e:
                     print(f"No se pudo eliminar {pdf_name}: {e}")
             else:
@@ -211,6 +214,4 @@ if __name__ == "__main__":
     hora_envio = datetime.strptime("9:25", "%H:%M").time()
 
     while True:
-        esperar_hasta_hora(hora_envio)
         main()
-

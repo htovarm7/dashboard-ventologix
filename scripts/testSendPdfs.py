@@ -19,6 +19,7 @@ from_address = "vto@ventologix.com"
 logo_path = "/home/hector_tovar/Ventologix/public/Logo vento firma.jpg"
 ventologix_logo_path = "/home/hector_tovar/Ventologix/public/ventologix firma.jpg"
 smtp_password = os.getenv("SMTP_PASSWORD")
+
 smtp_server = "smtp.gmail.com"
 smtp_port = 587
 
