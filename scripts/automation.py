@@ -12,7 +12,7 @@ from email.utils import make_msgid
 load_dotenv()
 
 # Configuración general
-downloads_folder = "pdfs"
+downloads_folder = "/pdfs"
 alias_name = "VTO LOGIX"
 smtp_from = "andres.mirazo@ventologix.com"
 from_address = "vto@ventologix.com"
