@@ -12,7 +12,7 @@ from email.utils import make_msgid
 load_dotenv()
 
 # Configuración general
-downloads_folder = "/pdfs"
+downloads_folder = "pdfs"
 alias_name = "VTO LOGIX"
 smtp_from = "andres.mirazo@ventologix.com"
 from_address = "vto@ventologix.com"
@@ -193,7 +193,8 @@ def main():
             target_date = fecha_hoy.strftime("%Y-%m-%d")  # Usar fecha de hoy para simplificar
 
             # Nombre archivo original sin fecha
-            pdf_name = f"{base_name}.pdf"
+	fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
+            pdf_name = fileConfig['fileName].replace("{fecha}", fechaAyer) + ".pdf"
             pdf_path = os.path.join(downloads_folder, pdf_name)
 
             if os.path.isfile(pdf_path):
@@ -211,6 +212,7 @@ def main():
     print("Proceso finalizado.")
 
 if __name__ == "__main__":
+
     hora_envio = datetime.strptime("9:25", "%H:%M").time()
 
     while True:
