@@ -224,7 +224,7 @@ def main():
             print(f"Error generando PDF para cliente {id}: {e}")
     elif q == "N":
         print("No se generó ningún archivo faltante.")
-    else:
+    else:   
         print("Opción no reconocida.")
     
 
