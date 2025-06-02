@@ -210,6 +210,23 @@ def main():
                 print(f"No se encontró archivo esperado: {pdf_name}")
 
     print("Proceso finalizado.")
+    
+    q = input("Falto de generar un archivo? (S/N): ")
+    
+    if q == "S":
+        id = input("Cual deseas generar? ")
+        linea = input("De que linea? ")
+        alias = input("Alias del cliente? ")
+        try:
+            print(f"Generando PDF para cliente {id}, línea {linea}")
+            generar_pdf_cliente(id, linea, id, alias)
+        except Exception as e:
+            print(f"Error generando PDF para cliente {id}: {e}")
+    elif q == "N":
+        print("No se generó ningún archivo faltante.")
+    else:
+        print("Opción no reconocida.")
+    
 
 if __name__ == "__main__":
 
