@@ -61,7 +61,7 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente,alias):
 
         fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
         print("Esperando que frontend avise que terminó de renderizar...")
-        page.wait_for_function("window.status === 'pdf-ready'", timeout=180000)
+        page.wait_for_function("window.status === 'pdf-ready'")
         print("Frontend listo, generando PDF...")
 
         # Usamos fecha hoy pero el renombrado se hace luego

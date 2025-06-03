@@ -77,3 +77,4 @@ find $LOGDIR -type f -name "tarea_*.log" -mtime +10 -exec rm {} \;
 echo "Logs antiguos eliminados" >> $LOGFILE
 
 echo "==== Tarea finalizada: $(date) ====" >> $LOGFILE
+
