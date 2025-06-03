@@ -347,6 +347,209 @@ def get_pie_data_proc_weekly(id_cliente: int = Query(..., description="ID del cl
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
+@report.get("/line-data-proc", tags=["weekly"])
+def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
+    try:
+        
+        # Conectar a la base de datos
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        # Ejecutar SP con la fecha proporcionada
+        cursor.execute(
+            "call DataFiltradaDayFecha(%s, %s, %s, CURDATE()-1)",
+            (id_cliente, id_cliente, linea)
+        )
+        results = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return {"error": "No data found for the specified date."}
+
+        # Organizar los datos por tiempo
+        data = [
+            {"time": row[1], "corriente": row[2]} for row in results
+        ]
+        
+        # Ordenar los datos por tiempo
+        data.sort(key=lambda x: x["time"])
+
+        # Agrupar los datos en intervalos de 30 segundos y calcular el promedio
+        grouped_data = []
+        temp_data = []
+        start_time = data[0]["time"]  # Empezar desde el primer registro
+
+        for entry in data:
+            # Si la diferencia entre el tiempo actual y el primer registro del grupo es mayor a 30 segundos, hacer un promedio
+            if (entry["time"] - start_time) >= timedelta(seconds=30):
+                if temp_data:
+                    avg_corriente = np.round(np.mean([item["corriente"] for item in temp_data]), 2)
+                    grouped_data.append({
+                        "time": start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                        "corriente": avg_corriente
+                    })
+                # Resetear el grupo y actualizar el tiempo de inicio
+                temp_data = [entry]
+                start_time = entry["time"]
+            else:
+                temp_data.append(entry)
+        
+        # Para el último grupo
+        if temp_data:
+            avg_corriente = np.round(np.mean([item["corriente"] for item in temp_data]), 2)
+            grouped_data.append({
+                "time": start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                "corriente": avg_corriente
+            })
+
+        # Devolver los datos agrupados
+        return JSONResponse(content={"data": grouped_data})
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)})
+
+@report.get("/comments-data", tags=["weekly"])
+def get_comments_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "call DataFiltradaDayFecha(%s, %s, %s, CURDATE()-1)",
+            (id_cliente, id_cliente, linea)
+        )
+        results = cursor.fetchall()
+
+        if not results:
+            return {"data": None, "message": "No data found."}
+
+        data = [{"time": row[1], "estado": row[3]} for row in results]
+        estados_no_off = [d for d in data if d["estado"] != "OFF"]
+
+        if not estados_no_off:
+            return {
+                "data": {
+                    "first_time": None,
+                    "last_time": None,
+                    "total_ciclos": 0,
+                    "promedio_ciclos_hora": 0,
+                    "comentario_ciclos": "El compresor permaneció apagado durante todo el día."
+                }
+            }
+
+        first_time = estados_no_off[0]["time"].strftime("%H:%M:%S")
+        last_time = estados_no_off[-1]["time"].strftime("%H:%M:%S")
+
+        # Ciclos de trabajo: LOAD → NOLOAD
+        ciclos = 0
+        for i in range(1, len(estados_no_off)):
+            if estados_no_off[i-1]['estado'] == "LOAD" and estados_no_off[i]['estado'] == "NOLOAD":
+                ciclos += 1
+        ciclos = ciclos // 2  # por pares consecutivos
+
+        segundos_por_registro = 10  # ajusta si cambia tu muestreo
+        total_registros = len(estados_no_off)
+        total_segundos = total_registros * segundos_por_registro
+        horas_trabajadas = total_segundos / 3600
+
+        promedio_ciclos_hora = round(ciclos / horas_trabajadas, 1) if horas_trabajadas else 0
+
+        # Comentario según rango recomendado
+        if promedio_ciclos_hora >= 6 and promedio_ciclos_hora <= 15:
+            comentario = "El promedio de ciclos por hora trabajada está dentro del rango recomendado de 6 a 15 ciclos/hora, por lo que parece estar funcionando correctamente."
+        else:
+            comentario = "El promedio de ciclos por hora trabajada está fuera del rango recomendado de 6 a 15 ciclos/hora. Se recomienda realizar un análisis en el compresor para identificar posibles anomalías."
+
+        cursor.close()
+        conn.close()
+
+        return {
+            "data": {
+                "first_time": first_time,
+                "last_time": last_time,
+                "total_ciclos": ciclos,
+                "promedio_ciclos_hora": promedio_ciclos_hora,
+                "comentario_ciclos": comentario
+            }
+        }
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
+
+@report.get("/stats-data", tags=["weekly"])
+def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
+    try:
+        # Conectar a la base de datos
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        # Ejecutar procedimiento almacenado
+        cursor.execute(
+            "call DataFiltradaDayFecha(%s, %s, %s, CURDATE()-1)",
+            (id_cliente, id_cliente, linea)
+        )
+        results1 = cursor.fetchall()
+
+        while cursor.nextset():
+            pass
+
+        # Consultar voltaje y HP
+        cursor.execute(f"select hp, voltaje, timestamp from compresores where id_cliente = {id_cliente} and linea = '{linea}'")
+        results2 = cursor.fetchall()
+
+        # Cerrar recursos
+        cursor.close()
+        conn.close()
+
+        if not results1 or not results2:
+            return {"error": "No data found for the specified queries."}
+
+        # Preparar datos
+        data = [{"time": row[1], "corriente": row[2], "estado": row[3]} for row in results1]
+        compresor_config = [{"hp": row[0], "voltage": row[1], "timestamp": row[2]} for row in results2]
+        compresor_config = compresor_config[0]
+        timestamp = compresor_config["timestamp"]
+
+        # Calcular kWh y horas trabajadas
+        kwh_total = energy_calculated(data, compresor_config,timestamp)
+        horas_total = np.round(horas_trabajadas(data,timestamp),2)
+        usd_por_kwh = 0.17  # aquí puedes parametrizarlo desde BD o env var
+        costo_usd = costo_energia_usd(kwh_total, usd_por_kwh)
+        hp_nominal = compresor_config["hp"]  # tomamos el hp del primer compresor
+        hp_eq = hp_equivalente(data, compresor_config,timestamp)
+        comentario_hp = comentario_hp_equivalente(hp_eq, hp_nominal) # Esta hardcodeado
+
+        return {
+            "data": {
+                "kWh": float(kwh_total),
+                "hours_worked": float(horas_total),
+                "usd_cost": float(costo_usd),
+                "hp_nominal": int(hp_nominal),
+                "hp_equivalente": int(hp_eq),
+                "comentario_hp_equivalente": comentario_hp
+            }
+        }
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}       
+
 """
 
 # Static data endpoints
