@@ -42,6 +42,8 @@ DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")
 
+
+# Daily endpoints
 @report.get("/pie-data-proc")
 def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
@@ -232,7 +234,6 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-# These remains the same as before
 @report.get("/stats-data")
 def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
@@ -295,6 +296,60 @@ def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), l
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
+# Weekly endpoints
+"""
+@report.get("/pie-data-proc", tags=["weekly"])
+def get_pie_data_proc_weekly(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
+    try:
+        # Connect to DB
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        # Call the stored procedure with id_cliente instead of 7,7
+        cursor.execute(
+            "call DataFiltradaWeekFecha(%s, %s, %s, CURDATE()-7)",
+            (id_cliente, id_cliente, linea)
+        )
+
+        results = cursor.fetchall()
+
+        # Close resources
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return {"error": "No data from procedure"}
+
+        # Map the results (adjust columns)
+        data = [
+            {"time": row[1], "estado": row[3], "estado_anterior": row[4]}
+            for row in results
+        ]
+
+        # Calculate percentages
+        load_percentage = np.round(percentage_load(data), 2)
+        noload_percentage = np.round(percentage_noload(data), 2)
+        off_percentage = np.round(percentage_off(data), 2)
+
+        return {
+            "data": {
+                "LOAD": load_percentage,
+                "NOLOAD": noload_percentage,
+                "OFF": off_percentage
+            }
+        }
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
+
+"""
+
+# Static data endpoints
 @report.get("/client-data")
 def get_client_data(id_cliente: int = Query(..., description="ID del cliente")):
     try:

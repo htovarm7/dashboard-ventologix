@@ -23,21 +23,13 @@ smtp_password = os.getenv("SMTP_PASSWORD")  # Usa variable de entorno para la co
 smtp_server = "smtp.gmail.com"
 smtp_port = 587
 
-admin_correo = "hector.tovar@ventologix.com"
+admin_correos = [
+    "hector.tovar@ventologix.com",
+    "andres.mirazo@ventologix.com"
+]
 
 # Fecha base de hoy
 fecha_hoy = datetime.now()
-
-def esperar_hasta_hora(hora_objetivo):
-    ahora = datetime.now()
-    if ahora.time() > hora_objetivo:
-        manana = ahora + timedelta(days=1)
-        objetivo = datetime.combine(manana.date(), hora_objetivo)
-    else:
-        objetivo = datetime.combine(ahora.date(), hora_objetivo)
-    segundos_a_esperar = (objetivo - ahora).total_seconds()
-    print(f"Esperando {segundos_a_esperar / 60:.2f} minutos hasta las {hora_objetivo}")
-    time.sleep(segundos_a_esperar)
 
 # --- Función para obtener clientes desde API ---
 def obtener_clientes_desde_api():
@@ -132,16 +124,16 @@ def send_mail(recipientConfig, pdf_file_path):
     except Exception as e:
         print(f"Error al enviar correo: {e}")
 
-def send_error_mail(missing_files):
+def send_error_mail(missing_files, admin_emails):
     if not missing_files:
         return
 
     msg = EmailMessage()
     msg['From'] = f"{alias_name} <{from_address}>"
-    msg['To'] = admin_correo
+    msg['To'] = ", ".join(admin_emails)
     msg['Subject'] = "⚠️ Reporte - Archivos PDF no generados"
 
-    body = f"<p>No se encontraron los siguientes archivos PDF esperados:</p><ul>"
+    body = "<p>No se encontraron los siguientes archivos PDF esperados:</p><ul>"
     for f in missing_files:
         body += f"<li>{f}</li>"
     body += "</ul><br>VTO logix"
@@ -154,10 +146,10 @@ def send_error_mail(missing_files):
             smtp.starttls()
             smtp.login(smtp_from, smtp_password)
             smtp.send_message(msg)
-        print(f"Correo de advertencia enviado a {admin_correo}")
+        print(f"Correo de advertencia enviado a {', '.join(admin_emails)}")
     except Exception as e:
         print(f"Error al enviar correo de advertencia: {e}")
-
+        
 # --- Función principal que junta todo ---
 def main():
     # Crear carpeta pdfs si no existe
@@ -167,7 +159,7 @@ def main():
     with open("../Destinatarios.json", "r", encoding="utf-8-sig") as f:
         config = json.load(f)
 
-    # Obtener clientes y generar PDFs (sin fecha todavía)
+    # Obtener clientes y generar PDFs
     clientes = obtener_clientes_desde_api()
     if not clientes:
         print("No se encontraron clientes.")
@@ -184,53 +176,31 @@ def main():
         except Exception as e:
             print(f"Error generando PDF para cliente {nombre_cliente}: {e}")
 
-    # Ahora procesar envíos con renombrado basado en destinatarios
+    # Lista para archivos faltantes
+    missing_files = []
+
+    # Procesar envíos
     for recipient in config['recipients']:
         for fileConfig in recipient.get('files', []):
-            base_name = fileConfig['fileName']
-            # date_offset = fileConfig.get('dateOffset', 0)
-            # target_date = (fecha_hoy + timedelta(days=date_offset)).strftime("%Y-%m-%d")
-            target_date = fecha_hoy.strftime("%Y-%m-%d")  # Usar fecha de hoy para simplificar
-
-            # Nombre archivo original sin fecha
             fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
             pdf_name = fileConfig['fileName'].replace("{fecha}", fechaAyer) + ".pdf"
             pdf_path = os.path.join(downloads_folder, pdf_name)
 
             if os.path.isfile(pdf_path):
-                # Enviar correo con archivo adjunto
                 send_mail(recipient, pdf_path)
-
-                # Borrar el PDF después de enviar
                 try:
                     os.remove(pdf_path)
                 except Exception as e:
                     print(f"No se pudo eliminar {pdf_name}: {e}")
             else:
                 print(f"No se encontró archivo esperado: {pdf_name}")
+                missing_files.append(pdf_name)
+
+    # Enviar correo a admins si hubo archivos faltantes
+    send_error_mail(missing_files, admin_correos)
 
     print("Proceso finalizado.")
-    
-    q = input("Falto de generar un archivo? (S/N): ")
-    
-    if q == "S":
-        id = input("Cual deseas generar? ")
-        linea = input("De que linea? ")
-        alias = input("Alias del cliente? ")
-        try:
-            print(f"Generando PDF para cliente {id}, línea {linea}")
-            generar_pdf_cliente(id, linea, id, alias)
-        except Exception as e:
-            print(f"Error generando PDF para cliente {id}: {e}")
-    elif q == "N":
-        print("No se generó ningún archivo faltante.")
-    else:   
-        print("Opción no reconocida.")
-    
 
 if __name__ == "__main__":
-
-    hora_envio = datetime.strptime("9:25", "%H:%M").time()
-
     while True:
         main()
