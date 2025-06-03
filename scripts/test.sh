@@ -10,8 +10,7 @@ mkdir -p $LOGDIR
 
 echo "==== Tarea iniciada: $(date) ====" >> $LOGFILE
 
-# Levantar API
-cd $VENTO_DIR
+# Activar entorno
 source $VENV
 
 # Ir a raíz del proyecto
