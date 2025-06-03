@@ -1,30 +1,35 @@
-# To install the dependencies, run the following command:
+# To intall the required packages, run:
 # pip install -r requirements.txt
 
-pandas
+# Powerful data analysis and manipulation library
+pandas                  
 
-numpy
+# Fundamental package for scientific computing with Python
+numpy                   
 
-reportlab
+# Library to create PDFs
+reportlab               
 
-requests
+# HTTP library for making requests
+requests                
 
 # Library for the SQL connection
-mysql-connector-python
+mysql-connector-python  
 
 # ORM for database management
-sqlalchemy
+sqlalchemy              
 
 # Library for the management of .env
-python-dotenv
+python-dotenv           
 
 # Library for the management of the API
-fastapi
+fastapi                 
 
 # ASGI server for FastAPI
-uvicorn
+uvicorn                 
 
 # Data validation (already included with FastAPI, but can be specified)
-pydantic
+pydantic                
 
+# End-to-end browser automation library
 playwright
