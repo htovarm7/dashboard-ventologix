@@ -156,7 +156,7 @@ def main():
     os.makedirs(downloads_folder, exist_ok=True)
 
     # Leer configuración destinatarios
-    with open("../Destinatarios.json", "r", encoding="utf-8-sig") as f:
+    with open("Destinatarios.json", "r", encoding="utf-8-sig") as f:
         config = json.load(f)
 
     # Obtener clientes y generar PDFs
