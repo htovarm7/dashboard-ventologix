@@ -47,7 +47,7 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente,alias):
         page = browser.new_page()
         page.set_viewport_size({"width": 1920, "height": 1080})
 
-        url = f"http://localhost:3000/reportes?id_cliente={id_cliente}&linea={linea}"
+        url = f"http://localhost:3003/reportes?id_cliente={id_cliente}&linea={linea}"
         print(f"Abriendo URL: {url}")
         page.goto(url)
 
@@ -156,7 +156,7 @@ def main():
     os.makedirs(downloads_folder, exist_ok=True)
 
     # Leer configuración destinatarios
-    with open("Destinatarios.json", "r", encoding="utf-8-sig") as f:
+    with open("../Destinatarios.json", "r", encoding="utf-8-sig") as f:
         config = json.load(f)
 
     # Obtener clientes y generar PDFs

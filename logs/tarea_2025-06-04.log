@@ -18,3 +18,125 @@ API cerrada (PID 572733)
 Entorno virtual desactivado
 Logs antiguos eliminados
 ==== Tarea finalizada: Wed Jun  4 09:25:06 CST 2025 ====
+==== Tarea iniciada: Wed Jun  4 10:04:01 CST 2025 ====
+API iniciada con PID 575944
+10:04:01 Esperando 127.0.0.1:8000... intento 1/30
+10:04:03 127.0.0.1:8000 está listo
+Web iniciada con PID 575952
+10:04:03 127.0.0.1:3000 está listo
+Ejecutando script Python...
+Generando PDF para cliente ALLTANSA, línea B
+Abriendo URL: http://localhost:3000/reportes?id_cliente=1&linea=B
+Esperando que frontend avise que terminó de renderizar...
+Frontend listo, generando PDF...
+Generando PDF para cliente Power Paint Solutions, línea A
+Abriendo URL: http://localhost:3000/reportes?id_cliente=3&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Power Paint Solutions: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Power Paint Solutions, línea B
+Abriendo URL: http://localhost:3000/reportes?id_cliente=4&linea=B
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Power Paint Solutions: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Penox Mexico, línea A
+Abriendo URL: http://localhost:3000/reportes?id_cliente=7&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Penox Mexico: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Penox Mexico, línea B
+Abriendo URL: http://localhost:3000/reportes?id_cliente=7&linea=B
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Penox Mexico: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Durosa, línea A
+Abriendo URL: http://localhost:3000/reportes?id_cliente=8&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Durosa: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Manttra Gimsa, línea A
+Abriendo URL: http://localhost:3000/reportes?id_cliente=9&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Manttra Gimsa: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Manttra Gimsa, línea A
+Abriendo URL: http://localhost:3000/reportes?id_cliente=12&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Manttra Gimsa: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Calidra, línea A
+Abriendo URL: http://localhost:3000/reportes?id_cliente=10&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Calidra: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Calidra, línea A
+Abriendo URL: http://localhost:3000/reportes?id_cliente=11&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Calidra: Page.wait_for_function: Timeout 300000ms exceeded.
+Correo enviado a Emilio.alvarado@alltansa.com, Ingenieria@alltansa.com, agarza@alltansa.com
+No se encontró archivo esperado: Reporte Diario Power Paint Solutions Primario 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Power Paint Solutions Secundario 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Penox Mexico Compresor 1 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Penox Mexico Compresor 2 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Durosa Compresor 1 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Manttra Gimsa Primario 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Manttra Gimsa Secundario 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Calidra HORNO 5 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Calidra HORNO MEARZ 2025-06-03.pdf
+Correo de advertencia enviado a hector.tovar@ventologix.com, andres.mirazo@ventologix.com
+Proceso finalizado.
+Generando PDF para cliente ALLTANSA, línea B
+Abriendo URL: http://localhost:3000/reportes?id_cliente=1&linea=B
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente ALLTANSA: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Power Paint Solutions, línea A
+Abriendo URL: http://localhost:3000/reportes?id_cliente=3&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Power Paint Solutions: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Power Paint Solutions, línea B
+Abriendo URL: http://localhost:3000/reportes?id_cliente=4&linea=B
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Power Paint Solutions: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Penox Mexico, línea A
+Abriendo URL: http://localhost:3000/reportes?id_cliente=7&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Penox Mexico: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Penox Mexico, línea B
+Abriendo URL: http://localhost:3000/reportes?id_cliente=7&linea=B
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Penox Mexico: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Durosa, línea A
+Abriendo URL: http://localhost:3000/reportes?id_cliente=8&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Durosa: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Manttra Gimsa, línea A
+Abriendo URL: http://localhost:3000/reportes?id_cliente=9&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Manttra Gimsa: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Manttra Gimsa, línea A
+Abriendo URL: http://localhost:3000/reportes?id_cliente=12&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Manttra Gimsa: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Calidra, línea A
+Abriendo URL: http://localhost:3000/reportes?id_cliente=10&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Calidra: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Calidra, línea A
+Abriendo URL: http://localhost:3000/reportes?id_cliente=11&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Calidra: Page.wait_for_function: Timeout 300000ms exceeded.
+No se encontró archivo esperado: Reporte Diario ALLTANSA Primario 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Power Paint Solutions Primario 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Power Paint Solutions Secundario 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Penox Mexico Compresor 1 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Penox Mexico Compresor 2 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Durosa Compresor 1 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Manttra Gimsa Primario 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Manttra Gimsa Secundario 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Calidra HORNO 5 2025-06-03.pdf
+No se encontró archivo esperado: Reporte Diario Calidra HORNO MEARZ 2025-06-03.pdf
+Correo de advertencia enviado a hector.tovar@ventologix.com, andres.mirazo@ventologix.com
+Proceso finalizado.
+Generando PDF para cliente ALLTANSA, línea B
+Abriendo URL: http://localhost:3000/reportes?id_cliente=1&linea=B
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente ALLTANSA: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Power Paint Solutions, línea A
+Abriendo URL: http://localhost:3000/reportes?id_cliente=3&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF para cliente Power Paint Solutions: Page.wait_for_function: Timeout 300000ms exceeded.
+Generando PDF para cliente Power Paint Solutions, línea B
+Abriendo URL: http://localhost:3000/reportes?id_cliente=4&linea=B
+Esperando que frontend avise que terminó de renderizar...
