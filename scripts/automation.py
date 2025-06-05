@@ -200,7 +200,3 @@ def main():
     send_error_mail(missing_files, admin_correos)
 
     print("Proceso finalizado.")
-
-if __name__ == "__main__":
-    while True:
-        main()
