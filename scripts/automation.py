@@ -47,7 +47,7 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente,alias):
         page = browser.new_page()
         page.set_viewport_size({"width": 1920, "height": 1080})
 
-        url = f"http://localhost:3003/reportes?id_cliente={id_cliente}&linea={linea}"
+        url = f"http://localhost:3002/reportes?id_cliente={id_cliente}&linea={linea}"
         print(f"Abriendo URL: {url}")
         page.goto(url)
 
@@ -200,3 +200,5 @@ def main():
     send_error_mail(missing_files, admin_correos)
 
     print("Proceso finalizado.")
+
+main()
