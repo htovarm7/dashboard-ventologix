@@ -151,15 +151,22 @@ def send_error_mail(missing_files, admin_emails):
         print(f"Error al enviar correo de advertencia: {e}")
         
 # --- Función principal que junta todo ---
+def clean_pdfs_folder():
+    """Elimina todos los archivos PDF generados en la carpeta pdfs."""
+    for filename in os.listdir(downloads_folder):
+        if filename.endswith(".pdf"):
+            try:
+                os.remove(os.path.join(downloads_folder, filename))
+                print(f"Archivo eliminado: {filename}")
+            except Exception as e:
+                print(f"No se pudo eliminar {filename}: {e}")
+
 def main():
-    # Crear carpeta pdfs si no existe
     os.makedirs(downloads_folder, exist_ok=True)
 
-    # Leer configuración destinatarios
     with open("../Destinatarios.json", "r", encoding="utf-8-sig") as f:
         config = json.load(f)
 
-    # Obtener clientes y generar PDFs
     clientes = obtener_clientes_desde_api()
     if not clientes:
         print("No se encontraron clientes.")
@@ -176,10 +183,8 @@ def main():
         except Exception as e:
             print(f"Error generando PDF para cliente {nombre_cliente}: {e}")
 
-    # Lista para archivos faltantes
     missing_files = []
 
-    # Procesar envíos
     for recipient in config['recipients']:
         for fileConfig in recipient.get('files', []):
             fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
@@ -196,9 +201,18 @@ def main():
                 print(f"No se encontró archivo esperado: {pdf_name}")
                 missing_files.append(pdf_name)
 
-    # Enviar correo a admins si hubo archivos faltantes
     send_error_mail(missing_files, admin_correos)
-
     print("Proceso finalizado.")
 
-main()
+# --- Ejecutar con control de interrupción ---
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n⚠️ Proceso cancelado por el usuario. Limpiando PDFs generados...")
+        clean_pdfs_folder()
+        print("Carpeta de PDFs limpiada. Terminando proceso.")
+    except Exception as e:
+        print(f"\n❌ Error inesperado: {e}. Limpiando PDFs generados...")
+        clean_pdfs_folder()
+        print("Carpeta de PDFs limpiada. Terminando proceso.")
