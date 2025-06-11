@@ -1,0 +1,147 @@
+{
+  "recipients": [
+    {
+      "email": ["Emilio.alvarado@alltansa.com", "Ingenieria@alltansa.com", "agarza@alltansa.com"],
+      "cc": ["octavio.murillo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>Estimado Ing. Marco :</p><p>Soy <strong>VTO 001</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>Primario</strong> instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario ALLTANSA Primario 2025-05-29",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["peter@powerpaintsolutions.com", "Gerencia@powerpaintsolutions.com", "Emilio@powerpaintsolutions.com"],
+      "cc": ["octavio.murillo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>Estimado Ing. Gabriel Palacios :</p><p>Soy <strong>VTO 003</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>Primario</strong> instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario Power Paint Solutions Primario 2025-05-29",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["peter@powerpaintsolutions.com", "Gerencia@powerpaintsolutions.com", "Emilio@powerpaintsolutions.com"],
+      "cc": ["octavio.murillo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>Estimado Ing. Gabriel Palacios :</p><p>Soy <strong>VTO 004</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>Secundario</strong> instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario Power Paint Solutions Secundario 2025-05-29",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["freyes@penoxmexico.com","rreyna@penoxmexico.com"],
+      "cc": ["octavio.murillo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>Estimado Ing. Francisco Reyes :</p><p>Soy <strong>VTO 007</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>'Compresor 1'</strong> instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario Penox Mexico Compresor 1 2025-05-29",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["freyes@penoxmexico.com","rreyna@penoxmexico.com"],
+      "cc": ["octavio.murillo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>Estimado Ing. Francisco Reyes :</p><p>Soy <strong>VTO 007</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>'Compresor 2'</strong> instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario Penox Mexico Compresor 2 2025-05-29",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["Ccastillo@durosa.net","Pduran@durosa.net","Slumbreras@durosa.net","Dduran@durosa.net","Hluna@durosa.net"],
+      "cc": ["octavio.murillo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>Estimado Ing. Cesar Castillo :</p><p>Soy <strong>VTO 008</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>'Compresor 1'</strong> instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario Durosa Compresor 1 2025-05-29",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["amirelesh@bertran.com.mx","jsamaniegog@manttragimsa.com.mx"],
+      "cc": ["octavio.murillo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>Estimado Ing. Axel Mireles:</p><p>Soy <strong>VTO 009</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>'Compresor 1'</strong> instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario Manttra Gimsa Primario 2025-05-29",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["amirelesh@bertran.com.mx","jsamaniegog@manttragimsa.com.mx"],
+      "cc": ["octavio.murillo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>Estimado Ing. Axel Mireles :</p><p>Soy <strong>VTO 0012</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>'Compresor 2'</strong> instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario Manttra Gimsa Secundario 2025-05-29",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["lmerjil@calidra.com.mx","rhernandezl@calidra.com.mx"],
+      "cc": ["octavio.murillo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>Estimado Ing. Raymond Hernandez:</p><p>Soy <strong>VTO 010</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>'Compresor 1'</strong> instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario Calidra HORNO 5 2025-05-29",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["lmerjil@calidra.com.mx","rhernandezl@calidra.com.mx"],
+      "cc": ["octavio.murillo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>Estimado Ing. Raymond Hernandez :</p><p>Soy <strong>VTO 0011</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>'Compresor 2'</strong> instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario Calidra HORNO MEARZ 2025-05-29",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["sergio.ramirez@linamar.com"],
+      "cc": ["octavio.murillo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>Estimado Ing. Sergio Ramirez :</p><p>Soy <strong>VTO 0014</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>'Compresor 1'</strong> instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario Linamar Linamar 2025-06-10",
+          "dateOffset": -1
+        }
+      ]
+    }
+  ]
+}

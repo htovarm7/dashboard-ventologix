@@ -40,12 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/scripts/pdfs
-
-/scripts/enviar_reportes.ps1
+#/scripts/pdfs
 
 /vento
 
 /venv310
 
-Destinatarios.json
+#Destinatarios.json
