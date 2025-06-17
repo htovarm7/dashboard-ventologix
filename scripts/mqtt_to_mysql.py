@@ -101,7 +101,6 @@ def on_message(client, userdata, msg):
         logging.error(f"❌ Error en base de datos: {db_err}")
         if not conn.is_connected():
             logging.warning("🔄 Reintentando conexión a base de datos...")
-            global conn, cursor
             conn = conectar_db()
             cursor = conn.cursor(dictionary=True)
     except Exception as e:
