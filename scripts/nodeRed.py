@@ -1,1 +1,0 @@
-# Sacamos uan consulta cada 15 mins y el twilio mandaba una advertencia 

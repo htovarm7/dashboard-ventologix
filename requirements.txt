@@ -33,3 +33,6 @@ pydantic
 
 # End-to-end browser automation library
 playwright
+
+#MQTT client for Python
+paho-mqtt
