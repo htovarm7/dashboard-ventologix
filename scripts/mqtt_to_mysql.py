@@ -35,7 +35,6 @@ def conectar_db():
                 return conn
         except Exception as e:
             logging.error(f"❌ Error al conectar a la base de datos: {e}")
-        time.sleep(5)
 
 conn = conectar_db()
 cursor = conn.cursor(dictionary=True)
@@ -59,6 +58,8 @@ def on_connect(client, userdata, flags, rc):
 
 # Callback al recibir mensaje
 def on_message(client, userdata, msg):
+    global conn, cursor
+
     try:
         payload = json.loads(msg.payload.decode())
         logging.info(f"📨 Mensaje recibido: {payload}")
