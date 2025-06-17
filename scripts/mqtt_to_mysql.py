@@ -14,10 +14,10 @@ MQTT_TOPIC = os.getenv("MQTT_TOPIC")
 
 #CAMBIAR EL DE TEST POR PRODUCCIÓN
 db_config = {
-    "host": os.getenv("DB_HOST_TEST"),
-    "user": os.getenv("DB_USER_TEST"),
-    "password": os.getenv("DB_PASSWORD_TEST"),
-    "database": os.getenv("DB_NAME_TEST")
+    "host": os.getenv("DB_HOST"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "database": os.getenv("DB_NAME")
 }
 
 # Configurar logging
