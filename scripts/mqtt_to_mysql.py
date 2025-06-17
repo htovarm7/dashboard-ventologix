@@ -5,14 +5,16 @@ from datetime import datetime
 import logging
 from dotenv import load_dotenv
 import os
+import time
+import atexit
 
+# Cargar variables de entorno
 load_dotenv()
 
 MQTT_BROKER = os.getenv("MQTT_BROKER")
 MQTT_PORT = int(os.getenv("MQTT_PORT"))
 MQTT_TOPIC = os.getenv("MQTT_TOPIC")
 
-#CAMBIAR EL DE TEST POR PRODUCCIÓN
 db_config = {
     "host": os.getenv("DB_HOST"),
     "user": os.getenv("DB_USER"),
@@ -23,13 +25,37 @@ db_config = {
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
-# Callback al conectar
+# Conexión persistente a base
+def conectar_db():
+    while True:
+        try:
+            conn = mysql.connector.connect(**db_config)
+            if conn.is_connected():
+                logging.info("🟢 Conectado a la base de datos")
+                return conn
+        except Exception as e:
+            logging.error(f"❌ Error al conectar a la base de datos: {e}")
+        time.sleep(5)
+
+conn = conectar_db()
+cursor = conn.cursor(dictionary=True)
+
+# Cerrar conexión al terminar
+def cerrar_conexion():
+    if conn.is_connected():
+        cursor.close()
+        conn.close()
+        logging.info("🔴 Conexión a base cerrada")
+
+atexit.register(cerrar_conexion)
+
+# Callback al conectar al broker
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        print("🟢 Conectado al broker MQTT")
+        logging.info("🟢 Conectado al broker MQTT")
         client.subscribe(MQTT_TOPIC)
     else:
-        print("🔴 Error de conexión MQTT", rc)
+        logging.error(f"🔴 Error de conexión MQTT: {rc}")
 
 # Callback al recibir mensaje
 def on_message(client, userdata, msg):
@@ -39,11 +65,6 @@ def on_message(client, userdata, msg):
 
         id_kpm = payload['id']
 
-        # Conectar a BD
-        conn = mysql.connector.connect(**db_config)
-        cursor = conn.cursor(dictionary=True)
-
-        # Buscar id_cliente
         cursor.execute("SELECT id_cliente FROM dispositivo WHERE id_kpm = %s", (id_kpm,))
         result = cursor.fetchone()
 
@@ -53,11 +74,9 @@ def on_message(client, userdata, msg):
 
         id_device = result['id_cliente']
 
-        # Convertir time a datetime
-        time_str = payload['time']  # '20250617155305'
-        time = datetime.strptime(time_str, '%Y%m%d%H%M%S').strftime('%Y-%m-%d %H:%M:%S')
+        time_str = payload['time']
+        time_fmt = datetime.strptime(time_str, '%Y%m%d%H%M%S').strftime('%Y-%m-%d %H:%M:%S')
 
-        # Insertar a base
         insert_query = """
             INSERT INTO pruebas (device_id, ua, ub, uc, ia, ib, ic, time)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
@@ -70,26 +89,28 @@ def on_message(client, userdata, msg):
             payload.get('ia', 0),
             payload.get('ib', 0),
             payload.get('ic', 0),
-            time
+            time_fmt
         )
         cursor.execute(insert_query, values)
         conn.commit()
 
-        logging.info(f"✅ Insertado correctamente: Device {id_device} a {time}")
+        logging.info(f"✅ Insertado correctamente: Device {id_device} a {time_fmt}")
 
+    except mysql.connector.Error as db_err:
+        logging.error(f"❌ Error en base de datos: {db_err}")
+        if not conn.is_connected():
+            logging.warning("🔄 Reintentando conexión a base de datos...")
+            global conn, cursor
+            conn = conectar_db()
+            cursor = conn.cursor(dictionary=True)
     except Exception as e:
-        logging.error(f"❌ Error al procesar mensaje: {str(e)}")
+        logging.error(f"❌ Error general: {str(e)}")
 
-    finally:
-        if 'conn' in locals() and conn.is_connected():
-            cursor.close()
-            conn.close()
-
-# Configuración cliente MQTT
+# Configurar cliente MQTT
 client = mqtt.Client(protocol=mqtt.MQTTv311)
 client.on_connect = on_connect
 client.on_message = on_message
 
-# Conectar
+# Conectar al broker MQTT y loop infinito
 client.connect(MQTT_BROKER, MQTT_PORT, 60)
 client.loop_forever()
