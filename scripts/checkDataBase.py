@@ -80,7 +80,7 @@ def check_data():
 
         query = """
         SELECT COUNT(*) FROM pruebes
-        WHERE time BETWEEN %s AND %s
+        WHERE TIME(time) BETWEEN %s AND %s
         """
 
         cursor.execute(query, (prev_hour, current_hour))
