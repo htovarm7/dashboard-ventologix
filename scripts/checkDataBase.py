@@ -79,7 +79,7 @@ def check_data():
         print(f"Revisando datos para: {prev_hour} y {current_hour}")
 
         query = """
-        SELECT COUNT(*) FROM pruebes
+        SELECT COUNT(*) FROM pruebas
         WHERE TIME(time) BETWEEN %s AND %s
         """
 
@@ -88,8 +88,8 @@ def check_data():
 
         if result[0] == 0:
             # Si no hay datos, enviar correo de emergencia
-            subject = "🚨 Alerta: No se recibieron datos en 'pruebes'"
-            body = f"No se encontraron registros en la tabla 'pruebes' entre {prev_hour} y {current_hour}."
+            subject = "🚨 Alerta: No se recibieron datos en 'pruebas'"
+            body = f"No se encontraron registros en la tabla 'pruebas' entre {prev_hour} y {current_hour}."
             send_emergency_email(subject, body)
         else:
             print(f"Se encontraron {result[0]} registros en el rango.")
