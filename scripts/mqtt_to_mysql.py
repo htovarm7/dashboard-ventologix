@@ -11,8 +11,6 @@ import atexit
 # Cargar variables de entorno
 load_dotenv()
 
-global conn, cursor
-
 MQTT_BROKER = os.getenv("MQTT_BROKER")
 MQTT_PORT = int(os.getenv("MQTT_PORT"))
 MQTT_TOPIC = os.getenv("MQTT_TOPIC")
@@ -60,6 +58,8 @@ def on_connect(client, userdata, flags, rc):
 
 # Callback al recibir mensaje
 def on_message(client, userdata, msg):
+    global conn, cursor
+    
     try:
         payload = json.loads(msg.payload.decode())
         logging.info(f"📨 Mensaje recibido: {payload}")
