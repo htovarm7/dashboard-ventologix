@@ -59,8 +59,8 @@ def on_message(client, userdata, msg):
 
         # Insertar a base
         insert_query = """
-            INSERT INTO pruebas (device_id, ua, ub, uc, ia, ib, ic, time, zyggl)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO pruebas (device_id, ua, ub, uc, ia, ib, ic, time)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
         values = (
             id_device,
@@ -70,8 +70,7 @@ def on_message(client, userdata, msg):
             payload.get('ia', 0),
             payload.get('ib', 0),
             payload.get('ic', 0),
-            time,
-            payload.get('zyggl', 0)
+            time
         )
         cursor.execute(insert_query, values)
         conn.commit()
