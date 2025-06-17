@@ -71,25 +71,23 @@ def check_data():
 
         now = datetime.now()
         previous_hour = now - timedelta(hours=1)
-
-        # Formato de las horas a consultar (ajustar según tu tipo de dato en BD)
-        current_hour = now.strftime('%Y-%m-%d %H:00:00')
-        prev_hour = previous_hour.strftime('%Y-%m-%d %H:00:00')
-
-        print(f"Revisando datos para: {prev_hour} y {current_hour}")
+         
+        prev_hour_str = previous_hour.strftime('%H:%M:%S')
+        current_hour_str = now.strftime('%H:%M:%S')
 
         query = """
         SELECT COUNT(*) FROM pruebas
         WHERE TIME(time) BETWEEN %s AND %s
         """
 
-        cursor.execute(query, (prev_hour, current_hour))
+        cursor.execute(query, (prev_hour_str, current_hour_str))
+
         result = cursor.fetchone()
 
         if result[0] == 0:
             # Si no hay datos, enviar correo de emergencia
             subject = "🚨 Alerta: No se recibieron datos en 'pruebas'"
-            body = f"No se encontraron registros en la tabla 'pruebas' entre {prev_hour} y {current_hour}."
+            body = f"No se encontraron registros en la tabla 'pruebas' entre {prev_hour_str} y {current_hour_str}."
             send_emergency_email(subject, body)
         else:
             print(f"Se encontraron {result[0]} registros en el rango.")
