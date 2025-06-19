@@ -179,7 +179,7 @@ def main():
     cliente = clientes[seleccion]
     id_cliente = cliente['id_cliente']
     nombre_cliente = cliente['nombre_cliente']
-    alias = cliente['alias']
+    alias = cliente['alias'].strip()
 
     # Preguntar línea
     linea = input(f"Ingrese la línea para {nombre_cliente} (valor por defecto: {cliente['linea']}): ") or cliente['linea']
