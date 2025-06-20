@@ -2,7 +2,7 @@
 
 LOGDIR="/home/hector_tovar/Ventologix/logs"
 LOGFILE="$LOGDIR/tarea_$(date +%F).log"
-PYTHON_SCRIPT="/home/hector_tovar/Ventologix/scripts/automation.py"
+PYTHON_SCRIPT="/home/hector_tovar/Ventologix/scripts/selectEmailtoSend.py"
 VENV="/home/hector_tovar/Ventologix/vento/bin/activate"
 VENTO_DIR="/home/hector_tovar/Ventologix"
 SCRIPTS_DIR="$VENTO_DIR/scripts"
@@ -61,7 +61,7 @@ fi
 
 # Ejecutar script Python (interactivo)
 echo "Ejecutando script Python..." >> $LOGFILE
-python $PYTHON_SCRIPT >> $LOGFILE 2>&1
+python $PYTHON_SCRIPT
 echo "Script Python finalizado" >> $LOGFILE
 
 # Cerrar procesos
