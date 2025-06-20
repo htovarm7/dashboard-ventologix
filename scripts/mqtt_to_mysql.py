@@ -63,22 +63,15 @@ def on_message(client, userdata, msg):
 
     try:
         payload = json.loads(msg.payload.decode())
-        logging.info(f"📨 Mensaje recibido: {payload}")
+        logging.info(f"📨 Mensaje recibido completo: {payload}")
 
-        # --- Extraer id_kpm desde data[0].point con id=0
-        data_points = payload.get("data", [])
-        if not data_points:
-            logging.error("❌ Sin data en payload")
+        # Obtener id_kpm directamente del campo 'id'
+        id_kpm = payload.get("id")
+        if not id_kpm:
+            logging.error("❌ No se encontró 'id' en payload")
             return
-
-        points = data_points[0].get("point", [])
-        id_kpm_point = next((p for p in points if p.get("id") == 0), None)
-        if not id_kpm_point:
-            logging.error("❌ id_kpm no encontrado")
-            return
-        id_kpm = id_kpm_point.get("val")
-
-        # --- Obtener id_cliente
+        
+        # Consultar id_cliente con id_kpm
         cursor.execute("SELECT id_cliente FROM dispositivo WHERE id_kpm = %s", (id_kpm,))
         result = cursor.fetchone()
         if not result:
@@ -86,31 +79,26 @@ def on_message(client, userdata, msg):
             return
         id_device = result['id_cliente']
 
-        # --- Convertir timestamp tp
-        tp = data_points[0].get("tp")
-        if not tp:
-            logging.error("❌ Timestamp (tp) no encontrado")
+        # Parsear timestamp en 'time' (string 'YYYYMMDDHHMMSS')
+        time_str = payload.get("time")
+        if not time_str:
+            logging.error("❌ No se encontró 'time' en payload")
             return
-        time_fmt = datetime.fromtimestamp(tp / 1000).strftime('%Y-%m-%d %H:%M:%S')
+        time_fmt = datetime.strptime(time_str, "%Y%m%d%H%M%S").strftime('%Y-%m-%d %H:%M:%S')
 
-        # --- Mapear valores de puntos
-        def get_val(point_id):
-            return next((p.get("val", 0) for p in points if p.get("id") == point_id), 0)
-
-        ua = get_val(1)
-        ub = get_val(2)
-        uc = get_val(3)
-        ia = get_val(7)
-        ib = get_val(8)
-        ic = get_val(9)  # en Node-RED tenías ib e ic ambos en id=8, aquí lo separo
-        zyggl = get_val(13)
-
-        # --- Insertar en base de datos
+        # Extraer variables eléctricas (usar 0.0 si falta)
+        ua = float(payload.get("ua", 0))
+        ub = float(payload.get("ub", 0))
+        uc = float(payload.get("uc", 0))
+        ia = float(payload.get("ia", 0))
+        ib = float(payload.get("ib", 0))
+        ic = float(payload.get("ic", 0))
+        # Insertar en BD
         insert_query = """
-            INSERT INTO pruebas (device_id, ua, ub, uc, ia, ib, ic, time, zyggl)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO pruebas (device_id, ua, ub, uc, ia, ib, ic, time)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
-        values = (id_device, ua, ub, uc, ia, ib, ic, time_fmt, zyggl)
+        values = (id_device, ua, ub, uc, ia, ib, ic, time_fmt)
         cursor.execute(insert_query, values)
         conn.commit()
 
