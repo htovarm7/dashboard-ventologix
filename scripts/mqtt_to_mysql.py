@@ -35,6 +35,7 @@ def conectar_db():
                 return conn
         except Exception as e:
             logging.error(f"❌ Error al conectar a la base de datos: {e}")
+            time.sleep(3)
 
 conn = conectar_db()
 cursor = conn.cursor(dictionary=True)
@@ -59,43 +60,49 @@ def on_connect(client, userdata, flags, rc):
 # Callback al recibir mensaje
 def on_message(client, userdata, msg):
     global conn, cursor
-    
+
     try:
         payload = json.loads(msg.payload.decode())
-        logging.info(f"📨 Mensaje recibido: {payload}")
+        logging.info(f"📨 Mensaje recibido completo: {payload}")
 
-        id_kpm = payload['id']
-
+        # Obtener id_kpm directamente del campo 'id'
+        id_kpm = payload.get("id")
+        if not id_kpm:
+            logging.error("❌ No se encontró 'id' en payload")
+            return
+        
+        # Consultar id_cliente con id_kpm
         cursor.execute("SELECT id_cliente FROM dispositivo WHERE id_kpm = %s", (id_kpm,))
         result = cursor.fetchone()
-
         if not result:
             logging.error(f"Dispositivo no encontrado: {id_kpm}")
             return
-
         id_device = result['id_cliente']
 
-        time_str = payload['time']
-        time_fmt = datetime.strptime(time_str, '%Y%m%d%H%M%S').strftime('%Y-%m-%d %H:%M:%S')
+        # Parsear timestamp en 'time' (string 'YYYYMMDDHHMMSS')
+        time_str = payload.get("time")
+        if not time_str:
+            logging.error("❌ No se encontró 'time' en payload")
+            return
+        time_fmt = datetime.strptime(time_str, "%Y%m%d%H%M%S").strftime('%Y-%m-%d %H:%M:%S')
 
+        # Extraer variables eléctricas (usar 0.0 si falta)
+        ua = float(payload.get("ua", 0))
+        ub = float(payload.get("ub", 0))
+        uc = float(payload.get("uc", 0))
+        ia = float(payload.get("ia", 0))
+        ib = float(payload.get("ib", 0))
+        ic = float(payload.get("ic", 0))
+        # Insertar en BD
         insert_query = """
             INSERT INTO pruebas (device_id, ua, ub, uc, ia, ib, ic, time)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
-        values = (
-            id_device,
-            payload.get('ua', 0),
-            payload.get('ub', 0),
-            payload.get('uc', 0),
-            payload.get('ia', 0),
-            payload.get('ib', 0),
-            payload.get('ic', 0),
-            time_fmt
-        )
+        values = (id_device, ua, ub, uc, ia, ib, ic, time_fmt)
         cursor.execute(insert_query, values)
         conn.commit()
 
-        logging.info(f"✅ Insertado correctamente: Device {id_device} a {time_fmt}")
+        logging.info(f"✅ Insertado Device {id_device} | {time_fmt}")
 
     except mysql.connector.Error as db_err:
         logging.error(f"❌ Error en base de datos: {db_err}")

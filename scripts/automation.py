@@ -11,6 +11,8 @@ from email.utils import make_msgid
 
 load_dotenv()
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Configuración general
 downloads_folder = "pdfs"
 alias_name = "VTO LOGIX"
@@ -164,7 +166,7 @@ def clean_pdfs_folder():
 def main():
     os.makedirs(downloads_folder, exist_ok=True)
 
-    with open("../Destinatarios.json", "r", encoding="utf-8-sig") as f:
+    with open(os.path.join(os.path.dirname(BASE_DIR), "Destinatarios.json"), "r", encoding="utf-8-sig") as f:
         config = json.load(f)
 
     clientes = obtener_clientes_desde_api()
