@@ -151,7 +151,23 @@ def send_error_mail(missing_files, admin_emails):
         print(f"Correo de advertencia enviado a {', '.join(admin_emails)}")
     except Exception as e:
         print(f"Error al enviar correo de advertencia: {e}")
-        
+
+def intentar_generar_pdf(id_cliente, linea, nombre_cliente, alias, max_reintentos=3):
+    intentos = 0
+    while intentos < max_reintentos:
+        try:
+            print(f"Intento {intentos + 1} de {max_reintentos} para generar PDF de {nombre_cliente}")
+            return generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias)
+        except Exception as e:
+            intentos += 1
+            print(f"Error generando PDF (intento {intentos}) para {nombre_cliente}: {e}")
+            if intentos < max_reintentos:
+                print("Reintentando en 5 segundos...")
+                time.sleep(5)
+            else:
+                print(f"❌ Fallaron los {max_reintentos} intentos para {nombre_cliente}")
+                return None
+
 # --- Función principal que junta todo ---
 def clean_pdfs_folder():
     """Elimina todos los archivos PDF generados en la carpeta pdfs."""
@@ -179,11 +195,9 @@ def main():
         linea = cliente['linea']
         nombre_cliente = cliente['nombre_cliente']
         alias = cliente['alias'].strip()
-        try:
-            print(f"Generando PDF para cliente {nombre_cliente}, línea {linea}")
-            generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias)
-        except Exception as e:
-            print(f"Error generando PDF para cliente {nombre_cliente}: {e}")
+        
+        print(f"Generando PDF para cliente {nombre_cliente}, línea {linea}")
+        pdf_path = intentar_generar_pdf(id_cliente, linea, nombre_cliente, alias)
 
     missing_files = []
 
