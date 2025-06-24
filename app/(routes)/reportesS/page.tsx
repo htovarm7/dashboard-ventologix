@@ -226,15 +226,15 @@ export default function Main() {
   };
 
   const dataPie = {
-    labels: ["Horas LOAD", "Horas No Load", "Horas OF"],
+    labels: ["LOAD", "NO LOAD", "OFF"],
     datasets: [
       {
         label: "Estados del Compresor",
         data: chartData,
         backgroundColor: [
-          "rgb(47,105,173)",
-          "rgb(152,217,222)",
-          "rgb(81,144,216)",
+          "rgb(0, 191, 255)",
+          "rgb(229, 255, 0)",
+          "rgb(126, 126, 126)",
         ],
         hoverOffset: 30,
       },
@@ -270,6 +270,67 @@ export default function Main() {
     },
   };
 
+  // Line boundaries options
+  const lineChartOptions = {
+    responsive: true,
+    animation: false,
+    plugins: {
+      datalabels: {
+        display: false,
+        color: 'black',
+        anchor: 'end',
+        align: 'top',
+        backgroundColor: null,
+        borderWidth: 0,
+        callout: {
+          display: false
+        }
+      },
+      annotation: {
+        annotations: {
+          limite: {
+            type: 'line',
+            yMin: limite,
+            yMax: limite,
+            borderColor: 'black',
+            borderWidth: 4,
+            label: {
+              content: `Límite: ${limite} A`,
+              enabled: false,
+              position: 'start',
+            }
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        min: 0,
+        max: maxData,
+        ticks: {
+          stepSize: 1,
+        },
+      },
+    },
+  };
+
+  const dataLine = {
+    labels: lineChartLabels,
+    datasets: [
+      {
+        label: 'Corriente consumida en el dia',
+        data: lineChartData,
+        borderColor: 'rgb(13, 9, 255)',
+        backgroundColor: 'rgba(82, 94, 255, 0.2)',
+        tension: 0.4,
+        pointBackgroundColor: 'rgb(13, 9, 255)',
+        pointRadius: 1,
+        borderWidth: 1,
+        fill: 'start',
+      }
+    ],
+  };
+
   useEffect(() => {
     if (lineChartData.length > 0 && chartData.length > 0) {
       window.status = "pdf-ready";
@@ -280,7 +341,173 @@ export default function Main() {
 
   return (
     <main className="relative">
-        <h1>Hello</h1>
+
+      {/* Here its the top section*/}
+      <div className="flex flex-col items-center mb-2">
+        <h1 className="text-4xl font-bold text-center">Reporte Diario</h1>
+        <h2 className="text-4xl font-bold text-center">{compressorData?.alias}</h2>
+        <h3 className="text-3xl font-bold text-center">
+          Fecha: {
+            new Date(new Date().setDate(new Date().getDate() - 1))
+              .toLocaleDateString('es-ES', {
+                weekday: 'long',
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+              })
+              .replace(/^\w/, c => c.toUpperCase())
+          }
+        </h3>
+        <img src="/Ventologix_04.png" alt="logo" className="h-28 w-auto mt-3 absolute top-0 left-0 m-3" />
+      </div>
+
+      <div className="mt-2 p-4">
+
+        <h2 className="text-3xl font-bold p-15">Información Compresor</h2>
+        <div className="flex flex-wrap gap-60 items-center justify-center text-center">
+          <div className="text-center">
+            <p className="text-2xl">{compressorData?.numero_serie}</p>
+            <p className="text-xl font-bold">Número de Serie</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl">{compressorData?.marca}</p>
+            <p className="text-xl font-bold">Marca</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl">{compressorData?.tipo}</p>
+            <p className="text-xl font-bold">Tipo</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl">{compressorData?.voltaje}</p>
+            <p className="text-xl font-bold">Voltaje</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl">{compressorData?.hp}</p>
+            <p className="text-xl font-bold">HP</p>
+          </div>
+        </div>
+
+        {/* Informaion del clinte */}
+        <h2 className="text-3xl font-bold p-15"> Informacion del Cliente </h2>
+        <div className="flex flex-wrap gap-60 items-center justify-center text-center">
+          <div className="text-center">
+            <p className="text-2xl">{clientData?.nombre_cliente}</p>
+            <p className="text-xl font-bold">Nombre</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl">{clientData?.numero_cliente}</p>
+            <p className="text-xl font-bold">Número de Cliente</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl">{clientData?.RFC}</p>
+            <p className="text-xl font-bold">RFC</p>
+          </div>
+          {/* <div className="text-center">
+            <p className="text-2xl">{clientData?.direccion}</p>
+            <p className="text-xl font-bold">Direccion</p>
+          </div> */}
+        </div>
+      </div>
+
+      <div className="flex flex-col items-center justify-center p-4 gap-6">
+        {/* KPIs */}
+        <div className="flex flex-row gap-8 mt-2">
+          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+            <h2 className="text-xl text-black">Gasto USD*</h2>
+            <p className="text-3xl font-bold text-black">${usdCost.toFixed(2)}</p>
+          </div>
+          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+            <h2 className="text-xl text-black">kWh Utilizados</h2>
+            <p className="text-3xl font-bold text-black">{kWh.toFixed(0)} kWh</p>
+          </div>
+          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+            <h2 className="text-xl text-black">Horas Trabajadas</h2>
+            <p className="text-3xl font-bold text-black">{hoursWorked.toFixed(1)} h</p>
+          </div>
+        </div>
+
+        {/* Gráficas */}
+        <div className="flex flex-row flex-wrap justify-center gap-4" id="grafico-listo">
+          <div className="bg-white rounded-2xl shadow p-4 w-[280px] items-center justify-center">
+            <h2 className='text-xl' style={{ textAlign: "center" }}><strong>Hp Equivalente:</strong> {hp_equivalente} Hp</h2>
+            <h2 className='text-xl' style={{ textAlign: "center" }}><strong>Hp Instalado:</strong> {hp_instalado} Hp</h2>
+            <ReactECharts option={gaugeOptions} style={{ height: "280px", width: "100%" }} notMerge={true} lazyUpdate={true} theme={"light"} />
+          </div>
+
+          <div className="bg-white rounded-2xl shadow p-4 w-[650px] h-[400px] flex flex-col">
+            <h3 className="text-center text-black mb-2 font-bold">Corriente consumida en el día</h3>
+            <Chart type="line" data={dataLine} options={lineChartOptions} />
+          </div>
+
+          <div className="bg-white rounded-2xl shadow p-4 w-[280px] h-[400px] flex flex-col items-center justify-center">
+            <h3 className="text-center text-black  font-bold text-xl">Estados del Compresor</h3>
+            <Pie data={dataPie} options={pieOptions} />
+          </div>
+        </div>
+
+        {Off == 100 ? (
+          <p className='text-5xl text-left mt-4 text-blue-700 text-bold'> El compresor estuvo apagado todo el dia</p>
+        ) : (
+          <div className="gap-10 items-left justify-left text-left">
+            <h1 className="text-3xl font-bold">Comentarios</h1>
+
+            <p className="text-xl text-left">
+              • El día de ayer <strong>({new Date(new Date().setDate(new Date().getDate() - 1)).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })})</strong> se iniciaron labores a las <strong>{firstHour}</strong> y se concluyeron a las <strong>{lastHour}</strong>
+            </p>
+
+            <p className="text-xl text-left mt-2">
+              • Entre las horas de <strong>{firstHour}</strong> y <strong>{lastHour}</strong>, el compresor operó de la siguiente manera:
+            </p>
+
+            <ul className="list-disc ml-8 text-xl text-left">
+              <li><strong>LOAD:</strong> {Load}%</li>
+              <li><strong>NO LOAD:</strong> {NoLoad}%</li>
+              <li><strong>OFF:</strong> {Off}%</li>
+            </ul>
+
+            <p className="text-xl text-left mt-2">
+              • Durante el día se completaron un total de <strong>{totalCiclos}</strong> ciclos de trabajo. Un ciclo se define como un cambio desde el estado <strong>LOAD</strong> a <strong>NO LOAD</strong> consecutivamente.
+            </p>
+
+            <p className="text-xl text-left mt-2">
+              • El promedio de ciclos por hora trabajada fue de <strong>{promedioCiclosHora}</strong> ciclos/hora.
+            </p>
+
+            <p className="text-xl text-left mt-2">
+              • El costo total de operación del compresor fue de <strong>${usdCost.toFixed(2)}</strong>.
+            </p>
+
+            <p className="text-xl text-left mt-2">
+              • {comentarioCiclos}
+            </p>
+
+            <p className="text-xl text-left mt-2">
+              • No se detectaron consumos con valores fuera de lo común.
+            </p>
+
+            <p className="text-xl text-left mt-2">
+              • {comentarioHp}
+            </p>
+
+            <p className="text-xl text-left mt-2">
+              • El costo por kilovatio-hora (kWh) utilizado en este análisis es de <strong>$0.17 USD/kWh</strong>, que es el estándar actualmente aplicado. Sin embargo, si requiere confirmar este valor o necesita ajustar la tarifa, puede verificar con su contacto en <strong>VENTOLOGIX</strong>
+            </p>
+
+            <h1 className="text-xl text-left mt-7 font-bold">IQgineer VENTOLOGIX asignado:</h1>
+            <p className="text-xl text-left mt-2" ><strong>Nombre:</strong> Ing. Andrés Mirazo</p>
+            <p className="text-xl text-left mt-2"><strong>Teléfono:</strong> 81 8477 7023</p>
+            <p className="text-xl text-left mt-2">
+              <strong>Correo:</strong>{" "}
+              <a
+                href="mailto:Andres.Mirazo@ventologix.com"
+                className="text-blue-600 hover:scale-120 hover:text-blue-800  duration-300"
+              >
+                Andres.Mirazo@ventologix.com
+              </a>
+            </p>
+          </div>
+        )}
+      </div>
     </main>
   );
 }
