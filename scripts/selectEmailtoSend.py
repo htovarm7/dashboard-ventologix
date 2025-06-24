@@ -65,6 +65,33 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente,alias):
         browser.close()
         return pdf_path
 
+def send_error_mail(missing_files, admin_emails):
+    if not missing_files:
+        return
+
+    msg = EmailMessage()
+    msg['From'] = f"{alias_name} <{from_address}>"
+    msg['To'] = ", ".join(admin_emails)
+    msg['Subject'] = "⚠️ Reporte - Archivos PDF no generados"
+
+    body = "<p>No se encontraron los siguientes archivos PDF esperados:</p><ul>"
+    for f in missing_files:
+        body += f"<li>{f}</li>"
+    body += "</ul><br>VTO logix"
+
+    msg.set_content("Este mensaje requiere un cliente con soporte HTML.")
+    msg.add_alternative(body, subtype='html')
+
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port) as smtp:
+            smtp.starttls()
+            smtp.login(smtp_from, smtp_password)
+            smtp.send_message(msg)
+        print(f"Correo de advertencia enviado a {', '.join(admin_emails)}")
+    except Exception as e:
+        print(f"Error al enviar correo de advertencia: {e}")
+
+
 # --- Función para enviar correo ---
 def send_mail(recipientConfig, pdf_file_path):
     msg = EmailMessage()
@@ -126,32 +153,6 @@ def send_mail(recipientConfig, pdf_file_path):
     except Exception as e:
         print(f"Error al enviar correo: {e}")
 
-def send_error_mail(missing_files, admin_emails):
-    if not missing_files:
-        return
-
-    msg = EmailMessage()
-    msg['From'] = f"{alias_name} <{from_address}>"
-    msg['To'] = ", ".join(admin_emails)
-    msg['Subject'] = "⚠️ Reporte - Archivos PDF no generados"
-
-    body = "<p>No se encontraron los siguientes archivos PDF esperados:</p><ul>"
-    for f in missing_files:
-        body += f"<li>{f}</li>"
-    body += "</ul><br>VTO logix"
-
-    msg.set_content("Este mensaje requiere un cliente con soporte HTML.")
-    msg.add_alternative(body, subtype='html')
-
-    try:
-        with smtplib.SMTP(smtp_server, smtp_port) as smtp:
-            smtp.starttls()
-            smtp.login(smtp_from, smtp_password)
-            smtp.send_message(msg)
-        print(f"Correo de advertencia enviado a {', '.join(admin_emails)}")
-    except Exception as e:
-        print(f"Error al enviar correo de advertencia: {e}")
-        
 # --- Función principal que junta todo ---
 def main():
     # Crear carpeta pdfs si no existe

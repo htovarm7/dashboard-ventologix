@@ -1,7 +1,6 @@
 from playwright.sync_api import sync_playwright
 import requests
 from datetime import datetime, timedelta
-import json
 import os
 import smtplib
 from email.message import EmailMessage
@@ -12,7 +11,6 @@ load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Configuración general
 downloads_folder = "pdfs"
 alias_name = "VTO LOGIX"
 smtp_from = "andres.mirazo@ventologix.com"
@@ -24,12 +22,9 @@ smtp_password = os.getenv("SMTP_PASSWORD")
 smtp_server = "smtp.gmail.com"
 smtp_port = 587
 
-admin_correos = [
-    "hector.tovar@ventologix.com",
-    "andres.mirazo@ventologix.com"
-]
-
 fecha_hoy = datetime.now()
+
+destinatario_fijo = "andres.mirazo@ventologix.com"
 
 def obtener_clientes_desde_api():
     response = requests.get("http://127.0.0.1:8000/report/clients-data")
@@ -58,34 +53,17 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, fecha_reporte)
         browser.close()
         return pdf_path
 
-def send_mail(recipientConfig, pdf_file_path):
+def send_mail(pdf_file_path, nombre_cliente, fecha_reporte):
     msg = EmailMessage()
     msg['From'] = f"{alias_name} <{from_address}>"
-
-    if isinstance(recipientConfig['email'], list):
-        msg['To'] = ", ".join(recipientConfig['email'])
-    else:
-        msg['To'] = recipientConfig['email']
-
-    if 'cc' in recipientConfig and recipientConfig['cc']:
-        if isinstance(recipientConfig['cc'], list):
-            msg['Cc'] = ", ".join(recipientConfig['cc'])
-        else:
-            msg['Cc'] = recipientConfig['cc']
-
-    bcc = []
-    if 'bcc' in recipientConfig and recipientConfig['bcc']:
-        if isinstance(recipientConfig['bcc'], list):
-            bcc = recipientConfig['bcc']
-        else:
-            bcc = [recipientConfig['bcc']]
-
-    msg['Subject'] = recipientConfig['emailSubject']
+    msg['To'] = destinatario_fijo
+    msg['Subject'] = f"Reporte del dia {fecha_reporte} de {nombre_cliente}"
 
     logo_cid = make_msgid(domain='ventologix.com')
     ventologix_logo_cid = make_msgid(domain='ventologix.com')
 
-    body = recipientConfig['emailBody'] + f"""
+    body = f"""
+    <p>Adjunto reporte de <strong>{nombre_cliente}</strong> correspondiente al día <strong>{fecha_reporte}</strong>.</p>
     <br><p><img src="cid:{logo_cid[1:-1]}" alt="Logo Ventologix" /></p>
     <p><img src="cid:{ventologix_logo_cid[1:-1]}" alt="Ventologix Firma" /></p>
     <br>VTO logix<br>
@@ -110,42 +88,13 @@ def send_mail(recipientConfig, pdf_file_path):
         with smtplib.SMTP(smtp_server, smtp_port) as smtp:
             smtp.starttls()
             smtp.login(smtp_from, smtp_password)
-            smtp.send_message(msg, to_addrs=[*msg['To'].split(','), *msg.get('Cc', '').split(','), *bcc])
-        print(f"Correo enviado a {msg['To']}")
+            smtp.send_message(msg)
+        print(f"Correo enviado a {destinatario_fijo}")
     except Exception as e:
         print(f"Error al enviar correo: {e}")
 
-def send_error_mail(missing_files, admin_emails):
-    if not missing_files:
-        return
-
-    msg = EmailMessage()
-    msg['From'] = f"{alias_name} <{from_address}>"
-    msg['To'] = ", ".join(admin_emails)
-    msg['Subject'] = "⚠️ Reporte - Archivos PDF no generados"
-
-    body = "<p>No se encontraron los siguientes archivos PDF esperados:</p><ul>"
-    for f in missing_files:
-        body += f"<li>{f}</li>"
-    body += "</ul><br>VTO logix"
-
-    msg.set_content("Este mensaje requiere un cliente con soporte HTML.")
-    msg.add_alternative(body, subtype='html')
-
-    try:
-        with smtplib.SMTP(smtp_server, smtp_port) as smtp:
-            smtp.starttls()
-            smtp.login(smtp_from, smtp_password)
-            smtp.send_message(msg)
-        print(f"Correo de advertencia enviado a {', '.join(admin_emails)}")
-    except Exception as e:
-        print(f"Error al enviar correo de advertencia: {e}")
-
 def main():
     os.makedirs(downloads_folder, exist_ok=True)
-
-    with open(os.path.join(os.path.dirname(BASE_DIR), "Destinatarios.json"), "r", encoding="utf-8-sig") as f:
-        config = json.load(f)
 
     clientes = obtener_clientes_desde_api()
     if not clientes:
@@ -183,26 +132,12 @@ def main():
         print(f"Error generando PDF: {e}")
         return
 
-    pdf_name_expected = f"Reporte Diario {nombre_cliente} {alias} {fecha_str}.pdf"
-
-    destinatario_encontrado = False
-    for recipient in config['recipients']:
-        for fileConfig in recipient.get('files', []):
-            expected_name = fileConfig['fileName'].replace("{fecha}", fecha_str) + ".pdf"
-            if expected_name == os.path.basename(pdf_path):
-                send_mail(recipient, pdf_path)
-                destinatario_encontrado = True
-                break
-        if destinatario_encontrado:
-            break
-
-    if not destinatario_encontrado:
-        print(f"No se encontró destinatario para {pdf_name_expected}, o no está configurado en Destinatarios.json.")
+    send_mail(pdf_path, nombre_cliente, fecha_str)
 
     try:
         os.remove(pdf_path)
     except Exception as e:
-        print(f"No se pudo eliminar {pdf_name_expected}: {e}")
+        print(f"No se pudo eliminar {pdf_path}: {e}")
 
     print("Proceso finalizado.")
 
