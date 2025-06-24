@@ -42,9 +42,8 @@ DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")
 
-
 # Daily endpoints
-@report.get("/pie-data-proc")
+@report.get("/pie-data-proc", tags=["daily"])
 def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         # Connect to DB
@@ -93,7 +92,7 @@ def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente")
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/line-data-proc")
+@report.get("/line-data-proc", tags=["daily"])
 def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         
@@ -161,7 +160,7 @@ def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), li
     except Exception as e:
         return JSONResponse(content={"error": str(e)})
 
-@report.get("/comments-data")
+@report.get("/comments-data", tags=["daily"])
 def get_comments_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         conn = mysql.connector.connect(
@@ -234,7 +233,7 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/stats-data")
+@report.get("/stats-data", tags=["daily"])
 def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         # Conectar a la base de datos
@@ -297,7 +296,7 @@ def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), l
         return {"error": str(err)}
     
 # Select Date
-@report.get("/pie-data-proc-day")
+@report.get("/pie-data-proc-day", tags=["selectDate"])
 def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente"), date: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
         # Connect to DB
@@ -346,7 +345,7 @@ def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente")
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/line-data-proc-day")
+@report.get("/line-data-proc-day", tags=["selectDate"])
 def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente"), date: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
         
@@ -414,7 +413,7 @@ def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), li
     except Exception as e:
         return JSONResponse(content={"error": str(e)})
 
-@report.get("/comments-data-day")
+@report.get("/comments-data-day", tags=["selectDate"])
 def get_comments_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente"), date: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
         conn = mysql.connector.connect(
@@ -487,7 +486,7 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/stats-data-day")
+@report.get("/stats-data-day", tags=["selectDate"])
 def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente"), date: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
         # Conectar a la base de datos
@@ -550,8 +549,7 @@ def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), l
         return {"error": str(err)}
 
 # Weekly endpoints
-"""
-@report.get("/pie-data-proc", tags=["weekly"])
+@report.get("/week/pie-data-proc", tags=["weekly"])
 def get_pie_data_proc_weekly(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         # Connect to DB
@@ -563,7 +561,6 @@ def get_pie_data_proc_weekly(id_cliente: int = Query(..., description="ID del cl
         )
         cursor = conn.cursor()
 
-        # Call the stored procedure with id_cliente instead of 7,7
         cursor.execute(
             "call DataFiltradaWeekFecha(%s, %s, %s, CURDATE()-7)",
             (id_cliente, id_cliente, linea)
@@ -600,75 +597,7 @@ def get_pie_data_proc_weekly(id_cliente: int = Query(..., description="ID del cl
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/line-data-proc", tags=["weekly"])
-def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
-    try:
-        
-        # Conectar a la base de datos
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME
-        )
-        cursor = conn.cursor()
-
-        # Ejecutar SP con la fecha proporcionada
-        cursor.execute(
-            "call DataFiltradaDayFecha(%s, %s, %s, CURDATE()-1)",
-            (id_cliente, id_cliente, linea)
-        )
-        results = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-
-        if not results:
-            return {"error": "No data found for the specified date."}
-
-        # Organizar los datos por tiempo
-        data = [
-            {"time": row[1], "corriente": row[2]} for row in results
-        ]
-        
-        # Ordenar los datos por tiempo
-        data.sort(key=lambda x: x["time"])
-
-        # Agrupar los datos en intervalos de 30 segundos y calcular el promedio
-        grouped_data = []
-        temp_data = []
-        start_time = data[0]["time"]  # Empezar desde el primer registro
-
-        for entry in data:
-            # Si la diferencia entre el tiempo actual y el primer registro del grupo es mayor a 30 segundos, hacer un promedio
-            if (entry["time"] - start_time) >= timedelta(seconds=30):
-                if temp_data:
-                    avg_corriente = np.round(np.mean([item["corriente"] for item in temp_data]), 2)
-                    grouped_data.append({
-                        "time": start_time.strftime('%Y-%m-%d %H:%M:%S'),
-                        "corriente": avg_corriente
-                    })
-                # Resetear el grupo y actualizar el tiempo de inicio
-                temp_data = [entry]
-                start_time = entry["time"]
-            else:
-                temp_data.append(entry)
-        
-        # Para el último grupo
-        if temp_data:
-            avg_corriente = np.round(np.mean([item["corriente"] for item in temp_data]), 2)
-            grouped_data.append({
-                "time": start_time.strftime('%Y-%m-%d %H:%M:%S'),
-                "corriente": avg_corriente
-            })
-
-        # Devolver los datos agrupados
-        return JSONResponse(content={"data": grouped_data})
-
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)})
-
-@report.get("/comments-data", tags=["weekly"])
+@report.get("/week/comments-data", tags=["weekly"])
 def get_comments_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         conn = mysql.connector.connect(
@@ -680,7 +609,7 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
         cursor = conn.cursor()
 
         cursor.execute(
-            "call DataFiltradaDayFecha(%s, %s, %s, CURDATE()-1)",
+            "call DataFiltradaWeekFecha(%s, %s, %s, CURDATE()-1)",
             (id_cliente, id_cliente, linea)
         )
         results = cursor.fetchall()
@@ -741,7 +670,7 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/stats-data", tags=["weekly"])
+@report.get("/week/stats-data", tags=["weekly"])
 def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         # Conectar a la base de datos
@@ -755,7 +684,7 @@ def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), l
 
         # Ejecutar procedimiento almacenado
         cursor.execute(
-            "call DataFiltradaDayFecha(%s, %s, %s, CURDATE()-1)",
+            "call DataFiltradaWeekFecha(%s, %s, %s, CURDATE()-1)",
             (id_cliente, id_cliente, linea)
         )
         results1 = cursor.fetchall()
@@ -803,10 +732,8 @@ def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), l
     except mysql.connector.Error as err:
         return {"error": str(err)}       
 
-"""
-
 # Static data endpoints
-@report.get("/client-data")
+@report.get("/client-data", tags=["staticData"])
 def get_client_data(id_cliente: int = Query(..., description="ID del cliente")):
     try:
         # Connect to the database
@@ -839,7 +766,7 @@ def get_client_data(id_cliente: int = Query(..., description="ID del cliente")):
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/compressor-data")
+@report.get("/compressor-data", tags=["staticData"])
 def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         # Connect to the database
@@ -872,7 +799,7 @@ def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/emails-data")
+@report.get("/emails-data", tags=["staticData"])
 def get_emails_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         # Connect to the database
@@ -909,7 +836,7 @@ def get_emails_data(id_cliente: int = Query(..., description="ID del cliente"), 
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/clients-data")
+@report.get("/clients-data", tags=["staticData"])
 def get_clients_data():
     try:
         # Connect to the database
@@ -922,7 +849,7 @@ def get_clients_data():
         cursor = conn.cursor()
 
         # Fetch data from the clientes table
-        cursor.execute("SELECT c.id_cliente, c.nombre_cliente, comp.linea, comp.Alias FROM clientes c JOIN compresores comp ON c.id_cliente = comp.id_cliente WHERE c.id_cliente NOT IN (2, 5, 6);")
+        cursor.execute("SELECT c.id_cliente, c.nombre_cliente, comp.linea, comp.Alias FROM clientes c JOIN compresores comp ON c.id_cliente = comp.id_cliente WHERE c.id_cliente NOT IN (2, 5, 6, 8);")
         results = cursor.fetchall()
 
         # Close resources
@@ -941,25 +868,6 @@ def get_clients_data():
 
     except mysql.connector.Error as err:
         return {"error": str(err)}
-    
-class PDFRequest(BaseModel):
-    cliente: str
-    fecha: str
-
-@report.post("/api/generar_pdf")
-def generar_pdf(request: PDFRequest):
-    pdf_path = f"pdfs/{request.cliente}_{request.fecha}.pdf"
-
-    # Crear carpeta si no existe
-    os.makedirs("pdfs", exist_ok=True)
-
-    # Generar PDF con ReportLab
-    c = canvas.Canvas(pdf_path)
-    c.drawString(100, 750, f"Reporte de {request.cliente}")
-    c.drawString(100, 730, f"Fecha del reporte: {request.fecha}")
-    c.save()
-
-    return {"status": "ok", "pdf_path": pdf_path}
 
 # Functions to calculate different metrics
 def percentage_load(data):
