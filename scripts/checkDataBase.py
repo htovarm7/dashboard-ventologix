@@ -103,4 +103,4 @@ def check_data():
 if __name__ == "__main__":
     while True:
         check_data()
-        time.sleep(1800)  # 1800 segundos = 30 minutos
+        time.sleep(900)  # 900 segundos = 15 minutos
