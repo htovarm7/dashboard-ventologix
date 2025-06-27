@@ -7,6 +7,8 @@
  * This file implements the daily graphs, including a Line Chart and a Gauge Chart using both Chart.js and ECharts.
  *
  * @version 1.0
+ * 
+ * http://localhost:3002/reportesS?id_cliente=7&linea=A
  */
 
 "use client";
@@ -50,8 +52,6 @@ export default function Main() {
   // Constant Declarations
   const [chartData, setChartData] = useState([0, 0, 0]);
   const [lineChartData, setLineChartData] = useState<number[]>([]);
-  const [lineChartLabels, setLineChartLabels] = useState<string[]>([]);
-  const [maxData, setMaxData] = useState(0);
   const [kWh, setKWh] = useState<number>(0);
   const [hoursWorked, setHoursWorked] = useState<number>(0);
   const [usdCost, setUsdCost] = useState<number>(0);
@@ -96,40 +96,21 @@ export default function Main() {
       setLinea(linea);
       fetchData(id, linea);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const fetchData = async (id: string, linea: string) => {
     try {
-      const [pieRes, lineRes, commentsRes, statsRes, clientRes, compressorRes] =
+      const [pieRes, clientRes, compressorRes] =
         await Promise.all([
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/pie-data-proc?id_cliente=${id}&linea=${linea}`
+              `http://127.0.0.1:8000/report/week/pie-data-proc?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/line-data-proc?id_cliente=${id}&linea=${linea}`
-            );
-            return res.json();
-          })(),
-          (async () => {
-            const res = await fetch(
-              `http://127.0.0.1:8000/report/comments-data?id_cliente=${id}&linea=${linea}`
-            );
-            return res.json();
-          })(),
-          (async () => {
-            const res = await fetch(
-              `http://127.0.0.1:8000/report/stats-data?id_cliente=${id}&linea=${linea}`
-            );
-            return res.json();
-          })(),
-          (async () => {
-            const res = await fetch(
-              `http://127.0.0.1:8000/report/client-data?id_cliente=${id}&linea=${linea}`
+              `http://127.0.0.1:8000/report/client-data?id_cliente=${id}`
             );
             return res.json();
           })(),
@@ -141,24 +122,10 @@ export default function Main() {
           })(),
         ]);
 
-      if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
+      if (clientRes.data.length > 0) 
+        setClientData(clientRes.data[0]);
       if (compressorRes.data.length > 0)
         setCompresorData(compressorRes.data[0]);
-
-      const stats = statsRes.data;
-      setKWh(stats.kWh);
-      setHoursWorked(stats.hours_worked);
-      setUsdCost(stats.usd_cost);
-      setHPNominal(stats.hp_nominal);
-      setHPEquivalente(stats.hp_equivalente);
-      setComentarioHp(stats.comentario_hp_equivalente);
-
-      const comments = commentsRes.data;
-      setFirstHour(comments.first_time);
-      setLastHour(comments.last_time);
-      setTotalCiclos(comments.total_ciclos);
-      setPromedioCiclosHora(comments.promedio_ciclos_hora);
-      setComentarioCiclos(comments.comentario_ciclos);
 
       const { LOAD, NOLOAD, OFF } = pieRes.data;
       setChartData([LOAD, NOLOAD, OFF]);
@@ -166,30 +133,7 @@ export default function Main() {
       setLoad(LOAD);
       setNoLoad(NOLOAD);
       setOff(OFF);
-
-      const rawData = lineRes.data.map((item: any) => ({
-        time: new Date(item.time),
-        corriente: item.corriente,
-      }));
-      rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
-
-      const times = rawData.map((item) =>
-        item.time.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        })
-      );
-      const currents = rawData.map((item) => item.corriente);
-
-      if (!times.includes("23:59:59")) {
-        times.push("23:59:59");
-        currents.push(null as any);
-      }
-
-      setLineChartLabels(times);
-      setLineChartData(currents);
-      setMaxData(Math.max(...currents.filter((c: any) => c !== null)) * 1.3);
+      
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -201,17 +145,6 @@ export default function Main() {
   const porcentajeUso = hp_instalado
     ? (hp_equivalente / hp_instalado) * 100
     : 0;
-  const aguja = Math.max(30, Math.min(120, porcentajeUso)); // Limita entre 30% y 120%
-
-  function getColor(porcentaje: number) {
-    if (porcentaje <= 64) return "red";
-    if (porcentaje <= 79) return "black";
-    if (porcentaje <= 92) return "green";
-    if (porcentaje <= 99) return "#418FDE";
-    if (porcentaje <= 110) return "black";
-    if (porcentaje <= 120) return "red";
-    return "black";
-  }
 
   const semanaData = {
     promedioCiclos: 15,
@@ -399,9 +332,9 @@ export default function Main() {
         {/* Main docker on rows */}
         <div className="flex justify-between items-start">
           {/* Left column: Titles */}
-          <div className="flex-1 mr-150 p-10 ">
-            <h1 className="text-5xl font-light text-center">Reporte Semanal</h1>
-            <h2 className="text-6xl font-bold text-center font-semibold font-stretch-extra-expanded tracking-wide">
+          <div className="flex-1 mr-150 p-6 ">
+            <h1 className="text-4xl font-light text-center">Reporte Semanal</h1>
+            <h2 className="text-3xl font-bold text-center font-semibold">
               Compresor: {compressorData?.alias}
             </h2>
             <p className="text-xl mt-2 text-center">
@@ -419,48 +352,48 @@ export default function Main() {
               className="h-12 w-auto m-4"
             />
 
-            <div className="flex flex-wrap gap-16 items-start text-white mt-4">
+            <div className="flex flex-wrap gap-16 items-start text-white mr-10">
               {/* Client Information */}
               <div>
-                <h2 className="text-2xl font-bold mb-4">Información Cliente</h2>
+                <h2 className="text-2xl font-bold">Información Cliente</h2>
                 <div className="flex flex-wrap gap-8 items-center text-left">
                   <div>
-                    <p className="text-xl">{clientData?.numero_cliente}</p>
+                    <p className="text-xl text-center">{clientData?.numero_cliente}</p>
                     <p className="text-sm">Número Cliente</p>
                   </div>
                   <div>
-                    <p className="text-xl">{clientData?.nombre_cliente}</p>
-                    <p className="text-sm">Nombre</p>
+                    <p className="text-xl text-center">{clientData?.nombre_cliente}</p>
+                    <p className="text-sm text-center">Nombre</p>
                   </div>
                   <div>
-                    <p className="text-xl">{clientData?.RFC}</p>
-                    <p className="text-sm">RFC</p>
+                    <p className="text-xl text-center">{clientData?.RFC}</p>
+                    <p className="text-sm text-center">RFC</p>
                   </div>
                 </div>
               </div>
 
               {/* Compresor information */}
               <div>
-                <h2 className="text-2xl font-bold mb-4">Información Compresor</h2>
+                <h2 className="text-2xl font-bold ">Información Compresor</h2>
                 <div className="flex flex-wrap gap-8 items-center text-left">
                   <div>
-                    <p className="text-xl">{compressorData?.numero_serie || "(En blanco)"}</p>
-                    <p className="text-sm">Número de serie</p>
+                    <p className="text-xl text-center">{compressorData?.numero_serie || "(En blanco)"}</p>
+                    <p className="text-sm text-center">Número de serie</p>
                   </div>
                   <div>
-                    <p className="text-xl">{compressorData?.marca || "(En blanco)"}</p>
-                    <p className="text-sm">Marca</p>
+                    <p className="text-xl text-center">{compressorData?.marca || "(En blanco)"}</p>
+                    <p className="text-sm text-center">Marca</p>
                   </div>
                   <div>
-                    <p className="text-xl">{compressorData?.tipo}</p>
-                    <p className="text-sm">Tipo</p>
+                    <p className="text-xl text-center">{compressorData?.tipo}</p>
+                    <p className="text-sm text-center">Tipo</p>
                   </div>
                   <div>
-                    <p className="text-xl">{compressorData?.voltaje}</p>
-                    <p className="text-sm">Voltaje</p>
+                    <p className="text-xl text-center">{compressorData?.voltaje}</p>
+                    <p className="text-sm text-center">Voltaje</p>
                   </div>
                   <div>
-                    <p className="text-xl">{compressorData?.hp}</p>
+                    <p className="text-xl text-center">{compressorData?.hp}</p>
                     <p className="text-sm">HP</p>
                   </div>
                 </div>
@@ -468,128 +401,6 @@ export default function Main() {
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="flex flex-col items-center justify-center p-4 gap-6">
-        {/* KPIs */}
-        <div className="flex flex-row gap-8 mt-2">
-          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-            <h2 className="text-xl text-black">Gasto USD*</h2>
-            <p className="text-3xl font-bold text-black">
-              ${usdCost.toFixed(2)}
-            </p>
-          </div>
-          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-            <h2 className="text-xl text-black">kWh Utilizados</h2>
-            <p className="text-3xl font-bold text-black">
-              {kWh.toFixed(0)} kWh
-            </p>
-          </div>
-          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-            <h2 className="text-xl text-black">Horas Trabajadas</h2>
-            <p className="text-3xl font-bold text-black">
-              {hoursWorked.toFixed(1)} h
-            </p>
-          </div>
-        </div>
-
-        {Off == 100 ? (
-          <p className="text-5xl text-left mt-4 text-blue-700 text-bold">
-            {" "}
-            El compresor estuvo apagado todo el dia
-          </p>
-        ) : (
-          <div className="gap-10 items-left justify-left text-left">
-            <h1 className="text-3xl font-bold">Comentarios</h1>
-
-            <p className="text-xl text-left">
-              • El día de ayer{" "}
-              <strong>
-                (
-                {new Date(
-                  new Date().setDate(new Date().getDate() - 1)
-                ).toLocaleDateString("es-ES", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                })}
-                )
-              </strong>{" "}
-              se iniciaron labores a las <strong>{firstHour}</strong> y se
-              concluyeron a las <strong>{lastHour}</strong>
-            </p>
-
-            <p className="text-xl text-left mt-2">
-              • Entre las horas de <strong>{firstHour}</strong> y{" "}
-              <strong>{lastHour}</strong>, el compresor operó de la siguiente
-              manera:
-            </p>
-
-            <ul className="list-disc ml-8 text-xl text-left">
-              <li>
-                <strong>LOAD:</strong> {Load}%
-              </li>
-              <li>
-                <strong>NO LOAD:</strong> {NoLoad}%
-              </li>
-              <li>
-                <strong>OFF:</strong> {Off}%
-              </li>
-            </ul>
-
-            <p className="text-xl text-left mt-2">
-              • Durante el día se completaron un total de{" "}
-              <strong>{totalCiclos}</strong> ciclos de trabajo. Un ciclo se
-              define como un cambio desde el estado <strong>LOAD</strong> a{" "}
-              <strong>NO LOAD</strong> consecutivamente.
-            </p>
-
-            <p className="text-xl text-left mt-2">
-              • El promedio de ciclos por hora trabajada fue de{" "}
-              <strong>{promedioCiclosHora}</strong> ciclos/hora.
-            </p>
-
-            <p className="text-xl text-left mt-2">
-              • El costo total de operación del compresor fue de{" "}
-              <strong>${usdCost.toFixed(2)}</strong>.
-            </p>
-
-            <p className="text-xl text-left mt-2">• {comentarioCiclos}</p>
-
-            <p className="text-xl text-left mt-2">
-              • No se detectaron consumos con valores fuera de lo común.
-            </p>
-
-            <p className="text-xl text-left mt-2">• {comentarioHp}</p>
-
-            <p className="text-xl text-left mt-2">
-              • El costo por kilovatio-hora (kWh) utilizado en este análisis es
-              de <strong>$0.17 USD/kWh</strong>, que es el estándar actualmente
-              aplicado. Sin embargo, si requiere confirmar este valor o necesita
-              ajustar la tarifa, puede verificar con su contacto en{" "}
-              <strong>VENTOLOGIX</strong>
-            </p>
-
-            <h1 className="text-xl text-left mt-7 font-bold">
-              IQgineer VENTOLOGIX asignado:
-            </h1>
-            <p className="text-xl text-left mt-2">
-              <strong>Nombre:</strong> Ing. Andrés Mirazo
-            </p>
-            <p className="text-xl text-left mt-2">
-              <strong>Teléfono:</strong> 81 8477 7023
-            </p>
-            <p className="text-xl text-left mt-2">
-              <strong>Correo:</strong>{" "}
-              <a
-                href="mailto:Andres.Mirazo@ventologix.com"
-                className="text-blue-600 hover:scale-120 hover:text-blue-800  duration-300"
-              >
-                Andres.Mirazo@ventologix.com
-              </a>
-            </p>
-          </div>
-        )}
       </div>
     </main>
   );
