@@ -30,6 +30,7 @@ import {
   LinearScale,
   PointElement,
 } from "chart.js";
+
 import { Pie, Chart } from "react-chartjs-2";
 
 // ECharts for the gauge chart
@@ -139,117 +140,170 @@ export default function Main() {
     }
   };
 
-  const limite = compressorData?.limite ?? 0;
-  const hp_instalado = hpNominal;
-  const hp_equivalente = hpeq;
-  const porcentajeUso = hp_instalado
-    ? (hp_equivalente / hp_instalado) * 100
-    : 0;
-
   const semanaData = {
     promedioCiclos: 15,
-    promedioHorasPorDia: 20,
+    costoKWH: 0.15,
     hpEquivalente: 120,
   };
+  
   const ciclosOptions = {
+    tooltip: { show: true },
     series: [
       {
         type: "gauge",
         min: 0,
-        max: 30,
+        max: 20,
+        startAngle: 200,
+        endAngle: -20,  
         animation: false,
         axisLine: {
           lineStyle: {
-            width: 30,
+            width: 28,
             color: [
-              [0.5, "red"],
-              [0.8, "yellow"],
-              [1, "green"],
+              [0.4, "#418FDE"], 
+              [0.6, "green"],    
+              [0.75, "yellow"],  
+              [1, "red"],
             ],
           },
         },
-        pointer: {
-          itemStyle: { color: "black" },
+        axisLabel: {
+          show: true,
+          color: "black",
+          distance: -40,
+          formatter: function(value: number) {
+            if (value === 0) return '0';
+            if (value === 30) return 'Max';
+            return '';
+          },
+          fontSize: 16,
+          fontWeight: "bold"
         },
+        axisTick: { show: false},
+        splitLine: { show: false},
+        pointer: { itemStyle: { color: "black" }, length: "100%", width: 3},
         detail: {
-          formatter: () => `${semanaData.promedioCiclos.toFixed(1)} ciclos/hr`,
-          fontSize: 20,
-        },
-        title: {
-          offsetCenter: [0, "70%"],
-          text: "Prom. Ciclos",
-          fontSize: 14,
+          formatter: () => `${semanaData.promedioCiclos}`,
+          fontSize: 18,
+          offsetCenter: [0, "30%"],
+          color:
+            semanaData.promedioCiclos <= 8
+              ? "#418FDE"
+              : semanaData.promedioCiclos <= 12
+              ? "green"
+              : semanaData.promedioCiclos <= 15
+              ? "yellow"
+              : "red",
         },
         data: [{ value: semanaData.promedioCiclos }],
       },
     ],
   };
 
-  const horasOptions = {
+  const hpOptions = {
+    tooltip: { show: true },
     series: [
       {
         type: "gauge",
-        min: 0,
-        max: 24,
+        min: 30,
+        max: 120,
+        startAngle: 200,
+        endAngle: -20,
         animation: false,
         axisLine: {
           lineStyle: {
             width: 30,
             color: [
-              [0.3, "red"],
-              [0.7, "yellow"],
-              [1, "green"],
+              [0.377, "red"],       
+              [0.544, "yellow"],   
+              [0.689, "green"],     
+              [0.766, "#418FDE"],  
+              [0.889, "yellow"],    
+              [1, "red"],         
             ],
           },
         },
-        pointer: {
-          itemStyle: { color: "black" },
+        axisLabel: {
+          show: true,
+          color: "black",
+          distance: -40,
+          formatter: function(value: number) {
+            if (value === 30) return '30%';
+            if (value === 100) return '100%';
+            if (value === 120) return '120%';
+            return '';
+          },
+          fontSize: 16,
+          fontWeight: "bold"
         },
+        axisTick: { show: false},
+        splitLine: { show: false},
+        pointer: { itemStyle: { color: "black" }, length: "100%", width: 3},
         detail: {
-          formatter: () =>
-            `${semanaData.promedioHorasPorDia.toFixed(1)} hrs/día`,
-          fontSize: 20,
+          formatter: () => `${semanaData.hpEquivalente}%`,
+          fontSize: 18,
+          offsetCenter: [0, "30%"],
+          color: semanaData.hpEquivalente > 110
+            ? "red"
+            : semanaData.hpEquivalente > 99
+            ? "black"
+            : semanaData.hpEquivalente > 92
+            ? "#418FDE"
+            : semanaData.hpEquivalente > 79
+            ? "green"
+            : semanaData.hpEquivalente > 64
+            ? "yellow"
+            : "red",
         },
-        title: {
-          offsetCenter: [0, "70%"],
-          text: "Prom. Horas",
-          fontSize: 14,
-        },
-        data: [{ value: semanaData.promedioHorasPorDia }],
+        data: [{ value: semanaData.hpEquivalente }],
       },
     ],
   };
 
-  const hpOptions = {
+  const costoOptions = {
+    tooltip: { show: true },
     series: [
       {
         type: "gauge",
-        min: 0,
-        max: 200,
+        min: 0.10,
+        max: 0.34,
+        startAngle: 200,
+        endAngle: -20,
         animation: false,
         axisLine: {
           lineStyle: {
             width: 30,
             color: [
-              [0.5, "red"],
-              [0.8, "yellow"],
-              [1, "green"],
+              [0.333, "green"],   
+              [0.5, "yellow"],    
+              [1, "red"],         
             ],
           },
         },
-        pointer: {
-          itemStyle: { color: "black" },
+        axisLabel: {
+          show: true,
+          color: "black",
+          distance: -40,
+          formatter: function(value: number) {
+            if (value === 0.10) return '$0.10';
+            if (value === 0.34) return '$0.34';
+            return '';
+          },
+          fontSize: 16,
+          fontWeight: "bold"
         },
+        axisTick: { show: false},
+        splitLine: { show: false},
+        pointer: { itemStyle: { color: "black" }, length: "100%", width: 3},
         detail: {
-          formatter: () => `${semanaData.hpEquivalente.toFixed(1)} HP`,
-          fontSize: 20,
+          formatter: () => `$${semanaData.costoKWH}`,
+          fontSize: 18,
+          offsetCenter: [0, "30%"],
+          color: semanaData.costoKWH <= 0.18 ? "green" :
+          semanaData.costoKWH <= 0.22 ? "yellow" :
+          "red",
         },
-        title: {
-          offsetCenter: [0, "70%"],
-          text: "HP Equiv",
-          fontSize: 14,
-        },
-        data: [{ value: semanaData.hpEquivalente }],
+        data: [{ value: semanaData.costoKWH }],
       },
     ],
   };
@@ -402,6 +456,47 @@ export default function Main() {
           </div>
         </div>
       </div>
+
+      <div className="flex items-start ml-20 gap-30">
+        <div className="inline-block mt-20">
+          {/* Primera fila */}
+          <div className="flex">
+            <div className="bg-blue-500 text-white text-center px-4 py-2 w-40">Óptimo</div>
+            <div className="bg-green-600 text-white text-center px-4 py-2 w-40">Bueno</div>
+          </div>
+          {/* Segunda fila */}
+          <div className="flex">
+            <div className="bg-yellow-400 text-black text-center px-4 py-2 w-40 font-bold">Intermedio</div>
+            <div className="bg-red-600 text-white text-center px-4 py-2 w-40">Malo</div>
+          </div>
+        </div>
+
+        {/* Gauges */}
+        <div className="flex items-center gap-10 ml-50">
+          <ReactECharts
+            option={ciclosOptions}
+            style={{ height: "280px", width: "350px" }}
+            notMerge={true}
+            lazyUpdate={true}
+            theme={"light"}
+          />
+          <ReactECharts
+            option={hpOptions}
+            style={{ height: "280px", width: "350px" }}
+            notMerge={true}
+            lazyUpdate={true}
+            theme={"light"}
+          />
+          <ReactECharts
+            option={costoOptions}
+            style={{ height: "280px", width: "350px" }}
+            notMerge={true}
+            lazyUpdate={true}
+            theme={"light"}
+          />
+        </div>
+      </div>
+
     </main>
   );
 }
