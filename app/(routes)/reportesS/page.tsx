@@ -432,6 +432,55 @@ export default function Main() {
       },
     ],
   };
+
+  const ciclosPromedioOption = {
+    xAxis: {
+      type: "category",
+      data: [
+        "Lunes",
+        "Martes",
+        "Miercoles",
+        "Jueves",
+        "Viernes",
+        "Sabado",
+        "Domingo",
+      ],
+    },
+    yAxis: {
+      type: "value",
+    },
+    series: [
+      {
+        data: [120, 200, 150, 80, 70, 110, 130],
+        type: "bar",
+      },
+    ],
+  };
+
+  const hpEquivalenteOption = {
+    xAxis: {
+      type: "category",
+      data: [
+        "Lunes",
+        "Martes",
+        "Miercoles",
+        "Jueves",
+        "Viernes",
+        "Sabado",
+        "Domingo",
+      ],
+    },
+    yAxis: {
+      type: "value",
+    },
+    series: [
+      {
+        data: [120, 200, 150, 80, 70, 110, 130],
+        type: "bar",
+      },
+    ],
+  };
+
   const dataPie = {
     labels: ["LOAD", "NO LOAD", "OFF"],
     datasets: [
@@ -712,6 +761,149 @@ export default function Main() {
               Considerando el costo de 0.17 USD por kWh, el total de gasto en energía en la última
               semana fue de {costoSemanaPasada}, lo que refleja una diferencia significativa respecto al
               promedio de {costoPromedio12Semanas}.
+            </p> */}
+          </div>
+        </div>
+        <div className="flex">
+          <div className="flex-1 items-center text-center p-4">
+            {/* Contenido columna 1 */}
+            <ReactECharts
+              option={kwhDiariosOption}
+              style={{ height: 350, width: 900 }}
+              notMerge={true}
+              lazyUpdate={true}
+              theme={"light"}
+            />
+          </div>
+          <div className="flex-1 items-center text-center p-4">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+              <h2 className="text-xl text-black">Costo $USD</h2>
+              <p className="text-3xl font-bold text-black">
+                {/* {costoSemanaAnterior.toFixed(2)} */}
+              </p>
+            </div>
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+              <h2 className="text-xl text-black">Consumo kWH</h2>
+              <p className="text-3xl font-bold text-black">
+                {/* {kwhSemanaAnterior.toFixed(0)} */}
+              </p>
+            </div>
+          </div>
+          <div className="flex-1 items-center text-center mr-20">
+            {/* Contenido columna 3 */}
+            <h4 className="font-bold text-left text-xl">
+              A) Consumo energético y costo
+            </h4>
+            {/* <p className="text-lg text-justify">
+              En la última semana, el consumo de energía del compresor fue {commentConsumoEnergia} que el
+              promedio de las últimas 12 semanas. El promedio de consumo de energía fue de
+              {kwhPromedio12Semanas}, mientras que en la semana pasada se consumieron {kwhSemanaPasada}. Este
+              consumo impactó directamente en el costo de energía, que reflejó un cambio del
+              {commentConsumoEnergia} en comparación con el promedio de las últimas 12 semanas.
+              Considerando el costo de 0.17 USD por kWh, el total de gasto en energía en la última
+              semana fue de {costoSemanaPasada}, lo que refleja una diferencia significativa respecto al
+              promedio de {costoPromedio12Semanas}.
+            </p> */}
+          </div>
+        </div>
+        <div className="flex">
+          <div className="flex-1 items-center text-center p-4">
+            {/* Contenido columna 1 */}
+            <ReactECharts
+              option={ciclosPromedioOption}
+              style={{ height: 350, width: 900 }}
+              notMerge={true}
+              lazyUpdate={true}
+              theme={"light"}
+            />
+          </div>
+          <div className="flex-1 items-center text-center p-4">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+              <h2 className="text-xl text-black">Ciclos por hora (C/Hr)</h2>
+              <p className="text-3xl font-bold text-black">
+                {/* {ciclosPorHora.toFixed(2)} */}
+              </p>
+            </div>
+          </div>
+          <div className="flex-1 items-center text-center mr-20">
+            {/* Contenido columna 3 */}
+            <h4 className="font-bold text-left text-xl">
+              B) Comparación de ciclos de operación:
+            </h4>
+            {/* <p className="text-lg text-justify">
+              El número de ciclos realizados por el compresor en la última semana fue -21.3%
+              menor que en semanas anteriores. En términos absolutos, se realizaron 29.0
+              ciclos, mientras que el promedio de las últimas semanas fue de 36.9 ciclos. Este
+              indicador refleja la frecuencia con la que el compresor inicia y detiene su ciclo
+              de trabajo, lo que impacta tanto en la eficiencia como en el desgaste del equipo.
+            </p> */}
+          </div>
+        </div>
+        <div className="flex">
+          <div className="flex-1 items-center text-center p-4">
+            {/* Contenido columna 1 */}
+            <ReactECharts
+              option={hpEquivalenteOption}
+              style={{ height: 350, width: 900 }}
+              notMerge={true}
+              lazyUpdate={true}
+              theme={"light"}
+            />
+          </div>
+          <div className="flex-1 items-center text-center p-4">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+              <h2 className="text-xl text-black">HP Equivalente**</h2>
+              <p className="text-3xl font-bold text-black">
+                {/* {hpEquivalente.toFixed(0)} */}
+              </p>
+            </div>
+          </div>
+          <div className="flex-1 items-center text-center mr-20">
+            {/* Contenido columna 3 */}
+            <h4 className="font-bold text-left text-xl">
+              C) Comparación de HP Equivalente:
+            </h4>
+            {/* <p className="text-lg text-justify">
+              El HP Equivalente en la última semana fue -16.3% menor que el promedio de las
+              últimas 12 semanas. Este valor es crucial ya que refleja el rendimiento y la carga
+              de trabajo del compresor en relación con la potencia necesaria. En la última
+              semana, el compresor operó con un HP Equivalente de 48.4, mientras que el
+              promedio de las últimas semanas fue de 57.9 HP. Esta variación puede ser un
+              indicativo de cambios en la carga o en la eficiencia operativa del compresor.
+            </p> */}
+          </div>
+        </div>
+        <div className="flex">
+          <div className="flex-1 items-center text-center p-4">
+            {/* Contenido columna 1 */}
+            <ReactECharts
+              option={pieOptions}
+              style={{ height: 350, width: 900 }}
+              notMerge={true}
+              lazyUpdate={true}
+              theme={"light"}
+            />
+          </div>
+          <div className="flex-1 items-center text-center p-4">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+              <h2 className="text-xl text-black">Uso Activo</h2>
+              <p className="text-3xl font-bold text-black">
+                {/* {usoActivo.toFixed(1)} */}
+              </p>
+            </div>
+          </div>
+          <div className="flex-1 items-center text-center mr-20">
+            {/* Contenido columna 3 */}
+            <h4 className="font-bold text-left text-xl">
+              D) Comparación de horas de Uso Activo:
+            </h4>
+            {/* <p className="text-lg text-justify">
+              El compresor operó un 18.3% más tiempo en la última semana en comparación
+              con el promedio de las últimas 12 semanas. En la semana pasada, el compresor
+              estuvo en operación durante 130.6 horas, mientras que el promedio de las
+              últimas semanas fue de 110.4 horas por día. Esta variación puede indicar un
+              aumento o disminución en la demanda o en el ciclo de trabajo del compresor,
+              afectando su tiempo de operación.
             </p> */}
           </div>
         </div>
