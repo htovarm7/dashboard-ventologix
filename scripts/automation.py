@@ -152,24 +152,6 @@ def send_error_mail(missing_files, admin_emails):
     except Exception as e:
         print(f"Error al enviar correo de advertencia: {e}")
 
-"""
-def intentar_generar_pdf(id_cliente, linea, nombre_cliente, alias, max_reintentos=3):
-    intentos = 0
-    while intentos < max_reintentos:
-        try:
-            print(f"Intento {intentos + 1} de {max_reintentos} para generar PDF de {nombre_cliente}")
-            return generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias)
-        except Exception as e:
-            intentos += 1
-            print(f"Error generando PDF (intento {intentos}) para {nombre_cliente}: {e}")
-            if intentos < max_reintentos:
-                print("Reintentando en 5 segundos...")
-                time.sleep(5)
-            else:
-                print(f"❌ Fallaron los {max_reintentos} intentos para {nombre_cliente}")
-                return None
-"""
-
 # --- Función principal que junta todo ---
 def clean_pdfs_folder():
     """Elimina todos los archivos PDF generados en la carpeta pdfs."""
@@ -197,9 +179,11 @@ def main():
         linea = cliente['linea']
         nombre_cliente = cliente['nombre_cliente']
         alias = cliente['alias'].strip()
-        
-        print(f"Generando PDF para cliente {nombre_cliente}, línea {linea}")
-        pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias)
+        try:
+            print(f"Generando PDF para cliente {nombre_cliente}, línea {linea}")
+            generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias)
+        except Exception as e:
+            print(f"Error generando PDF para cliente {nombre_cliente}: {e}")
 
     missing_files = []
 
@@ -222,6 +206,7 @@ def main():
     send_error_mail(missing_files, admin_correos)
     print("Proceso finalizado.")
 
+# --- Ejecutar con control de interrupción ---
 if __name__ == "__main__":
     try:
         main()
@@ -232,4 +217,3 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Error inesperado: {e}. Limpiando PDFs generados...")
         clean_pdfs_folder()
-        print("Carpeta de PDFs limpiada. Terminando proceso.")
