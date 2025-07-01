@@ -220,7 +220,6 @@ def main():
     send_error_mail(missing_files, admin_correos)
     print("Proceso finalizado.")
 
-# --- Ejecutar con control de interrupción ---
 if __name__ == "__main__":
     try:
         main()

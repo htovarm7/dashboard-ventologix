@@ -308,6 +308,113 @@ export default function Main() {
     ],
   };
 
+  const consumoOptions = {
+    title: {
+      text: "kWh usados por día durante la semana",
+      left: "center",
+      top: 0,
+      textStyle: {
+        fontSize: 18,
+        fontWeight: "bold",
+      },
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow",
+      },
+    },
+    legend: {
+      top: 30,
+      data: ["Turno 1", "Turno 2", "Turno 3"],
+    },
+    grid: {
+      left: "10%",
+      right: "5%",
+      bottom: 60,
+      containLabel: true,
+    },
+    xAxis: {
+      type: "value",
+      name: "kWh Utilizada",
+      nameLocation: "middle",
+      nameGap: 40, 
+      nameTextStyle: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "#333",
+      },
+      splitLine: {
+        show: true,
+      },
+    },
+    yAxis: {
+      type: "category",
+      data: ["domingo", "sabado", "viernes", "jueves", "miercoles", "martes", "lunes"],
+      axisTick: {
+        alignWithLabel: true,
+      },
+      axisLabel: {
+        fontSize: 16,     
+        fontWeight: "bold", 
+        color: "#333",      
+      },
+    },
+    series: [
+      {
+        name: "Turno 1",
+        type: "bar",
+        stack: "total",
+        emphasis: {
+          focus: "series",
+        },
+        itemStyle: {
+          color: "#001f54",
+        },
+        data: [400, 500, 300, 450, 400, 300, 350],
+      },
+      {
+        name: "Turno 2",
+        type: "bar",
+        stack: "total",
+        emphasis: {
+          focus: "series",
+        },
+        itemStyle: {
+          color: "#0074cc",
+        },
+        data: [600, 550, 400, 500, 450, 500, 600],
+      },
+      {
+        name: "Turno 3",
+        type: "bar",
+        stack: "total",
+        emphasis: {
+          focus: "series",
+        },
+        itemStyle: {
+          color: "#4db6ac",
+        },
+        data: [500, 600, 700, 800, 600, 650, 500],
+      },
+    ],
+  };
+
+  const kwhDiariosOption = {
+  xAxis: {
+    type: 'category',
+    data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  },
+  yAxis: {
+    type: 'value'
+  },
+  series: [
+    {
+      data: [120, 200, 150, 80, 70, 110, 130],
+      type: 'bar'
+    }
+  ]
+};
   const dataPie = {
     labels: ["LOAD", "NO LOAD", "OFF"],
     datasets: [
@@ -496,6 +603,59 @@ export default function Main() {
           />
         </div>
       </div>
+
+      { /* Line Chart */}
+      <div className="flex justify-center ">
+        <ReactECharts option={consumoOptions} style={{ height: 300, width: 1600 }} notMerge={true} lazyUpdate={true} theme={"light"}/>
+      </div>
+
+      <div className="flex items-center justify-center mt-10 mb-10">
+        {/* Lado izquierdo */}
+        <div className="flex flex-col gap-1 w-124">
+          <div className="h-3 bg-blue-500 w-full"></div>
+          <div className="h-3 bg-blue-500 w-3/4"></div>
+        </div>
+
+        {/* Texto */}
+        <h1 className="mx-6 text-blue-900 font-bold text-4xl text-center">
+          Semana Pasada <span className="font-normal text-black">vs</span> Promedio 12 Semanas Anteriores
+        </h1>
+
+        {/* Lado derecho */}
+        <div className="flex flex-col gap-1 w-124">
+          <div className="h-3 bg-blue-500 w-full"></div>
+          <div className="h-3 bg-blue-500 w-3/4 self-end"></div>
+        </div>
+      </div>
+
+      <div className="flex flex-col mb-10">
+        <div className="flex">
+          <div className="flex-1 items-center text-center p-4">
+            {/* Contenido columna 1 */}
+            <ReactECharts option={kwhDiariosOption} style={{ height: 350, width: 900 }} notMerge={true} lazyUpdate={true} theme={"light"}/>
+          </div>
+          <div className="flex-1 items-center text-center p-4">
+            {/* Contenido columna 2 */}
+            <p>En esta columna irá tal cosa 2</p>
+          </div>
+          <div className="flex-1 items-center text-center mr-20">
+            {/* Contenido columna 3 */}
+            <h4 className="font-bold text-left text-xl">A) Consumo energético y costo</h4>
+            {/* <p className="text-lg text-justify">
+              En la última semana, el consumo de energía del compresor fue {commentConsumoEnergia} que el
+              promedio de las últimas 12 semanas. El promedio de consumo de energía fue de
+              {kwhPromedio12Semanas}, mientras que en la semana pasada se consumieron {kwhSemanaPasada}. Este
+              consumo impactó directamente en el costo de energía, que reflejó un cambio del
+              {commentConsumoEnergia} en comparación con el promedio de las últimas 12 semanas.
+              Considerando el costo de 0.17 USD por kWh, el total de gasto en energía en la última
+              semana fue de {costoSemanaPasada}, lo que refleja una diferencia significativa respecto al
+              promedio de {costoPromedio12Semanas}.
+            </p> */}
+          </div>
+        </div>
+      </div>
+
+
 
     </main>
   );
