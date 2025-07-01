@@ -7,7 +7,7 @@
  * This file implements the daily graphs, including a Line Chart and a Gauge Chart using both Chart.js and ECharts.
  *
  * @version 1.0
- * 
+ *
  * http://localhost:3002/reportesS?id_cliente=7&linea=A
  */
 
@@ -101,30 +101,28 @@ export default function Main() {
 
   const fetchData = async (id: string, linea: string) => {
     try {
-      const [pieRes, clientRes, compressorRes] =
-        await Promise.all([
-          (async () => {
-            const res = await fetch(
-              `http://127.0.0.1:8000/report/week/pie-data-proc?id_cliente=${id}&linea=${linea}`
-            );
-            return res.json();
-          })(),
-          (async () => {
-            const res = await fetch(
-              `http://127.0.0.1:8000/report/client-data?id_cliente=${id}`
-            );
-            return res.json();
-          })(),
-          (async () => {
-            const res = await fetch(
-              `http://127.0.0.1:8000/report/compressor-data?id_cliente=${id}&linea=${linea}`
-            );
-            return res.json();
-          })(),
-        ]);
+      const [pieRes, clientRes, compressorRes] = await Promise.all([
+        (async () => {
+          const res = await fetch(
+            `http://127.0.0.1:8000/report/week/pie-data-proc?id_cliente=${id}&linea=${linea}`
+          );
+          return res.json();
+        })(),
+        (async () => {
+          const res = await fetch(
+            `http://127.0.0.1:8000/report/client-data?id_cliente=${id}`
+          );
+          return res.json();
+        })(),
+        (async () => {
+          const res = await fetch(
+            `http://127.0.0.1:8000/report/compressor-data?id_cliente=${id}&linea=${linea}`
+          );
+          return res.json();
+        })(),
+      ]);
 
-      if (clientRes.data.length > 0) 
-        setClientData(clientRes.data[0]);
+      if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
       if (compressorRes.data.length > 0)
         setCompresorData(compressorRes.data[0]);
 
@@ -134,7 +132,6 @@ export default function Main() {
       setLoad(LOAD);
       setNoLoad(NOLOAD);
       setOff(OFF);
-      
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -145,7 +142,7 @@ export default function Main() {
     costoKWH: 0.15,
     hpEquivalente: 120,
   };
-  
+
   const ciclosOptions = {
     tooltip: { show: true },
     series: [
@@ -154,15 +151,15 @@ export default function Main() {
         min: 0,
         max: 20,
         startAngle: 200,
-        endAngle: -20,  
+        endAngle: -20,
         animation: false,
         axisLine: {
           lineStyle: {
             width: 28,
             color: [
-              [0.4, "#418FDE"], 
-              [0.6, "green"],    
-              [0.75, "yellow"],  
+              [0.4, "#418FDE"],
+              [0.6, "green"],
+              [0.75, "yellow"],
               [1, "red"],
             ],
           },
@@ -171,17 +168,17 @@ export default function Main() {
           show: true,
           color: "black",
           distance: -40,
-          formatter: function(value: number) {
-            if (value === 0) return '0';
-            if (value === 30) return 'Max';
-            return '';
+          formatter: function (value: number) {
+            if (value === 0) return "0";
+            if (value === 30) return "Max";
+            return "";
           },
           fontSize: 16,
-          fontWeight: "bold"
+          fontWeight: "bold",
         },
-        axisTick: { show: false},
-        splitLine: { show: false},
-        pointer: { itemStyle: { color: "black" }, length: "100%", width: 3},
+        axisTick: { show: false },
+        splitLine: { show: false },
+        pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
           formatter: () => `${semanaData.promedioCiclos}`,
           fontSize: 18,
@@ -214,12 +211,12 @@ export default function Main() {
           lineStyle: {
             width: 30,
             color: [
-              [0.377, "red"],       
-              [0.544, "yellow"],   
-              [0.689, "green"],     
-              [0.766, "#418FDE"],  
-              [0.889, "yellow"],    
-              [1, "red"],         
+              [0.377, "red"],
+              [0.544, "yellow"],
+              [0.689, "green"],
+              [0.766, "#418FDE"],
+              [0.889, "yellow"],
+              [1, "red"],
             ],
           },
         },
@@ -227,33 +224,34 @@ export default function Main() {
           show: true,
           color: "black",
           distance: -40,
-          formatter: function(value: number) {
-            if (value === 30) return '30%';
-            if (value === 100) return '100%';
-            if (value === 120) return '120%';
-            return '';
+          formatter: function (value: number) {
+            if (value === 30) return "30%";
+            if (value === 100) return "100%";
+            if (value === 120) return "120%";
+            return "";
           },
           fontSize: 16,
-          fontWeight: "bold"
+          fontWeight: "bold",
         },
-        axisTick: { show: false},
-        splitLine: { show: false},
-        pointer: { itemStyle: { color: "black" }, length: "100%", width: 3},
+        axisTick: { show: false },
+        splitLine: { show: false },
+        pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
           formatter: () => `${semanaData.hpEquivalente}%`,
           fontSize: 18,
           offsetCenter: [0, "30%"],
-          color: semanaData.hpEquivalente > 110
-            ? "red"
-            : semanaData.hpEquivalente > 99
-            ? "black"
-            : semanaData.hpEquivalente > 92
-            ? "#418FDE"
-            : semanaData.hpEquivalente > 79
-            ? "green"
-            : semanaData.hpEquivalente > 64
-            ? "yellow"
-            : "red",
+          color:
+            semanaData.hpEquivalente > 110
+              ? "red"
+              : semanaData.hpEquivalente > 99
+              ? "black"
+              : semanaData.hpEquivalente > 92
+              ? "#418FDE"
+              : semanaData.hpEquivalente > 79
+              ? "green"
+              : semanaData.hpEquivalente > 64
+              ? "yellow"
+              : "red",
         },
         data: [{ value: semanaData.hpEquivalente }],
       },
@@ -265,7 +263,7 @@ export default function Main() {
     series: [
       {
         type: "gauge",
-        min: 0.10,
+        min: 0.1,
         max: 0.34,
         startAngle: 200,
         endAngle: -20,
@@ -274,9 +272,9 @@ export default function Main() {
           lineStyle: {
             width: 30,
             color: [
-              [0.333, "green"],   
-              [0.5, "yellow"],    
-              [1, "red"],         
+              [0.333, "green"],
+              [0.5, "yellow"],
+              [1, "red"],
             ],
           },
         },
@@ -284,24 +282,27 @@ export default function Main() {
           show: true,
           color: "black",
           distance: -40,
-          formatter: function(value: number) {
-            if (value === 0.10) return '$0.10';
-            if (value === 0.34) return '$0.34';
-            return '';
+          formatter: function (value: number) {
+            if (value === 0.1) return "$0.10";
+            if (value === 0.34) return "$0.34";
+            return "";
           },
           fontSize: 16,
-          fontWeight: "bold"
+          fontWeight: "bold",
         },
-        axisTick: { show: false},
-        splitLine: { show: false},
-        pointer: { itemStyle: { color: "black" }, length: "100%", width: 3},
+        axisTick: { show: false },
+        splitLine: { show: false },
+        pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
           formatter: () => `$${semanaData.costoKWH}`,
           fontSize: 18,
           offsetCenter: [0, "30%"],
-          color: semanaData.costoKWH <= 0.18 ? "green" :
-          semanaData.costoKWH <= 0.22 ? "yellow" :
-          "red",
+          color:
+            semanaData.costoKWH <= 0.18
+              ? "green"
+              : semanaData.costoKWH <= 0.22
+              ? "yellow"
+              : "red",
         },
         data: [{ value: semanaData.costoKWH }],
       },
@@ -338,7 +339,7 @@ export default function Main() {
       type: "value",
       name: "kWh Utilizada",
       nameLocation: "middle",
-      nameGap: 40, 
+      nameGap: 40,
       nameTextStyle: {
         fontSize: 16,
         fontWeight: "bold",
@@ -350,14 +351,22 @@ export default function Main() {
     },
     yAxis: {
       type: "category",
-      data: ["domingo", "sabado", "viernes", "jueves", "miercoles", "martes", "lunes"],
+      data: [
+        "domingo",
+        "sabado",
+        "viernes",
+        "jueves",
+        "miercoles",
+        "martes",
+        "lunes",
+      ],
       axisTick: {
         alignWithLabel: true,
       },
       axisLabel: {
-        fontSize: 16,     
-        fontWeight: "bold", 
-        color: "#333",      
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "#333",
       },
     },
     series: [
@@ -401,20 +410,28 @@ export default function Main() {
   };
 
   const kwhDiariosOption = {
-  xAxis: {
-    type: 'category',
-    data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  },
-  yAxis: {
-    type: 'value'
-  },
-  series: [
-    {
-      data: [120, 200, 150, 80, 70, 110, 130],
-      type: 'bar'
-    }
-  ]
-};
+    xAxis: {
+      type: "category",
+      data: [
+        "Lunes",
+        "Martes",
+        "Miercoles",
+        "Jueves",
+        "Viernes",
+        "Sabado",
+        "Domingo",
+      ],
+    },
+    yAxis: {
+      type: "value",
+    },
+    series: [
+      {
+        data: [120, 200, 150, 80, 70, 110, 130],
+        type: "bar",
+      },
+    ],
+  };
   const dataPie = {
     labels: ["LOAD", "NO LOAD", "OFF"],
     datasets: [
@@ -519,11 +536,15 @@ export default function Main() {
                 <h2 className="text-2xl font-bold">Información Cliente</h2>
                 <div className="flex flex-wrap gap-8 items-center text-left">
                   <div>
-                    <p className="text-xl text-center">{clientData?.numero_cliente}</p>
+                    <p className="text-xl text-center">
+                      {clientData?.numero_cliente}
+                    </p>
                     <p className="text-sm">Número Cliente</p>
                   </div>
                   <div>
-                    <p className="text-xl text-center">{clientData?.nombre_cliente}</p>
+                    <p className="text-xl text-center">
+                      {clientData?.nombre_cliente}
+                    </p>
                     <p className="text-sm text-center">Nombre</p>
                   </div>
                   <div>
@@ -538,19 +559,27 @@ export default function Main() {
                 <h2 className="text-2xl font-bold ">Información Compresor</h2>
                 <div className="flex flex-wrap gap-8 items-center text-left">
                   <div>
-                    <p className="text-xl text-center">{compressorData?.numero_serie || "(En blanco)"}</p>
+                    <p className="text-xl text-center">
+                      {compressorData?.numero_serie || "(En blanco)"}
+                    </p>
                     <p className="text-sm text-center">Número de serie</p>
                   </div>
                   <div>
-                    <p className="text-xl text-center">{compressorData?.marca || "(En blanco)"}</p>
+                    <p className="text-xl text-center">
+                      {compressorData?.marca || "(En blanco)"}
+                    </p>
                     <p className="text-sm text-center">Marca</p>
                   </div>
                   <div>
-                    <p className="text-xl text-center">{compressorData?.tipo}</p>
+                    <p className="text-xl text-center">
+                      {compressorData?.tipo}
+                    </p>
                     <p className="text-sm text-center">Tipo</p>
                   </div>
                   <div>
-                    <p className="text-xl text-center">{compressorData?.voltaje}</p>
+                    <p className="text-xl text-center">
+                      {compressorData?.voltaje}
+                    </p>
                     <p className="text-sm text-center">Voltaje</p>
                   </div>
                   <div>
@@ -568,13 +597,21 @@ export default function Main() {
         <div className="inline-block mt-20">
           {/* Primera fila */}
           <div className="flex">
-            <div className="bg-blue-500 text-white text-center px-4 py-2 w-40">Óptimo</div>
-            <div className="bg-green-600 text-white text-center px-4 py-2 w-40">Bueno</div>
+            <div className="bg-blue-500 text-white text-center px-4 py-2 w-40">
+              Óptimo
+            </div>
+            <div className="bg-green-600 text-white text-center px-4 py-2 w-40">
+              Bueno
+            </div>
           </div>
           {/* Segunda fila */}
           <div className="flex">
-            <div className="bg-yellow-400 text-black text-center px-4 py-2 w-40 font-bold">Intermedio</div>
-            <div className="bg-red-600 text-white text-center px-4 py-2 w-40">Malo</div>
+            <div className="bg-yellow-400 text-black text-center px-4 py-2 w-40 font-bold">
+              Intermedio
+            </div>
+            <div className="bg-red-600 text-white text-center px-4 py-2 w-40">
+              Malo
+            </div>
           </div>
         </div>
 
@@ -604,9 +641,15 @@ export default function Main() {
         </div>
       </div>
 
-      { /* Line Chart */}
+      {/* Line Chart */}
       <div className="flex justify-center ">
-        <ReactECharts option={consumoOptions} style={{ height: 300, width: 1600 }} notMerge={true} lazyUpdate={true} theme={"light"}/>
+        <ReactECharts
+          option={consumoOptions}
+          style={{ height: 300, width: 1600 }}
+          notMerge={true}
+          lazyUpdate={true}
+          theme={"light"}
+        />
       </div>
 
       <div className="flex items-center justify-center mt-10 mb-10">
@@ -618,7 +661,8 @@ export default function Main() {
 
         {/* Texto */}
         <h1 className="mx-6 text-blue-900 font-bold text-4xl text-center">
-          Semana Pasada <span className="font-normal text-black">vs</span> Promedio 12 Semanas Anteriores
+          Semana Pasada <span className="font-normal text-black">vs</span>{" "}
+          Promedio 12 Semanas Anteriores
         </h1>
 
         {/* Lado derecho */}
@@ -632,15 +676,33 @@ export default function Main() {
         <div className="flex">
           <div className="flex-1 items-center text-center p-4">
             {/* Contenido columna 1 */}
-            <ReactECharts option={kwhDiariosOption} style={{ height: 350, width: 900 }} notMerge={true} lazyUpdate={true} theme={"light"}/>
+            <ReactECharts
+              option={kwhDiariosOption}
+              style={{ height: 350, width: 900 }}
+              notMerge={true}
+              lazyUpdate={true}
+              theme={"light"}
+            />
           </div>
           <div className="flex-1 items-center text-center p-4">
-            {/* Contenido columna 2 */}
-            <p>En esta columna irá tal cosa 2</p>
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+              <h2 className="text-xl text-black">Costo $USD</h2>
+              <p className="text-3xl font-bold text-black">
+                {/* {costoSemanaAnterior.toFixed(2)} */}
+              </p>
+            </div>
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+              <h2 className="text-xl text-black">Consumo kWH</h2>
+              <p className="text-3xl font-bold text-black">
+                {/* {kwhSemanaAnterior.toFixed(0)} */}
+              </p>
+            </div>
           </div>
           <div className="flex-1 items-center text-center mr-20">
             {/* Contenido columna 3 */}
-            <h4 className="font-bold text-left text-xl">A) Consumo energético y costo</h4>
+            <h4 className="font-bold text-left text-xl">
+              A) Consumo energético y costo
+            </h4>
             {/* <p className="text-lg text-justify">
               En la última semana, el consumo de energía del compresor fue {commentConsumoEnergia} que el
               promedio de las últimas 12 semanas. El promedio de consumo de energía fue de
@@ -654,9 +716,6 @@ export default function Main() {
           </div>
         </div>
       </div>
-
-
-
     </main>
   );
 }
