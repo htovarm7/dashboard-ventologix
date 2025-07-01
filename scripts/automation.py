@@ -178,7 +178,7 @@ def main():
         id_cliente = cliente['id_cliente']
         linea = cliente['linea']
         nombre_cliente = cliente['nombre_cliente']
-        alias = cliente['alias'].strip()
+        alias = (cliente.get('alias') or "").strip()
         try:
             print(f"Generando PDF para cliente {nombre_cliente}, línea {linea}")
             generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias)
