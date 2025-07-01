@@ -1,0 +1,105 @@
+==== Tarea iniciada: Sun Jun 29 06:25:01 CST 2025 ====
+API iniciada con PID 519169
+06:25:01 Esperando 127.0.0.1:8000... intento 1/30
+06:25:03 Esperando 127.0.0.1:8000... intento 2/30
+06:25:05 127.0.0.1:8000 está listo
+Web iniciada con PID 519180
+06:25:05 Esperando 127.0.0.1:3002... intento 1/30
+06:25:07 Esperando 127.0.0.1:3002... intento 2/30
+06:25:09 127.0.0.1:3002 está listo
+Ejecutando script Python...
+Generando PDF para cliente ALLTANSA, línea B
+Intento 1 de 3 para generar PDF de ALLTANSA
+Abriendo URL: http://localhost:3002/reportesD?id_cliente=1&linea=B
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF (intento 1) para ALLTANSA: Page.wait_for_function: Timeout 300000ms exceeded.
+Reintentando en 5 segundos...
+Intento 2 de 3 para generar PDF de ALLTANSA
+Abriendo URL: http://localhost:3002/reportesD?id_cliente=1&linea=B
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF (intento 2) para ALLTANSA: Page.wait_for_function: Timeout 300000ms exceeded.
+Reintentando en 5 segundos...
+Intento 3 de 3 para generar PDF de ALLTANSA
+Abriendo URL: http://localhost:3002/reportesD?id_cliente=1&linea=B
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF (intento 3) para ALLTANSA: Page.wait_for_function: Timeout 300000ms exceeded.
+❌ Fallaron los 3 intentos para ALLTANSA
+Generando PDF para cliente Power Paint Solutions, línea A
+Intento 1 de 3 para generar PDF de Power Paint Solutions
+Abriendo URL: http://localhost:3002/reportesD?id_cliente=3&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF (intento 1) para Power Paint Solutions: Page.wait_for_function: Timeout 300000ms exceeded.
+Reintentando en 5 segundos...
+Intento 2 de 3 para generar PDF de Power Paint Solutions
+Abriendo URL: http://localhost:3002/reportesD?id_cliente=3&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF (intento 2) para Power Paint Solutions: Page.wait_for_function: Timeout 300000ms exceeded.
+Reintentando en 5 segundos...
+Intento 3 de 3 para generar PDF de Power Paint Solutions
+Abriendo URL: http://localhost:3002/reportesD?id_cliente=3&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Error generando PDF (intento 3) para Power Paint Solutions: Page.wait_for_function: Timeout 300000ms exceeded.
+❌ Fallaron los 3 intentos para Power Paint Solutions
+Generando PDF para cliente Power Paint Solutions, línea B
+Intento 1 de 3 para generar PDF de Power Paint Solutions
+Abriendo URL: http://localhost:3002/reportesD?id_cliente=4&linea=B
+Esperando que frontend avise que terminó de renderizar...
+Frontend listo, generando PDF...
+Generando PDF para cliente Penox Mexico, línea A
+Intento 1 de 3 para generar PDF de Penox Mexico
+Abriendo URL: http://localhost:3002/reportesD?id_cliente=7&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Frontend listo, generando PDF...
+Generando PDF para cliente Penox Mexico, línea B
+Intento 1 de 3 para generar PDF de Penox Mexico
+Abriendo URL: http://localhost:3002/reportesD?id_cliente=7&linea=B
+Esperando que frontend avise que terminó de renderizar...
+Frontend listo, generando PDF...
+Generando PDF para cliente Manttra Gimsa, línea A
+Intento 1 de 3 para generar PDF de Manttra Gimsa
+Abriendo URL: http://localhost:3002/reportesD?id_cliente=9&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Frontend listo, generando PDF...
+Generando PDF para cliente Manttra Gimsa, línea A
+Intento 1 de 3 para generar PDF de Manttra Gimsa
+Abriendo URL: http://localhost:3002/reportesD?id_cliente=12&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Frontend listo, generando PDF...
+Generando PDF para cliente Calidra, línea A
+Intento 1 de 3 para generar PDF de Calidra
+Abriendo URL: http://localhost:3002/reportesD?id_cliente=10&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Frontend listo, generando PDF...
+Generando PDF para cliente Calidra, línea A
+Intento 1 de 3 para generar PDF de Calidra
+Abriendo URL: http://localhost:3002/reportesD?id_cliente=11&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Frontend listo, generando PDF...
+Generando PDF para cliente Liebherr Garcia, línea A
+Intento 1 de 3 para generar PDF de Liebherr Garcia
+Abriendo URL: http://localhost:3002/reportesD?id_cliente=13&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Frontend listo, generando PDF...
+Generando PDF para cliente Linamar De México, línea A
+Intento 1 de 3 para generar PDF de Linamar De México
+Abriendo URL: http://localhost:3002/reportesD?id_cliente=14&linea=A
+Esperando que frontend avise que terminó de renderizar...
+Frontend listo, generando PDF...
+
+❌ Error inesperado: 'NoneType' object has no attribute 'strip'. Limpiando PDFs generados...
+Archivo eliminado: Reporte Diario Liebherr Garcia Liebherr 2025-06-28.pdf
+Archivo eliminado: Reporte Diario Penox Mexico Compresor 2 2025-06-28.pdf
+Archivo eliminado: Reporte Diario Manttra Gimsa Secundario 2025-06-28.pdf
+Archivo eliminado: Reporte Diario Penox Mexico Compresor 1 2025-06-28.pdf
+Archivo eliminado: Reporte Diario Power Paint Solutions Secundario 2025-06-28.pdf
+Archivo eliminado: Reporte Diario Linamar De México Linamar 2025-06-28.pdf
+Archivo eliminado: Reporte Diario Calidra HORNO MEARZ 2025-06-28.pdf
+Archivo eliminado: Reporte Diario Calidra HORNO 5 2025-06-28.pdf
+Archivo eliminado: Reporte Diario Manttra Gimsa Primario 2025-06-28.pdf
+Carpeta de PDFs limpiada. Terminando proceso.
+Script Python finalizado
+Web cerrada (PID 519180)
+API cerrada (PID 519169)
+Entorno virtual desactivado
+Logs antiguos eliminados
+==== Tarea finalizada: Sun Jun 29 07:00:33 CST 2025 ====
