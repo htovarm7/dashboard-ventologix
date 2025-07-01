@@ -57,7 +57,7 @@ def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente")
 
         # Llamar al procedimiento con id_cliente en vez de 7,7
         cursor.execute(
-            "call DataFiltradaDayFecha(%s, %s, %s, CURDATE()-1)",
+            "call DataFiltradaDayFecha(%s, %s, %s, DATE_SUB(CURDATE(), INTERVAL 1 DAY))",
             (id_cliente, id_cliente, linea)
         )
 
@@ -107,7 +107,7 @@ def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), li
 
         # Ejecutar SP con la fecha proporcionada
         cursor.execute(
-            "call DataFiltradaDayFecha(%s, %s, %s, CURDATE()-1)",
+            "call DataFiltradaDayFecha(%s, %s, %s, DATE_SUB(CURDATE(), INTERVAL 1 DAY))",
             (id_cliente, id_cliente, linea)
         )
         results = cursor.fetchall()
@@ -172,7 +172,7 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
         cursor = conn.cursor()
 
         cursor.execute(
-            "call DataFiltradaDayFecha(%s, %s, %s, CURDATE()-1)",
+            "call DataFiltradaDayFecha(%s, %s, %s, DATE_SUB(CURDATE(), INTERVAL 1 DAY))",
             (id_cliente, id_cliente, linea)
         )
         results = cursor.fetchall()
@@ -247,7 +247,7 @@ def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), l
 
         # Ejecutar procedimiento almacenado
         cursor.execute(
-            "call DataFiltradaDayFecha(%s, %s, %s, CURDATE()-1)",
+            "call DataFiltradaDayFecha(%s, %s, %s, DATE_SUB(CURDATE(), INTERVAL 1 DAY))",
             (id_cliente, id_cliente, linea)
         )
         results1 = cursor.fetchall()
@@ -609,7 +609,7 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
         cursor = conn.cursor()
 
         cursor.execute(
-            "call DataFiltradaWeekFecha(%s, %s, %s, CURDATE()-1)",
+            "call DataFiltradaWeekFecha(%s, %s, %s, DATE_SUB(CURDATE(), INTERVAL 1 DAY))",
             (id_cliente, id_cliente, linea)
         )
         results = cursor.fetchall()
@@ -684,7 +684,7 @@ def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), l
 
         # Ejecutar procedimiento almacenado
         cursor.execute(
-            "call DataFiltradaWeekFecha(%s, %s, %s, CURDATE()-1)",
+            "call DataFiltradaWeekFecha(%s, %s, %s, DATE_SUB(CURDATE(), INTERVAL 1 DAY))",
             (id_cliente, id_cliente, linea)
         )
         results1 = cursor.fetchall()
