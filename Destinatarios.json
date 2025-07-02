@@ -92,7 +92,7 @@
       ]
     },
     {
-      "email": ["lmerjil@calidra.com.mx","rhernandezl@calidra.com.mx"],
+      "email": ["lmerjil@calidra.com.mx","rhernandezl@calidra.com.mx, rmolina@calidra.com.mx, pnavarro@calidra.com.mx"],
       "cc": ["octavio.murillo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
@@ -105,7 +105,7 @@
       ]
     },
     {
-      "email": ["lmerjil@calidra.com.mx","rhernandezl@calidra.com.mx"],
+      "email": ["lmerjil@calidra.com.mx","rhernandezl@calidra.com.mx, rmolina@calidra.com.mx, pnavarro@calidra.com.mx"],
       "cc": ["octavio.murillo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
