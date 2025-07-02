@@ -32,6 +32,7 @@ import { Pie, Chart } from "react-chartjs-2";
 
 // ECharts for the gauge chart
 import ReactECharts from "echarts-for-react";
+import Image from "next/image";
 
 // Register the necessary components for Chart.js
 ChartJS.register(
@@ -85,8 +86,6 @@ export default function Main() {
   } | null>(null);
 
   const searchParams = useSearchParams();
-  const [idCliente, setIdCliente] = useState<string | null>(null);
-  const [linea, setLinea] = useState<string | null>(null);
 
   useEffect(() => {
     const id = searchParams.get("id_cliente");
@@ -395,7 +394,7 @@ export default function Main() {
             })
             .replace(/^\w/, (c) => c.toUpperCase())}
         </h3>
-        <img
+        <Image
           src="/Ventologix_04.png"
           alt="logo"
           className="h-28 w-auto mt-3 absolute top-0 left-0 m-3"

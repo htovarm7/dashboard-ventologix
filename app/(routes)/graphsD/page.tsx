@@ -50,8 +50,10 @@ ChartJS.register(
 
 export default function Main() {
   // Constant Declarations
+  const router = useRouter();
+  const { id_cliente } = router.query;
   const [chartData, setChartData] = useState([0, 0, 0]); // default values
-  const [lineChartData, setLineChartData] = useState<number[]>([]); // default values
+  const [lineChartData, setLineChartData] = useState<(number | null)[]>([]);
   const [lineChartLabels, setLineChartLabels] = useState<string[]>([]); // default labels
   const [maxData, setMaxData] = useState(0); // default max value
   const [kWh, setKWh] = useState<number>(0); // default kWh value
@@ -85,6 +87,11 @@ export default function Main() {
     numero_serie: number;
     alias: string;
   } | null>(null);
+
+  interface LineData {
+  time: string;
+  corriente: number;
+}
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -161,7 +168,7 @@ export default function Main() {
         setNoLoad(NOLOAD);
         setOff(OFF);
 
-        const rawData = lineRes.data.map((item) => ({
+        const rawData = (lineRes.data as LineData[]).map((item) => ({
           time: new Date(item.time),
           corriente: item.corriente,
         }));
@@ -174,12 +181,14 @@ export default function Main() {
             second: "2-digit",
           })
         );
-        const currents = rawData.map((item) => item.corriente);
+        
+        const currents: (number | null)[] = rawData.map((item) => item.corriente);
 
         if (!times.includes("23:59:59")) {
           times.push("23:59:59");
           currents.push(null);
         }
+
 
         setLineChartLabels(times);
         setLineChartData(currents);
@@ -362,17 +371,6 @@ export default function Main() {
           console.error("Error al notificar al backend:", error);
         });
     }, 2000);
-  }, []);
-
-  const router = useRouter();
-  const { id_cliente } = router.query;
-
-  useEffect(() => {
-    if (id_cliente) {
-      fetch(`/api/reportes/${id_cliente}`)
-        .then((res) => res.json())
-        .then((data) => setDatos(data));
-    }
   }, [id_cliente]);
 
   return (

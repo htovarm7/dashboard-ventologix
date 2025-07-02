@@ -53,20 +53,9 @@ export default function Main() {
   // Constant Declarations
   const [chartData, setChartData] = useState([0, 0, 0]);
   const [lineChartData, setLineChartData] = useState<number[]>([]);
-  const [kWh, setKWh] = useState<number>(0);
-  const [hoursWorked, setHoursWorked] = useState<number>(0);
-  const [usdCost, setUsdCost] = useState<number>(0);
   const [Load, setLoad] = useState<number>(0);
   const [NoLoad, setNoLoad] = useState<number>(0);
   const [Off, setOff] = useState<number>(0);
-  const [firstHour, setFirstHour] = useState("");
-  const [lastHour, setLastHour] = useState("");
-  const [totalCiclos, setTotalCiclos] = useState(0);
-  const [promedioCiclosHora, setPromedioCiclosHora] = useState(0);
-  const [comentarioCiclos, setComentarioCiclos] = useState("");
-  const [hpNominal, setHPNominal] = useState<number>(0);
-  const [hpeq, setHPEquivalente] = useState<number>(0);
-  const [comentarioHp, setComentarioHp] = useState("");
 
   const [clientData, setClientData] = useState<{
     numero_cliente: number;
@@ -877,7 +866,7 @@ export default function Main() {
           <div className="flex-1 items-center text-center p-4">
             {/* Contenido columna 1 */}
             <ReactECharts
-              option={pieOptions}
+              option={dataPie}
               style={{ height: 350, width: 900 }}
               notMerge={true}
               lazyUpdate={true}
