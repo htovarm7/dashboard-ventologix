@@ -13,7 +13,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams } from "next/navigation";
@@ -35,6 +35,8 @@ import {
 // ECharts for the gauge chart
 import ReactECharts from "echarts-for-react";
 
+import { Pie } from "react-chartjs-2";
+
 // Register the necessary components for Chart.js
 ChartJS.register(
   ArcElement,
@@ -51,10 +53,6 @@ ChartJS.register(
 export default function Main() {
   // Constant Declarations
   const [chartData, setChartData] = useState([0, 0, 0]);
-  const [lineChartData, setLineChartData] = useState<number[]>([]);
-  const [Load, setLoad] = useState<number>(0);
-  const [NoLoad, setNoLoad] = useState<number>(0);
-  const [Off, setOff] = useState<number>(0);
 
   const [clientData, setClientData] = useState<{
     numero_cliente: number;
@@ -74,20 +72,8 @@ export default function Main() {
   } | null>(null);
 
   const searchParams = useSearchParams();
-  const [idCliente, setIdCliente] = useState<string | null>(null);
-  const [linea, setLinea] = useState<string | null>(null);
 
-  useEffect(() => {
-    const id = searchParams.get("id_cliente");
-    const linea = searchParams.get("linea") || "";
-    if (id) {
-      setIdCliente(id);
-      setLinea(linea);
-      fetchData(id, linea);
-    }
-  }, [searchParams]);
-
-  const fetchData = async (id: string, linea: string) => {
+  const fetchData = useCallback(async (id: string, linea: string) => {
     try {
       const [pieRes, clientRes, compressorRes] = await Promise.all([
         (async () => {
@@ -123,7 +109,15 @@ export default function Main() {
     } catch (error) {
       console.error("Error fetching data:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const id = searchParams.get("id_cliente");
+    const linea = searchParams.get("linea") || "";
+    if (id) {
+      fetchData(id, linea);
+    }
+  }, [searchParams, fetchData]);
 
   const semanaData = {
     promedioCiclos: 15,
@@ -499,7 +493,7 @@ export default function Main() {
           weight: "bold",
           size: 18,
         },
-        formatter: (value: any) => {
+        formatter: (value: number) => {
           return value + "%";
         },
       },
@@ -514,12 +508,12 @@ export default function Main() {
     },
   };
 
-  useEffect(() => {
-    if (lineChartData.length > 0 && chartData.length > 0) {
-      window.status = "pdf-ready";
-      setTimeout(() => {}, 250000);
-    }
-  }, [lineChartData, chartData]);
+  // useEffect(() => {
+  //   if (chartData.length > 0) {
+  //     window.status = "pdf-ready";
+  //     setTimeout(() => {}, 250000);
+  //   }
+  // }, [chartData]);
 
   const today = new Date();
   const end = new Date(today.setDate(today.getDate() - 1));
@@ -866,13 +860,7 @@ export default function Main() {
         <div className="flex">
           <div className="flex-1 items-center text-center p-4">
             {/* Contenido columna 1 */}
-            <ReactECharts
-              option={dataPie}
-              style={{ height: 350, width: 900 }}
-              notMerge={true}
-              lazyUpdate={true}
-              theme={"light"}
-            />
+            <Pie data={dataPie} options={pieOptions} />
           </div>
           <div className="flex-1 items-center text-center p-4">
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
