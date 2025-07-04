@@ -53,6 +53,11 @@ ChartJS.register(
 export default function Main() {
   // Constant Declarations
   const [chartData, setChartData] = useState([0, 0, 0]);
+  const [consumoData, setConsumoData] = useState({
+    turno1: new Array(7).fill(0),
+    turno2: new Array(7).fill(0),
+    turno3: new Array(7).fill(0),
+  });
 
   const [clientData, setClientData] = useState<{
     numero_cliente: number;
@@ -75,10 +80,16 @@ export default function Main() {
 
   const fetchData = useCallback(async (id: string, linea: string) => {
     try {
-      const [pieRes, clientRes, compressorRes] = await Promise.all([
+      const [pieRes, shiftRes, clientRes, compressorRes] = await Promise.all([
         (async () => {
           const res = await fetch(
             `http://127.0.0.1:8000/report/week/pie-data-proc?id_cliente=${id}&linea=${linea}`
+          );
+          return res.json();
+        })(),
+        (async () => {
+          const res = await fetch(
+            `http://127.0.0.1:8000/report/week/shifts?id_cliente=${id}&linea=${linea}`
           );
           return res.json();
         })(),
@@ -96,16 +107,41 @@ export default function Main() {
         })(),
       ]);
 
+      // Inicializa arreglo de 7 días para cada turno (Turno 1, 2, 3)
+      const turno1 = new Array(7).fill(0);
+      const turno2 = new Array(7).fill(0);
+      const turno3 = new Array(7).fill(0);
+
+      // In your fetchData function, modify the day mapping:
+      shiftRes.data.forEach((item: any) => {
+        const fecha = new Date(item.fecha);
+        const dia = fecha.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+
+        // Map directly to your array order: [domingo, sabado, viernes, jueves, miercoles, martes, lunes]
+        // So we need to invert the mapping
+        const diaSemana = 6 - dia; // Sunday becomes 0, Monday becomes 6, etc.
+
+        switch (item.Turno) {
+          case 1:
+            turno1[diaSemana] += item.kwhTurno;
+            break;
+          case 2:
+            turno2[diaSemana] += item.kwhTurno;
+            break;
+          case 3:
+            turno3[diaSemana] += item.kwhTurno;
+            break;
+        }
+      });
+
+      setConsumoData({ turno1, turno2, turno3 });
+
       if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
       if (compressorRes.data.length > 0)
         setCompresorData(compressorRes.data[0]);
 
       const { LOAD, NOLOAD, OFF } = pieRes.data;
       setChartData([LOAD, NOLOAD, OFF]);
-
-      setLoad(LOAD);
-      setNoLoad(NOLOAD);
-      setOff(OFF);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -362,7 +398,7 @@ export default function Main() {
         itemStyle: {
           color: "#001f54",
         },
-        data: [400, 500, 300, 450, 400, 300, 350],
+        data: consumoData.turno1,
       },
       {
         name: "Turno 2",
@@ -374,7 +410,7 @@ export default function Main() {
         itemStyle: {
           color: "#0074cc",
         },
-        data: [600, 550, 400, 500, 450, 500, 600],
+        data: consumoData.turno2,
       },
       {
         name: "Turno 3",
@@ -386,7 +422,7 @@ export default function Main() {
         itemStyle: {
           color: "#4db6ac",
         },
-        data: [500, 600, 700, 800, 600, 650, 500],
+        data: consumoData.turno3,
       },
     ],
   };
@@ -503,7 +539,6 @@ export default function Main() {
       },
     },
     animation: {
-      animate: false,
       duration: 0,
     },
   };
@@ -677,7 +712,14 @@ export default function Main() {
       {/* Line Chart */}
       <div className="flex justify-center ">
         <ReactECharts
-          option={consumoOptions}
+          option={{
+            ...consumoOptions,
+            series: [
+              { ...consumoOptions.series[0], data: consumoData.turno1 },
+              { ...consumoOptions.series[1], data: consumoData.turno2 },
+              { ...consumoOptions.series[2], data: consumoData.turno3 },
+            ],
+          }}
           style={{ height: 300, width: 1600 }}
           notMerge={true}
           lazyUpdate={true}

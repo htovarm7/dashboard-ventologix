@@ -7,11 +7,12 @@
  * This file implements the daily graphs, including a Line Chart and a Gauge Chart using both Chart.js and ECharts.
  *
  * @version 1.0
+ * http://localhost:3002/reportesDate?id_cliente=7&linea=A&date=2025-05-30
  */
 
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams } from "next/navigation";
@@ -92,23 +93,17 @@ export default function Main() {
 
   const searchParams = useSearchParams();
 
-  useEffect(() => {
-    const id = searchParams.get("id_cliente");
-    const linea = searchParams.get("linea") || "";
-    const date = searchParams.get("date") || "";
-
-    if (id) {
-      setIdCliente(id);
-      setLinea(linea);
-      fetchData(id, linea, date);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
-
-  const fetchData = async (id: string, linea: string, date: string) => {
-    try {
-      const [pieRes, lineRes, commentsRes, statsRes, clientRes, compressorRes] =
-        await Promise.all([
+  const fetchData = useCallback(
+    async (id: string, linea: string, date: string) => {
+      try {
+        const [
+          pieRes,
+          lineRes,
+          commentsRes,
+          statsRes,
+          clientRes,
+          compressorRes,
+        ] = await Promise.all([
           (async () => {
             const res = await fetch(
               `http://127.0.0.1:8000/report/pie-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}]`
@@ -147,60 +142,74 @@ export default function Main() {
           })(),
         ]);
 
-      if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
-      if (compressorRes.data.length > 0)
-        setCompresorData(compressorRes.data[0]);
+        if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
+        if (compressorRes.data.length > 0)
+          setCompresorData(compressorRes.data[0]);
 
-      const stats = statsRes.data;
-      setKWh(stats.kWh);
-      setHoursWorked(stats.hours_worked);
-      setUsdCost(stats.usd_cost);
-      setHPNominal(stats.hp_nominal);
-      setHPEquivalente(stats.hp_equivalente);
-      setComentarioHp(stats.comentario_hp_equivalente);
+        const stats = statsRes.data;
+        setKWh(stats.kWh);
+        setHoursWorked(stats.hours_worked);
+        setUsdCost(stats.usd_cost);
+        setHPNominal(stats.hp_nominal);
+        setHPEquivalente(stats.hp_equivalente);
+        setComentarioHp(stats.comentario_hp_equivalente);
 
-      const comments = commentsRes.data;
-      setFirstHour(comments.first_time);
-      setLastHour(comments.last_time);
-      setTotalCiclos(comments.total_ciclos);
-      setPromedioCiclosHora(comments.promedio_ciclos_hora);
-      setComentarioCiclos(comments.comentario_ciclos);
+        const comments = commentsRes.data;
+        setFirstHour(comments.first_time);
+        setLastHour(comments.last_time);
+        setTotalCiclos(comments.total_ciclos);
+        setPromedioCiclosHora(comments.promedio_ciclos_hora);
+        setComentarioCiclos(comments.comentario_ciclos);
 
-      const { LOAD, NOLOAD, OFF } = pieRes.data;
-      setChartData([LOAD, NOLOAD, OFF]);
+        const { LOAD, NOLOAD, OFF } = pieRes.data;
+        setChartData([LOAD, NOLOAD, OFF]);
 
-      setLoad(LOAD);
-      setNoLoad(NOLOAD);
-      setOff(OFF);
+        setLoad(LOAD);
+        setNoLoad(NOLOAD);
+        setOff(OFF);
 
-      const rawData = (lineRes.data as LineData[]).map((item) => ({
-        time: new Date(item.time),
-        corriente: item.corriente,
-      }));
-      rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
+        const rawData = (lineRes.data as LineData[]).map((item) => ({
+          time: new Date(item.time),
+          corriente: item.corriente,
+        }));
+        rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
 
-      const times = rawData.map((item) =>
-        item.time.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        })
-      );
+        const times = rawData.map((item) =>
+          item.time.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          })
+        );
 
-      const currents: (number | null)[] = rawData.map((item) => item.corriente);
+        const currents: (number | null)[] = rawData.map(
+          (item) => item.corriente
+        );
 
-      if (!times.includes("23:59:59")) {
-        times.push("23:59:59");
-        currents.push(null);
+        if (!times.includes("23:59:59")) {
+          times.push("23:59:59");
+          currents.push(null);
+        }
+
+        setLineChartLabels(times);
+        setLineChartData(currents.map((c) => (c === null ? 0 : c)));
+        setMaxData(Math.max(...currents.filter((c) => c !== null)) * 1.3);
+      } catch (error) {
+        console.error("Error fetching data:", error);
       }
+    },
+    []
+  );
 
-      setLineChartLabels(times);
-      setLineChartData(currents.map((c) => (c === null ? 0 : c)));
-      setMaxData(Math.max(...currents.filter((c) => c !== null)) * 1.3);
-    } catch (error) {
-      console.error("Error fetching data:", error);
+  useEffect(() => {
+    const id = searchParams.get("id_cliente");
+    const linea = searchParams.get("linea") || "";
+    const date = searchParams.get("date") || "";
+
+    if (id) {
+      fetchData(id, linea, date);
     }
-  };
+  }, [searchParams, fetchData]);
 
   const limite = compressorData?.limite ?? 0;
   const hp_instalado = hpNominal;

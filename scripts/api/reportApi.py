@@ -562,7 +562,7 @@ def get_pie_data_proc_weekly(id_cliente: int = Query(..., description="ID del cl
         cursor = conn.cursor()
 
         cursor.execute(
-            "call DataFiltradaWeekFecha(%s, %s, %s, CURDATE()-7)",
+            "call DataFiltradaWeekFecha(%s, %s, %s,  DATE_SUB(CURDATE(), INTERVAL 1 DAY))",
             (id_cliente, id_cliente, linea)
         )
 
@@ -592,6 +592,45 @@ def get_pie_data_proc_weekly(id_cliente: int = Query(..., description="ID del cl
                 "NOLOAD": noload_percentage,
                 "OFF": off_percentage
             }
+        }
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
+
+@report.get("/week/shifts", tags=["weekly"])
+def get_shifts(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
+    try:
+        # Connect to DB
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "CALL semanaTurnos(%s, %s, %s)",
+            (id_cliente, id_cliente, linea)
+        )
+
+        results = cursor.fetchall()
+
+        # Close resources
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return {"error": "No data from procedure"}
+
+        # Map the results (adjust columns)
+        data = [
+            {"fecha": row[1], "Turno": row[2], "kwhTurno": row[3], "TimestampInicio": row[4], "TimestampFin": row[5]}
+            for row in results
+        ]
+
+        return {
+            "data": data
         }
 
     except mysql.connector.Error as err:
