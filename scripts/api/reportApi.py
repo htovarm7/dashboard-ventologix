@@ -849,7 +849,7 @@ def get_clients_data():
         cursor = conn.cursor()
 
         # Fetch data from the clientes table
-        cursor.execute("SELECT c.id_cliente, c.nombre_cliente, comp.linea, comp.Alias FROM clientes c JOIN compresores comp ON c.id_cliente = comp.id_cliente WHERE c.id_cliente NOT IN (2, 5, 6, 8);")
+        cursor.execute("SELECT e.id_cliente, e.nombre_cliente, comp.linea, comp.Alias FROM envios e JOIN compresores comp ON e.id_cliente = comp.id_cliente WHERE e.Diario = 1;")
         results = cursor.fetchall()
 
         # Close resources

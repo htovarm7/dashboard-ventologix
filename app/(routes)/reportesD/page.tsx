@@ -310,7 +310,6 @@ export default function Main() {
       },
     },
     animation: {
-      animate: false,
       duration: 0,
     },
   };
@@ -318,7 +317,9 @@ export default function Main() {
   // Line boundaries options
   const lineChartOptions = {
     responsive: true,
-    animation: false,
+    animation: {
+      duration: 0,
+    },
     plugins: {
       datalabels: {
         display: false,
