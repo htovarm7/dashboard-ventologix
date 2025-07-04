@@ -188,7 +188,7 @@ export default function Main() {
           distance: -40,
           formatter: function (value: number) {
             if (value === 0) return "0";
-            if (value === 30) return "Max";
+            if (value === 20) return "Max";
             return "";
           },
           fontSize: 16,
@@ -683,29 +683,39 @@ export default function Main() {
           </div>
         </div>
 
-        {/* Gauges */}
         <div className="flex items-center gap-10 ml-50">
-          <ReactECharts
-            option={ciclosOptions}
-            style={{ height: "280px", width: "350px" }}
-            notMerge={true}
-            lazyUpdate={true}
-            theme={"light"}
-          />
-          <ReactECharts
-            option={hpOptions}
-            style={{ height: "280px", width: "350px" }}
-            notMerge={true}
-            lazyUpdate={true}
-            theme={"light"}
-          />
-          <ReactECharts
-            option={costoOptions}
-            style={{ height: "280px", width: "350px" }}
-            notMerge={true}
-            lazyUpdate={true}
-            theme={"light"}
-          />
+          <div className="flex flex-col items-center  mt-4 text-xl font-bold">
+            <h1>Ciclos promedio por hora</h1>
+            <ReactECharts
+              option={ciclosOptions}
+              style={{ height: "280px", width: "350px" }}
+              notMerge={true}
+              lazyUpdate={true}
+              theme={"light"}
+            />
+          </div>
+
+          <div className="flex flex-col items-center mt-4 text-xl font-bold">
+            <h1>Hp Equivalente vs Instalado</h1>
+            <ReactECharts
+              option={hpOptions}
+              style={{ height: "280px", width: "350px" }}
+              notMerge={true}
+              lazyUpdate={true}
+              theme={"light"}
+            />
+          </div>
+
+          <div className="flex flex-col items-center  mt-4 text-xl font-bold">
+            <h1>Costo $USD por kWh*</h1>
+            <ReactECharts
+              option={costoOptions}
+              style={{ height: "280px", width: "350px" }}
+              notMerge={true}
+              lazyUpdate={true}
+              theme={"light"}
+            />
+          </div>
         </div>
       </div>
 
@@ -761,13 +771,13 @@ export default function Main() {
           </div>
           <div className="flex-1 items-center text-center p-4">
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-              <h2 className="text-xl text-black">Costo $USD</h2>
+              <h2 className="text-xl text-black font-bold">Costo $USD</h2>
               <p className="text-3xl font-bold text-black">
                 {/* {costoSemanaAnterior.toFixed(2)} */}
               </p>
             </div>
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-              <h2 className="text-xl text-black">Consumo kWH</h2>
+              <h2 className="text-xl text-black font-bold">Consumo kWH</h2>
               <p className="text-3xl font-bold text-black">
                 {/* {kwhSemanaAnterior.toFixed(0)} */}
               </p>
@@ -790,6 +800,7 @@ export default function Main() {
             </p> */}
           </div>
         </div>
+
         <div className="flex">
           <div className="flex-1 items-center text-center p-4">
             {/* Contenido columna 1 */}
@@ -803,54 +814,19 @@ export default function Main() {
           </div>
           <div className="flex-1 items-center text-center p-4">
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-              <h2 className="text-xl text-black">Costo $USD</h2>
+              <h2 className="text-xl text-black font-bold">Costo $USD</h2>
               <p className="text-3xl font-bold text-black">
                 {/* {costoSemanaAnterior.toFixed(2)} */}
               </p>
             </div>
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-              <h2 className="text-xl text-black">Consumo kWH</h2>
+              <h2 className="text-xl text-black font-bold">Consumo kWH</h2>
               <p className="text-3xl font-bold text-black">
                 {/* {kwhSemanaAnterior.toFixed(0)} */}
               </p>
             </div>
           </div>
-          <div className="flex-1 items-center text-center mr-20">
-            {/* Contenido columna 3 */}
-            <h4 className="font-bold text-left text-xl">
-              A) Consumo energético y costo
-            </h4>
-            {/* <p className="text-lg text-justify">
-              En la última semana, el consumo de energía del compresor fue {commentConsumoEnergia} que el
-              promedio de las últimas 12 semanas. El promedio de consumo de energía fue de
-              {kwhPromedio12Semanas}, mientras que en la semana pasada se consumieron {kwhSemanaPasada}. Este
-              consumo impactó directamente en el costo de energía, que reflejó un cambio del
-              {commentConsumoEnergia} en comparación con el promedio de las últimas 12 semanas.
-              Considerando el costo de 0.17 USD por kWh, el total de gasto en energía en la última
-              semana fue de {costoSemanaPasada}, lo que refleja una diferencia significativa respecto al
-              promedio de {costoPromedio12Semanas}.
-            </p> */}
-          </div>
-        </div>
-        <div className="flex">
-          <div className="flex-1 items-center text-center p-4">
-            {/* Contenido columna 1 */}
-            <ReactECharts
-              option={ciclosPromedioOption}
-              style={{ height: 350, width: 900 }}
-              notMerge={true}
-              lazyUpdate={true}
-              theme={"light"}
-            />
-          </div>
-          <div className="flex-1 items-center text-center p-4">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-              <h2 className="text-xl text-black">Ciclos por hora (C/Hr)</h2>
-              <p className="text-3xl font-bold text-black">
-                {/* {ciclosPorHora.toFixed(2)} */}
-              </p>
-            </div>
-          </div>
+
           <div className="flex-1 items-center text-center mr-20">
             {/* Contenido columna 3 */}
             <h4 className="font-bold text-left text-xl">
@@ -865,6 +841,7 @@ export default function Main() {
             </p> */}
           </div>
         </div>
+
         <div className="flex">
           <div className="flex-1 items-center text-center p-4">
             {/* Contenido columna 1 */}
@@ -878,7 +855,7 @@ export default function Main() {
           </div>
           <div className="flex-1 items-center text-center p-4">
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-              <h2 className="text-xl text-black">HP Equivalente**</h2>
+              <h2 className="text-xl text-black font-bold">HP Equivalente**</h2>
               <p className="text-3xl font-bold text-black">
                 {/* {hpEquivalente.toFixed(0)} */}
               </p>
@@ -899,6 +876,7 @@ export default function Main() {
             </p> */}
           </div>
         </div>
+
         <div className="flex">
           <div className="flex-1 items-center text-center p-4">
             {/* Contenido columna 1 */}
@@ -906,7 +884,7 @@ export default function Main() {
           </div>
           <div className="flex-1 items-center text-center p-4">
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-              <h2 className="text-xl text-black">Uso Activo</h2>
+              <h2 className="text-xl text-black font-bold">Uso Activo</h2>
               <p className="text-3xl font-bold text-black">
                 {/* {usoActivo.toFixed(1)} */}
               </p>
