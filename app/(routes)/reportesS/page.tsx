@@ -18,6 +18,7 @@ import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams } from "next/navigation";
 import annotationPlugin from "chartjs-plugin-annotation";
+import Image from "next/image";
 
 // Libraries for charts
 import {
@@ -30,8 +31,6 @@ import {
   LinearScale,
   PointElement,
 } from "chart.js";
-
-import { Pie, Chart } from "react-chartjs-2";
 
 // ECharts for the gauge chart
 import ReactECharts from "echarts-for-react";
@@ -562,10 +561,12 @@ export default function Main() {
           {/* Right Column: Logo and data */}
           <div className="flex flex-col items-end">
             {/* Logo */}
-            <img
+            <Image
               src="/Ventologix_04.png"
               alt="logo"
               className="h-12 w-auto m-4"
+              width={112}
+              height={112}
             />
 
             <div className="flex flex-wrap gap-16 items-start text-white mr-10">

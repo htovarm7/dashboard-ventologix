@@ -1,6 +1,13 @@
+import { Outfit } from "next/font/google";
 import type { Metadata } from "next";
 import "./globals.css";
-import AuthProvider from "./providers/auth0Provider"; // 👈 Asegúrate que la ruta es correcta
+import AuthProvider from "./providers/auth0Provider";
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-outfit",
+});
 
 export const metadata: Metadata = {
   title: "VTOs Dashboard",
@@ -8,23 +15,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="antialiased" style={{ fontFamily: "'Outfit', sans-serif" }}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+    <html lang="en" className={outfit.className}>
+      <body className="antialiased">
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

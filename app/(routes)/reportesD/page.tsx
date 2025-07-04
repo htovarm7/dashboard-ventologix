@@ -11,7 +11,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams } from "next/navigation";
@@ -50,7 +50,7 @@ ChartJS.register(
 export default function Main() {
   // Constant Declarations
   const [chartData, setChartData] = useState([0, 0, 0]);
-  const [lineChartData, setLineChartData] = useState<number[]>([]);
+  const [lineChartData, setLineChartData] = useState<(number | null)[]>([]);
   const [lineChartLabels, setLineChartLabels] = useState<string[]>([]);
   const [maxData, setMaxData] = useState(0);
   const [kWh, setKWh] = useState<number>(0);
@@ -85,20 +85,12 @@ export default function Main() {
     limite: number;
   } | null>(null);
 
-  const searchParams = useSearchParams();
+  interface LineData {
+    time: string;
+    corriente: number;
+  }
 
-  useEffect(() => {
-    const id = searchParams.get("id_cliente");
-    const linea = searchParams.get("linea") || "";
-    if (id) {
-      setIdCliente(id);
-      setLinea(linea);
-      fetchData(id, linea);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
-
-  const fetchData = async (id: string, linea: string) => {
+  const fetchData = useCallback(async (id: string, linea: string) => {
     try {
       const [pieRes, lineRes, commentsRes, statsRes, clientRes, compressorRes] =
         await Promise.all([
@@ -166,7 +158,7 @@ export default function Main() {
       setNoLoad(NOLOAD);
       setOff(OFF);
 
-      const rawData = lineRes.data.map((item: any) => ({
+      const rawData = (lineRes.data as LineData[]).map((item) => ({
         time: new Date(item.time),
         corriente: item.corriente,
       }));
@@ -179,20 +171,33 @@ export default function Main() {
           second: "2-digit",
         })
       );
-      const currents = rawData.map((item) => item.corriente);
+
+      const currents: (number | null)[] = rawData.map((item) => item.corriente);
 
       if (!times.includes("23:59:59")) {
         times.push("23:59:59");
-        currents.push(null as any);
+        currents.push(null);
       }
 
       setLineChartLabels(times);
       setLineChartData(currents);
-      setMaxData(Math.max(...currents.filter((c: any) => c !== null)) * 1.3);
+      setMaxData(
+        Math.max(...currents.filter((c): c is number => c !== null)) * 1.3
+      );
     } catch (error) {
       console.error("Error fetching data:", error);
     }
-  };
+  }, []);
+
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const id = searchParams.get("id_cliente");
+    const linea = searchParams.get("linea") || "";
+    if (id) {
+      fetchData(id, linea);
+    }
+  }, [searchParams, fetchData]);
 
   const limite = compressorData?.limite ?? 0;
   const hp_instalado = hpNominal;
@@ -219,9 +224,11 @@ export default function Main() {
         animation: false,
         min: 30,
         max: 120,
+        startAngle: 200,
+        endAngle: -20,
         axisLine: {
           lineStyle: {
-            width: 30,
+            width: 28,
             color: [
               [0.3, "red"],
               [0.53, "yellow"],
@@ -232,20 +239,21 @@ export default function Main() {
             ],
           },
         },
-        pointer: {
-          itemStyle: {
-            color: "black",
+        axisLabel: {
+          show: true,
+          color: "black",
+          distance: -50,
+          formatter: function (value: number) {
+            if (value === 30) return "0";
+            if (value === 120) return "Max";
+            return "";
           },
-          length: "60%",
+          fontSize: 16,
+          fontWeight: "bold",
         },
-        axisTick: {
-          distance: -30,
-          length: 0,
-        },
-        splitLine: {
-          distance: -30,
-          length: 0,
-        },
+        axisTick: { show: false },
+        splitLine: { show: false },
+        pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
           formatter: () => `${porcentajeUso.toFixed(0)}%`,
           color: getColor(porcentajeUso),
@@ -292,7 +300,7 @@ export default function Main() {
           weight: "bold",
           size: 18,
         },
-        formatter: (value: any) => {
+        formatter: (value: string) => {
           return value + "%";
         },
       },
@@ -398,6 +406,8 @@ export default function Main() {
           src="/Ventologix_04.png"
           alt="logo"
           className="h-28 w-auto mt-3 absolute top-0 left-0 m-3"
+          width={300}
+          height={100}
         />
       </div>
 

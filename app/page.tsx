@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useState } from "react";
 
@@ -17,11 +17,11 @@ const Login = () => {
 
     try {
       const response = await fetch("http://127.0.0.1:8000/web/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
       });
 
       const result = await response.json();
@@ -35,7 +35,8 @@ const Login = () => {
         setMensaje(result.detail);
       }
     } catch (error) {
-      setMensaje("Error al conectar con el servidor.");
+      console.error("Error al iniciar sesión:", error);
+      setMensaje("Error al iniciar sesión. Por favor, inténtalo de nuevo.");
     }
   };
 

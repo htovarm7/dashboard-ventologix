@@ -89,9 +89,9 @@ export default function Main() {
   } | null>(null);
 
   interface LineData {
-  time: string;
-  corriente: number;
-}
+    time: string;
+    corriente: number;
+  }
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -181,14 +181,15 @@ export default function Main() {
             second: "2-digit",
           })
         );
-        
-        const currents: (number | null)[] = rawData.map((item) => item.corriente);
+
+        const currents: (number | null)[] = rawData.map(
+          (item) => item.corriente
+        );
 
         if (!times.includes("23:59:59")) {
           times.push("23:59:59");
           currents.push(null);
         }
-
 
         setLineChartLabels(times);
         setLineChartData(currents);

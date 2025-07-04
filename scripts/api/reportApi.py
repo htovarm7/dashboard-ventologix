@@ -891,24 +891,34 @@ def percentage_off(data):
 def energy_calculated(data, compresor_data, timestamp):
     if not data:
         return 0
-        
-    # Calcular segundos entre registros (asumiendo datos ordenados por tiempo)
+
+    # Calcular segundos entre registros
     if len(data) > 1:
         segundos_por_registro = (data[1]['time'] - data[0]['time']).total_seconds()
     else:
         segundos_por_registro = 10  # Valor por defecto
-    
-    voltaje = compresor_data["voltage"]
-    filtered_currents = [record['corriente'] for record in data if record['corriente'] > 0]
-    
-    if not filtered_currents:
-        return 0
 
+    voltaje = compresor_data["voltage"]
     tiempo_horas = segundos_por_registro / 3600
-    energia_calculada = sum(
-        corriente * 1.732 * voltaje * tiempo_horas / 1000
-        for corriente in filtered_currents
-    )
+
+    energia_calculada = 0
+    for record in data:
+        corriente = record['corriente']
+        estado = record['estado']
+
+        if corriente > 0:
+            # Factor de potencia según estado
+            if estado == "LOAD":
+                fp = 0.85
+            elif estado == "NOLOAD":
+                fp = 0.6
+            else:
+                fp = None  # o seguir con None y no sumar energía
+
+            if fp is not None:
+                potencia_kw = corriente * 1.732 * voltaje * fp / 1000
+                energia_calculada += potencia_kw * tiempo_horas
+
     return round(energia_calculada, 3)
 
 def horas_trabajadas(data, timestamp):
