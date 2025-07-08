@@ -76,50 +76,68 @@ export default function Main() {
     limite: number;
   } | null>(null);
 
+  const [summaryData, setSummaryData] = useState<
+    {
+      semana: number;
+      fecha: string;
+      kWh: number;
+      horas_trabajadas: number;
+      kWh_load: number;
+      horas_load: number;
+      kWh_noload: number;
+      horas_noload: number;
+      hp_equivalente: number;
+      conteo_ciclos: number;
+      promedio_ciclos_por_hora: number;
+    }[]
+  >([]);
+
   const searchParams = useSearchParams();
 
   const fetchData = useCallback(async (id: string, linea: string) => {
     try {
-      const [pieRes, shiftRes, clientRes, compressorRes] = await Promise.all([
-        (async () => {
-          const res = await fetch(
-            `http://127.0.0.1:8000/report/week/pie-data-proc?id_cliente=${id}&linea=${linea}`
-          );
-          return res.json();
-        })(),
-        (async () => {
-          const res = await fetch(
-            `http://127.0.0.1:8000/report/week/shifts?id_cliente=${id}&linea=${linea}`
-          );
-          return res.json();
-        })(),
-        (async () => {
-          const res = await fetch(
-            `http://127.0.0.1:8000/report/client-data?id_cliente=${id}`
-          );
-          return res.json();
-        })(),
-        (async () => {
-          const res = await fetch(
-            `http://127.0.0.1:8000/report/compressor-data?id_cliente=${id}&linea=${linea}`
-          );
-          return res.json();
-        })(),
-      ]);
+      const [pieRes, shiftRes, clientRes, compressorRes, summaryRes] =
+        await Promise.all([
+          (async () => {
+            const res = await fetch(
+              `http://127.0.0.1:8000/report/week/pie-data-proc?id_cliente=${id}&linea=${linea}`
+            );
+            return res.json();
+          })(),
+          (async () => {
+            const res = await fetch(
+              `http://127.0.0.1:8000/report/week/shifts?id_cliente=${id}&linea=${linea}`
+            );
+            return res.json();
+          })(),
+          (async () => {
+            const res = await fetch(
+              `http://127.0.0.1:8000/report/client-data?id_cliente=${id}`
+            );
+            return res.json();
+          })(),
+          (async () => {
+            const res = await fetch(
+              `http://127.0.0.1:8000/report/compressor-data?id_cliente=${id}&linea=${linea}`
+            );
+            return res.json();
+          })(),
+          (async () => {
+            const res = await fetch(
+              `http://127.0.0.1:8000/report/week/summary-general?id_cliente=${id}&linea=${linea}`
+            );
+            return res.json();
+          })(),
+        ]);
 
-      // Inicializa arreglo de 7 días para cada turno (Turno 1, 2, 3)
       const turno1 = new Array(7).fill(0);
       const turno2 = new Array(7).fill(0);
       const turno3 = new Array(7).fill(0);
 
-      // In your fetchData function, modify the day mapping:
       shiftRes.data.forEach((item: any) => {
         const fecha = new Date(item.fecha);
-        const dia = fecha.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
-
-        // Map directly to your array order: [domingo, sabado, viernes, jueves, miercoles, martes, lunes]
-        // So we need to invert the mapping
-        const diaSemana = 6 - dia; // Sunday becomes 0, Monday becomes 6, etc.
+        const dia = fecha.getDay();
+        const diaSemana = 6 - dia;
 
         switch (item.Turno) {
           case 1:
@@ -139,6 +157,7 @@ export default function Main() {
       if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
       if (compressorRes.data.length > 0)
         setCompresorData(compressorRes.data[0]);
+      if (summaryRes.data.length > 0) setSummaryData(summaryRes.data);
 
       const { LOAD, NOLOAD, OFF } = pieRes.data;
       setChartData([LOAD, NOLOAD, OFF]);

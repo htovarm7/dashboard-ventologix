@@ -636,9 +636,10 @@ def get_shifts(id_cliente: int = Query(..., description="ID del cliente"), linea
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/week/comments-data", tags=["weekly"])
-def get_comments_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
+@report.get("/week/summary-general", tags=["weekly"])
+def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente") ):
     try:
+        # Conectar a base de datos
         conn = mysql.connector.connect(
             host=DB_HOST,
             user=DB_USER,
@@ -647,129 +648,77 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
         )
         cursor = conn.cursor()
 
-        cursor.execute(
-            "call DataFiltradaWeekFecha(%s, %s, %s, DATE_SUB(CURDATE(), INTERVAL 1 DAY))",
-            (id_cliente, id_cliente, linea)
-        )
+        # Ejecutar procedimiento
+        cursor.execute("CALL semanaGeneral(%s, %s)", (id_cliente, linea))
         results = cursor.fetchall()
 
-        if not results:
-            return {"data": None, "message": "No data found."}
-
-        data = [{"time": row[1], "estado": row[3]} for row in results]
-        estados_no_off = [d for d in data if d["estado"] != "OFF"]
-
-        if not estados_no_off:
-            return {
-                "data": {
-                    "first_time": None,
-                    "last_time": None,
-                    "total_ciclos": 0,
-                    "promedio_ciclos_hora": 0,
-                    "comentario_ciclos": "El compresor permaneció apagado durante todo el día."
-                }
-            }
-
-        first_time = estados_no_off[0]["time"].strftime("%H:%M:%S")
-        last_time = estados_no_off[-1]["time"].strftime("%H:%M:%S")
-
-        # Ciclos de trabajo: LOAD → NOLOAD
-        ciclos = 0
-        for i in range(1, len(estados_no_off)):
-            if estados_no_off[i-1]['estado'] == "LOAD" and estados_no_off[i]['estado'] == "NOLOAD":
-                ciclos += 1
-        ciclos = ciclos // 2  # por pares consecutivos
-
-        segundos_por_registro = 10  # ajusta si cambia tu muestreo
-        total_registros = len(estados_no_off)
-        total_segundos = total_registros * segundos_por_registro
-        horas_trabajadas = total_segundos / 3600
-
-        promedio_ciclos_hora = round(ciclos / horas_trabajadas, 1) if horas_trabajadas else 0
-
-        # Comentario según rango recomendado
-        if promedio_ciclos_hora >= 6 and promedio_ciclos_hora <= 15:
-            comentario = "El promedio de ciclos por hora trabajada está dentro del rango recomendado de 6 a 15 ciclos/hora, por lo que parece estar funcionando correctamente."
-        else:
-            comentario = "El promedio de ciclos por hora trabajada está fuera del rango recomendado de 6 a 15 ciclos/hora. Se recomienda realizar un análisis en el compresor para identificar posibles anomalías."
+        # Columnas esperadas
+        columns = [
+            "semana", "fecha", "kWh", "horas_trabajadas", "kWh_load", "horas_load",
+            "kWh_noload", "horas_noload", "hp_equivalente", "conteo_ciclos", "promedio_ciclos_por_hora"
+        ]
 
         cursor.close()
         conn.close()
 
+        if not results:
+            return {"error": "Sin datos en semanaGeneral"}
+
+        # Mapear resultados a dict
+        data = [dict(zip(columns, row)) for row in results]
+
+        # Semana actual (semana 0)
+        semana_actual = [d for d in data if d["semana"] == 0 and d["kWh"] > 0]
+        semanas_anteriores = [d for d in data if d["semana"] > 0 and d["kWh"] > 0]
+
+        if not semana_actual:
+            return {"error": "No hay datos con consumo en la semana actual"}
+
+        # Calcular métricas semana actual
+        total_kWh_semana_actual = sum(d["kWh"] for d in semana_actual)
+        costo_semana_actual = costo_energia_usd(total_kWh_semana_actual)
+        promedio_ciclos_semana_actual = round(
+            sum(d["promedio_ciclos_por_hora"] for d in semana_actual) / len(semana_actual), 2
+        )
+        promedio_hp_semana_actual = round(
+            sum(d["hp_equivalente"] for d in semana_actual) / len(semana_actual), 2
+        )
+
+        # Calcular promedio de semanas anteriores
+        if semanas_anteriores:
+            kWh_anteriores = round(
+                sum(d["kWh"] for d in semanas_anteriores)
+            )
+            promedio_kWh_anteriores = round(
+                sum(d["kWh"] for d in semanas_anteriores) / len(semanas_anteriores), 2
+            )
+            promedio_costo_anteriores = costo_energia_usd(promedio_kWh_anteriores)
+            promedio_ciclos_anteriores = round(
+                sum(d["promedio_ciclos_por_hora"] for d in semanas_anteriores) / len(semanas_anteriores), 2
+            )
+            promedio_hp_anteriores = round(
+                sum(d["hp_equivalente"] for d in semanas_anteriores) / len(semanas_anteriores), 2
+            )
+        else:
+            promedio_kWh_anteriores = promedio_costo_anteriores = promedio_ciclos_anteriores = promedio_hp_anteriores = 0
+
         return {
-            "data": {
-                "first_time": first_time,
-                "last_time": last_time,
-                "total_ciclos": ciclos,
-                "promedio_ciclos_hora": promedio_ciclos_hora,
-                "comentario_ciclos": comentario
+            "semana_actual": {
+                "total_kWh": total_kWh_semana_actual,
+                "costo_estimado": round(costo_semana_actual, 2),
+                "promedio_ciclos_por_hora": promedio_ciclos_semana_actual,
+                "promedio_hp_equivalente": promedio_hp_semana_actual
+            },
+            "promedio_semanas_anteriores": {
+                "total_kWh_anteriores": kWh_anteriores,
+                "costo_estimado": round(promedio_costo_anteriores, 2),
+                "promedio_ciclos_por_hora": promedio_ciclos_anteriores,
+                "promedio_hp_equivalente": promedio_hp_anteriores
             }
         }
 
     except mysql.connector.Error as err:
         return {"error": str(err)}
-
-@report.get("/week/stats-data", tags=["weekly"])
-def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
-    try:
-        # Conectar a la base de datos
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME
-        )
-        cursor = conn.cursor()
-
-        # Ejecutar procedimiento almacenado
-        cursor.execute(
-            "call DataFiltradaWeekFecha(%s, %s, %s, DATE_SUB(CURDATE(), INTERVAL 1 DAY))",
-            (id_cliente, id_cliente, linea)
-        )
-        results1 = cursor.fetchall()
-
-        while cursor.nextset():
-            pass
-
-        # Consultar voltaje y HP
-        cursor.execute(f"select hp, voltaje, timestamp from compresores where id_cliente = {id_cliente} and linea = '{linea}'")
-        results2 = cursor.fetchall()
-
-        # Cerrar recursos
-        cursor.close()
-        conn.close()
-
-        if not results1 or not results2:
-            return {"error": "No data found for the specified queries."}
-
-        # Preparar datos
-        data = [{"time": row[1], "corriente": row[2], "estado": row[3]} for row in results1]
-        compresor_config = [{"hp": row[0], "voltage": row[1], "timestamp": row[2]} for row in results2]
-        compresor_config = compresor_config[0]
-        timestamp = compresor_config["timestamp"]
-
-        # Calcular kWh y horas trabajadas
-        kwh_total = energy_calculated(data, compresor_config,timestamp)
-        horas_total = np.round(horas_trabajadas(data,timestamp),2)
-        usd_por_kwh = 0.17  # aquí puedes parametrizarlo desde BD o env var
-        costo_usd = costo_energia_usd(kwh_total, usd_por_kwh)
-        hp_nominal = compresor_config["hp"]  # tomamos el hp del primer compresor
-        hp_eq = hp_equivalente(data, compresor_config,timestamp)
-        comentario_hp = comentario_hp_equivalente(hp_eq, hp_nominal) # Esta hardcodeado
-
-        return {
-            "data": {
-                "kWh": float(kwh_total),
-                "hours_worked": float(horas_total),
-                "usd_cost": float(costo_usd),
-                "hp_nominal": int(hp_nominal),
-                "hp_equivalente": int(hp_eq),
-                "comentario_hp_equivalente": comentario_hp
-            }
-        }
-
-    except mysql.connector.Error as err:
-        return {"error": str(err)}       
 
 # Static data endpoints
 @report.get("/client-data", tags=["staticData"])
@@ -979,7 +928,7 @@ def horas_trabajadas(data, timestamp):
     return round(total_segundos / 3600, 2)
 
 def costo_energia_usd(kwh_total, usd_por_kwh=0.17):
-    return round(kwh_total * usd_por_kwh, 2)
+    return round(float(kwh_total) * usd_por_kwh, 2)
 
 def hp_equivalente(data, compresor_config, timestamp):
     if not data:
