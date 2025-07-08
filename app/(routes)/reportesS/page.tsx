@@ -76,21 +76,20 @@ export default function Main() {
     limite: number;
   } | null>(null);
 
-  const [summaryData, setSummaryData] = useState<
-    {
-      semana: number;
-      fecha: string;
-      kWh: number;
-      horas_trabajadas: number;
-      kWh_load: number;
-      horas_load: number;
-      kWh_noload: number;
-      horas_noload: number;
-      hp_equivalente: number;
-      conteo_ciclos: number;
+  const [summaryData, setSummaryData] = useState<{
+    semana_actual: {
+      total_kWh: number;
+      costo_estimado: number;
       promedio_ciclos_por_hora: number;
-    }[]
-  >([]);
+      promedio_hp_equivalente: number;
+    };
+    promedio_semanas_anteriores: {
+      total_kWh_anteriores: number;
+      costo_estimado: number;
+      promedio_ciclos_por_hora: number;
+      promedio_hp_equivalente: number;
+    };
+  } | null>(null);
 
   const searchParams = useSearchParams();
 
@@ -174,13 +173,7 @@ export default function Main() {
     }
   }, [searchParams, fetchData]);
 
-  const semanaData = {
-    promedioCiclos: 15,
-    costoKWH: 0.15,
-    hpEquivalente: 120,
-  };
-
-  const ciclosOptions = {
+  const ciclosPromOptions = {
     tooltip: { show: true },
     series: [
       {
@@ -217,19 +210,20 @@ export default function Main() {
         splitLine: { show: false },
         pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
-          formatter: () => `${semanaData.promedioCiclos}`,
+          formatter: () =>
+            `${summaryData?.semana_actual.promedio_ciclos_por_hora}`,
           fontSize: 18,
           offsetCenter: [0, "30%"],
           color:
-            semanaData.promedioCiclos <= 8
+            (summaryData?.semana_actual.promedio_ciclos_por_hora ?? 0) <= 8
               ? "#418FDE"
-              : semanaData.promedioCiclos <= 12
+              : (summaryData?.semana_actual.promedio_ciclos_por_hora ?? 0) <= 12
               ? "green"
-              : semanaData.promedioCiclos <= 15
+              : (summaryData?.semana_actual.promedio_ciclos_por_hora ?? 0) <= 15
               ? "yellow"
               : "red",
         },
-        data: [{ value: semanaData.promedioCiclos }],
+        data: [{ value: summaryData?.semana_actual.promedio_ciclos_por_hora }],
       },
     ],
   };
@@ -274,28 +268,29 @@ export default function Main() {
         splitLine: { show: false },
         pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
-          formatter: () => `${semanaData.hpEquivalente}%`,
+          formatter: () =>
+            `${summaryData?.semana_actual.promedio_hp_equivalente}%`,
           fontSize: 18,
           offsetCenter: [0, "30%"],
           color:
-            semanaData.hpEquivalente > 110
+            (summaryData?.semana_actual.promedio_hp_equivalente ?? 0) > 110
               ? "red"
-              : semanaData.hpEquivalente > 99
+              : (summaryData?.semana_actual.promedio_hp_equivalente ?? 0) > 99
               ? "black"
-              : semanaData.hpEquivalente > 92
+              : (summaryData?.semana_actual.promedio_hp_equivalente ?? 0) > 92
               ? "#418FDE"
-              : semanaData.hpEquivalente > 79
+              : (summaryData?.semana_actual.promedio_hp_equivalente ?? 0) > 79
               ? "green"
-              : semanaData.hpEquivalente > 64
+              : (summaryData?.semana_actual.promedio_hp_equivalente ?? 0) > 64
               ? "yellow"
               : "red",
         },
-        data: [{ value: semanaData.hpEquivalente }],
+        data: [{ value: summaryData?.semana_actual.promedio_hp_equivalente }],
       },
     ],
   };
 
-  const costoOptions = {
+  const costoUSDOptions = {
     tooltip: { show: true },
     series: [
       {
@@ -331,17 +326,12 @@ export default function Main() {
         splitLine: { show: false },
         pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
-          formatter: () => `$${semanaData.costoKWH}`,
+          formatter: () => `$${0.17}`,
           fontSize: 18,
           offsetCenter: [0, "30%"],
-          color:
-            semanaData.costoKWH <= 0.18
-              ? "green"
-              : semanaData.costoKWH <= 0.22
-              ? "yellow"
-              : "red",
+          color: 0.17 <= 0.18 ? "green" : 0.17 <= 0.22 ? "yellow" : "red",
         },
-        data: [{ value: semanaData.costoKWH }],
+        data: [{ value: 0.17 }],
       },
     ],
   };
@@ -706,7 +696,7 @@ export default function Main() {
           <div className="flex flex-col items-center  mt-4 text-xl font-bold">
             <h1>Ciclos promedio por hora</h1>
             <ReactECharts
-              option={ciclosOptions}
+              option={ciclosPromOptions}
               style={{ height: "280px", width: "350px" }}
               notMerge={true}
               lazyUpdate={true}
@@ -728,7 +718,7 @@ export default function Main() {
           <div className="flex flex-col items-center  mt-4 text-xl font-bold">
             <h1>Costo $USD por kWh*</h1>
             <ReactECharts
-              option={costoOptions}
+              option={costoUSDOptions}
               style={{ height: "280px", width: "350px" }}
               notMerge={true}
               lazyUpdate={true}
@@ -792,13 +782,13 @@ export default function Main() {
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
               <h2 className="text-xl text-black font-bold">Costo $USD</h2>
               <p className="text-3xl font-bold text-black">
-                {/* {costoSemanaAnterior.toFixed(2)} */}
+                {summaryData?.semana_actual.costo_estimado.toFixed(2) || "0.00"}
               </p>
             </div>
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
               <h2 className="text-xl text-black font-bold">Consumo kWH</h2>
               <p className="text-3xl font-bold text-black">
-                {/* {kwhSemanaAnterior.toFixed(0)} */}
+                {summaryData?.semana_actual.total_kWh || "0.00"}
               </p>
             </div>
           </div>
@@ -833,15 +823,13 @@ export default function Main() {
           </div>
           <div className="flex-1 items-center text-center p-4">
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-              <h2 className="text-xl text-black font-bold">Costo $USD</h2>
+              <h2 className="text-xl text-black font-bold">
+                Ciclos por hora (C/Hr)
+              </h2>
               <p className="text-3xl font-bold text-black">
-                {/* {costoSemanaAnterior.toFixed(2)} */}
-              </p>
-            </div>
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-              <h2 className="text-xl text-black font-bold">Consumo kWH</h2>
-              <p className="text-3xl font-bold text-black">
-                {/* {kwhSemanaAnterior.toFixed(0)} */}
+                {summaryData?.semana_actual.promedio_ciclos_por_hora.toFixed(
+                  1
+                ) || "0.0"}
               </p>
             </div>
           </div>
@@ -876,7 +864,9 @@ export default function Main() {
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
               <h2 className="text-xl text-black font-bold">HP Equivalente**</h2>
               <p className="text-3xl font-bold text-black">
-                {/* {hpEquivalente.toFixed(0)} */}
+                {summaryData?.semana_actual.promedio_hp_equivalente.toFixed(
+                  1
+                ) || "0.0"}
               </p>
             </div>
           </div>
