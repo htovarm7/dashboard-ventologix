@@ -217,7 +217,7 @@ export default function Main() {
     return "black";
   }
 
-  const gaugeOptions = {
+  const HpOptions = {
     series: [
       {
         type: "gauge",
@@ -255,7 +255,7 @@ export default function Main() {
         splitLine: { show: false },
         pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
-          formatter: () => `${porcentajeUso.toFixed(0)}%`,
+          formatter: () => `${porcentajeUso.toFixed(0)}`,
           color: getColor(porcentajeUso),
           fontSize: 20,
         },
@@ -269,6 +269,69 @@ export default function Main() {
       },
     ],
   };
+
+  const ciclosOptions = {
+  series: [
+    {
+      type: "gauge",
+      animation: false,
+      min: 0,
+      max: 30,
+      startAngle: 200,
+      endAngle: -20,
+      axisLine: {
+        lineStyle: {
+          width: 28,
+          color: [
+              [0.377, "red"],
+              [0.544, "yellow"],
+              [0.689, "green"],
+              [0.766, "#418FDE"],
+              [0.889, "yellow"],
+              [1, "red"],
+          ],
+        },
+      },
+      axisLabel: {
+        show: true,
+        color: "black",
+        distance: -50,
+        formatter: function (value: number) {
+          if (value === 0) return "0";
+          if (value === 30) return "30+";
+          return "";
+        },
+        fontSize: 16,
+        fontWeight: "bold",
+      },
+      axisTick: { show: false },
+      splitLine: { show: false },
+      pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
+      detail: {
+        formatter: () => `${promedioCiclosHora.toFixed(1)}`,
+        fontSize: 20,
+        color:
+          promedioCiclosHora <= 4
+            ? "red"
+            : promedioCiclosHora <= 10
+            ? "yellow"
+            : promedioCiclosHora <= 20
+            ? "#418FDE"
+            : promedioCiclosHora <= 30
+            ? "red"
+            : "black",
+      },
+      title: {
+        offsetCenter: [0, "70%"],
+        formatter: () =>
+          `Ciclos por hora (C/Hr) : ${promedioCiclosHora.toFixed(1)}`,
+        fontSize: 14,
+      },
+      data: [{ value: aguja }],
+    },
+  ],
+};
+
 
   const dataPie = {
     labels: ["LOAD", "NO LOAD", "OFF"],
@@ -495,7 +558,19 @@ export default function Main() {
               <strong>Hp Instalado:</strong> {hp_instalado} Hp
             </h2>
             <ReactECharts
-              option={gaugeOptions}
+              option={HpOptions}
+              style={{ height: "280px", width: "100%" }}
+              notMerge={true}
+              lazyUpdate={true}
+              theme={"light"}
+            />
+          </div>
+          <div className="bg-white rounded-2xl shadow p-4 w-[280px] items-center justify-center">
+            <h2 className="text-xl" style={{ textAlign: "center" }}>
+              <strong>Ciclos por hora (C/hr):</strong> {promedioCiclosHora.toFixed(1)}
+            </h2>
+            <ReactECharts
+              option={ciclosOptions}
               style={{ height: "280px", width: "100%" }}
               notMerge={true}
               lazyUpdate={true}

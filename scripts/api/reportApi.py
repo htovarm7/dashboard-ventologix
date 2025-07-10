@@ -280,7 +280,7 @@ def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), l
         hp_nominal = compresor_config["hp"]  # tomamos el hp del primer compresor
         hp_eq = hp_equivalente(data, compresor_config,timestamp)
         comentario_hp = comentario_hp_equivalente(hp_eq, hp_nominal) # Esta hardcodeado
-
+        
         return {
             "data": {
                 "kWh": float(kwh_total),
