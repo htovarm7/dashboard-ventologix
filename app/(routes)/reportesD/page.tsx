@@ -296,7 +296,7 @@ export default function Main() {
           distance: -45,
           formatter: (value: number) => {
             if (value === 0) return "0";
-            if (value === 30) return promedioCiclosHora > 30 ? "Max" : "30";
+            if (value === 30) return promedioCiclosHora > 30 ? "Max" : "30+";
             return "";
           },
           fontSize: 14,

@@ -180,7 +180,7 @@ export default function Main() {
       {
         type: "gauge",
         min: 0,
-        max: 20,
+        max: 30,
         startAngle: 200,
         endAngle: -20,
         animation: false,
@@ -188,9 +188,9 @@ export default function Main() {
           lineStyle: {
             width: 28,
             color: [
-              [0.4, "#418FDE"],
-              [0.6, "green"],
-              [0.75, "yellow"],
+              [8 / 20, "#418FDE"],
+              [12 / 20, "green"],
+              [15 / 20, "yellow"],
               [1, "red"],
             ],
           },
@@ -201,7 +201,7 @@ export default function Main() {
           distance: -40,
           formatter: function (value: number) {
             if (value === 0) return "0";
-            if (value === 20) return "Max";
+            if (value === 30) return "30+";
             return "";
           },
           fontSize: 16,
