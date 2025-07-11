@@ -649,7 +649,7 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
         cursor = conn.cursor()
 
         # Ejecutar procedimiento
-        cursor.execute("CALL semanaGeneral(%s, %s)", (id_cliente, linea))
+        cursor.execute("CALL semanaGeneralFP(%s, %s)", (id_cliente, linea))
         results = cursor.fetchall()
 
         # Columnas esperadas
@@ -662,7 +662,7 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
         conn.close()
 
         if not results:
-            return {"error": "Sin datos en semanaGeneral"}
+            return {"error": "Sin datos en semanaGeneralFP"}
 
         # Mapear resultados a dict
         data = [dict(zip(columns, row)) for row in results]
@@ -779,43 +779,6 @@ def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente
 
         # Convert results into a list of dictionaries
         data = [{"hp": row[0], "tipo": row[1], "voltaje": row[2], "marca": row[3], "numero_serie": row[4], "alias": row[5], "limite": row[6]} for row in results]
-
-        return {
-            "data": data
-        }
-
-    except mysql.connector.Error as err:
-        return {"error": str(err)}
-
-@report.get("/emails-data", tags=["staticData"])
-def get_emails_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
-    try:
-        # Connect to the database
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME
-        )
-        cursor = conn.cursor()
-
-        # Fetch data from the clientes table for id_cliente 7
-        cursor.execute(
-            "SELECT i.Correo, comp.Alias, comp.linea FROM Ingenieros i JOIN clientes c ON i.id_cliente = c.id_cliente JOIN compresores comp ON c.id_cliente = comp.id_cliente WHERE c.id_cliente = %s and comp.linea = %s",
-            (id_cliente, linea)
-        )
-
-        results = cursor.fetchall()
-
-        # Close resources
-        cursor.close()
-        conn.close()
-
-        if not results:
-            return {"error": "No data found for the specified client."}
-
-        # Convert results into a list of dictionaries
-        data = [{"correo": row[0], "Alias": row[1], "Linea": row[2]} for row in results]
 
         return {
             "data": data
