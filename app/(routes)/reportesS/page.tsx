@@ -173,6 +173,7 @@ export default function Main() {
     }
   }, [searchParams, fetchData]);
 
+  // Gauge Charts Options
   const ciclosPromOptions = {
     tooltip: { show: true },
     series: [
@@ -211,19 +212,32 @@ export default function Main() {
         pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
           formatter: () =>
-            `${summaryData?.semana_actual.promedio_ciclos_por_hora}`,
+            `${
+              summaryData?.semana_actual?.promedio_ciclos_por_hora !== undefined
+                ? summaryData.semana_actual.promedio_ciclos_por_hora.toFixed(1)
+                : "0.0"
+            }`,
           fontSize: 18,
           offsetCenter: [0, "30%"],
           color:
-            (summaryData?.semana_actual.promedio_ciclos_por_hora ?? 0) <= 8
+            (summaryData?.semana_actual?.promedio_ciclos_por_hora ?? 0) <= 8
               ? "#418FDE"
-              : (summaryData?.semana_actual.promedio_ciclos_por_hora ?? 0) <= 12
+              : (summaryData?.semana_actual?.promedio_ciclos_por_hora ?? 0) <=
+                12
               ? "green"
-              : (summaryData?.semana_actual.promedio_ciclos_por_hora ?? 0) <= 15
+              : (summaryData?.semana_actual?.promedio_ciclos_por_hora ?? 0) <=
+                15
               ? "yellow"
               : "red",
         },
-        data: [{ value: summaryData?.semana_actual.promedio_ciclos_por_hora }],
+        data: [
+          {
+            value:
+              summaryData?.semana_actual?.promedio_ciclos_por_hora !== undefined
+                ? summaryData.semana_actual.promedio_ciclos_por_hora
+                : 0,
+          },
+        ],
       },
     ],
   };
@@ -269,7 +283,11 @@ export default function Main() {
         pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
           formatter: () =>
-            `${summaryData?.semana_actual.promedio_hp_equivalente}%`,
+            `${
+              summaryData?.semana_actual.promedio_hp_equivalente !== undefined
+                ? summaryData.semana_actual.promedio_hp_equivalente
+                : 0
+            }%`,
           fontSize: 18,
           offsetCenter: [0, "30%"],
           color:
@@ -285,7 +303,9 @@ export default function Main() {
               ? "yellow"
               : "red",
         },
-        data: [{ value: summaryData?.semana_actual.promedio_hp_equivalente }],
+        data: [
+          { value: summaryData?.semana_actual.promedio_hp_equivalente ?? 0 },
+        ],
       },
     ],
   };
@@ -336,6 +356,7 @@ export default function Main() {
     ],
   };
 
+  // Line Chart for the daily consumption
   const consumoOptions = {
     title: {
       text: "kWh usados por día durante la semana",
@@ -436,6 +457,7 @@ export default function Main() {
     ],
   };
 
+  // Bar Chart Options for kWh diarios, ciclos promedio, and hp equivalente
   const kwhDiariosOption = {
     xAxis: {
       type: "category",
@@ -508,6 +530,7 @@ export default function Main() {
     ],
   };
 
+  // Pie Chart
   const dataPie = {
     labels: ["LOAD", "NO LOAD", "OFF"],
     datasets: [
