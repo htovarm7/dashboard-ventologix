@@ -610,7 +610,7 @@ def get_shifts(id_cliente: int = Query(..., description="ID del cliente"), linea
         cursor = conn.cursor()
 
         cursor.execute(
-            "CALL semanaTurnos(%s, %s, %s)",
+            "CALL semanaTurnosFP(%s, %s, %s)",
             (id_cliente, id_cliente, linea)
         )
 
@@ -675,7 +675,7 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
             return {"error": "No hay datos con consumo en la semana actual"}
 
         # Calcular métricas semana actual
-        total_kWh_semana_actual = sum(d["kWh"] for d in semana_actual)
+        total_kWh_semana_actual = sum(d["kWh"] for d in semana_actual) / len(semanas_anteriores)
         costo_semana_actual = costo_energia_usd(total_kWh_semana_actual)
         promedio_ciclos_semana_actual = round(
             sum(d["promedio_ciclos_por_hora"] for d in semana_actual) / len(semana_actual), 2
@@ -687,7 +687,7 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
         # Calcular promedio de semanas anteriores
         if semanas_anteriores:
             kWh_anteriores = round(
-                sum(d["kWh"] for d in semanas_anteriores)
+                sum(d["kWh"] for d in semanas_anteriores) / len(semanas_anteriores)
             )
             promedio_kWh_anteriores = round(
                 sum(d["kWh"] for d in semanas_anteriores) / len(semanas_anteriores), 2

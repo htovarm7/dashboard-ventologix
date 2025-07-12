@@ -156,7 +156,8 @@ export default function Main() {
       if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
       if (compressorRes.data.length > 0)
         setCompresorData(compressorRes.data[0]);
-      if (summaryRes.data) setSummaryData(summaryRes.data);
+      console.log("summaryRes:", summaryRes);
+      if (summaryRes) setSummaryData(summaryRes);
 
       const { LOAD, NOLOAD, OFF } = pieRes.data;
       setChartData([LOAD, NOLOAD, OFF]);
