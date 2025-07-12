@@ -25,7 +25,6 @@ db_config = {
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
-# Conexión persistente a base
 def conectar_db():
     while True:
         try:
@@ -40,7 +39,6 @@ def conectar_db():
 conn = conectar_db()
 cursor = conn.cursor(dictionary=True)
 
-# Cerrar conexión al terminar
 def cerrar_conexion():
     if conn.is_connected():
         cursor.close()
@@ -49,7 +47,6 @@ def cerrar_conexion():
 
 atexit.register(cerrar_conexion)
 
-# Callback al conectar al broker
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         logging.info("🟢 Conectado al broker MQTT")
@@ -57,42 +54,54 @@ def on_connect(client, userdata, flags, rc):
     else:
         logging.error(f"🔴 Error de conexión MQTT: {rc}")
 
-# Callback al recibir mensaje
 def on_message(client, userdata, msg):
     global conn, cursor
-
     try:
         payload = json.loads(msg.payload.decode())
-        logging.info(f"📨 Mensaje recibido completo: {payload}")
+        logging.info(f"📨 Mensaje recibido: {payload}")
 
-        # Obtener id_kpm directamente del campo 'id'
-        id_kpm = payload.get("id")
-        if not id_kpm:
-            logging.error("❌ No se encontró 'id' en payload")
+        # Verificar que data y point existan
+        data = payload.get("data")
+        if not data or not data[0].get("point"):
+            logging.error("❌ Payload incompleto: falta 'data[0].point'")
             return
-        
-        # Consultar id_cliente con id_kpm
+
+        points = data[0]["point"]
+
+        # Buscar id_kpm en el punto con id=0
+        id_kpm_point = next((p for p in points if p["id"] == 0), None)
+        if not id_kpm_point:
+            logging.error("❌ id_kpm no encontrado en puntos")
+            return
+        id_kpm = id_kpm_point["val"]
+
+        # Obtener id_cliente usando id_kpm
         cursor.execute("SELECT id_cliente FROM dispositivo WHERE id_kpm = %s", (id_kpm,))
         result = cursor.fetchone()
         if not result:
-            logging.error(f"Dispositivo no encontrado: {id_kpm}")
+            logging.error(f"❌ Dispositivo no encontrado: {id_kpm}")
             return
-        id_device = result['id_cliente']
+        id_device = result["id_cliente"]
 
-        # Parsear timestamp en 'time' (string 'YYYYMMDDHHMMSS')
-        time_str = payload.get("time")
-        if not time_str:
-            logging.error("❌ No se encontró 'time' en payload")
+        # Obtener timestamp y convertir a DATETIME
+        tp = data[0].get("tp")
+        if not tp:
+            logging.error("❌ Timestamp 'tp' no encontrado")
             return
-        time_fmt = datetime.strptime(time_str, "%Y%m%d%H%M%S").strftime('%Y-%m-%d %H:%M:%S')
+        time_fmt = datetime.fromtimestamp(tp / 1000).strftime('%Y-%m-%d %H:%M:%S')
 
-        # Extraer variables eléctricas (usar 0.0 si falta)
-        ua = float(payload.get("ua", 0))
-        ub = float(payload.get("ub", 0))
-        uc = float(payload.get("uc", 0))
-        ia = float(payload.get("ia", 0))
-        ib = float(payload.get("ib", 0))
-        ic = float(payload.get("ic", 0))
+        # Extraer variables eléctricas por id
+        def get_point_value(pid):
+            point = next((p for p in points if p["id"] == pid), None)
+            return float(point["val"]) if point else 0.0
+
+        ua = get_point_value(1)
+        ub = get_point_value(2)
+        uc = get_point_value(3)
+        ia = get_point_value(7)
+        ib = get_point_value(8)
+        ic = get_point_value(9)
+
         # Insertar en BD
         insert_query = """
             INSERT INTO pruebas (device_id, ua, ub, uc, ia, ib, ic, time)
