@@ -7,6 +7,7 @@
  * This file implements the daily graphs, including a Line Chart and a Gauge Chart using both Chart.js and ECharts.
  *
  * @version 1.0
+ * http://localhost:3002/reportesD?id_cliente=10&linea=A
  */
 
 "use client";
