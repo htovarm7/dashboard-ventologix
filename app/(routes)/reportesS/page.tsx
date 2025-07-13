@@ -189,9 +189,9 @@ export default function Main() {
           lineStyle: {
             width: 28,
             color: [
-              [8 / 20, "#418FDE"],
-              [12 / 20, "green"],
-              [15 / 20, "yellow"],
+              [8 / 30, "#418FDE"],
+              [12 / 30, "green"],
+              [15 / 30, "yellow"],
               [1, "red"],
             ],
           },
