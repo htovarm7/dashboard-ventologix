@@ -93,9 +93,11 @@ export default function Main() {
 
   const searchParams = useSearchParams();
 
+  const [kwhHorasPorDia, setKwhHorasPorDia] = useState<{ kwhData: number[]; horasData: number[] }>({ kwhData: new Array(7).fill(0), horasData: new Array(7).fill(0) });
+
   const fetchData = useCallback(async (id: string, linea: string) => {
     try {
-      const [pieRes, shiftRes, clientRes, compressorRes, summaryRes] =
+      const [pieRes, shiftRes, clientRes, compressorRes, summaryRes, byDayRes] =
         await Promise.all([
           (async () => {
             const res = await fetch(
@@ -127,6 +129,12 @@ export default function Main() {
             );
             return res.json();
           })(),
+          (async () => {
+            const res = await fetch(
+              `http://127.0.0.1:8000/report/week/byDayData?id_cliente=${id}&linea=${linea}`
+            );
+            return res.json();
+          })(),
         ]);
 
       const turno1 = new Array(7).fill(0);
@@ -150,6 +158,22 @@ export default function Main() {
             break;
         }
       });
+
+      const kwhData = new Array(7).fill(0);
+      const horasData = new Array(7).fill(0);
+
+      if (Array.isArray(byDayRes.data)) {
+        byDayRes.data.forEach((item: { fecha: string; total_kWh: number; total_horas: number }) => {
+          const fecha = new Date(item.fecha);
+          const dia = fecha.getDay();
+          const index = (dia + 6) % 7; // lunes en 0
+
+          kwhData[index] = item.total_kWh;
+          horasData[index] = item.total_horas;
+        });
+      }
+
+      setKwhHorasPorDia({ kwhData, horasData });
 
       setConsumoData({ turno1, turno2, turno3 });
 
@@ -459,42 +483,55 @@ export default function Main() {
   };
 
   // Bar Chart Options for kWh diarios, ciclos promedio, and hp equivalente
-  const kwhDiariosOption = {
-    xAxis: {
-      type: "category",
-      data: [
-        "Lunes",
-        "Martes",
-        "Miercoles",
-        "Jueves",
-        "Viernes",
-        "Sabado",
-        "Domingo",
+  const kwhHorasOption = {
+  tooltip: {
+    trigger: "axis",
+    axisPointer: { type: "shadow" },
+  },
+  legend: {
+    data: ["kWh", "Horas"],
+  },
+  grid: {
+    left: "5%",
+    right: "5%",
+    bottom: 60,
+    containLabel: true,
+  },
+  xAxis: {
+    type: "category",
+    data: [
+        "domingo",
+        "sabado",
+        "viernes",
+        "jueves",
+        "miercoles",
+        "martes",
+        "lunes",
       ],
+  },
+  yAxis: {
+    type: "value",
+  },
+  series: [
+    {
+      name: "kWh",
+      type: "bar",
+      data: kwhHorasPorDia.kwhData,
+      itemStyle: { color: "#0074cc" },
     },
-    yAxis: {
-      type: "value",
+    {
+      name: "Horas",
+      type: "bar",
+      data: kwhHorasPorDia.horasData,
+      itemStyle: { color: "#4db6ac" },
     },
-    series: [
-      {
-        data: [120, 200, 150, 80, 70, 110, 130],
-        type: "bar",
-      },
-    ],
-  };
+  ],
+};
 
   const ciclosPromedioOption = {
     xAxis: {
       type: "category",
-      data: [
-        "Lunes",
-        "Martes",
-        "Miercoles",
-        "Jueves",
-        "Viernes",
-        "Sabado",
-        "Domingo",
-      ],
+      data: ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"],
     },
     yAxis: {
       type: "value",
@@ -503,6 +540,9 @@ export default function Main() {
       {
         data: [120, 200, 150, 80, 70, 110, 130],
         type: "bar",
+        itemStyle: {
+          color: "#1e67b2"
+        }
       },
     ],
   };
@@ -510,15 +550,7 @@ export default function Main() {
   const hpEquivalenteOption = {
     xAxis: {
       type: "category",
-      data: [
-        "Lunes",
-        "Martes",
-        "Miercoles",
-        "Jueves",
-        "Viernes",
-        "Sabado",
-        "Domingo",
-      ],
+      data: ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"],
     },
     yAxis: {
       type: "value",
@@ -527,6 +559,9 @@ export default function Main() {
       {
         data: [120, 200, 150, 80, 70, 110, 130],
         type: "bar",
+        itemStyle: {
+          color: "#59aeb2"
+        }
       },
     ],
   };
@@ -539,11 +574,10 @@ export default function Main() {
         label: "Estados del Compresor",
         data: chartData,
         backgroundColor: [
-          "rgb(0, 191, 255)",
-          "rgb(229, 255, 0)",
-          "rgb(126, 126, 126)",
+          "rgb(30,103,178)",
+          "rgb(65,143,222)",
+          "rgb(136,219,223)",
         ],
-        hoverOffset: 30,
       },
     ],
   };
@@ -793,9 +827,10 @@ export default function Main() {
       <div className="flex flex-col mb-10">
         <div className="flex">
           <div className="flex-1 items-center text-center p-4">
+            <p className="text-2xl font-bold">kWh diarios y Horas de trabajo Por dia de la semana</p>
             {/* Contenido columna 1 */}
             <ReactECharts
-              option={kwhDiariosOption}
+              option={kwhHorasOption}
               style={{ height: 350, width: 900 }}
               notMerge={true}
               lazyUpdate={true}
@@ -806,13 +841,13 @@ export default function Main() {
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
               <h2 className="text-xl text-black font-bold">Costo $USD</h2>
               <p className="text-3xl font-bold text-black">
-                {summaryData?.semana_actual.costo_estimado.toFixed(2) || "0.00"}
+                ${summaryData?.semana_actual.costo_estimado.toFixed(2) || "0.00"}
               </p>
             </div>
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
               <h2 className="text-xl text-black font-bold">Consumo kWH</h2>
               <p className="text-3xl font-bold text-black">
-                {summaryData?.semana_actual.total_kWh || "0.00"}
+                {summaryData?.semana_actual.total_kWh.toFixed(2) || "0.00"} kWh
               </p>
             </div>
           </div>
@@ -838,7 +873,7 @@ export default function Main() {
           <div className="flex-1 items-center text-center p-4">
             {/* Contenido columna 1 */}
             <ReactECharts
-              option={kwhDiariosOption}
+              option={ciclosPromedioOption}
               style={{ height: 350, width: 900 }}
               notMerge={true}
               lazyUpdate={true}
@@ -853,7 +888,7 @@ export default function Main() {
               <p className="text-3xl font-bold text-black">
                 {summaryData?.semana_actual.promedio_ciclos_por_hora.toFixed(
                   1
-                ) || "0.0"}
+                ) || "0.0"} C/Hr
               </p>
             </div>
           </div>
@@ -890,7 +925,7 @@ export default function Main() {
               <p className="text-3xl font-bold text-black">
                 {summaryData?.semana_actual.promedio_hp_equivalente.toFixed(
                   1
-                ) || "0.0"}
+                ) || "0.0"} hp
               </p>
             </div>
           </div>
@@ -919,7 +954,7 @@ export default function Main() {
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
               <h2 className="text-xl text-black font-bold">Uso Activo</h2>
               <p className="text-3xl font-bold text-black">
-                {/* {usoActivo.toFixed(1)} */}
+                {/* {usoActivo.toFixed(1)} */} Hr
               </p>
             </div>
           </div>

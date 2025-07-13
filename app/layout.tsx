@@ -20,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={outfit.className}>
       <body className="antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        {children}
       </body>
     </html>
   );
