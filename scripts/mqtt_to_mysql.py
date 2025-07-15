@@ -60,58 +60,45 @@ def on_message(client, userdata, msg):
         payload = json.loads(msg.payload.decode())
         logging.info(f"📨 Mensaje recibido: {payload}")
 
-        # Verificar que data y point existan
-        data = payload.get("data")
-        if not data or not data[0].get("point"):
-            logging.error("❌ Payload incompleto: falta 'data[0].point'")
+        # Ahora procesa el payload según los campos actuales, por ejemplo:
+        id_device = payload.get("id")
+        if not id_device:
+            logging.error("❌ Faltó campo 'id' en payload")
             return
 
-        points = data[0]["point"]
+        # Extraer variables directamente del dict recibido
+        ua = float(payload.get("ua", 0.0))
+        ub = float(payload.get("ub", 0.0))
+        uc = float(payload.get("uc", 0.0))
+        ia = float(payload.get("ia", 0.0))
+        ib = float(payload.get("ib", 0.0))
+        ic = float(payload.get("ic", 0.0))
 
-        # Buscar id_kpm en el punto con id=0
-        id_kpm_point = next((p for p in points if p["id"] == 0), None)
-        if not id_kpm_point:
-            logging.error("❌ id_kpm no encontrado en puntos")
+        # Convertir timestamp si tienes "time" en formato YYYYMMDDHHMMSS
+        time_str = payload.get("time")
+        if not time_str:
+            logging.error("❌ Faltó campo 'time' en payload")
             return
-        id_kpm = id_kpm_point["val"]
+        time_fmt = datetime.strptime(time_str, "%Y%m%d%H%M%S").strftime('%Y-%m-%d %H:%M:%S')
 
-        # Obtener id_cliente usando id_kpm
-        cursor.execute("SELECT id_cliente FROM dispositivo WHERE id_kpm = %s", (id_kpm,))
+        # Puedes mapear id_device a id_cliente o device_id en BD si quieres
+        cursor.execute("SELECT id_cliente FROM dispositivo WHERE id_kpm = %s", (id_device,))
         result = cursor.fetchone()
         if not result:
-            logging.error(f"❌ Dispositivo no encontrado: {id_kpm}")
+            logging.error(f"❌ Dispositivo no encontrado: {id_device}")
             return
-        id_device = result["id_cliente"]
-
-        # Obtener timestamp y convertir a DATETIME
-        tp = data[0].get("tp")
-        if not tp:
-            logging.error("❌ Timestamp 'tp' no encontrado")
-            return
-        time_fmt = datetime.fromtimestamp(tp / 1000).strftime('%Y-%m-%d %H:%M:%S')
-
-        # Extraer variables eléctricas por id
-        def get_point_value(pid):
-            point = next((p for p in points if p["id"] == pid), None)
-            return float(point["val"]) if point else 0.0
-
-        ua = get_point_value(1)
-        ub = get_point_value(2)
-        uc = get_point_value(3)
-        ia = get_point_value(7)
-        ib = get_point_value(8)
-        ic = get_point_value(9)
+        id_db_device = result["id_cliente"]
 
         # Insertar en BD
         insert_query = """
             INSERT INTO pruebas (device_id, ua, ub, uc, ia, ib, ic, time)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
-        values = (id_device, ua, ub, uc, ia, ib, ic, time_fmt)
+        values = (id_db_device, ua, ub, uc, ia, ib, ic, time_fmt)
         cursor.execute(insert_query, values)
         conn.commit()
 
-        logging.info(f"✅ Insertado Device {id_device} | {time_fmt}")
+        logging.info(f"✅ Insertado Device {id_db_device} | {time_fmt}")
 
     except mysql.connector.Error as db_err:
         logging.error(f"❌ Error en base de datos: {db_err}")

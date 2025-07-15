@@ -171,8 +171,9 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
         )
         cursor = conn.cursor()
 
+        # Obtener los datos filtrados del día anterior
         cursor.execute(
-            "call DataFiltradaDayFecha(%s, %s, %s, DATE_SUB(CURDATE(), INTERVAL 1 DAY))",
+            "CALL DataFiltradaDayFecha(%s, %s, %s, DATE_SUB(CURDATE(), INTERVAL 1 DAY))",
             (id_cliente, id_cliente, linea)
         )
         results = cursor.fetchall()
@@ -180,6 +181,19 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
         if not results:
             return {"data": None, "message": "No data found."}
 
+        # Obtener segundos por registro (solo uno)
+        cursor.execute(
+            "SELECT comp.TIMESTAMP FROM compresores comp JOIN clientes c ON c.id_cliente = comp.id_cliente WHERE c.id_cliente = %s AND comp.linea = %s LIMIT 1;",
+            (id_cliente, linea)
+        )
+        result1 = cursor.fetchone()
+
+        if not result1:
+            return {"data": None, "message": "No data found for sampling interval."}
+
+        segundos_por_registro = result1[0]
+
+        # Procesar resultados
         data = [{"time": row[1], "estado": row[3]} for row in results]
         estados_no_off = [d for d in data if d["estado"] != "OFF"]
 
@@ -202,16 +216,14 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
         for i in range(1, len(estados_no_off)):
             if estados_no_off[i-1]['estado'] == "LOAD" and estados_no_off[i]['estado'] == "NOLOAD":
                 ciclos += 1
-        ciclos = ciclos // 2  # por pares consecutivos
+        ciclos = ciclos // 2
 
-        segundos_por_registro = 10  # ajusta si cambia tu muestreo
         total_registros = len(estados_no_off)
         total_segundos = total_registros * segundos_por_registro
         horas_trabajadas = total_segundos / 3600
 
         promedio_ciclos_hora = round(ciclos / horas_trabajadas, 1) if horas_trabajadas else 0
 
-        # Comentario según rango recomendado
         if promedio_ciclos_hora >= 6 and promedio_ciclos_hora <= 15:
             comentario = "El promedio de ciclos por hora trabajada está dentro del rango recomendado de 6 a 15 ciclos/hora, por lo que parece estar funcionando correctamente."
         else:
