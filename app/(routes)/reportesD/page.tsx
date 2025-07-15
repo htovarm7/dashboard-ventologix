@@ -194,16 +194,6 @@ export default function Main() {
     : 0;
   const aguja = Math.max(30, Math.min(120, porcentajeUso)); // Limita entre 30% y 120%
 
-  function getColor(porcentaje: number) {
-    if (porcentaje <= 64) return "red";
-    if (porcentaje <= 79) return "black";
-    if (porcentaje <= 92) return "green";
-    if (porcentaje <= 99) return "#418FDE";
-    if (porcentaje <= 110) return "black";
-    if (porcentaje <= 120) return "red";
-    return "black";
-  }
-
   const HpOptions = {
     series: [
       {
@@ -243,7 +233,7 @@ export default function Main() {
         pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
           formatter: () => `${porcentajeUso.toFixed(0)}%`,
-          color: getColor(porcentajeUso),
+          color: "black",
           fontSize: 20,
         },
         title: {
