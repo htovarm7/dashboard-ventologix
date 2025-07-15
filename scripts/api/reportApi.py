@@ -171,7 +171,29 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
         )
         cursor = conn.cursor()
 
-        # Obtener los datos filtrados del día anterior
+        # 1. Obtener el intervalo de muestreo en segundos (30 en este caso)
+        cursor.execute(
+            """
+            SELECT TIMESTAMP as intervalo_segundos
+            FROM compresores 
+            WHERE id_cliente = %s 
+            AND linea = %s 
+            LIMIT 1
+            """,
+            (id_cliente, linea)
+        )
+        resultado_intervalo = cursor.fetchone()
+        
+        if not resultado_intervalo:
+            return {
+                "error": "Configuración no encontrada",
+                "message": f"No se encontró el intervalo de muestreo para cliente {id_cliente} línea {linea}"
+            }
+        
+        segundos_por_registro = int(resultado_intervalo[0])  # Convertimos a entero por seguridad
+        print(f"Intervalo de muestreo: {segundos_por_registro} segundos")
+
+        # 2. Obtener los datos filtrados del día anterior
         cursor.execute(
             "CALL DataFiltradaDayFecha(%s, %s, %s, DATE_SUB(CURDATE(), INTERVAL 1 DAY))",
             (id_cliente, id_cliente, linea)
@@ -179,19 +201,7 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
         results = cursor.fetchall()
 
         if not results:
-            return {"data": None, "message": "No data found."}
-
-        # Obtener segundos por registro (solo uno)
-        cursor.execute(
-            "SELECT comp.TIMESTAMP FROM compresores comp JOIN clientes c ON c.id_cliente = comp.id_cliente WHERE c.id_cliente = %s AND comp.linea = %s LIMIT 1;",
-            (id_cliente, linea)
-        )
-        result1 = cursor.fetchone()
-
-        if not result1:
-            return {"data": None, "message": "No data found for sampling interval."}
-
-        segundos_por_registro = result1[0]
+            return {"data": None, "message": "No se encontraron datos para el día anterior."}
 
         # Procesar resultados
         data = [{"time": row[1], "estado": row[3]} for row in results]
@@ -211,23 +221,25 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
         first_time = estados_no_off[0]["time"].strftime("%H:%M:%S")
         last_time = estados_no_off[-1]["time"].strftime("%H:%M:%S")
 
-        # Ciclos de trabajo: LOAD → NOLOAD
+        # Calcular ciclos de trabajo (LOAD → NOLOAD)
         ciclos = 0
         for i in range(1, len(estados_no_off)):
             if estados_no_off[i-1]['estado'] == "LOAD" and estados_no_off[i]['estado'] == "NOLOAD":
                 ciclos += 1
-        ciclos = ciclos // 2
+        ciclos = ciclos // 2  # Ajuste para contar pares completos
 
+        # Calcular horas trabajadas usando el intervalo de muestreo
         total_registros = len(estados_no_off)
-        total_segundos = total_registros * segundos_por_registro
+        total_segundos = total_registros * segundos_por_registro  # Usamos el valor obtenido (30)
         horas_trabajadas = total_segundos / 3600
 
-        promedio_ciclos_hora = round(ciclos / horas_trabajadas, 1) if horas_trabajadas else 0
+        promedio_ciclos_hora = round(ciclos / horas_trabajadas, 1) if horas_trabajadas > 0 else 0
 
-        if promedio_ciclos_hora >= 6 and promedio_ciclos_hora <= 15:
-            comentario = "El promedio de ciclos por hora trabajada está dentro del rango recomendado de 6 a 15 ciclos/hora, por lo que parece estar funcionando correctamente."
+        # Generar comentario
+        if 6 <= promedio_ciclos_hora <= 15:
+            comentario = "El promedio de ciclos por hora trabajada está dentro del rango recomendado de 6 a 15 ciclos/hora."
         else:
-            comentario = "El promedio de ciclos por hora trabajada está fuera del rango recomendado de 6 a 15 ciclos/hora. Se recomienda realizar un análisis en el compresor para identificar posibles anomalías."
+            comentario = "El promedio de ciclos por hora trabajada está fuera del rango recomendado. Se recomienda revisar el compresor."
 
         cursor.close()
         conn.close()
@@ -238,12 +250,14 @@ def get_comments_data(id_cliente: int = Query(..., description="ID del cliente")
                 "last_time": last_time,
                 "total_ciclos": ciclos,
                 "promedio_ciclos_hora": promedio_ciclos_hora,
-                "comentario_ciclos": comentario
+                "comentario_ciclos": comentario            
             }
         }
 
     except mysql.connector.Error as err:
-        return {"error": str(err)}
+        return {"error": f"Error de base de datos: {str(err)}"}
+    except Exception as e:
+        return {"error": f"Error inesperado: {str(e)}"}
 
 @report.get("/stats-data", tags=["daily"])
 def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
@@ -306,7 +320,129 @@ def get_stats_data(id_cliente: int = Query(..., description="ID del cliente"), l
 
     except mysql.connector.Error as err:
         return {"error": str(err)}
+
+@report.get("/byDayData", tags=["daily"])
+def get_byDayData(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
+    try:
+        # Conectar a base de datos
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        # Ejecutar procedimiento
+        cursor.execute("CALL DFDFTest(%s, %s, %s, DATE_SUB(CURDATE(), INTERVAL 1 DAY))", (id_cliente, id_cliente, linea))
+        # Ignorar el primer resultset (TempConEstadoAnterior)
+        cursor.fetchall()
+
+        # Pasar al segundo resultset
+        cursor.nextset()
+        results = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return {"error": "Sin datos en DFDFTest"}
+
+        data = [{"startTime": row[1], "endTime": row[2], "workedHours": row[3], "kWh": row[4], "hoursLoad": row[5], "hoursNoLoad": row[6], "hpEquivalente": row[7], "ciclosDia": row[8], "promedioC/Hr": row[9]} for row in results]
+
+        return {"data": data}
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
     
+@report.get("/daily-report-data", tags=["daily"])
+def get_daily_report(id_cliente: int = Query(..., description="ID del cliente"),
+                     linea: str = Query(..., description="Línea del cliente")):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        # Llamar procedimiento almacenado DFDFTest
+        cursor.execute(
+            "CALL DFDFTest(%s, %s, %s, DATE_SUB(CURDATE(), INTERVAL 1 DAY))",
+            (id_cliente, id_cliente, linea)
+        )
+
+        # Leer primer resultset (TempConEstadoAnterior) para consumirlo
+        cursor.fetchall()
+
+        # Pasar al siguiente resultset (el que tiene el resumen)
+        cursor.nextset()
+        result = cursor.fetchone()
+
+        if not result:
+            return {"data": None, "message": "Sin datos para ese día"}
+
+        # Mapear resultado del procedimiento
+        (fecha, inicio, fin, horas_trab, kWh, horas_load, horas_noload,
+         hp_equivalente, ciclos, prom_ciclos_hora) = result
+
+        # Limpiar todos los resultsets restantes del procedimiento
+        while cursor.nextset():
+            pass
+
+        # Consultar hp nominal y voltaje para ese cliente y línea
+        cursor.execute(
+            "SELECT hp, voltaje FROM compresores WHERE id_cliente = %s AND linea = %s LIMIT 1",
+            (id_cliente, linea)
+        )
+        data = cursor.fetchone()
+        hp_nominal = data[0] if data else 0
+
+        usd_por_kwh = 0.17
+        costo_usd = round(float(kWh) * usd_por_kwh, 2)
+
+        # Comentario ciclos
+        if 6 <= prom_ciclos_hora <= 15:
+            comentario_ciclos = "El promedio de ciclos por hora trabajada está dentro del rango recomendado de 6 a 15 ciclos/hora."
+        else:
+            comentario_ciclos = "El promedio de ciclos por hora trabajada está fuera del rango recomendado. Se recomienda revisar el compresor."
+
+        # Comentario HP
+        if hp_nominal == 0:
+            comentario_hp = "Sin información de HP nominal."
+        elif hp_equivalente <= hp_nominal:
+            comentario_hp = "El HP equivalente está dentro del rango nominal."
+        else:
+            comentario_hp = "El HP equivalente supera al nominal, se recomienda revisión."
+
+        cursor.close()
+        conn.close()
+
+        return {
+            "data": {
+                "fecha": fecha.strftime("%Y-%m-%d"),
+                "inicio_funcionamiento": str(inicio),
+                "fin_funcionamiento": str(fin),
+                "horas_trabajadas": float(horas_trab),
+                "kWh": float(kWh),
+                "horas_load": float(horas_load),
+                "horas_noload": float(horas_noload),
+                "hp_nominal": int(hp_nominal),
+                "hp_equivalente": int(hp_equivalente),
+                "ciclos": int(ciclos),
+                "promedio_ciclos_hora": float(prom_ciclos_hora),
+                "costo_usd": float(costo_usd),
+                "comentario_ciclos": comentario_ciclos,
+                "comentario_hp_equivalente": comentario_hp
+            }
+        }
+
+    except mysql.connector.Error as err:
+        return {"error": f"Error de base de datos: {str(err)}"}
+    except Exception as e:
+        return {"error": f"Error inesperado: {str(e)}"}
+
 # Select Date
 @report.get("/pie-data-proc-day", tags=["selectDate"])
 def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente"), date: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
@@ -956,8 +1092,6 @@ def horas_trabajadas(data, timestamp):
     total_segundos = total_registros_no_off * segundos_por_registro
     return round(total_segundos / 3600, 2)
 
-def costo_energia_usd(kwh_total, usd_por_kwh=0.17):
-    return round(float(kwh_total) * usd_por_kwh, 2)
 
 def hp_equivalente(data, compresor_config, timestamp):
     if not data:
@@ -992,6 +1126,9 @@ def hp_equivalente(data, compresor_config, timestamp):
 
     hp_equivalente = round((total_kwh / total_horas_load) / factor_conversion * factor_seguridad, 0)
     return hp_equivalente
+
+def costo_energia_usd(kwh_total, usd_por_kwh=0.17):
+    return round(float(kwh_total) * usd_por_kwh, 2)
 
 def comentario_hp_equivalente(hp_eq, hp_nominal):
     if hp_nominal == 0:

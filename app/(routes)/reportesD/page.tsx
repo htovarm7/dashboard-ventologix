@@ -54,20 +54,9 @@ export default function Main() {
   const [lineChartData, setLineChartData] = useState<(number | null)[]>([]);
   const [lineChartLabels, setLineChartLabels] = useState<string[]>([]);
   const [maxData, setMaxData] = useState(0);
-  const [kWh, setKWh] = useState<number>(0);
-  const [hoursWorked, setHoursWorked] = useState<number>(0);
-  const [usdCost, setUsdCost] = useState<number>(0);
   const [Load, setLoad] = useState<number>(0);
   const [NoLoad, setNoLoad] = useState<number>(0);
   const [Off, setOff] = useState<number>(0);
-  const [firstHour, setFirstHour] = useState("");
-  const [lastHour, setLastHour] = useState("");
-  const [totalCiclos, setTotalCiclos] = useState(0);
-  const [promedioCiclosHora, setPromedioCiclosHora] = useState(0);
-  const [comentarioCiclos, setComentarioCiclos] = useState("");
-  const [hpNominal, setHPNominal] = useState<number>(0);
-  const [hpeq, setHPEquivalente] = useState<number>(0);
-  const [comentarioHp, setComentarioHp] = useState("");
 
   const [clientData, setClientData] = useState<{
     numero_cliente: number;
@@ -86,6 +75,23 @@ export default function Main() {
     limite: number;
   } | null>(null);
 
+  const [dayData, setDayData] = useState<{
+    fecha: string;
+    inicio_funcionamiento: string;
+    fin_funcionamiento: string;
+    horas_trabajadas: number;
+    kWh: number;
+    horas_load: number;
+    horas_noload: number;
+    hp_nominal: number;
+    hp_equivalente: number;
+    ciclos: number;
+    promedio_ciclos_hora: number;
+    costo_usd: number;
+    comentario_ciclos: string;
+    comentario_hp_equivalente: string;
+  } | null>(null);
+
   interface LineData {
     time: string;
     corriente: number;
@@ -93,7 +99,7 @@ export default function Main() {
 
   const fetchData = useCallback(async (id: string, linea: string) => {
     try {
-      const [pieRes, lineRes, commentsRes, statsRes, clientRes, compressorRes] =
+      const [pieRes, lineRes, dayRes, clientRes, compressorRes] =
         await Promise.all([
           (async () => {
             const res = await fetch(
@@ -109,13 +115,7 @@ export default function Main() {
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/comments-data?id_cliente=${id}&linea=${linea}`
-            );
-            return res.json();
-          })(),
-          (async () => {
-            const res = await fetch(
-              `http://127.0.0.1:8000/report/stats-data?id_cliente=${id}&linea=${linea}`
+              `http://127.0.0.1:8000/report/daily-report-data?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
@@ -137,27 +137,13 @@ export default function Main() {
       if (compressorRes.data.length > 0)
         setCompresorData(compressorRes.data[0]);
 
-      const stats = statsRes.data;
-      setKWh(stats.kWh);
-      setHoursWorked(stats.hours_worked);
-      setUsdCost(stats.usd_cost);
-      setHPNominal(stats.hp_nominal);
-      setHPEquivalente(stats.hp_equivalente);
-      setComentarioHp(stats.comentario_hp_equivalente);
-
-      const comments = commentsRes.data;
-      setFirstHour(comments.first_time);
-      setLastHour(comments.last_time);
-      setTotalCiclos(comments.total_ciclos);
-      setPromedioCiclosHora(comments.promedio_ciclos_hora);
-      setComentarioCiclos(comments.comentario_ciclos);
-
       const { LOAD, NOLOAD, OFF } = pieRes.data;
       setChartData([LOAD, NOLOAD, OFF]);
-
       setLoad(LOAD);
       setNoLoad(NOLOAD);
       setOff(OFF);
+
+      setDayData(dayRes.data);
 
       const rawData = (lineRes.data as LineData[]).map((item) => ({
         time: new Date(item.time),
@@ -201,8 +187,8 @@ export default function Main() {
   }, [searchParams, fetchData]);
 
   const limite = compressorData?.limite ?? 0;
-  const hp_instalado = hpNominal;
-  const hp_equivalente = hpeq;
+  const hp_instalado = dayData?.hp_nominal ?? 0;
+  const hp_equivalente = dayData?.hp_equivalente ?? 0;
   const porcentajeUso = hp_instalado
     ? (hp_equivalente / hp_instalado) * 100
     : 0;
@@ -297,7 +283,8 @@ export default function Main() {
           distance: -45,
           formatter: (value: number) => {
             if (value === 0) return "0";
-            if (value === 30) return promedioCiclosHora > 30 ? "Max" : "30+";
+            if (value === 30)
+              return (dayData?.promedio_ciclos_hora ?? 0) > 30 ? "Max" : "30+";
             return "";
           },
           fontSize: 14,
@@ -307,16 +294,23 @@ export default function Main() {
         splitLine: { show: false },
         pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
-          formatter: () => `${promedioCiclosHora.toFixed(1)}`,
+          formatter: () => `${dayData?.promedio_ciclos_hora}`,
           fontSize: 20,
         },
         title: {
           offsetCenter: [0, "75%"],
           formatter: () =>
-            `Ciclos por hora (C/Hr): ${promedioCiclosHora.toFixed(1)}`,
+            `Ciclos por hora (C/Hr): ${dayData?.promedio_ciclos_hora}`,
           fontSize: 14,
         },
-        data: [{ value: promedioCiclosHora > 20 ? 20 : promedioCiclosHora }],
+        data: [
+          {
+            value:
+              (dayData?.promedio_ciclos_hora ?? 0) > 30
+                ? 30
+                : dayData?.promedio_ciclos_hora ?? 0,
+          },
+        ],
       },
     ],
   };
@@ -516,19 +510,17 @@ export default function Main() {
           <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
             <h2 className="text-xl text-black">Gasto USD*</h2>
             <p className="text-3xl font-bold text-black">
-              ${usdCost.toFixed(2)}
+              ${dayData?.costo_usd}
             </p>
           </div>
           <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
             <h2 className="text-xl text-black">kWh Utilizados</h2>
-            <p className="text-3xl font-bold text-black">
-              {kWh.toFixed(0)} kWh
-            </p>
+            <p className="text-3xl font-bold text-black">{dayData?.kWh} kWh</p>
           </div>
           <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
             <h2 className="text-xl text-black">Horas Trabajadas</h2>
             <p className="text-3xl font-bold text-black">
-              {hoursWorked.toFixed(1)} h
+              {dayData?.horas_trabajadas} h
             </p>
           </div>
         </div>
@@ -556,7 +548,7 @@ export default function Main() {
           <div className="bg-white rounded-2xl shadow p-4 w-[280px] items-center justify-center">
             <h2 className="text-xl" style={{ textAlign: "center" }}>
               <strong>Ciclos por hora (C/hr):</strong>{" "}
-              {promedioCiclosHora.toFixed(1)}
+              {dayData?.promedio_ciclos_hora}
             </h2>
             <br></br>
             <ReactECharts
@@ -605,14 +597,16 @@ export default function Main() {
                 })}
                 )
               </strong>{" "}
-              se iniciaron labores a las <strong>{firstHour}</strong> y se
-              concluyeron a las <strong>{lastHour}</strong>
+              se iniciaron labores a las{" "}
+              <strong>{dayData?.inicio_funcionamiento}</strong> y se concluyeron
+              a las <strong>{dayData?.fin_funcionamiento}</strong>
             </p>
 
             <p className="text-xl text-left mt-2">
-              • Entre las horas de <strong>{firstHour}</strong> y{" "}
-              <strong>{lastHour}</strong>, el compresor operó de la siguiente
-              manera:
+              • Entre las horas de{" "}
+              <strong>{dayData?.inicio_funcionamiento}</strong> y{" "}
+              <strong>{dayData?.fin_funcionamiento}</strong>, el compresor operó
+              de la siguiente manera:
             </p>
 
             <ul className="list-disc ml-8 text-xl text-left">
@@ -629,28 +623,32 @@ export default function Main() {
 
             <p className="text-xl text-left mt-2">
               • Durante el día se completaron un total de{" "}
-              <strong>{totalCiclos}</strong> ciclos de trabajo. Un ciclo se
+              <strong>{dayData?.ciclos}</strong> ciclos de trabajo. Un ciclo se
               define como un cambio desde el estado <strong>LOAD</strong> a{" "}
               <strong>NO LOAD</strong> consecutivamente.
             </p>
 
             <p className="text-xl text-left mt-2">
               • El promedio de ciclos por hora trabajada fue de{" "}
-              <strong>{promedioCiclosHora}</strong> ciclos/hora.
+              <strong>{dayData?.promedio_ciclos_hora}</strong> ciclos/hora.
             </p>
 
             <p className="text-xl text-left mt-2">
               • El costo total de operación del compresor fue de{" "}
-              <strong>${usdCost.toFixed(2)}</strong>.
+              <strong>${dayData?.costo_usd}</strong>.
             </p>
 
-            <p className="text-xl text-left mt-2">• {comentarioCiclos}</p>
+            <p className="text-xl text-left mt-2">
+              • {dayData?.comentario_ciclos}
+            </p>
 
             <p className="text-xl text-left mt-2">
               • No se detectaron consumos con valores fuera de lo común.
             </p>
 
-            <p className="text-xl text-left mt-2">• {comentarioHp}</p>
+            <p className="text-xl text-left mt-2">
+              • {dayData?.comentario_hp_equivalente}
+            </p>
 
             <p className="text-xl text-left mt-2">
               • El costo por kilovatio-hora (kWh) utilizado en este análisis es
