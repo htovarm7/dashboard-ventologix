@@ -45,3 +45,6 @@ next-env.d.ts
 /venv310
 
 Destinatarios.json
+
+scripts/__pycache__
+scripts/api/__pycache__
