@@ -8,7 +8,7 @@
  *
  * @version 1.0
  *
- * http://localhost:3002/reportesS?id_cliente=10&linea=A
+ * http://localhost:3002/reportesS?id_cliente=12&linea=A
  */
 
 "use client";
