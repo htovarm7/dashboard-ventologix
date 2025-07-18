@@ -120,3 +120,4 @@ client.on_message = on_message
 
 # Conectar al broker MQTT y loop infinito
 client.connect(MQTT_BROKER, MQTT_PORT, 60)
+client.loop_forever()
