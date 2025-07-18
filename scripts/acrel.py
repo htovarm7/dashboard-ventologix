@@ -83,7 +83,7 @@ def insert_data(payload):
             ic = find_val(points, 9)
 
             insert_electrico = """
-                INSERT INTO acrel (device_id, ua, ub, uc, ia, ib, ic, time)
+                INSERT INTO pruebas (device_id, ua, ub, uc, ia, ib, ic, time)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
             """
             cursor.execute(insert_electrico, (id_cliente, ua, ub, uc, ia, ib, ic, formatted_time))
