@@ -25,6 +25,7 @@ db_config = {
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
+# Conexión persistente a base
 def conectar_db():
     while True:
         try:
@@ -39,6 +40,7 @@ def conectar_db():
 conn = conectar_db()
 cursor = conn.cursor(dictionary=True)
 
+# Cerrar conexión al terminar
 def cerrar_conexion():
     if conn.is_connected():
         cursor.close()
@@ -47,6 +49,7 @@ def cerrar_conexion():
 
 atexit.register(cerrar_conexion)
 
+# Callback al conectar al broker
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         logging.info("🟢 Conectado al broker MQTT")
@@ -54,51 +57,52 @@ def on_connect(client, userdata, flags, rc):
     else:
         logging.error(f"🔴 Error de conexión MQTT: {rc}")
 
+# Callback al recibir mensaje
 def on_message(client, userdata, msg):
     global conn, cursor
+
     try:
         payload = json.loads(msg.payload.decode())
-        logging.info(f"📨 Mensaje recibido: {payload}")
+        logging.info(f"📨 Mensaje recibido completo: {payload}")
 
-        # Ahora procesa el payload según los campos actuales, por ejemplo:
-        id_device = payload.get("id")
-        if not id_device:
-            logging.error("❌ Faltó campo 'id' en payload")
+        # Obtener id_kpm directamente del campo 'id'
+        id_kpm = payload.get("id")
+        if not id_kpm:
+            logging.error("❌ No se encontró 'id' en payload")
             return
+        
+        # Consultar id_cliente con id_kpm
+        cursor.execute("SELECT id_cliente FROM dispositivo WHERE id_kpm = %s", (id_kpm,))
+        result = cursor.fetchone()
+        if not result:
+            logging.error(f"Dispositivo no encontrado: {id_kpm}")
+            return
+        id_device = result['id_cliente']
 
-        # Extraer variables directamente del dict recibido
-        ua = float(payload.get("ua", 0.0))
-        ub = float(payload.get("ub", 0.0))
-        uc = float(payload.get("uc", 0.0))
-        ia = float(payload.get("ia", 0.0))
-        ib = float(payload.get("ib", 0.0))
-        ic = float(payload.get("ic", 0.0))
-
-        # Convertir timestamp si tienes "time" en formato YYYYMMDDHHMMSS
+        # Parsear timestamp en 'time' (string 'YYYYMMDDHHMMSS')
         time_str = payload.get("time")
         if not time_str:
-            logging.error("❌ Faltó campo 'time' en payload")
+            logging.error("❌ No se encontró 'time' en payload")
             return
         time_fmt = datetime.strptime(time_str, "%Y%m%d%H%M%S").strftime('%Y-%m-%d %H:%M:%S')
 
-        # Puedes mapear id_device a id_cliente o device_id en BD si quieres
-        cursor.execute("SELECT id_cliente FROM dispositivo WHERE id_kpm = %s", (id_device,))
-        result = cursor.fetchone()
-        if not result:
-            logging.error(f"❌ Dispositivo no encontrado: {id_device}")
-            return
-        id_db_device = result["id_cliente"]
-
+        # Extraer variables eléctricas (usar 0.0 si falta)
+        ua = float(payload.get("ua", 0))
+        ub = float(payload.get("ub", 0))
+        uc = float(payload.get("uc", 0))
+        ia = float(payload.get("ia", 0))
+        ib = float(payload.get("ib", 0))
+        ic = float(payload.get("ic", 0))
         # Insertar en BD
         insert_query = """
             INSERT INTO pruebas (device_id, ua, ub, uc, ia, ib, ic, time)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
-        values = (id_db_device, ua, ub, uc, ia, ib, ic, time_fmt)
+        values = (id_device, ua, ub, uc, ia, ib, ic, time_fmt)
         cursor.execute(insert_query, values)
         conn.commit()
 
-        logging.info(f"✅ Insertado Device {id_db_device} | {time_fmt}")
+        logging.info(f"✅ Insertado Device {id_device} | {time_fmt}")
 
     except mysql.connector.Error as db_err:
         logging.error(f"❌ Error en base de datos: {db_err}")
@@ -116,4 +120,3 @@ client.on_message = on_message
 
 # Conectar al broker MQTT y loop infinito
 client.connect(MQTT_BROKER, MQTT_PORT, 60)
-client.loop_forever()
