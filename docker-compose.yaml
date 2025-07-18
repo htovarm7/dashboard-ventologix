@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  mqtt:
+    build: .
+    command: python mqtt_to_mysql.py
+
+  acrel:
+    build: .
+    command: python acrel.py
