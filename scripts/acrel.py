@@ -7,8 +7,10 @@ from mysql.connector import Error
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 
-# Cargar variables de entorno
+print("Antes de load_dotenv()")
 load_dotenv()
+print("Después de load_dotenv()")
+
 MQTT_BROKER = os.getenv("MQTT_BROKER")
 MQTT_PORT = int(os.getenv("MQTT_PORT"))
 MQTT_TOPIC = os.getenv("MQTT_TOPIC_ACREL")
