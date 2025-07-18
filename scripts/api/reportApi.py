@@ -542,7 +542,7 @@ def get_shifts(id_cliente: int = Query(..., description="ID del cliente"), linea
         return {"error": str(err)}
 
 @report.get("/week/summary-general", tags=["weekly"])
-def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente") ):
+def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         # Conectar a base de datos
         conn = mysql.connector.connect(
@@ -554,7 +554,7 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
         cursor = conn.cursor()
 
         # Ejecutar procedimiento
-        cursor.execute("CALL semanaGeneralFP(%s, %s)", (id_cliente, linea))
+        cursor.execute("CALL semanaGeneralFP(%s,%s, %s)", (id_cliente, id_cliente, linea))
         results = cursor.fetchall()
 
         # Columnas esperadas
@@ -572,15 +572,17 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
         # Mapear resultados a dict
         data = [dict(zip(columns, row)) for row in results]
 
-        # Semana actual (semana 0)
+        # Filtrar semana actual (semana == 0 y con kWh > 0)
         semana_actual = [d for d in data if d["semana"] == 0 and d["kWh"] > 0]
+        detalle_semana = [d for d in data if d["semana"] == 0]  # Incluye días sin consumo también
+
         semanas_anteriores = [d for d in data if d["semana"] > 0 and d["kWh"] > 0]
 
         if not semana_actual:
             return {"error": "No hay datos con consumo en la semana actual"}
 
         # Calcular métricas semana actual
-        total_kWh_semana_actual = sum(d["kWh"] for d in semana_actual) / len(semanas_anteriores)
+        total_kWh_semana_actual = sum(d["kWh"] for d in semana_actual)
         costo_semana_actual = costo_energia_usd(total_kWh_semana_actual)
         promedio_ciclos_semana_actual = round(
             sum(d["promedio_ciclos_por_hora"] for d in semana_actual) / len(semana_actual), 2
@@ -609,75 +611,22 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
 
         return {
             "semana_actual": {
-                "total_kWh": total_kWh_semana_actual,
+                "total_kWh": round(total_kWh_semana_actual, 2),
                 "costo_estimado": round(costo_semana_actual, 2),
-                "promedio_ciclos_por_hora": promedio_ciclos_semana_actual,
-                "promedio_hp_equivalente": promedio_hp_semana_actual
+                "promedio_ciclos_por_hora": round(promedio_ciclos_semana_actual, 0),
+                "promedio_hp_equivalente": round(promedio_hp_semana_actual, 0)
             },
+            "detalle_semana_actual": detalle_semana,
             "promedio_semanas_anteriores": {
                 "total_kWh_anteriores": kWh_anteriores,
-                "costo_estimado": round(promedio_costo_anteriores, 2),
-                "promedio_ciclos_por_hora": promedio_ciclos_anteriores,
-                "promedio_hp_equivalente": promedio_hp_anteriores
+                "costo_estimado": round(promedio_costo_anteriores, 0),
+                "promedio_ciclos_por_hora": round(promedio_ciclos_anteriores, 0),
+                "promedio_hp_equivalente": round(promedio_hp_anteriores, 0)
             }
         }
 
     except mysql.connector.Error as err:
         return {"error": str(err)}
-
-@report.get("/week/byDayDataHoras", tags=["weekly"])
-def get_byDayDataHoras(id_cliente: int = Query(...), linea: str = Query(...)):
-    try:
-        # Conectar a base de datos
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME
-        )
-        cursor = conn.cursor()
-
-        # Ejecutar procedimiento
-        cursor.execute("CALL semanaTurnosFP(%s, %s, %s)", (id_cliente, id_cliente, linea))
-        results = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-
-        if not results:
-            return {"error": "Sin datos en semanaTurnosFP"}
-
-        # Mapear resultados a dict
-        columns = ['id', 'fecha', 'turno', 'kwh', 'hora_inicio', 'hora_fin']
-        data = [dict(zip(columns, row)) for row in results]
-
-        # Sumar kWh y horas por día
-        suma_por_dia = {}
-        for item in data:
-            fecha = item['fecha']
-            kwh = float(item['kwh'])
-            horas = (item['hora_fin'] - item['hora_inicio']).total_seconds() / 3600
-
-            if fecha not in suma_por_dia:
-                suma_por_dia[fecha] = {'total_kWh': 0.0, 'total_horas': 0.0}
-
-            suma_por_dia[fecha]['total_kWh'] += kwh
-            suma_por_dia[fecha]['total_horas'] += horas
-
-        # Convertir a lista de diccionarios para la respuesta
-        response_data = [
-            {
-                "fecha": fecha,
-                "total_kWh": round(val['total_kWh'], 2),
-                "total_horas": round(val['total_horas'], 2)
-            }
-            for fecha, val in suma_por_dia.items()
-        ]
-
-        return {"data": response_data}
-
-    except Exception as e:
-        return {"error": str(e)}
 
 # Static data endpoints
 @report.get("/client-data", tags=["staticData"])

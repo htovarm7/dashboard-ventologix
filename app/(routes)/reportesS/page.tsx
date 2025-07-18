@@ -8,7 +8,7 @@
  *
  * @version 1.0
  *
- * http://localhost:3002/reportesS?id_cliente=12&linea=A
+ * http://localhost:3002/reportesS?id_cliente=10&linea=A
  */
 
 "use client";
@@ -83,6 +83,19 @@ export default function Main() {
       promedio_ciclos_por_hora: number;
       promedio_hp_equivalente: number;
     };
+    detalle_semana_actual: {
+      semana: number;
+      fecha: string;
+      kWh: number;
+      horas_trabajadas: number;
+      kWh_load: number;
+      horas_load: number;
+      kWh_noload: number;
+      horas_noload: number;
+      hp_equivalente: number;
+      conteo_ciclos: number;
+      promedio_ciclos_por_hora: number;
+    }[];
     promedio_semanas_anteriores: {
       total_kWh_anteriores: number;
       costo_estimado: number;
@@ -93,14 +106,9 @@ export default function Main() {
 
   const searchParams = useSearchParams();
 
-  const [kwhHorasPorDia, setKwhHorasPorDia] = useState<{
-    kwhData: number[];
-    horasData: number[];
-  }>({ kwhData: new Array(7).fill(0), horasData: new Array(7).fill(0) });
-
   const fetchData = useCallback(async (id: string, linea: string) => {
     try {
-      const [pieRes, shiftRes, clientRes, compressorRes, summaryRes, byDayRes] =
+      const [pieRes, shiftRes, clientRes, compressorRes, summaryRes] =
         await Promise.all([
           (async () => {
             const res = await fetch(
@@ -132,12 +140,6 @@ export default function Main() {
             );
             return res.json();
           })(),
-          (async () => {
-            const res = await fetch(
-              `http://127.0.0.1:8000/report/week/byDayData?id_cliente=${id}&linea=${linea}`
-            );
-            return res.json();
-          })(),
         ]);
 
       const turno1 = new Array(7).fill(0);
@@ -162,24 +164,6 @@ export default function Main() {
         }
       });
 
-      const kwhData = new Array(7).fill(0);
-      const horasData = new Array(7).fill(0);
-
-      if (Array.isArray(byDayRes.data)) {
-        byDayRes.data.forEach(
-          (item: { fecha: string; total_kWh: number; total_horas: number }) => {
-            const fecha = new Date(item.fecha);
-            const dia = fecha.getDay();
-            const index = (dia + 6) % 7; // lunes en 0
-
-            kwhData[index] = item.total_kWh;
-            horasData[index] = item.total_horas;
-          }
-        );
-      }
-
-      setKwhHorasPorDia({ kwhData, horasData });
-
       setConsumoData({ turno1, turno2, turno3 });
 
       if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
@@ -202,6 +186,24 @@ export default function Main() {
       fetchData(id, linea);
     }
   }, [searchParams, fetchData]);
+
+  const diasSemana = [
+    "lunes",
+    "martes",
+    "miércoles",
+    "jueves",
+    "viernes",
+    "sábado",
+    "domingo",
+  ];
+
+  // Asumiendo que los datos vienen de summaryData.detalle_semana_actual
+  const kwhHorasPorDia = {
+    categorias: diasSemana,
+    kwhData: summaryData?.detalle_semana_actual.map((d) => d.kWh) ?? [],
+    horasData:
+      summaryData?.detalle_semana_actual.map((d) => d.horas_trabajadas) ?? [],
+  };
 
   // Gauge Charts Options
   const ciclosPromOptions = {
@@ -489,46 +491,62 @@ export default function Main() {
 
   // Bar Chart Options for kWh diarios, ciclos promedio, and hp equivalente
   const kwhHorasOption = {
+    title: {
+      text: "A) kWh diarios y Horas de trabajo Por día de la semana",
+      left: "center",
+      top: 10,
+      textStyle: {
+        fontSize: 18,
+        fontWeight: "bold",
+      },
+    },
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "shadow" },
     },
     legend: {
-      data: ["kWh", "Horas"],
+      data: ["kWh", "Horas Trabajadas"],
+      bottom: 0,
     },
     grid: {
       left: "5%",
       right: "5%",
       bottom: 60,
+      top: 60,
       containLabel: true,
     },
     xAxis: {
       type: "category",
-      data: [
-        "domingo",
-        "sabado",
-        "viernes",
-        "jueves",
-        "miercoles",
-        "martes",
-        "lunes",
-      ],
+      data: kwhHorasPorDia.categorias,
+      axisLabel: {
+        rotate: 30, // rotar para evitar empalmes si es necesario
+      },
     },
-    yAxis: {
-      type: "value",
-    },
+    yAxis: [
+      {
+        type: "value",
+        name: "kWh",
+      },
+      {
+        type: "value",
+        name: "Horas Trabajadas",
+        position: "right",
+      },
+    ],
     series: [
       {
         name: "kWh",
         type: "bar",
+        yAxisIndex: 0,
         data: kwhHorasPorDia.kwhData,
         itemStyle: { color: "#0074cc" },
       },
       {
-        name: "Horas",
+        name: "Horas Trabajadas",
         type: "bar",
+        yAxisIndex: 1,
         data: kwhHorasPorDia.horasData,
-        itemStyle: { color: "#4db6ac" },
+        itemStyle: { color: "#303f9f" },
       },
     ],
   };
