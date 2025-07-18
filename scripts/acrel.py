@@ -20,21 +20,12 @@ DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")
 
-# Debug variables
-print(f"DEBUG - MQTT_BROKER: {MQTT_BROKER}")
-print(f"DEBUG - MQTT_PORT: {MQTT_PORT}")
-print(f"DEBUG - MQTT_TOPIC: {MQTT_TOPIC}")
-
-print(f"DEBUG - DB_HOST: {DB_HOST}")
-print(f"DEBUG - DB_USER: {DB_USER}")
-print(f"DEBUG - DB_NAME: {DB_NAME}")
-
-
 def find_val(points, id):
     return next((p["val"] for p in points if p["id"] == id), 0)
 
 def redondear_a_30s(timestamp_ms):
-    dt = datetime.fromtimestamp(timestamp_ms / 1000.0)
+    monterrey_tz = pytz.timezone("America/Monterrey")
+    dt = datetime.fromtimestamp(timestamp_ms / 1000.0, tz=monterrey_tz)
     segundos = dt.second
     if segundos < 15:
         nuevos_segundos = 0
@@ -92,7 +83,7 @@ def insert_data(payload):
             ic = find_val(points, 9)
 
             insert_electrico = """
-                INSERT INTO pruebas (device_id, ua, ub, uc, ia, ib, ic, time)
+                INSERT INTO acrel (device_id, ua, ub, uc, ia, ib, ic, time)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
             """
             cursor.execute(insert_electrico, (id_cliente, ua, ub, uc, ia, ib, ic, formatted_time))
