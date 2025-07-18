@@ -36,3 +36,5 @@ playwright
 
 #MQTT client for Python
 paho-mqtt
+
+pytz

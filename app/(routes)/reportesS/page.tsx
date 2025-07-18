@@ -93,7 +93,10 @@ export default function Main() {
 
   const searchParams = useSearchParams();
 
-  const [kwhHorasPorDia, setKwhHorasPorDia] = useState<{ kwhData: number[]; horasData: number[] }>({ kwhData: new Array(7).fill(0), horasData: new Array(7).fill(0) });
+  const [kwhHorasPorDia, setKwhHorasPorDia] = useState<{
+    kwhData: number[];
+    horasData: number[];
+  }>({ kwhData: new Array(7).fill(0), horasData: new Array(7).fill(0) });
 
   const fetchData = useCallback(async (id: string, linea: string) => {
     try {
@@ -163,14 +166,16 @@ export default function Main() {
       const horasData = new Array(7).fill(0);
 
       if (Array.isArray(byDayRes.data)) {
-        byDayRes.data.forEach((item: { fecha: string; total_kWh: number; total_horas: number }) => {
-          const fecha = new Date(item.fecha);
-          const dia = fecha.getDay();
-          const index = (dia + 6) % 7; // lunes en 0
+        byDayRes.data.forEach(
+          (item: { fecha: string; total_kWh: number; total_horas: number }) => {
+            const fecha = new Date(item.fecha);
+            const dia = fecha.getDay();
+            const index = (dia + 6) % 7; // lunes en 0
 
-          kwhData[index] = item.total_kWh;
-          horasData[index] = item.total_horas;
-        });
+            kwhData[index] = item.total_kWh;
+            horasData[index] = item.total_horas;
+          }
+        );
       }
 
       setKwhHorasPorDia({ kwhData, horasData });
@@ -484,22 +489,22 @@ export default function Main() {
 
   // Bar Chart Options for kWh diarios, ciclos promedio, and hp equivalente
   const kwhHorasOption = {
-  tooltip: {
-    trigger: "axis",
-    axisPointer: { type: "shadow" },
-  },
-  legend: {
-    data: ["kWh", "Horas"],
-  },
-  grid: {
-    left: "5%",
-    right: "5%",
-    bottom: 60,
-    containLabel: true,
-  },
-  xAxis: {
-    type: "category",
-    data: [
+    tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "shadow" },
+    },
+    legend: {
+      data: ["kWh", "Horas"],
+    },
+    grid: {
+      left: "5%",
+      right: "5%",
+      bottom: 60,
+      containLabel: true,
+    },
+    xAxis: {
+      type: "category",
+      data: [
         "domingo",
         "sabado",
         "viernes",
@@ -508,30 +513,38 @@ export default function Main() {
         "martes",
         "lunes",
       ],
-  },
-  yAxis: {
-    type: "value",
-  },
-  series: [
-    {
-      name: "kWh",
-      type: "bar",
-      data: kwhHorasPorDia.kwhData,
-      itemStyle: { color: "#0074cc" },
     },
-    {
-      name: "Horas",
-      type: "bar",
-      data: kwhHorasPorDia.horasData,
-      itemStyle: { color: "#4db6ac" },
+    yAxis: {
+      type: "value",
     },
-  ],
-};
+    series: [
+      {
+        name: "kWh",
+        type: "bar",
+        data: kwhHorasPorDia.kwhData,
+        itemStyle: { color: "#0074cc" },
+      },
+      {
+        name: "Horas",
+        type: "bar",
+        data: kwhHorasPorDia.horasData,
+        itemStyle: { color: "#4db6ac" },
+      },
+    ],
+  };
 
   const ciclosPromedioOption = {
     xAxis: {
       type: "category",
-      data: ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"],
+      data: [
+        "lunes",
+        "martes",
+        "miercoles",
+        "jueves",
+        "viernes",
+        "sabado",
+        "domingo",
+      ],
     },
     yAxis: {
       type: "value",
@@ -541,8 +554,8 @@ export default function Main() {
         data: [120, 200, 150, 80, 70, 110, 130],
         type: "bar",
         itemStyle: {
-          color: "#1e67b2"
-        }
+          color: "#1e67b2",
+        },
       },
     ],
   };
@@ -550,7 +563,15 @@ export default function Main() {
   const hpEquivalenteOption = {
     xAxis: {
       type: "category",
-      data: ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"],
+      data: [
+        "lunes",
+        "martes",
+        "miercoles",
+        "jueves",
+        "viernes",
+        "sabado",
+        "domingo",
+      ],
     },
     yAxis: {
       type: "value",
@@ -560,8 +581,8 @@ export default function Main() {
         data: [120, 200, 150, 80, 70, 110, 130],
         type: "bar",
         itemStyle: {
-          color: "#59aeb2"
-        }
+          color: "#59aeb2",
+        },
       },
     ],
   };
@@ -618,24 +639,35 @@ export default function Main() {
   // }, [chartData]);
 
   const today = new Date();
-  const end = new Date(today.setDate(today.getDate() - 1));
-  const start = new Date(end);
-  start.setDate(end.getDate() - 6);
+
+  // Obtener el lunes de la semana pasada
+  const dayOfWeek = today.getDay(); // Domingo = 0, Lunes = 1, ..., Sábado = 6
+  const daysSinceMonday = (dayOfWeek + 6) % 7; // Convierte Domingo=6, Lunes=0, ..., Sábado=5
+  const lastMonday = new Date(today);
+  lastMonday.setDate(today.getDate() - daysSinceMonday - 7); // lunes pasado
+
+  const lastSunday = new Date(lastMonday);
+  lastSunday.setDate(lastMonday.getDate() + 6);
 
   const options: Intl.DateTimeFormatOptions = { day: "2-digit", month: "long" };
-  const fechaInicio = start.toLocaleDateString("es-ES", options);
-  const fechaFin = end.toLocaleDateString("es-ES", {
+  const fechaInicio = lastMonday.toLocaleDateString("es-ES", options);
+  const fechaFin = lastSunday.toLocaleDateString("es-ES", {
     day: "2-digit",
     month: "long",
     year: "numeric",
   });
 
-  const semanaNumero = Math.ceil(
-    ((+end - +new Date(end.getFullYear(), 0, 1)) / 86400000 +
-      Number(new Date(end.getFullYear(), 0, 1).getDay()) +
-      1) /
-      7
-  );
+  const getISOWeekNumber = (date: Date): number => {
+    const d = new Date(
+      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+    );
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  };
+
+  const semanaNumero = getISOWeekNumber(lastMonday);
 
   return (
     <main className="relative">
@@ -658,9 +690,9 @@ export default function Main() {
           <div className="flex flex-col items-end">
             {/* Logo */}
             <Image
-              src="/Ventologix_04.png"
+              src="/Ventologix_03.png"
               alt="logo"
-              className="h-12 w-auto m-4"
+              className="h-12 w-auto m-2"
               width={112}
               height={112}
             />
@@ -827,7 +859,9 @@ export default function Main() {
       <div className="flex flex-col mb-10">
         <div className="flex">
           <div className="flex-1 items-center text-center p-4">
-            <p className="text-2xl font-bold">kWh diarios y Horas de trabajo Por dia de la semana</p>
+            <p className="text-2xl font-bold">
+              kWh diarios y Horas de trabajo Por dia de la semana
+            </p>
             {/* Contenido columna 1 */}
             <ReactECharts
               option={kwhHorasOption}
@@ -841,7 +875,8 @@ export default function Main() {
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
               <h2 className="text-xl text-black font-bold">Costo $USD</h2>
               <p className="text-3xl font-bold text-black">
-                ${summaryData?.semana_actual.costo_estimado.toFixed(2) || "0.00"}
+                $
+                {summaryData?.semana_actual.costo_estimado.toFixed(2) || "0.00"}
               </p>
             </div>
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
@@ -888,7 +923,8 @@ export default function Main() {
               <p className="text-3xl font-bold text-black">
                 {summaryData?.semana_actual.promedio_ciclos_por_hora.toFixed(
                   1
-                ) || "0.0"} C/Hr
+                ) || "0.0"}{" "}
+                C/Hr
               </p>
             </div>
           </div>
@@ -925,7 +961,8 @@ export default function Main() {
               <p className="text-3xl font-bold text-black">
                 {summaryData?.semana_actual.promedio_hp_equivalente.toFixed(
                   1
-                ) || "0.0"} hp
+                ) || "0.0"}{" "}
+                hp
               </p>
             </div>
           </div>
