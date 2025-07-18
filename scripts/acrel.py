@@ -135,7 +135,7 @@ def on_message(client, userdata, msg):
         print("❌ Error procesando mensaje MQTT:", e)
 
 # Configurar cliente MQTT
-client = mqtt.Client()
+client = mqtt.Client(protocol=mqtt.MQTTv311)
 client.on_message = on_message
 
 print("Conectando a MQTT...")
