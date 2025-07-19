@@ -197,12 +197,21 @@ export default function Main() {
     "domingo",
   ];
 
-  // Asumiendo que los datos vienen de summaryData.detalle_semana_actual
   const kwhHorasPorDia = {
     categorias: diasSemana,
     kwhData: summaryData?.detalle_semana_actual.map((d) => d.kWh) ?? [],
     horasData:
       summaryData?.detalle_semana_actual.map((d) => d.horas_trabajadas) ?? [],
+  };
+
+  const ciclosPorDia = {
+    categorias: diasSemana,
+    kwhData: summaryData?.detalle_semana_actual.map((d) => d.promedio_ciclos_por_hora) ?? [],
+  };
+
+  const hpEquivalentePorDia = {
+    categorias: diasSemana,
+    kwhData: summaryData?.detalle_semana_actual.map((d) => d.hp_equivalente) ?? [],
   };
 
   // Gauge Charts Options
@@ -492,7 +501,7 @@ export default function Main() {
   // Bar Chart Options for kWh diarios, ciclos promedio, and hp equivalente
   const kwhHorasOption = {
     title: {
-      text: "A) kWh diarios y Horas de trabajo Por día de la semana",
+      text: "",
       left: "center",
       top: 10,
       textStyle: {
@@ -503,10 +512,6 @@ export default function Main() {
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "shadow" },
-    },
-    legend: {
-      data: ["kWh", "Horas Trabajadas"],
-      bottom: 0,
     },
     grid: {
       left: "5%",
@@ -519,34 +524,47 @@ export default function Main() {
       type: "category",
       data: kwhHorasPorDia.categorias,
       axisLabel: {
-        rotate: 30, // rotar para evitar empalmes si es necesario
+        rotate: 0,
       },
     },
-    yAxis: [
-      {
-        type: "value",
-        name: "kWh",
+    yAxis: {
+      type: "value",
+      name: "kWh",
+      nameLocation: "middle",
+      nameGap: 40,
+      nameTextStyle: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "#333",
       },
-      {
-        type: "value",
-        name: "Horas Trabajadas",
-        position: "right",
-      },
-    ],
+    },
     series: [
       {
         name: "kWh",
         type: "bar",
-        yAxisIndex: 0,
         data: kwhHorasPorDia.kwhData,
-        itemStyle: { color: "#0074cc" },
+        barGap: 0,
+        itemStyle: {
+          color: "#4e79a7",
+        },
+        label: {
+          show: true,
+          position: "top",
+          formatter: "{c}",
+        },
       },
       {
         name: "Horas Trabajadas",
         type: "bar",
-        yAxisIndex: 1,
         data: kwhHorasPorDia.horasData,
-        itemStyle: { color: "#303f9f" },
+        itemStyle: {
+          color: "#59a14f",
+        },
+        label: {
+          show: true,
+          position: "top",
+          formatter: "{c}",
+        },
       },
     ],
   };
@@ -554,26 +572,22 @@ export default function Main() {
   const ciclosPromedioOption = {
     xAxis: {
       type: "category",
-      data: [
-        "lunes",
-        "martes",
-        "miercoles",
-        "jueves",
-        "viernes",
-        "sabado",
-        "domingo",
-      ],
+      data: ciclosPorDia.categorias,
     },
     yAxis: {
       type: "value",
+      name: "Ciclos por Dia",
+      nameLocation: "middle",
+      nameTextStyle: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "#333",
+      },
     },
     series: [
       {
-        data: [120, 200, 150, 80, 70, 110, 130],
+        data: ciclosPorDia.kwhData,
         type: "bar",
-        itemStyle: {
-          color: "#1e67b2",
-        },
       },
     ],
   };
@@ -581,22 +595,21 @@ export default function Main() {
   const hpEquivalenteOption = {
     xAxis: {
       type: "category",
-      data: [
-        "lunes",
-        "martes",
-        "miercoles",
-        "jueves",
-        "viernes",
-        "sabado",
-        "domingo",
-      ],
+      data: hpEquivalentePorDia.categorias,
     },
     yAxis: {
       type: "value",
+      name: "HP Equivalente",
+      nameLocation: "middle",
+      nameTextStyle: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "#333",
+      },
     },
     series: [
       {
-        data: [120, 200, 150, 80, 70, 110, 130],
+        data: hpEquivalentePorDia.kwhData,
         type: "bar",
         itemStyle: {
           color: "#59aeb2",
@@ -896,12 +909,14 @@ export default function Main() {
                 $
                 {summaryData?.semana_actual.costo_estimado.toFixed(2) || "0.00"}
               </p>
+              <p className="text-lg">Promedio ultimas 12 semanas:</p>
             </div>
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
               <h2 className="text-xl text-black font-bold">Consumo kWH</h2>
               <p className="text-3xl font-bold text-black">
                 {summaryData?.semana_actual.total_kWh.toFixed(2) || "0.00"} kWh
               </p>
+              <p className="text-lg">Promedio ultimas 12 semanas:</p>
             </div>
           </div>
           <div className="flex-1 items-center text-center mr-20">
@@ -924,6 +939,9 @@ export default function Main() {
 
         <div className="flex">
           <div className="flex-1 items-center text-center p-4">
+            <p className="text-2xl font-bold">
+              Ciclos Promedio Por dia de la semana
+            </p>
             {/* Contenido columna 1 */}
             <ReactECharts
               option={ciclosPromedioOption}
@@ -944,6 +962,7 @@ export default function Main() {
                 ) || "0.0"}{" "}
                 C/Hr
               </p>
+              <p className="text-lg">Promedio ultimas 12 semanas:</p>
             </div>
           </div>
 
@@ -964,6 +983,9 @@ export default function Main() {
 
         <div className="flex">
           <div className="flex-1 items-center text-center p-4">
+            <p className="text-2xl font-bold">
+              HP Equivalente Por dia de la semana
+            </p>
             {/* Contenido columna 1 */}
             <ReactECharts
               option={hpEquivalenteOption}
@@ -982,6 +1004,7 @@ export default function Main() {
                 ) || "0.0"}{" "}
                 hp
               </p>
+              <p className="text-lg">Promedio ultimas 12 semanas:</p>
             </div>
           </div>
           <div className="flex-1 items-center text-center mr-20">
@@ -1003,7 +1026,8 @@ export default function Main() {
         <div className="flex">
           <div className="flex-1 items-center text-center p-4">
             {/* Contenido columna 1 */}
-            <Pie data={dataPie} options={pieOptions} />
+            <p className="text-2xl font-bold">Estados del Compresor</p>
+            <Pie data={dataPie}/>
           </div>
           <div className="flex-1 items-center text-center p-4">
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
@@ -1011,6 +1035,7 @@ export default function Main() {
               <p className="text-3xl font-bold text-black">
                 {/* {usoActivo.toFixed(1)} */} Hr
               </p>
+              <p className="text-lg">Promedio ultimas 12 semanas:</p>
             </div>
           </div>
           <div className="flex-1 items-center text-center mr-20">
@@ -1019,7 +1044,7 @@ export default function Main() {
               D) Comparación de horas de Uso Activo:
             </h4>
             {/* <p className="text-lg text-justify">
-              El compresor operó un 18.3% más tiempo en la última semana en comparación
+              El compresor operó un {comentarioPorcentajeHoras más tiempo} en la última semana en comparación
               con el promedio de las últimas 12 semanas. En la semana pasada, el compresor
               estuvo en operación durante 130.6 horas, mientras que el promedio de las
               últimas semanas fue de 110.4 horas por día. Esta variación puede indicar un
