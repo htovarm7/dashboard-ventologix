@@ -36,6 +36,7 @@ import {
 import ReactECharts from "echarts-for-react";
 
 import { Pie } from "react-chartjs-2";
+import { it } from "node:test";
 
 // Register the necessary components for Chart.js
 ChartJS.register(
@@ -188,13 +189,13 @@ export default function Main() {
   }, [searchParams, fetchData]);
 
   const diasSemana = [
-    "lunes",
-    "martes",
-    "miércoles",
-    "jueves",
-    "viernes",
-    "sábado",
-    "domingo",
+    "Lunes",
+    "Martes",
+    "Miércoles",
+    "Jueves",
+    "Viernes",
+    "Sábado",
+    "Domingo",
   ];
 
   const kwhHorasPorDia = {
@@ -441,13 +442,13 @@ export default function Main() {
     yAxis: {
       type: "category",
       data: [
-        "domingo",
-        "sabado",
-        "viernes",
-        "jueves",
-        "miercoles",
-        "martes",
-        "lunes",
+        "Domingo",
+        "Sabado",
+        "Viernes",
+        "Jueves",
+        "Miercoles",
+        "Martes",
+        "Lunes",
       ],
       axisTick: {
         alignWithLabel: true,
@@ -500,32 +501,9 @@ export default function Main() {
 
   // Bar Chart Options for kWh diarios, ciclos promedio, and hp equivalente
   const kwhHorasOption = {
-    title: {
-      text: "",
-      left: "center",
-      top: 10,
-      textStyle: {
-        fontSize: 18,
-        fontWeight: "bold",
-      },
-    },
-    tooltip: {
-      trigger: "axis",
-      axisPointer: { type: "shadow" },
-    },
-    grid: {
-      left: "5%",
-      right: "5%",
-      bottom: 60,
-      top: 60,
-      containLabel: true,
-    },
     xAxis: {
       type: "category",
       data: kwhHorasPorDia.categorias,
-      axisLabel: {
-        rotate: 0,
-      },
     },
     yAxis: {
       type: "value",
@@ -545,7 +523,7 @@ export default function Main() {
         data: kwhHorasPorDia.kwhData,
         barGap: 0,
         itemStyle: {
-          color: "#4e79a7",
+          color: "#00205b",
         },
         label: {
           show: true,
@@ -578,6 +556,7 @@ export default function Main() {
       type: "value",
       name: "Ciclos por Dia",
       nameLocation: "middle",
+      nameGap: 40,
       nameTextStyle: {
         fontSize: 16,
         fontWeight: "bold",
@@ -588,6 +567,14 @@ export default function Main() {
       {
         data: ciclosPorDia.kwhData,
         type: "bar",
+        itemStyle: {
+          color: "#1e67b2",
+        },
+        label: {
+          show: true,
+          position: "top",
+          formatter: "{c}",
+        },
       },
     ],
   };
@@ -601,6 +588,7 @@ export default function Main() {
       type: "value",
       name: "HP Equivalente",
       nameLocation: "middle",
+      nameGap: 40,
       nameTextStyle: {
         fontSize: 16,
         fontWeight: "bold",
@@ -613,6 +601,11 @@ export default function Main() {
         type: "bar",
         itemStyle: {
           color: "#59aeb2",
+        },
+        label: {
+          show: true,
+          position: "top",
+          formatter: "{c}",
         },
       },
     ],
