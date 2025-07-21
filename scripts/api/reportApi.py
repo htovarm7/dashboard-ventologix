@@ -584,6 +584,7 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
         # Calcular métricas semana actual
         total_kWh_semana_actual = sum(d["kWh"] for d in semana_actual)
         costo_semana_actual = costo_energia_usd(total_kWh_semana_actual)
+        horas_trabajadas_semana_actual = sum(d["horas_trabajadas"] for d in semana_actual)
         promedio_ciclos_semana_actual = round(
             sum(d["promedio_ciclos_por_hora"] for d in semana_actual) / len(semana_actual), 2
         )
@@ -595,6 +596,9 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
         if semanas_anteriores:
             kWh_anteriores = round(
                 sum(d["kWh"] for d in semanas_anteriores) / len(semanas_anteriores)
+            )
+            horas_trabajadas_anteriores = round(
+                sum(d["horas_trabajadas"] for d in semanas_anteriores) / len(semanas_anteriores)
             )
             promedio_kWh_anteriores = round(
                 sum(d["kWh"] for d in semanas_anteriores) / len(semanas_anteriores), 2
@@ -614,14 +618,16 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
                 "total_kWh": round(total_kWh_semana_actual, 2),
                 "costo_estimado": round(costo_semana_actual, 2),
                 "promedio_ciclos_por_hora": round(promedio_ciclos_semana_actual, 0),
-                "promedio_hp_equivalente": round(promedio_hp_semana_actual, 0)
+                "promedio_hp_equivalente": round(promedio_hp_semana_actual, 0),
+                "horas_trabajadas": horas_trabajadas_semana_actual
             },
             "detalle_semana_actual": detalle_semana,
             "promedio_semanas_anteriores": {
                 "total_kWh_anteriores": kWh_anteriores,
                 "costo_estimado": round(promedio_costo_anteriores, 0),
                 "promedio_ciclos_por_hora": round(promedio_ciclos_anteriores, 0),
-                "promedio_hp_equivalente": round(promedio_hp_anteriores, 0)
+                "promedio_hp_equivalente": round(promedio_hp_anteriores, 0),
+                "horas_trabajadas": horas_trabajadas_anteriores
             }
         }
 

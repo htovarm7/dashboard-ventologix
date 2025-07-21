@@ -701,7 +701,7 @@ export default function Main() {
           {/* Left column: Titles */}
           <div className="flex-1 mr-150 p-6 ">
             <h1 className="text-4xl font-light text-center">Reporte Semanal</h1>
-            <h2 className="text-3xl font-bold text-center font-semibold">
+            <h2 className="text-3xl font-bold text-center">
               Compresor: {compressorData?.alias}
             </h2>
             <p className="text-xl mt-2 text-center">
@@ -1017,32 +1017,31 @@ export default function Main() {
         </div>
 
         <div className="flex">
-          <div className="flex-1 items-center text-center p-4">
-            {/* Contenido columna 1 */}
-            <p className="text-2xl font-bold">Estados del Compresor</p>
-            <Pie data={dataPie}/>
+          {/* Columna 1: Pie Chart */}
+          <div className="flex-l items-center justify-center p-4 ml-70">
+            <p className="text-2xl font-bold mb-4">Estados del Compresor</p>
+            <div style={{ width: '350px', height: '350px' }} className="items-center">
+              <Pie data={dataPie} options={pieOptions} />
+            </div>
           </div>
-          <div className="flex-1 items-center text-center p-4">
+
+          {/* Columna 2: Uso Activo */}
+          <div className="flex-1 flex items-center justify-center p-4 ml-40">
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
               <h2 className="text-xl text-black font-bold">Uso Activo</h2>
-              <p className="text-3xl font-bold text-black">
-                {/* {usoActivo.toFixed(1)} */} Hr
-              </p>
+              <p className="text-3xl font-bold text-black">Hr</p>
               <p className="text-lg">Promedio ultimas 12 semanas:</p>
             </div>
           </div>
-          <div className="flex-1 items-center text-center mr-20">
-            {/* Contenido columna 3 */}
-            <h4 className="font-bold text-left text-xl">
+
+          {/* Columna 3: Comentario */}
+          <div className="flex-1 flex flex-col justify-center p-4 pr-20">
+            <h4 className="font-bold text-left text-xl mb-2">
               D) Comparación de horas de Uso Activo:
             </h4>
+            {/* Aquí puedes descomentar y ajustar el párrafo si quieres incluirlo */}
             {/* <p className="text-lg text-justify">
-              El compresor operó un {comentarioPorcentajeHoras más tiempo} en la última semana en comparación
-              con el promedio de las últimas 12 semanas. En la semana pasada, el compresor
-              estuvo en operación durante 130.6 horas, mientras que el promedio de las
-              últimas semanas fue de 110.4 horas por día. Esta variación puede indicar un
-              aumento o disminución en la demanda o en el ciclo de trabajo del compresor,
-              afectando su tiempo de operación.
+              El compresor operó un {comentarioPorcentajeHoras} más tiempo en la última semana...
             </p> */}
           </div>
         </div>
