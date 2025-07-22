@@ -610,8 +610,11 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
             promedio_hp_anteriores = round(
                 sum(d["hp_equivalente"] for d in semanas_anteriores) / len(semanas_anteriores), 2
             )
+            promedio_horas_uso = round(
+                sum(d["horas_trabajadas"] for d in semanas_anteriores) / len(semanas_anteriores), 2
+            )
         else:
-            promedio_kWh_anteriores = promedio_costo_anteriores = promedio_ciclos_anteriores = promedio_hp_anteriores = 0
+            promedio_kWh_anteriores = promedio_costo_anteriores = promedio_ciclos_anteriores = promedio_hp_anteriores = promedio_horas_uso = 0
 
         return {
             "semana_actual": {
@@ -627,7 +630,8 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
                 "costo_estimado": round(promedio_costo_anteriores, 0),
                 "promedio_ciclos_por_hora": round(promedio_ciclos_anteriores, 0),
                 "promedio_hp_equivalente": round(promedio_hp_anteriores, 0),
-                "horas_trabajadas": horas_trabajadas_anteriores
+                "horas_trabajadas": horas_trabajadas_anteriores,
+                "promedio_horas_uso": round(promedio_horas_uso, 0)
             }
         }
 

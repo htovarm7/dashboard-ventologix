@@ -36,7 +36,6 @@ import {
 import ReactECharts from "echarts-for-react";
 
 import { Pie } from "react-chartjs-2";
-import { it } from "node:test";
 
 // Register the necessary components for Chart.js
 ChartJS.register(
@@ -102,6 +101,7 @@ export default function Main() {
       costo_estimado: number;
       promedio_ciclos_por_hora: number;
       promedio_hp_equivalente: number;
+      promedio_horas_uso: number;
     };
   } | null>(null);
 
@@ -207,12 +207,16 @@ export default function Main() {
 
   const ciclosPorDia = {
     categorias: diasSemana,
-    kwhData: summaryData?.detalle_semana_actual.map((d) => d.promedio_ciclos_por_hora) ?? [],
+    kwhData:
+      summaryData?.detalle_semana_actual.map(
+        (d) => d.promedio_ciclos_por_hora
+      ) ?? [],
   };
 
   const hpEquivalentePorDia = {
     categorias: diasSemana,
-    kwhData: summaryData?.detalle_semana_actual.map((d) => d.hp_equivalente) ?? [],
+    kwhData:
+      summaryData?.detalle_semana_actual.map((d) => d.hp_equivalente) ?? [],
   };
 
   // Gauge Charts Options
@@ -903,6 +907,11 @@ export default function Main() {
                 {summaryData?.semana_actual.costo_estimado.toFixed(2) || "0.00"}
               </p>
               <p className="text-lg">Promedio ultimas 12 semanas:</p>
+              <p>
+                {summaryData?.promedio_semanas_anteriores.costo_estimado.toFixed(
+                  2
+                ) || "0.00"}
+              </p>
             </div>
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
               <h2 className="text-xl text-black font-bold">Consumo kWH</h2>
@@ -910,6 +919,12 @@ export default function Main() {
                 {summaryData?.semana_actual.total_kWh.toFixed(2) || "0.00"} kWh
               </p>
               <p className="text-lg">Promedio ultimas 12 semanas:</p>
+              <p>
+                {summaryData?.promedio_semanas_anteriores.total_kWh_anteriores.toFixed(
+                  2
+                ) || "0.00"}{" "}
+                kWh
+              </p>
             </div>
           </div>
           <div className="flex-1 items-center text-center mr-20">
@@ -956,6 +971,12 @@ export default function Main() {
                 C/Hr
               </p>
               <p className="text-lg">Promedio ultimas 12 semanas:</p>
+              <p>
+                {summaryData?.promedio_semanas_anteriores.promedio_ciclos_por_hora.toFixed(
+                  1
+                ) || "0.0"}{" "}
+                C/Hr
+              </p>
             </div>
           </div>
 
@@ -998,6 +1019,12 @@ export default function Main() {
                 hp
               </p>
               <p className="text-lg">Promedio ultimas 12 semanas:</p>
+              <p>
+                {summaryData?.promedio_semanas_anteriores.promedio_hp_equivalente.toFixed(
+                  1
+                ) || "0.0"}{" "}
+                hp
+              </p>
             </div>
           </div>
           <div className="flex-1 items-center text-center mr-20">
@@ -1020,7 +1047,10 @@ export default function Main() {
           {/* Columna 1: Pie Chart */}
           <div className="flex-l items-center justify-center p-4 ml-70">
             <p className="text-2xl font-bold mb-4">Estados del Compresor</p>
-            <div style={{ width: '350px', height: '350px' }} className="items-center">
+            <div
+              style={{ width: "350px", height: "350px" }}
+              className="items-center"
+            >
               <Pie data={dataPie} options={pieOptions} />
             </div>
           </div>
@@ -1031,6 +1061,12 @@ export default function Main() {
               <h2 className="text-xl text-black font-bold">Uso Activo</h2>
               <p className="text-3xl font-bold text-black">Hr</p>
               <p className="text-lg">Promedio ultimas 12 semanas:</p>
+              <p>
+                {summaryData?.promedio_semanas_anteriores.promedio_horas_uso.toFixed(
+                  1
+                ) || "0.0"}{" "}
+                hr
+              </p>
             </div>
           </div>
 

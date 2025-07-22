@@ -38,3 +38,5 @@ playwright
 paho-mqtt
 
 pytz
+
+google-cloud-bigquery
