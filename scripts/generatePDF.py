@@ -216,5 +216,8 @@ def main():
 
     print("Proceso finalizado.")
 
-if __name__ == "__main__":
-    main()
+try:
+    while True:
+        main()
+except KeyboardInterrupt:
+    print("Ejecución detenida por el usuario.")
