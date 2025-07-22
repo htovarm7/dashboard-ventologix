@@ -557,6 +557,10 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
         cursor.execute("CALL semanaGeneralFP(%s,%s, %s)", (id_cliente, id_cliente, linea))
         results = cursor.fetchall()
         
+        # Consumir todos los result sets pendientes (importante cuando se usan procedimientos almacenados)
+        while cursor.nextset():
+            pass
+
         cursor.execute("SELECT CostokWh FROM clientes WHERE id_cliente = %s", (id_cliente,))
         costo_kwh_result = cursor.fetchone()
         print(costo_kwh_result)
@@ -587,7 +591,8 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
 
         # Calcular métricas semana actual
         total_kWh_semana_actual = sum(d["kWh"] for d in semana_actual)
-        costo_semana_actual = costo_energia_usd(total_kWh_semana_actual, costo_kwh_result[0] if costo_kwh_result else 0.17)
+        usd_por_kwh = float(costo_kwh_result[0]) if costo_kwh_result else 0.17
+        costo_semana_actual = costo_energia_usd(total_kWh_semana_actual, usd_por_kwh)
         horas_trabajadas_semana_actual = sum(d["horas_trabajadas"] for d in semana_actual)
         promedio_ciclos_semana_actual = sum(d["promedio_ciclos_por_hora"] for d in semana_actual) / len(semana_actual)
         promedio_hp_semana_actual = sum(d["hp_equivalente"] for d in semana_actual) / len(semana_actual)
@@ -597,12 +602,12 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
             kWh_anteriores = sum(d["kWh"] for d in semanas_anteriores) / len(semanas_anteriores)
             horas_trabajadas_anteriores = sum(d["horas_trabajadas"] for d in semanas_anteriores) / len(semanas_anteriores)
             promedio_kWh_anteriores = sum(d["kWh"] for d in semanas_anteriores) / len(semanas_anteriores)
-            promedio_costo_anteriores = costo_energia_usd(promedio_kWh_anteriores, costo_kwh_result[0] if costo_kwh_result else 0.17)
+            promedio_costo_anteriores = costo_energia_usd(promedio_kWh_anteriores, float(costo_kwh_result[0]) if costo_kwh_result else 0.17)
             promedio_ciclos_anteriores = sum(d["promedio_ciclos_por_hora"] for d in semanas_anteriores) / len(semanas_anteriores)
             promedio_hp_anteriores = sum(d["hp_equivalente"] for d in semanas_anteriores) / len(semanas_anteriores)
             promedio_horas_trabajadas = sum(d["horas_trabajadas"] for d in semanas_anteriores) / len(semanas_anteriores)
         else:
-            promedio_kWh_anteriores = promedio_costo_anteriores = promedio_ciclos_anteriores = promedio_hp_anteriores = promedio_horas_uso = 0
+            kWh_anteriores = promedio_kWh_anteriores = promedio_costo_anteriores = promedio_ciclos_anteriores = promedio_hp_anteriores = promedio_horas_trabajadas = horas_trabajadas_anteriores= 0
 
         # Comparacion
         comparacion_kwh = (total_kWh_semana_actual / promedio_kWh_anteriores - 1) if promedio_kWh_anteriores else 0
@@ -800,4 +805,9 @@ def percentage_off(data):
     return (total_off / total_records) * 100 if total_records > 0 else 0
 
 def costo_energia_usd(kwh_total, usd_por_kwh):
-    return round(float(kwh_total) * usd_por_kwh, 2)
+    try:
+        kwh_total = float(kwh_total)
+        return round(kwh_total * usd_por_kwh, 2)
+    except (TypeError, ValueError) as e:
+        print(f"Error en costo_energia_usd: {e}, kwh_total={kwh_total}")
+        return 0.0
