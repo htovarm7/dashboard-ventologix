@@ -556,6 +556,9 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
         # Ejecutar procedimiento
         cursor.execute("CALL semanaGeneralFP(%s,%s, %s)", (id_cliente, id_cliente, linea))
         results = cursor.fetchall()
+        
+        cursor.execute("SELECT CostokWh FROM clientes WHERE id_cliente = %s", (id_cliente,))
+        costo_kwh_result = cursor.fetchone()
 
         # Columnas esperadas
         columns = [
@@ -583,7 +586,7 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
 
         # Calcular métricas semana actual
         total_kWh_semana_actual = sum(d["kWh"] for d in semana_actual)
-        costo_semana_actual = costo_energia_usd(total_kWh_semana_actual)
+        costo_semana_actual = costo_energia_usd(total_kWh_semana_actual, costo_kwh_result[0] if costo_kwh_result else 0.17)
         horas_trabajadas_semana_actual = sum(d["horas_trabajadas"] for d in semana_actual)
         promedio_ciclos_semana_actual = sum(d["promedio_ciclos_por_hora"] for d in semana_actual) / len(semana_actual)
         promedio_hp_semana_actual = sum(d["hp_equivalente"] for d in semana_actual) / len(semana_actual)
@@ -593,7 +596,7 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
             kWh_anteriores = sum(d["kWh"] for d in semanas_anteriores) / len(semanas_anteriores)
             horas_trabajadas_anteriores = sum(d["horas_trabajadas"] for d in semanas_anteriores) / len(semanas_anteriores)
             promedio_kWh_anteriores = sum(d["kWh"] for d in semanas_anteriores) / len(semanas_anteriores)
-            promedio_costo_anteriores = costo_energia_usd(promedio_kWh_anteriores)
+            promedio_costo_anteriores = costo_energia_usd(promedio_kWh_anteriores, costo_kwh_result[0] if costo_kwh_result else 0.17)
             promedio_ciclos_anteriores = sum(d["promedio_ciclos_por_hora"] for d in semanas_anteriores) / len(semanas_anteriores)
             promedio_hp_anteriores = sum(d["hp_equivalente"] for d in semanas_anteriores) / len(semanas_anteriores)
             promedio_horas_trabajadas = sum(d["horas_trabajadas"] for d in semanas_anteriores) / len(semanas_anteriores)
@@ -608,11 +611,11 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
         comparacion_horas = (horas_trabajadas_semana_actual / promedio_horas_trabajadas - 1) if promedio_horas_trabajadas else 0
 
         # Porcentajes de aumento o disminución (convertir a porcentaje)
-        porcentaje_kwh = round(comparacion_kwh * 100, 2)
-        porcentaje_costo = round(comparacion_costo * 100, 2)
-        porcentaje_ciclos = round(comparacion_ciclos * 100, 2)
-        porcentaje_hp = round(comparacion_hp * 100, 2)
-        porcentaje_horas = round(comparacion_horas * 100, 2)
+        porcentaje_kwh = f"{comparacion_kwh * 100:+.2f}"
+        porcentaje_costo = f"{comparacion_costo * 100:+.2f}"
+        porcentaje_ciclos = f"{comparacion_ciclos * 100:+.2f}"
+        porcentaje_hp = f"{comparacion_hp * 100:+.2f}"
+        porcentaje_horas = f"{comparacion_horas * 100:+.2f}"
 
         # HTML resumen dividido en secciones
         bloque_A = f"""
@@ -690,7 +693,7 @@ def get_client_data(id_cliente: int = Query(..., description="ID del cliente")):
         cursor = conn.cursor()
 
         # Fetch data from the clientes table for id_cliente 7
-        cursor.execute(f"SELECT numero_cliente, nombre_cliente, RFC, direccion FROM clientes WHERE id_cliente = {id_cliente}")
+        cursor.execute(f"SELECT numero_cliente, nombre_cliente, RFC, CostokWh, direccion FROM clientes WHERE id_cliente = {id_cliente}")
         results = cursor.fetchall()
 
         # Close resources
@@ -795,5 +798,5 @@ def percentage_off(data):
     total_records = len(data)
     return (total_off / total_records) * 100 if total_records > 0 else 0
 
-def costo_energia_usd(kwh_total, usd_por_kwh=0.17):
+def costo_energia_usd(kwh_total, usd_por_kwh):
     return round(float(kwh_total) * usd_por_kwh, 2)
