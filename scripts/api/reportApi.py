@@ -559,6 +559,7 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
         
         cursor.execute("SELECT CostokWh FROM clientes WHERE id_cliente = %s", (id_cliente,))
         costo_kwh_result = cursor.fetchone()
+        print(costo_kwh_result)
 
         # Columnas esperadas
         columns = [
@@ -693,7 +694,7 @@ def get_client_data(id_cliente: int = Query(..., description="ID del cliente")):
         cursor = conn.cursor()
 
         # Fetch data from the clientes table for id_cliente 7
-        cursor.execute(f"SELECT numero_cliente, nombre_cliente, RFC, CostokWh, direccion FROM clientes WHERE id_cliente = {id_cliente}")
+        cursor.execute(f"SELECT numero_cliente, nombre_cliente, RFC, direccion, CostokWh FROM clientes WHERE id_cliente = {id_cliente}")
         results = cursor.fetchall()
 
         # Close resources
@@ -704,7 +705,7 @@ def get_client_data(id_cliente: int = Query(..., description="ID del cliente")):
             return {"error": "No data found for the specified client."}
 
         # Convert results into a list of dictionaries
-        data = [{"numero_cliente": row[0], "nombre_cliente": row[1], "RFC": row[2], "direccion": row[3]} for row in results]
+        data = [{"numero_cliente": row[0], "nombre_cliente": row[1], "RFC": row[2], "direccion": row[3], "CostokWh": row[4]} for row in results]
 
         return {
             "data": data
