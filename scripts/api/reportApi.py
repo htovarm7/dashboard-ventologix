@@ -585,36 +585,59 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
         total_kWh_semana_actual = sum(d["kWh"] for d in semana_actual)
         costo_semana_actual = costo_energia_usd(total_kWh_semana_actual)
         horas_trabajadas_semana_actual = sum(d["horas_trabajadas"] for d in semana_actual)
-        promedio_ciclos_semana_actual = round(
-            sum(d["promedio_ciclos_por_hora"] for d in semana_actual) / len(semana_actual), 2
-        )
-        promedio_hp_semana_actual = round(
-            sum(d["hp_equivalente"] for d in semana_actual) / len(semana_actual), 2
-        )
+        promedio_ciclos_semana_actual = sum(d["promedio_ciclos_por_hora"] for d in semana_actual) / len(semana_actual)
+        promedio_hp_semana_actual = sum(d["hp_equivalente"] for d in semana_actual) / len(semana_actual)
 
         # Calcular promedio de semanas anteriores
         if semanas_anteriores:
-            kWh_anteriores = round(
-                sum(d["kWh"] for d in semanas_anteriores) / len(semanas_anteriores)
-            )
-            horas_trabajadas_anteriores = round(
-                sum(d["horas_trabajadas"] for d in semanas_anteriores) / len(semanas_anteriores)
-            )
-            promedio_kWh_anteriores = round(
-                sum(d["kWh"] for d in semanas_anteriores) / len(semanas_anteriores), 2
-            )
+            kWh_anteriores = sum(d["kWh"] for d in semanas_anteriores) / len(semanas_anteriores)
+            horas_trabajadas_anteriores = sum(d["horas_trabajadas"] for d in semanas_anteriores) / len(semanas_anteriores)
+            promedio_kWh_anteriores = sum(d["kWh"] for d in semanas_anteriores) / len(semanas_anteriores)
             promedio_costo_anteriores = costo_energia_usd(promedio_kWh_anteriores)
-            promedio_ciclos_anteriores = round(
-                sum(d["promedio_ciclos_por_hora"] for d in semanas_anteriores) / len(semanas_anteriores), 2
-            )
-            promedio_hp_anteriores = round(
-                sum(d["hp_equivalente"] for d in semanas_anteriores) / len(semanas_anteriores), 2
-            )
-            promedio_horas_uso = round(
-                sum(d["horas_trabajadas"] for d in semanas_anteriores) / len(semanas_anteriores), 2
-            )
+            promedio_ciclos_anteriores = sum(d["promedio_ciclos_por_hora"] for d in semanas_anteriores) / len(semanas_anteriores)
+            promedio_hp_anteriores = sum(d["hp_equivalente"] for d in semanas_anteriores) / len(semanas_anteriores)
+            promedio_horas_trabajadas = sum(d["horas_trabajadas"] for d in semanas_anteriores) / len(semanas_anteriores)
         else:
             promedio_kWh_anteriores = promedio_costo_anteriores = promedio_ciclos_anteriores = promedio_hp_anteriores = promedio_horas_uso = 0
+
+        # Comparacion
+        comparacion_kwh = (total_kWh_semana_actual / promedio_kWh_anteriores - 1) if promedio_kWh_anteriores else 0
+        comparacion_costo = (costo_semana_actual / promedio_costo_anteriores - 1) if promedio_costo_anteriores else 0
+        comparacion_ciclos = (promedio_ciclos_semana_actual / promedio_ciclos_anteriores - 1) if promedio_ciclos_anteriores else 0
+        comparacion_hp = (promedio_hp_semana_actual / promedio_hp_anteriores - 1) if promedio_hp_anteriores else 0
+        comparacion_horas = (horas_trabajadas_semana_actual / promedio_horas_trabajadas - 1) if promedio_horas_trabajadas else 0
+
+        # Porcentajes de aumento o disminución (convertir a porcentaje)
+        porcentaje_kwh = round(comparacion_kwh * 100, 2)
+        porcentaje_costo = round(comparacion_costo * 100, 2)
+        porcentaje_ciclos = round(comparacion_ciclos * 100, 2)
+        porcentaje_hp = round(comparacion_hp * 100, 2)
+        porcentaje_horas = round(comparacion_horas * 100, 2)
+
+        # HTML resumen dividido en secciones
+        bloque_A = f"""
+        En la última semana, el consumo de energía del compresor fue <strong>{comparacion_kwh * 100:.1f}%</strong> {'mayor' if comparacion_kwh > 0 else 'menor'} que el promedio de las últimas 12 semanas.
+        El promedio fue de <strong>{promedio_kWh_anteriores:.1f} kWh</strong> y en la última semana se consumieron <strong>{total_kWh_semana_actual:.2f} kWh</strong>.<br>
+        Esto generó un costo de <strong>{costo_semana_actual:.2f} USD</strong>, lo que representa un <strong>{comparacion_costo * 100:.2f}%</strong> {'mayor' if comparacion_costo > 0 else 'menor'} que el promedio de <strong>{promedio_costo_anteriores:.2f} USD</strong>.
+        """
+
+        bloque_B = f"""
+        B) <strong>Comparación de ciclos de operación:</strong><br>
+        En la última semana se realizaron <strong>{promedio_ciclos_semana_actual:.0f}</strong> ciclos, lo que es un <strong>{comparacion_ciclos * 100:.1f}%</strong> {'mayor' if comparacion_ciclos > 0 else 'menor'} respecto al promedio de <strong>{promedio_ciclos_anteriores:.0f}</strong> ciclos.
+        Esto refleja la frecuencia de arranques y paros del compresor, afectando su eficiencia y desgaste.
+        """
+
+        bloque_C = f"""
+        C) <strong>Comparación de HP Equivalente:</strong><br>
+        El HP Equivalente fue de <strong>{promedio_hp_semana_actual:.0f}</strong> en la última semana, lo que representa un <strong>{comparacion_hp * 100:.1f}%</strong> {'mayor' if comparacion_hp > 0 else 'menor'} que el promedio de <strong>{promedio_hp_anteriores:.0f}</strong> HP.
+        Esto indica posibles cambios en la carga de trabajo o eficiencia operativa del compresor.
+        """
+
+        bloque_D = f"""
+        D) <strong>Comparación de horas de Uso Activo:</strong><br>
+        El compresor trabajó <strong>{horas_trabajadas_semana_actual:.1f}</strong> horas la semana pasada, siendo un <strong>{comparacion_horas * 100:.1f}%</strong> {'más' if comparacion_horas > 0 else 'menos'} que el promedio de <strong>{promedio_horas_trabajadas:.1f}</strong> horas.
+        Esto puede reflejar una variación en la demanda o en el patrón de operación.
+        """
 
         return {
             "semana_actual": {
@@ -624,14 +647,24 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
                 "promedio_hp_equivalente": round(promedio_hp_semana_actual, 0),
                 "horas_trabajadas": horas_trabajadas_semana_actual
             },
+            "comparacion": {
+                "bloque_A": bloque_A,
+                "bloque_B": bloque_B,
+                "bloque_C": bloque_C,
+                "bloque_D": bloque_D,
+                "porcentaje_kwh": porcentaje_kwh,
+                "porcentaje_costo": porcentaje_costo,
+                "porcentaje_ciclos": porcentaje_ciclos,
+                "porcentaje_hp": porcentaje_hp,
+                "porcentaje_horas": porcentaje_horas
+            },
             "detalle_semana_actual": detalle_semana,
             "promedio_semanas_anteriores": {
                 "total_kWh_anteriores": kWh_anteriores,
                 "costo_estimado": round(promedio_costo_anteriores, 0),
                 "promedio_ciclos_por_hora": round(promedio_ciclos_anteriores, 0),
                 "promedio_hp_equivalente": round(promedio_hp_anteriores, 0),
-                "horas_trabajadas": horas_trabajadas_anteriores,
-                "promedio_horas_uso": round(promedio_horas_uso, 0)
+                "horas_trabajadas_anteriores": horas_trabajadas_anteriores,
             }
         }
 

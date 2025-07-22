@@ -8,7 +8,7 @@
  *
  * @version 1.0
  *
- * http://localhost:3002/reportesS?id_cliente=10&linea=A
+ * http://localhost:3002/reportesS?id_cliente=12&linea=A
  */
 
 "use client";
@@ -82,6 +82,18 @@ export default function Main() {
       costo_estimado: number;
       promedio_ciclos_por_hora: number;
       promedio_hp_equivalente: number;
+      horas_trabajadas: number;
+    };
+    comparacion: {
+      bloque_A: string;
+      bloque_B: string;
+      bloque_C: string;
+      bloque_D: string;
+      porcentaje_kwh: number;
+      porcentaje_costo: number;
+      porcentaje_ciclos: number;
+      porcentaje_hp: number;
+      porcentaje_horas: number;
     };
     detalle_semana_actual: {
       semana: number;
@@ -104,6 +116,13 @@ export default function Main() {
       promedio_horas_uso: number;
     };
   } | null>(null);
+
+  const getColorClass = (value: number) => {
+    if (value <= -20) return "text-red-600"; // Muy malo
+    if (value <= -10) return "text-yellow-500"; // Intermedio
+    if (value <= 10) return "text-green-600"; // Bueno
+    return "text-blue-500"; // Óptimo
+  };
 
   const searchParams = useSearchParams();
 
@@ -509,17 +528,30 @@ export default function Main() {
       type: "category",
       data: kwhHorasPorDia.categorias,
     },
-    yAxis: {
-      type: "value",
-      name: "kWh",
-      nameLocation: "middle",
-      nameGap: 40,
-      nameTextStyle: {
-        fontSize: 16,
-        fontWeight: "bold",
-        color: "#333",
+    yAxis: [
+      {
+        type: "value",
+        name: "kWh",
+        nameLocation: "middle",
+        nameGap: 40,
+        nameTextStyle: {
+          fontSize: 16,
+          fontWeight: "bold",
+          color: "#333",
+        },
       },
-    },
+      {
+        type: "value",
+        name: "Horas",
+        nameLocation: "middle",
+        nameGap: 40,
+        nameTextStyle: {
+          fontSize: 16,
+          fontWeight: "bold",
+          color: "#333",
+        },
+      },
+    ],
     series: [
       {
         name: "kWh",
@@ -537,13 +569,15 @@ export default function Main() {
       },
       {
         name: "Horas Trabajadas",
-        type: "bar",
+        type: "line",
+        yAxisIndex: 1,
         data: kwhHorasPorDia.horasData,
         itemStyle: {
           color: "#59a14f",
         },
         label: {
           show: true,
+          gap: 10,
           position: "top",
           formatter: "{c}",
         },
@@ -900,30 +934,39 @@ export default function Main() {
             />
           </div>
           <div className="flex-1 items-center text-center p-4">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[350px]">
               <h2 className="text-xl text-black font-bold">Costo $USD</h2>
               <p className="text-3xl font-bold text-black">
                 $
                 {summaryData?.semana_actual.costo_estimado.toFixed(2) || "0.00"}
               </p>
-              <p className="text-lg">Promedio ultimas 12 semanas:</p>
-              <p>
+              <p className="text-xl">Promedio ultimas 12 semanas:</p>
+              <p className="text-xl">
+                $
                 {summaryData?.promedio_semanas_anteriores.costo_estimado.toFixed(
                   2
                 ) || "0.00"}
               </p>
+              <p className="text-lg">
+                (
+                {summaryData?.comparacion.porcentaje_costo.toFixed(2) || "0.00"}
+                %)
+              </p>
             </div>
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[350px]">
               <h2 className="text-xl text-black font-bold">Consumo kWH</h2>
               <p className="text-3xl font-bold text-black">
                 {summaryData?.semana_actual.total_kWh.toFixed(2) || "0.00"} kWh
               </p>
-              <p className="text-lg">Promedio ultimas 12 semanas:</p>
-              <p>
-                {summaryData?.promedio_semanas_anteriores.total_kWh_anteriores.toFixed(
-                  2
-                ) || "0.00"}{" "}
+              <p className="text-xl">Promedio ultimas 12 semanas:</p>
+              <p className="text-xl">
+                {summaryData?.promedio_semanas_anteriores
+                  .total_kWh_anteriores || "0.00"}{" "}
                 kWh
+              </p>
+              <p className="text-lg">
+                ({summaryData?.comparacion.porcentaje_kwh.toFixed(2) || "0.00"}
+                %)
               </p>
             </div>
           </div>
@@ -932,16 +975,9 @@ export default function Main() {
             <h4 className="font-bold text-left text-xl">
               A) Consumo energético y costo
             </h4>
-            {/* <p className="text-lg text-justify">
-              En la última semana, el consumo de energía del compresor fue {commentConsumoEnergia} que el
-              promedio de las últimas 12 semanas. El promedio de consumo de energía fue de
-              {kwhPromedio12Semanas}, mientras que en la semana pasada se consumieron {kwhSemanaPasada}. Este
-              consumo impactó directamente en el costo de energía, que reflejó un cambio del
-              {commentConsumoEnergia} en comparación con el promedio de las últimas 12 semanas.
-              Considerando el costo de 0.17 USD por kWh, el total de gasto en energía en la última
-              semana fue de {costoSemanaPasada}, lo que refleja una diferencia significativa respecto al
-              promedio de {costoPromedio12Semanas}.
-            </p> */}
+            <p className="text-xl text-justify">
+              {summaryData?.comparacion.bloque_A || "Sin datos"}
+            </p>
           </div>
         </div>
 
@@ -960,7 +996,7 @@ export default function Main() {
             />
           </div>
           <div className="flex-1 items-center text-center p-4">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[350px]">
               <h2 className="text-xl text-black font-bold">
                 Ciclos por hora (C/Hr)
               </h2>
@@ -970,12 +1006,18 @@ export default function Main() {
                 ) || "0.0"}{" "}
                 C/Hr
               </p>
-              <p className="text-lg">Promedio ultimas 12 semanas:</p>
-              <p>
+              <p className="text-xl">Promedio ultimas 12 semanas:</p>
+              <p className="text-xl">
                 {summaryData?.promedio_semanas_anteriores.promedio_ciclos_por_hora.toFixed(
                   1
                 ) || "0.0"}{" "}
                 C/Hr
+              </p>
+              <p className="text-lg">
+                (
+                {summaryData?.comparacion.porcentaje_ciclos.toFixed(2) ||
+                  "0.00"}
+                %)
               </p>
             </div>
           </div>
@@ -985,13 +1027,9 @@ export default function Main() {
             <h4 className="font-bold text-left text-xl">
               B) Comparación de ciclos de operación:
             </h4>
-            {/* <p className="text-lg text-justify">
-              El número de ciclos realizados por el compresor en la última semana fue -21.3%
-              menor que en semanas anteriores. En términos absolutos, se realizaron 29.0
-              ciclos, mientras que el promedio de las últimas semanas fue de 36.9 ciclos. Este
-              indicador refleja la frecuencia con la que el compresor inicia y detiene su ciclo
-              de trabajo, lo que impacta tanto en la eficiencia como en el desgaste del equipo.
-            </p> */}
+            <p className="text-xl text-justify">
+              {summaryData?.comparacion.bloque_B || "Sin datos"}
+            </p>
           </div>
         </div>
 
@@ -1010,7 +1048,7 @@ export default function Main() {
             />
           </div>
           <div className="flex-1 items-center text-center p-4">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[350px]">
               <h2 className="text-xl text-black font-bold">HP Equivalente**</h2>
               <p className="text-3xl font-bold text-black">
                 {summaryData?.semana_actual.promedio_hp_equivalente.toFixed(
@@ -1018,12 +1056,15 @@ export default function Main() {
                 ) || "0.0"}{" "}
                 hp
               </p>
-              <p className="text-lg">Promedio ultimas 12 semanas:</p>
-              <p>
+              <p className="text-xl">Promedio ultimas 12 semanas:</p>
+              <p className="text-xl">
                 {summaryData?.promedio_semanas_anteriores.promedio_hp_equivalente.toFixed(
                   1
                 ) || "0.0"}{" "}
                 hp
+              </p>
+              <p className="text-lg">
+                ({summaryData?.comparacion.porcentaje_hp.toFixed(2) || "0.00"}%)
               </p>
             </div>
           </div>
@@ -1032,14 +1073,9 @@ export default function Main() {
             <h4 className="font-bold text-left text-xl">
               C) Comparación de HP Equivalente:
             </h4>
-            {/* <p className="text-lg text-justify">
-              El HP Equivalente en la última semana fue -16.3% menor que el promedio de las
-              últimas 12 semanas. Este valor es crucial ya que refleja el rendimiento y la carga
-              de trabajo del compresor en relación con la potencia necesaria. En la última
-              semana, el compresor operó con un HP Equivalente de 48.4, mientras que el
-              promedio de las últimas semanas fue de 57.9 HP. Esta variación puede ser un
-              indicativo de cambios en la carga o en la eficiencia operativa del compresor.
-            </p> */}
+            <p className="text-xl text-justify">
+              {summaryData?.comparacion.bloque_C || "Sin datos"}
+            </p>
           </div>
         </div>
 
@@ -1057,15 +1093,24 @@ export default function Main() {
 
           {/* Columna 2: Uso Activo */}
           <div className="flex-1 flex items-center justify-center p-4 ml-40">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[350px]">
               <h2 className="text-xl text-black font-bold">Uso Activo</h2>
-              <p className="text-3xl font-bold text-black">Hr</p>
-              <p className="text-lg">Promedio ultimas 12 semanas:</p>
-              <p>
+              <p className="text-3xl font-bold text-black">
+                {summaryData?.semana_actual.horas_trabajadas.toFixed(1) ||
+                  "0.0"}{" "}
+                Hr
+              </p>
+              <p className="text-xl">Promedio ultimas 12 semanas:</p>
+              <p className="text-xl">
                 {summaryData?.promedio_semanas_anteriores.promedio_horas_uso.toFixed(
                   1
                 ) || "0.0"}{" "}
                 hr
+              </p>
+              <p className="text-lg">
+                (
+                {summaryData?.comparacion.porcentaje_horas.toFixed(2) || "0.00"}
+                %)
               </p>
             </div>
           </div>
@@ -1075,10 +1120,9 @@ export default function Main() {
             <h4 className="font-bold text-left text-xl mb-2">
               D) Comparación de horas de Uso Activo:
             </h4>
-            {/* Aquí puedes descomentar y ajustar el párrafo si quieres incluirlo */}
-            {/* <p className="text-lg text-justify">
-              El compresor operó un {comentarioPorcentajeHoras} más tiempo en la última semana...
-            </p> */}
+            <p className="text-xl text-justify">
+              {summaryData?.comparacion.bloque_D || "Sin datos"}
+            </p>
           </div>
         </div>
       </div>
