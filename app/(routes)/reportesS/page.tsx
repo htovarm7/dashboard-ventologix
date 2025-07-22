@@ -50,6 +50,13 @@ ChartJS.register(
   ChartDataLabels
 );
 
+/*
+<p className={`text-lg ${getColorClass(summaryData?.comparacion.porcentaje_costo || 0)}`}>
+  {summaryData?.comparacion.porcentaje_costo.toFixed(2) || "0.00"}%
+</p>
+
+*/
+
 export default function Main() {
   // Constant Declarations
   const [chartData, setChartData] = useState([0, 0, 0]);
@@ -113,15 +120,26 @@ export default function Main() {
       costo_estimado: number;
       promedio_ciclos_por_hora: number;
       promedio_hp_equivalente: number;
-      promedio_horas_uso: number;
+      horas_trabajadas_anteriores: number;
     };
   } | null>(null);
 
-  const getColorClass = (value: number) => {
-    if (value <= -20) return "text-red-600"; // Muy malo
-    if (value <= -10) return "text-yellow-500"; // Intermedio
-    if (value <= 10) return "text-green-600"; // Bueno
+  const getColorCiclos = (value: number) => {
+    if (value >= 15) return "text-red-600"; // Muy malo
+    if (value >= 5) return "text-yellow-500"; // Intermedio
+    if (value <= 0) return "text-green-600"; // Bueno
     return "text-blue-500"; // Óptimo
+  };
+
+  const getColorHp = (value: number) => {
+    if (value >= 15) return "text-red-600"; // Muy malo
+    if (value >= 5) return "text-yellow-500"; // Intermedio
+    if (value <= 0) return "text-green-600"; // Bueno
+    return "text-blue-500"; // Óptimo
+  };
+
+  const getAnualValue = (value: number) => {
+    return value * 52;
   };
 
   const searchParams = useSearchParams();
@@ -307,6 +325,7 @@ export default function Main() {
     ],
   };
 
+  // Poner las anotaciones igual que como el gauge, igual el de HP EQUIVALENTE esas lineas con su respectivo nombre
   const hpOptions = {
     tooltip: { show: true },
     series: [
@@ -934,29 +953,39 @@ export default function Main() {
             />
           </div>
           <div className="flex-1 items-center text-center p-4">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[350px]">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px]">
               <h2 className="text-xl text-black font-bold">Costo $USD</h2>
               <p className="text-3xl font-bold text-black">
-                $
-                {summaryData?.semana_actual.costo_estimado.toFixed(2) || "0.00"}
+                ${summaryData?.semana_actual.costo_estimado || "0.00"} USD /
+                Semanal
+              </p>
+              <p className="text-xl text-black">
+                {" "}
+                Costo Anual aproximado, $
+                {getAnualValue(
+                  summaryData?.semana_actual.costo_estimado || 0
+                )}{" "}
+                USD
               </p>
               <p className="text-xl">Promedio ultimas 12 semanas:</p>
               <p className="text-xl">
                 $
-                {summaryData?.promedio_semanas_anteriores.costo_estimado.toFixed(
-                  2
-                ) || "0.00"}
+                {summaryData?.promedio_semanas_anteriores.costo_estimado ||
+                  "0.00"}
               </p>
               <p className="text-lg">
-                (
-                {summaryData?.comparacion.porcentaje_costo.toFixed(2) || "0.00"}
+                ({summaryData?.comparacion.porcentaje_costo || "0.00"}
                 %)
               </p>
             </div>
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[350px]">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px]">
               <h2 className="text-xl text-black font-bold">Consumo kWH</h2>
               <p className="text-3xl font-bold text-black">
-                {summaryData?.semana_actual.total_kWh.toFixed(2) || "0.00"} kWh
+                {summaryData?.semana_actual.total_kWh || "0.00"} kWh / Semanal
+              </p>
+              <p className="text-xl text-black">
+                Gasto Anual aproximado,{" "}
+                {getAnualValue(summaryData?.semana_actual.total_kWh || 0)} kWh
               </p>
               <p className="text-xl">Promedio ultimas 12 semanas:</p>
               <p className="text-xl">
@@ -965,7 +994,7 @@ export default function Main() {
                 kWh
               </p>
               <p className="text-lg">
-                ({summaryData?.comparacion.porcentaje_kwh.toFixed(2) || "0.00"}
+                ({summaryData?.comparacion.porcentaje_kwh || "0.00"}
                 %)
               </p>
             </div>
@@ -975,9 +1004,12 @@ export default function Main() {
             <h4 className="font-bold text-left text-xl">
               A) Consumo energético y costo
             </h4>
-            <p className="text-xl text-justify">
-              {summaryData?.comparacion.bloque_A || "Sin datos"}
-            </p>
+            <div
+              className="text-xl text-justify"
+              dangerouslySetInnerHTML={{
+                __html: summaryData?.comparacion.bloque_A || "Sin datos",
+              }}
+            />
           </div>
         </div>
 
@@ -996,27 +1028,22 @@ export default function Main() {
             />
           </div>
           <div className="flex-1 items-center text-center p-4">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[350px]">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px]">
               <h2 className="text-xl text-black font-bold">
                 Ciclos por hora (C/Hr)
               </h2>
               <p className="text-3xl font-bold text-black">
-                {summaryData?.semana_actual.promedio_ciclos_por_hora.toFixed(
-                  1
-                ) || "0.0"}{" "}
+                {summaryData?.semana_actual.promedio_ciclos_por_hora || "0.0"}{" "}
                 C/Hr
               </p>
               <p className="text-xl">Promedio ultimas 12 semanas:</p>
               <p className="text-xl">
-                {summaryData?.promedio_semanas_anteriores.promedio_ciclos_por_hora.toFixed(
-                  1
-                ) || "0.0"}{" "}
+                {summaryData?.promedio_semanas_anteriores
+                  .promedio_ciclos_por_hora || "0.0"}{" "}
                 C/Hr
               </p>
               <p className="text-lg">
-                (
-                {summaryData?.comparacion.porcentaje_ciclos.toFixed(2) ||
-                  "0.00"}
+                ({summaryData?.comparacion.porcentaje_ciclos || "0.00"}
                 %)
               </p>
             </div>
@@ -1027,9 +1054,12 @@ export default function Main() {
             <h4 className="font-bold text-left text-xl">
               B) Comparación de ciclos de operación:
             </h4>
-            <p className="text-xl text-justify">
-              {summaryData?.comparacion.bloque_B || "Sin datos"}
-            </p>
+            <div
+              className="text-xl text-justify"
+              dangerouslySetInnerHTML={{
+                __html: summaryData?.comparacion.bloque_B || "Sin datos",
+              }}
+            />
           </div>
         </div>
 
@@ -1048,23 +1078,19 @@ export default function Main() {
             />
           </div>
           <div className="flex-1 items-center text-center p-4">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[350px]">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px]">
               <h2 className="text-xl text-black font-bold">HP Equivalente**</h2>
               <p className="text-3xl font-bold text-black">
-                {summaryData?.semana_actual.promedio_hp_equivalente.toFixed(
-                  1
-                ) || "0.0"}{" "}
-                hp
+                {summaryData?.semana_actual.promedio_hp_equivalente || "0.0"} hp
               </p>
               <p className="text-xl">Promedio ultimas 12 semanas:</p>
               <p className="text-xl">
-                {summaryData?.promedio_semanas_anteriores.promedio_hp_equivalente.toFixed(
-                  1
-                ) || "0.0"}{" "}
+                {summaryData?.promedio_semanas_anteriores
+                  .promedio_hp_equivalente || "0.0"}{" "}
                 hp
               </p>
               <p className="text-lg">
-                ({summaryData?.comparacion.porcentaje_hp.toFixed(2) || "0.00"}%)
+                ({summaryData?.comparacion.porcentaje_hp || "0.00"}%)
               </p>
             </div>
           </div>
@@ -1073,9 +1099,12 @@ export default function Main() {
             <h4 className="font-bold text-left text-xl">
               C) Comparación de HP Equivalente:
             </h4>
-            <p className="text-xl text-justify">
-              {summaryData?.comparacion.bloque_C || "Sin datos"}
-            </p>
+            <div
+              className="text-xl text-justify"
+              dangerouslySetInnerHTML={{
+                __html: summaryData?.comparacion.bloque_C || "Sin datos",
+              }}
+            />
           </div>
         </div>
 
@@ -1093,23 +1122,19 @@ export default function Main() {
 
           {/* Columna 2: Uso Activo */}
           <div className="flex-1 flex items-center justify-center p-4 ml-40">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[350px]">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px]">
               <h2 className="text-xl text-black font-bold">Uso Activo</h2>
               <p className="text-3xl font-bold text-black">
-                {summaryData?.semana_actual.horas_trabajadas.toFixed(1) ||
-                  "0.0"}{" "}
-                Hr
+                {summaryData?.semana_actual.horas_trabajadas || "0.0"} Hr
               </p>
               <p className="text-xl">Promedio ultimas 12 semanas:</p>
               <p className="text-xl">
-                {summaryData?.promedio_semanas_anteriores.promedio_horas_uso.toFixed(
-                  1
-                ) || "0.0"}{" "}
+                {summaryData?.promedio_semanas_anteriores
+                  .horas_trabajadas_anteriores || "0.0"}{" "}
                 hr
               </p>
               <p className="text-lg">
-                (
-                {summaryData?.comparacion.porcentaje_horas.toFixed(2) || "0.00"}
+                ({summaryData?.comparacion.porcentaje_horas || "0.00"}
                 %)
               </p>
             </div>
@@ -1120,9 +1145,12 @@ export default function Main() {
             <h4 className="font-bold text-left text-xl mb-2">
               D) Comparación de horas de Uso Activo:
             </h4>
-            <p className="text-xl text-justify">
-              {summaryData?.comparacion.bloque_D || "Sin datos"}
-            </p>
+            <div
+              className="text-xl text-justify"
+              dangerouslySetInnerHTML={{
+                __html: summaryData?.comparacion.bloque_D || "Sin datos",
+              }}
+            />
           </div>
         </div>
       </div>

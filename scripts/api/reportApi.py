@@ -616,27 +616,32 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
 
         # HTML resumen dividido en secciones
         bloque_A = f"""
+        <p>
         En la última semana, el consumo de energía del compresor fue <strong>{comparacion_kwh * 100:.1f}%</strong> {'mayor' if comparacion_kwh > 0 else 'menor'} que el promedio de las últimas 12 semanas.
         El promedio fue de <strong>{promedio_kWh_anteriores:.1f} kWh</strong> y en la última semana se consumieron <strong>{total_kWh_semana_actual:.2f} kWh</strong>.<br>
         Esto generó un costo de <strong>{costo_semana_actual:.2f} USD</strong>, lo que representa un <strong>{comparacion_costo * 100:.2f}%</strong> {'mayor' if comparacion_costo > 0 else 'menor'} que el promedio de <strong>{promedio_costo_anteriores:.2f} USD</strong>.
+        </p>
         """
 
         bloque_B = f"""
-        B) <strong>Comparación de ciclos de operación:</strong><br>
+        <p>
         En la última semana se realizaron <strong>{promedio_ciclos_semana_actual:.0f}</strong> ciclos, lo que es un <strong>{comparacion_ciclos * 100:.1f}%</strong> {'mayor' if comparacion_ciclos > 0 else 'menor'} respecto al promedio de <strong>{promedio_ciclos_anteriores:.0f}</strong> ciclos.
         Esto refleja la frecuencia de arranques y paros del compresor, afectando su eficiencia y desgaste.
+        </p>
         """
 
         bloque_C = f"""
-        C) <strong>Comparación de HP Equivalente:</strong><br>
+        <p>
         El HP Equivalente fue de <strong>{promedio_hp_semana_actual:.0f}</strong> en la última semana, lo que representa un <strong>{comparacion_hp * 100:.1f}%</strong> {'mayor' if comparacion_hp > 0 else 'menor'} que el promedio de <strong>{promedio_hp_anteriores:.0f}</strong> HP.
         Esto indica posibles cambios en la carga de trabajo o eficiencia operativa del compresor.
+        </p>
         """
 
         bloque_D = f"""
-        D) <strong>Comparación de horas de Uso Activo:</strong><br>
+        <p>
         El compresor trabajó <strong>{horas_trabajadas_semana_actual:.1f}</strong> horas la semana pasada, siendo un <strong>{comparacion_horas * 100:.1f}%</strong> {'más' if comparacion_horas > 0 else 'menos'} que el promedio de <strong>{promedio_horas_trabajadas:.1f}</strong> horas.
         Esto puede reflejar una variación en la demanda o en el patrón de operación.
+        </p>
         """
 
         return {
@@ -660,11 +665,11 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
             },
             "detalle_semana_actual": detalle_semana,
             "promedio_semanas_anteriores": {
-                "total_kWh_anteriores": kWh_anteriores,
+                "total_kWh_anteriores": round(kWh_anteriores,0),
                 "costo_estimado": round(promedio_costo_anteriores, 0),
                 "promedio_ciclos_por_hora": round(promedio_ciclos_anteriores, 0),
                 "promedio_hp_equivalente": round(promedio_hp_anteriores, 0),
-                "horas_trabajadas_anteriores": horas_trabajadas_anteriores,
+                "horas_trabajadas_anteriores": round(horas_trabajadas_anteriores,2),
             }
         }
 
