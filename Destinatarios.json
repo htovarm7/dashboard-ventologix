@@ -143,6 +143,19 @@
         }
       ]
     },
+        {
+      "email": ["andres.mirazo@ventologix.com", "octavio.murillo@ventologix.com"],
+      "cc": [""],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>EEste es el reporte de BCI</p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario BCI  {fecha}",
+          "dateOffset": -1
+        }
+      ]
+    },
     {
       "email": ["andres.mirazo@ventologix.com", "octavio.murillo@ventologix.com"],
       "cc": [],
