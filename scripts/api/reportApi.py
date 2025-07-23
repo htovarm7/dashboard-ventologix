@@ -202,9 +202,20 @@ def get_daily_report(id_cliente: int = Query(..., description="ID del cliente"),
             (id_cliente, linea)
         )
         data = cursor.fetchone()
+        
+        while cursor.nextset():
+            pass
+        
+        cursor.execute(
+            "SELECT CostokWh FROM clientes WHERE id_cliente = %s",
+            (id_cliente,)
+        )
+        usd_por_kwh = cursor.fetchone()
+        print(usd_por_kwh)
+        
         hp_nominal = data[0] if data else 0
 
-        usd_por_kwh = 0.17
+        usd_por_kwh = usd_por_kwh[0] if usd_por_kwh else 0.17
         costo_usd = round(float(kWh) * usd_por_kwh, 2)
 
         # Comentario ciclos
@@ -710,7 +721,7 @@ def get_client_data(id_cliente: int = Query(..., description="ID del cliente")):
             return {"error": "No data found for the specified client."}
 
         # Convert results into a list of dictionaries
-        data = [{"numero_cliente": row[0], "nombre_cliente": row[1], "RFC": row[2], "direccion": row[3], "CostokWh": row[4]} for row in results]
+        data = [{"numero_cliente": row[0], "nombre_cliente": row[1], "RFC": row[2], "direccion": row[3], "costoUSD": row[4]} for row in results]
 
         return {
             "data": data

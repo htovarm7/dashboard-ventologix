@@ -63,6 +63,7 @@ export default function Main() {
     nombre_cliente: string;
     RFC: string;
     direccion: string;
+    costoUSD: number;
   } | null>(null);
 
   const [compressorData, setCompresorData] = useState<{
@@ -121,7 +122,7 @@ export default function Main() {
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/client-data?id_cliente=${id}&linea=${linea}`
+              `http://127.0.0.1:8000/report/client-data?id_cliente=${id}`
             );
             return res.json();
           })(),
@@ -165,6 +166,8 @@ export default function Main() {
         times.push("23:59:59");
         currents.push(null);
       }
+
+      console.log("clientRes:", clientRes);
 
       setLineChartLabels(times);
       setLineChartData(currents);
@@ -642,7 +645,7 @@ export default function Main() {
 
             <p className="text-xl text-left mt-2">
               • El costo por kilovatio-hora (kWh) utilizado en este análisis es
-              de <strong>$0.17 USD/kWh</strong>, que es el estándar actualmente
+              de <strong>${clientData?.costoUSD} USD/kWh</strong>, que es el estándar actualmente
               aplicado. Sin embargo, si requiere confirmar este valor o necesita
               ajustar la tarifa, puede verificar con su contacto en{" "}
               <strong>VENTOLOGIX</strong>
