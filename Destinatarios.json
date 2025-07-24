@@ -143,7 +143,7 @@
         }
       ]
     },
-        {
+    {
       "email": ["andres.mirazo@ventologix.com", "octavio.murillo@ventologix.com"],
       "cc": [""],
       "bcc": [],
@@ -151,7 +151,20 @@
       "emailBody": "<p>EEste es el reporte de BCI</p>",
       "files": [
         {
-          "fileName": "Reporte Diario BCI  {fecha}",
+          "fileName": "Reporte Diario BCI BCI kaiser {fecha}",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["andres.mirazo@ventologix.com", "octavio.murillo@ventologix.com"],
+      "cc": [""],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>EEste es el reporte de BCI</p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario BCI BCI sullair {fecha}",
           "dateOffset": -1
         }
       ]
