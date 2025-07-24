@@ -766,7 +766,7 @@ def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente
 @report.get("/clients-data", tags=["staticData"])
 def get_clients_data():
     try:
-        # Connect to the database
+        # Conectar a la base de datos
         conn = mysql.connector.connect(
             host=DB_HOST,
             user=DB_USER,
@@ -775,26 +775,43 @@ def get_clients_data():
         )
         cursor = conn.cursor()
 
-        # Fetch data from the clientes table
-        cursor.execute("SELECT e.id_cliente, e.nombre_cliente, comp.linea, comp.Alias FROM envios e JOIN compresores comp ON e.id_cliente = comp.id_cliente WHERE e.Diario = 1;")
-        results = cursor.fetchall()
+        # Obtener clientes con envío diario
+        cursor.execute("""
+            SELECT e.id_cliente, e.nombre_cliente, comp.linea, comp.Alias
+            FROM envios e
+            JOIN compresores comp ON e.id_cliente = comp.id_cliente
+            WHERE e.Diario = 1;
+        """)
+        diarios = cursor.fetchall()
 
-        # Close resources
+        while cursor.nextset():
+            pass
+
+        # Obtener clientes con envío semanal
+        cursor.execute("""
+            SELECT e.id_cliente, e.nombre_cliente, comp.linea, comp.Alias
+            FROM envios e
+            JOIN compresores comp ON e.id_cliente = comp.id_cliente
+            WHERE e.Semanal = 1;
+        """)
+        semanales = cursor.fetchall()
+
+        # Cerrar conexión
         cursor.close()
         conn.close()
 
-        if not results:
-            return {"error": "No data found for the specified client."}
-
-        # Convert results into a list of dictionaries
-        data = [{"id_cliente": row[0], "nombre_cliente": row[1], "linea": row[2], "alias": row[3]} for row in results]
+        # Convertir a listas de diccionarios
+        data_diarios = [{"id_cliente": row[0], "nombre_cliente": row[1], "linea": row[2], "alias": row[3]} for row in diarios]
+        data_semanales = [{"id_cliente": row[0], "nombre_cliente": row[1], "linea": row[2], "alias": row[3]} for row in semanales]
 
         return {
-            "data": data
+            "diarios": data_diarios,
+            "semanales": data_semanales
         }
 
     except mysql.connector.Error as err:
         return {"error": str(err)}
+
 
 # Functions to calculate different metrics
 def percentage_load(data):
