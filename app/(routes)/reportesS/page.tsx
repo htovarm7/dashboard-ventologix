@@ -8,7 +8,7 @@
  *
  * @version 1.0
  *
- * http://localhost:3002/reportesS?id_cliente=12&linea=A
+ * http://localhost:3002/reportesS?id_cliente=14&linea=A
  */
 
 "use client";
@@ -72,6 +72,7 @@ export default function Main() {
     nombre_cliente: string;
     RFC: string;
     direccion: string;
+    costoUSD: number;
   } | null>(null);
 
   const [compressorData, setCompresorData] = useState<{
@@ -431,7 +432,7 @@ export default function Main() {
           color: "black",
           distance: -40,
           formatter: function (value: number) {
-            if (value === 0.1) return "$0.10";
+            if (value === 0.1) return "$0.01";
             if (value === 0.34) return "$0.34";
             return "";
           },
@@ -442,12 +443,17 @@ export default function Main() {
         splitLine: { show: false },
         pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
-          formatter: () => `$${0.17}`,
+          formatter: () => `$${clientData?.costoUSD || "0.00"}`,
           fontSize: 18,
           offsetCenter: [0, "30%"],
-          color: 0.17 <= 0.18 ? "green" : 0.17 <= 0.22 ? "yellow" : "red",
+          color:
+            (clientData?.costoUSD ?? 0) <= 0.18
+              ? "green"
+              : (clientData?.costoUSD ?? 0) <= 0.22
+              ? "yellow"
+              : "red",
         },
-        data: [{ value: 0.17 }],
+        data: [{ value: clientData?.costoUSD ?? 0 }],
       },
     ],
   };
@@ -607,7 +613,7 @@ export default function Main() {
           color: "#59a14f",
         },
         label: {
-          show: true,
+          show: false,
           gap: 10,
           position: "top",
           formatter: "{c}",
@@ -745,7 +751,7 @@ export default function Main() {
 
   const pieOptions = {
     layout: {
-      padding: 20,
+      padding: 0,
     },
     responsive: true,
     maintainAspectRatio: false,
@@ -755,7 +761,7 @@ export default function Main() {
         color: "black",
         font: {
           weight: "bold",
-          size: 18,
+          size: 20,
         },
         formatter: (value: number) => {
           return value + "%";
@@ -817,7 +823,7 @@ export default function Main() {
         {/* Main docker on rows */}
         <div className="flex justify-between items-start">
           {/* Left column: Titles */}
-          <div className="flex-1 mr-150 p-6 ">
+          <div className="flex-1 mr-60 p-6 ">
             <h1 className="text-4xl font-light text-center">Reporte Semanal</h1>
             <h2 className="text-3xl font-bold text-center">
               Compresor: {compressorData?.alias}
@@ -832,14 +838,14 @@ export default function Main() {
           <div className="flex flex-col items-end">
             {/* Logo */}
             <Image
-              src="/Ventologix_01.png"
+              src="/Logo_Ventologix.png"
               alt="logo"
-              className="h-20 w-auto m-2"
-              width={820}
-              height={820}
+              className="h-15 w-70"
+              width={720}
+              height={1080}
             />
 
-            <div className="flex flex-wrap gap-16 items-start text-white mr-10">
+            <div className="flex flex-wrap gap-16 items-start text-white mr-10 mt-10">
               {/* Client Information */}
               <div>
                 <h2 className="text-2xl font-bold">Información Cliente</h2>
@@ -1071,7 +1077,7 @@ export default function Main() {
               </p>
             </div>
           </div>
-          <div className="flex-1 items-center text-center mr-20">
+          <div className="flex-1 items-center text-center mr-20 mt-30">
             {/* Contenido columna 3 */}
             <h4 className="font-bold text-left text-xl">
               A) Consumo energético y costo
@@ -1103,7 +1109,7 @@ export default function Main() {
             />
           </div>
           <div className="flex-1 items-center text-center p-4">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px]">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px] mt-25">
               <h2 className="text-xl text-black font-bold">
                 Ciclos por hora (C/Hr)
               </h2>
@@ -1128,7 +1134,7 @@ export default function Main() {
             </div>
           </div>
 
-          <div className="flex-1 items-center text-center mr-20">
+          <div className="flex-1 items-center text-center mr-20 mt-35">
             {/* Contenido columna 3 */}
             <h4 className="font-bold text-left text-xl">
               B) Comparación de ciclos de operación:
@@ -1160,7 +1166,7 @@ export default function Main() {
             />
           </div>
           <div className="flex-1 items-center text-center p-4">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px]">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px] mt-25">
               <h2 className="text-xl text-black font-bold">HP Equivalente**</h2>
               <p
                 className={`text-3xl font-bold ${getColorHp(
@@ -1180,7 +1186,7 @@ export default function Main() {
               </p>
             </div>
           </div>
-          <div className="flex-1 items-center text-center mr-20">
+          <div className="flex-1 items-center text-center mr-20 mt-30">
             {/* Contenido columna 3 */}
             <h4 className="font-bold text-left text-xl">
               C) Comparación de HP Equivalente:
@@ -1197,17 +1203,17 @@ export default function Main() {
         <div className="flex mt-2">
           {/* Columna 1: Pie Chart */}
           <div className="flex-1 flex flex-col items-center p-4">
-            <p className="text-2xl font-bold mb-4 ml-80">
+            <p className="text-2xl font-bold mb-4 ml-60">
               Estados del Compresor
             </p>
 
             {/* Pie chart centrado */}
-            <div style={{ width: "400px", height: "400px" }} className="ml-80">
+            <div style={{ width: "350px", height: "350px" }} className="ml-70">
               <Pie data={dataPie} options={pieOptions} />
             </div>
 
             {/* Comentario con estilo justificado y expansión de ancho */}
-            <div className="text-justify mr-10">
+            <div className="text-xl text-justify">
               <VentoCom
                 html={summaryData?.comentarios.comentario_D || "Sin datos"}
               />
@@ -1215,8 +1221,8 @@ export default function Main() {
           </div>
 
           {/* Columna 2: Uso Activo */}
-          <div className="flex-1 flex items-center justify-center p-4 ml-30">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px]">
+          <div className="flex-1 flex items-center justify-center p-4 ml-30 mb-30">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px] ml-40">
               <h2 className="text-xl text-black font-bold">Uso Activo</h2>
               <p className="text-3xl font-bold text-black">
                 {summaryData?.semana_actual.horas_trabajadas || "0.0"} Hr
@@ -1234,7 +1240,7 @@ export default function Main() {
           </div>
 
           {/* Columna 3: Comentario */}
-          <div className="flex-1 flex flex-col justify-center text-left p-4 pr-10">
+          <div className="flex-1 flex flex-col justify-center text-left p-4 pr-10 mb-30 ml-20">
             <h4 className="font-bold text-xl mb-2">
               D) Comparación de horas de Uso Activo:
             </h4>
