@@ -19,6 +19,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams } from "next/navigation";
 import annotationPlugin from "chartjs-plugin-annotation";
 import Image from "next/image";
+import VentoCom from "@/components/vento_com";
 
 // Libraries for charts
 import {
@@ -101,6 +102,12 @@ export default function Main() {
       porcentaje_ciclos: number;
       porcentaje_hp: number;
       porcentaje_horas: number;
+    };
+    comentarios: {
+      comentario_A: string;
+      comentario_B: string;
+      comentario_C: string;
+      comentario_D: string;
     };
     detalle_semana_actual: {
       semana: number;
@@ -764,12 +771,14 @@ export default function Main() {
     },
   };
 
-  // useEffect(() => {
-  //   if (chartData.length > 0) {
-  //     window.status = "pdf-ready";
-  //     setTimeout(() => {}, 250000);
-  //   }
-  // }, [chartData]);
+  useEffect(() => {
+    if (
+      summaryData &&
+      summaryData.promedio_semanas_anteriores.total_kWh_anteriores > 0
+    ) {
+      setTimeout(() => {}, 250000);
+    }
+  }, [summaryData]);
 
   const today = new Date();
 
@@ -823,11 +832,11 @@ export default function Main() {
           <div className="flex flex-col items-end">
             {/* Logo */}
             <Image
-              src="/Ventologix_03.png"
+              src="/Ventologix_01.png"
               alt="logo"
-              className="h-12 w-auto m-2"
-              width={112}
-              height={112}
+              className="h-20 w-auto m-2"
+              width={820}
+              height={820}
             />
 
             <div className="flex flex-wrap gap-16 items-start text-white mr-10">
@@ -1003,6 +1012,9 @@ export default function Main() {
               lazyUpdate={true}
               theme={"light"}
             />
+            <VentoCom
+              html={summaryData?.comentarios.comentario_A || "Sin datos"}
+            />
           </div>
           <div className="flex-1 items-center text-center p-4">
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px]">
@@ -1073,7 +1085,7 @@ export default function Main() {
           </div>
         </div>
 
-        <div className="flex">
+        <div className="flex mt-2">
           <div className="flex-1 items-center text-center p-4">
             <p className="text-2xl font-bold">
               Ciclos Promedio Por dia de la semana
@@ -1085,6 +1097,9 @@ export default function Main() {
               notMerge={true}
               lazyUpdate={true}
               theme={"light"}
+            />
+            <VentoCom
+              html={summaryData?.comentarios.comentario_B || "Sin datos"}
             />
           </div>
           <div className="flex-1 items-center text-center p-4">
@@ -1127,7 +1142,7 @@ export default function Main() {
           </div>
         </div>
 
-        <div className="flex">
+        <div className="flex mt-2">
           <div className="flex-1 items-center text-center p-4">
             <p className="text-2xl font-bold">
               HP Equivalente Por dia de la semana
@@ -1139,6 +1154,9 @@ export default function Main() {
               notMerge={true}
               lazyUpdate={true}
               theme={"light"}
+            />
+            <VentoCom
+              html={summaryData?.comentarios.comentario_C || "Sin datos"}
             />
           </div>
           <div className="flex-1 items-center text-center p-4">
@@ -1176,12 +1194,23 @@ export default function Main() {
           </div>
         </div>
 
-        <div className="flex">
+        <div className="flex mt-2">
           {/* Columna 1: Pie Chart */}
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-4 ml-40">
-            <p className="text-2xl font-bold mb-4">Estados del Compresor</p>
-            <div style={{ width: "400px", height: "400px" }}>
+          <div className="flex-1 flex flex-col items-center p-4">
+            <p className="text-2xl font-bold mb-4 ml-80">
+              Estados del Compresor
+            </p>
+
+            {/* Pie chart centrado */}
+            <div style={{ width: "400px", height: "400px" }} className="ml-80">
               <Pie data={dataPie} options={pieOptions} />
+            </div>
+
+            {/* Comentario con estilo justificado y expansión de ancho */}
+            <div className="text-justify mr-10">
+              <VentoCom
+                html={summaryData?.comentarios.comentario_D || "Sin datos"}
+              />
             </div>
           </div>
 
@@ -1215,6 +1244,31 @@ export default function Main() {
                 __html: summaryData?.comparacion.bloque_D || "Sin datos",
               }}
             />
+          </div>
+        </div>
+
+        <div className="flex flex-row items-start mt-10 mb-10">
+          {/* Columna izquierda: Notas */}
+          <div className="flex flex-col flex-1 items-start">
+            <h2 className="text-2xl font-bold text-left mt-5 ml-20">Notas:</h2>
+            <p className="text-lg text-left ml-20">
+              *El costo de 0.17 USD por kWh es estándar. Si desea modificarlo,
+              por favor, comuníquese con su contacto en VENTOLOGIX.
+            </p>
+            <p className="text-lg text-left ml-20">
+              **El HP Equivalente es la métrica utilizada por VENTOLOGIX para
+              calcular la cantidad real de HP utilizados, y se les aplica un
+              factor de seguridad del 40%, según lo recomendado por el CAGI.
+            </p>
+          </div>
+          {/* Columna derecha: Nota adicional */}
+          <div className="flex flex-col flex-1 items-start mt-15">
+            <h1 className="text-2xl ml-140 text-blue-500 font-bold">
+              {" "}
+              Informacion Contacto Ventologix
+            </h1>
+            <p className="text-xl ml-140">Andrés Mirazo</p>
+            <p className="text-xl ml-140">Andres.mirazo@ventologix.com</p>
           </div>
         </div>
       </div>

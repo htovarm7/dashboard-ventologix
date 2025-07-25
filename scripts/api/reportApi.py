@@ -12,6 +12,7 @@ import pandas as pd
 from io import BytesIO
 from pydantic import BaseModel
 from reportlab.pdfgen import canvas
+from statistics import mean, pstdev
 
 """
 * @Observations:
@@ -632,6 +633,82 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
         porcentaje_hp = f"{comparacion_hp * 100:+.2f}"
         porcentaje_horas = f"{comparacion_horas * 100:+.2f}"
 
+        # Análisis de cumplimiento
+        dias_trabajados = [d for d in detalle_semana if (d["horas_load"] + d["horas_noload"]) > 0]
+        dias_total = len(detalle_semana)
+        dias_cumplen = [d for d in dias_trabajados if 0 < d["promedio_ciclos_por_hora"] <= 12]
+        dias_superan_hp = [d for d in dias_trabajados if d["hp_equivalente"] > promedio_hp_anteriores]
+        porcentaje_dias_cumplen = (len(dias_cumplen) / len(dias_trabajados)) * 100 if dias_trabajados else 0
+        porcentaje_dias_superan = (len(dias_superan_hp) / len(dias_trabajados)) * 100 if dias_trabajados else 0
+
+        # Análisis de picos
+        consumos_diarios = [d["kWh"] for d in detalle_semana if d["kWh"] > 0]
+        promedio_consumo_diario = mean(consumos_diarios) if consumos_diarios else 0
+        desviacion_consumo_diario = pstdev(consumos_diarios) if len(consumos_diarios) > 1 else 0
+        limite_superior = promedio_consumo_diario + 2 * desviacion_consumo_diario
+        dias_con_picos = sum(1 for kwh in consumos_diarios if kwh > limite_superior)
+
+        # Cálculo de eficiencia
+        total_horas_load = sum(d["horas_load"] for d in semana_actual)
+        total_horas_trabajadas = sum(d["horas_trabajadas"] for d in semana_actual)
+        porcentaje_load = (total_horas_load / total_horas_trabajadas) * 100 if total_horas_trabajadas else 0
+
+        comentario_kwh_picos = f"""
+        <div style='font-size: 16px; font-family: DIN, sans-serif; margin-left: 20px; text-align: justify;'>
+        Durante la semana, el compresor consumió un total de <b>{total_kWh_semana_actual:.2f} kWh</b>,
+        con un costo total de <b>{costo_semana_actual:.2f} USD</b> (a <b>{usd_por_kwh:.2f} por kWh</b>).
+        </div>
+        <div style='font-size: 16px; font-family: DIN, sans-serif; margin-left: 20px; text-align: justify;'>
+        {"Durante la semana, no se identificaron picos de consumo inusualmente altos."
+        if dias_con_picos == 0 else
+        f"Durante la semana se detectaron <b>{dias_con_picos}</b> días con picos de consumo inusualmente altos (más de dos desviaciones estándar sobre el promedio diario)."}
+        </div>
+        """
+
+        comentario_ciclos = f"""
+        <div style='font-size: 16px; font-family: DIN, sans-serif; margin-left: 20px; text-align: justify;'>
+        Durante la semana, se analizaron un total de <b>{len(dias_trabajados)}</b> días.
+        De estos, <b>{len(dias_cumplen) if dias_cumplen else 'no se identificaron días'}</b>
+        ({porcentaje_dias_cumplen:.2f}%) cumplieron con el rango ideal de ciclos por día (<b>menos de 12 ciclos</b>).
+        Esto indica que el sistema cumple con el comportamiento óptimo en <b>{porcentaje_dias_cumplen:.2f}%</b> del tiempo.
+        </div>
+        """
+
+        comentario_hp = f"""
+        <div style='font-size: 16px; font-family: DIN, sans-serif; margin-left: 20px; text-align: justify;'>
+        Durante la semana, se analizó el comportamiento del consumo de HP. <b>
+        {"No hubo días" if not dias_superan_hp else len(dias_superan_hp)}
+        </b> en los que el consumo de HP del compresor superó el valor recomendado por CAGI.
+        {" Esto representa un <b>{porcentaje_dias_superan:.2f}%</b> de los días de la semana." if dias_superan_hp else ""}
+        </div>
+        """
+
+        comentario_eficiencia = ""
+        if porcentaje_load > 80:
+            comentario_eficiencia = f"""
+            <div style='font-size: 16px; font-family: DIN, sans-serif; margin-left: 20px; text-align: justify;'>
+            Con base en el análisis, el tiempo en estado <b>LOAD</b> ha sido del <b>{porcentaje_load:.2f}%</b>,
+            lo cual es superior al rango ideal de <b>70% - 80%</b>. Se recomienda reducir el tiempo en estado
+            <b>LOAD</b> para evitar un uso excesivo del compresor y optimizar el consumo energético.
+            </div>
+            """
+        elif porcentaje_load < 70:
+            comentario_eficiencia = f"""
+            <div style='font-size: 16px; font-family: DIN, sans-serif; margin-left: 20px; text-align: justify;'>
+            Con base en el análisis, el tiempo en estado <b>LOAD</b> ha sido del <b>{porcentaje_load:.2f}%</b>,
+            lo cual está por debajo del rango ideal de <b>70% - 80%</b>. Se recomienda incrementar el tiempo en estado
+            <b>LOAD</b> para mejorar la eficiencia energética y reducir costos.
+            </div>
+            """
+        else:
+            comentario_eficiencia = f"""
+            <div style='font-size: 16px; font-family: DIN, sans-serif; margin-left: 20px; text-align: justify;'>
+            Con base en el análisis, el tiempo en estado <b>LOAD</b> ha sido del <b>{porcentaje_load:.2f}%</b>,
+            lo cual está dentro del rango ideal de <b>70% - 80%</b>. Esto refleja un buen uso del compresor para mantener
+            la eficiencia energética y controlar los costos.
+            </div>
+            """
+
         # HTML resumen dividido en secciones
         bloque_A = f"""
         <p>
@@ -680,6 +757,12 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
                 "porcentaje_ciclos": porcentaje_ciclos,
                 "porcentaje_hp": porcentaje_hp,
                 "porcentaje_horas": porcentaje_horas
+            },
+            "comentarios": {
+                "comentario_A": comentario_kwh_picos,
+                "comentario_B": comentario_ciclos,
+                "comentario_C": comentario_hp,
+                "comentario_D": comentario_eficiencia
             },
             "detalle_semana_actual": detalle_semana,
             "promedio_semanas_anteriores": {
