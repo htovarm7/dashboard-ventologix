@@ -677,9 +677,9 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
         comentario_hp = f"""
         <div style='font-size: 16px; font-family: DIN, sans-serif; margin-left: 20px; text-align: justify;'>
         Durante la semana, se analizó el comportamiento del consumo de HP. <b>
-        {"No hubo días" if not dias_superan_hp else len(dias_superan_hp)}
+        {"No hubo días" if not dias_superan_hp else f"{len(dias_superan_hp)} días"}
         </b> en los que el consumo de HP del compresor superó el valor recomendado por CAGI.
-        {" Esto representa un <b>{porcentaje_dias_superan:.2f}%</b> de los días de la semana." if dias_superan_hp else ""}
+        {f" Esto representa un <b>{porcentaje_dias_superan:.2f}%</b> de los días de la semana." if dias_superan_hp else ""}
         </div>
         """
 
