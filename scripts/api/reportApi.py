@@ -211,7 +211,6 @@ def get_daily_report(id_cliente: int = Query(..., description="ID del cliente"),
             (id_cliente,)
         )
         usd_por_kwh = cursor.fetchone()
-        print(usd_por_kwh)
         
         hp_nominal = data[0] if data else 0
 
@@ -574,7 +573,6 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
 
         cursor.execute("SELECT CostokWh FROM clientes WHERE id_cliente = %s", (id_cliente,))
         costo_kwh_result = cursor.fetchone()
-        print(costo_kwh_result)
 
         # Columnas esperadas
         columns = [

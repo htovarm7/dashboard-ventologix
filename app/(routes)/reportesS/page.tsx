@@ -124,16 +124,17 @@ export default function Main() {
     };
   } | null>(null);
 
+  // Devuelve la clase de color según el porcentaje (puede ser negativo o positivo)
   const getColorCiclos = (value: number) => {
-    if (value >= 15) return "text-red-600"; // Muy malo
-    if (value >= 5) return "text-yellow-500"; // Intermedio
-    if (value <= 0) return "text-green-600"; // Bueno
-    return "text-blue-500"; // Óptimo
+    if (value <= -10) return "text-blue-500"; // Óptimo (disminución > 10%)
+    if (value < 0) return "text-green-600"; // Bueno (disminución entre 0% y 10%)
+    if (value <= 10) return "text-yellow-500"; // Intermedio (aumento entre 0% y 10%)
+    return "text-red-600"; // Muy malo (aumento > 10%)
   };
 
   const getColorHp = (value: number) => {
-    if (value >= 15) return "text-red-600"; // Muy malo
-    if (value >= 5) return "text-yellow-500"; // Intermedio
+    if (value > 15) return "text-red-600"; // Muy malo
+    if (value > 5) return "text-yellow-500"; // Intermedio
     if (value <= 0) return "text-green-600"; // Bueno
   };
 
@@ -330,7 +331,6 @@ export default function Main() {
     ],
   };
 
-  // Poner las anotaciones igual que como el gauge, igual el de HP EQUIVALENTE esas lineas con su respectivo nombre
   const hpOptions = {
     tooltip: { show: true },
     series: [
@@ -616,7 +616,7 @@ export default function Main() {
     },
     yAxis: {
       type: "value",
-      name: "Ciclos por Dia",
+      name: "Ciclos por Día",
       nameLocation: "middle",
       nameGap: 40,
       nameTextStyle: {
@@ -624,6 +624,7 @@ export default function Main() {
         fontWeight: "bold",
         color: "#333",
       },
+      max: (compressorData?.hp ?? 0) + (compressorData?.hp ?? 0) * 0.2 || 30,
     },
     series: [
       {
@@ -636,6 +637,52 @@ export default function Main() {
           show: true,
           position: "top",
           formatter: "{c}",
+        },
+        markLine: {
+          symbol: "none",
+          label: {
+            position: "end",
+            formatter: (params: any) => {
+              if (params.name === "HP") return `HP (${params.value})`;
+              return params.name;
+            },
+            color: "#333",
+            fontWeight: "bold",
+          },
+          lineStyle: {
+            type: "solid",
+            width: 2,
+          },
+          data: [
+            // Rango Azul (hasta 8)
+            {
+              yAxis: 8,
+              lineStyle: { color: "#418FDE", width: 2, type: "solid" },
+              name: "Bajo",
+            },
+            // Rango Verde (hasta 12)
+            {
+              yAxis: 12,
+              lineStyle: { color: "green", width: 2, type: "solid" },
+              name: "Óptimo",
+            },
+            // Rango Amarillo (hasta 15)
+            {
+              yAxis: 15,
+              lineStyle: { color: "yellow", width: 2, type: "solid" },
+              name: "Alto",
+            },
+            // Línea de referencia de HP del compresor
+            ...(compressorData?.hp
+              ? [
+                  {
+                    yAxis: compressorData.hp,
+                    lineStyle: { color: "red", type: "solid", width: 2 },
+                    name: "HP",
+                  },
+                ]
+              : []),
+          ],
         },
       },
     ],
