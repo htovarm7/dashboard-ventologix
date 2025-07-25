@@ -135,11 +135,16 @@ export default function Main() {
     if (value >= 15) return "text-red-600"; // Muy malo
     if (value >= 5) return "text-yellow-500"; // Intermedio
     if (value <= 0) return "text-green-600"; // Bueno
-    return "text-blue-500"; // Óptimo
   };
 
   const getAnualValue = (value: number) => {
     return value * 52;
+  };
+
+  const getColorClass = (value: number) => {
+    if (value >= 15) return "text-red-600"; // Muy malo
+    if (value >= 5) return "text-yellow-500"; // Intermedio
+    if (value <= 0) return "text-green-600"; // Bueno
   };
 
   const searchParams = useSearchParams();
@@ -955,7 +960,11 @@ export default function Main() {
           <div className="flex-1 items-center text-center p-4">
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px]">
               <h2 className="text-xl text-black font-bold">Costo $USD</h2>
-              <p className="text-3xl font-bold text-black">
+              <p
+                className={`text-3xl font-bold ${getColorClass(
+                  summaryData?.semana_actual.costo_estimado || 0
+                )}`}
+              >
                 ${summaryData?.semana_actual.costo_estimado || "0.00"} USD /
                 Semanal
               </p>
@@ -980,7 +989,11 @@ export default function Main() {
             </div>
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px]">
               <h2 className="text-xl text-black font-bold">Consumo kWH</h2>
-              <p className="text-3xl font-bold text-black">
+              <p
+                className={`text-3xl font-bold ${getColorClass(
+                  summaryData?.semana_actual.total_kWh || 0
+                )}`}
+              >
                 {summaryData?.semana_actual.total_kWh || "0.00"} kWh / Semanal
               </p>
               <p className="text-xl text-black">
@@ -1032,7 +1045,11 @@ export default function Main() {
               <h2 className="text-xl text-black font-bold">
                 Ciclos por hora (C/Hr)
               </h2>
-              <p className="text-3xl font-bold text-black">
+              <p
+                className={`text-3xl font-bold ${getColorCiclos(
+                  summaryData?.semana_actual.promedio_ciclos_por_hora || 0
+                )}`}
+              >
                 {summaryData?.semana_actual.promedio_ciclos_por_hora || "0.0"}{" "}
                 C/Hr
               </p>
@@ -1080,7 +1097,11 @@ export default function Main() {
           <div className="flex-1 items-center text-center p-4">
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px]">
               <h2 className="text-xl text-black font-bold">HP Equivalente**</h2>
-              <p className="text-3xl font-bold text-black">
+              <p
+                className={`text-3xl font-bold ${getColorHp(
+                  summaryData?.semana_actual.promedio_hp_equivalente || 0
+                )}`}
+              >
                 {summaryData?.semana_actual.promedio_hp_equivalente || "0.0"} hp
               </p>
               <p className="text-xl">Promedio ultimas 12 semanas:</p>
