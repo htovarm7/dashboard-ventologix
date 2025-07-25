@@ -60,10 +60,34 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente,alias):
 
         # Usamos fecha hoy pero el renombrado se hace luego
         # Reporte Diario Cliente Alias Fecha
+# --- Función para generar PDF con Playwright ---
+def generar_pdf_cliente(id_cliente, linea, nombre_cliente,alias):
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.set_viewport_size({"width": 1920, "height": 1080})
+
+        url = f"http://localhost:3002/reportesD?id_cliente={id_cliente}&linea={linea}"
+        print(f"Abriendo URL: {url}")
+        page.goto(url)
+
+        fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
+        print("Esperando que frontend avise que terminó de renderizar...")
+        page.wait_for_function("window.status === 'pdf-ready'",timeout=300000)
+        print("Frontend listo, generando PDF...")
+
+        # Usamos fecha hoy pero el renombrado se hace luego
+        # Reporte Diario Cliente Alias Fecha
         pdf_path = os.path.join(downloads_folder, f"Reporte Diario {nombre_cliente} {alias} {fechaAyer}.pdf")
-        page.pdf(path=pdf_path, format="A2", print_background=True)
-        browser.close()
-        return pdf_path
+        # Capturar el alto completo del contenido
+        page_height = page.evaluate("() => document.body.scrollHeight")
+
+        page.pdf(
+            path=pdf_path,
+            width="1920px",  # mismo que el viewport
+            height=f"{page_height}px",  # alto dinámico del contenido
+            print_background=True
+        )
 
 # --- Función para enviar correo ---
 def send_mail(recipientConfig, pdf_file_path):

@@ -1038,7 +1038,7 @@ export default function Main() {
               <h2 className="text-xl text-black font-bold">Consumo kWH</h2>
               <p
                 className={`text-3xl font-bold ${getColorClass(
-                  summaryData?.semana_actual.total_kWh || 0
+                  summaryData?.comparacion.porcentaje_costo || 0
                 )}`}
               >
                 {summaryData?.semana_actual.total_kWh || "0.00"} kWh / Semanal
@@ -1094,7 +1094,7 @@ export default function Main() {
               </h2>
               <p
                 className={`text-3xl font-bold ${getColorCiclos(
-                  summaryData?.semana_actual.promedio_ciclos_por_hora || 0
+                  summaryData?.comparacion.porcentaje_ciclos || 0
                 )}`}
               >
                 {summaryData?.semana_actual.promedio_ciclos_por_hora || "0.0"}{" "}
@@ -1146,7 +1146,7 @@ export default function Main() {
               <h2 className="text-xl text-black font-bold">HP Equivalente**</h2>
               <p
                 className={`text-3xl font-bold ${getColorHp(
-                  summaryData?.semana_actual.promedio_hp_equivalente || 0
+                  summaryData?.comparacion.porcentaje_hp || 0
                 )}`}
               >
                 {summaryData?.semana_actual.promedio_hp_equivalente || "0.0"} hp
@@ -1178,18 +1178,15 @@ export default function Main() {
 
         <div className="flex">
           {/* Columna 1: Pie Chart */}
-          <div className="flex-l items-center justify-center p-4 ml-70">
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-4 ml-40">
             <p className="text-2xl font-bold mb-4">Estados del Compresor</p>
-            <div
-              style={{ width: "350px", height: "350px" }}
-              className="items-center"
-            >
+            <div style={{ width: "400px", height: "400px" }}>
               <Pie data={dataPie} options={pieOptions} />
             </div>
           </div>
 
           {/* Columna 2: Uso Activo */}
-          <div className="flex-1 flex items-center justify-center p-4 ml-40">
+          <div className="flex-1 flex items-center justify-center p-4 ml-30">
             <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px]">
               <h2 className="text-xl text-black font-bold">Uso Activo</h2>
               <p className="text-3xl font-bold text-black">
@@ -1202,15 +1199,14 @@ export default function Main() {
                 hr
               </p>
               <p className="text-lg">
-                ({summaryData?.comparacion.porcentaje_horas || "0.00"}
-                %)
+                ({summaryData?.comparacion.porcentaje_horas || "0.00"}%)
               </p>
             </div>
           </div>
 
           {/* Columna 3: Comentario */}
-          <div className="flex-1 flex flex-col justify-center p-4 pr-20">
-            <h4 className="font-bold text-left text-xl mb-2">
+          <div className="flex-1 flex flex-col justify-center text-left p-4 pr-10">
+            <h4 className="font-bold text-xl mb-2">
               D) Comparación de horas de Uso Activo:
             </h4>
             <div

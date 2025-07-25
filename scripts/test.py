@@ -51,8 +51,15 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo):
         page.wait_for_function("window.status === 'pdf-ready'", timeout=600000)
         fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
         pdf_path = os.path.join(downloads_folder, f"Reporte {tipo.capitalize()} {nombre_cliente} {alias} {fechaAyer}.pdf")
-        page.pdf(path=pdf_path, format="A2", print_background=True)
-        browser.close()
+        # Capturar el alto completo del contenido
+        page_height = page.evaluate("() => document.body.scrollHeight")
+
+        page.pdf(
+            path=pdf_path,
+            width="1920px",  # mismo que el viewport
+            height=f"{page_height}px",  # alto dinámico del contenido
+            print_background=True
+        )
         return pdf_path
 
 def send_mail(pdf_file_path):
@@ -133,5 +140,8 @@ def main():
     except Exception as e:
         print(f"❌ Error durante generación o envío: {e}")
 
-if __name__ == "__main__":
-    main()
+try:
+    while True:
+        main()
+except KeyboardInterrupt:
+    print("Ejecución detenida por el usuario.")

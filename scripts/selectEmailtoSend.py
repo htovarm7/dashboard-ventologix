@@ -221,9 +221,5 @@ def main():
     print("Proceso finalizado.")
 
 if __name__ == "__main__":
-    main()
-
-
-if __name__ == "__main__":
     while True:
         main()
