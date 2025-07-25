@@ -20,8 +20,8 @@ downloads_folder = "pdfs"
 alias_name = "VTO LOGIX"
 smtp_from = "andres.mirazo@ventologix.com"
 from_address = "vto@ventologix.com"
-logo_path = "/home/hector_tovar/Ventologix/public/Logo vento firma.jpg"
-ventologix_logo_path = "/home/hector_tovar/Ventologix/public/ventologix firma.jpg"
+logo_path = "public/Logo vento firma.jpg"
+ventologix_logo_path = "public/ventologix firma.jpg"
 smtp_password = os.getenv("SMTP_PASSWORD")
 smtp_server = "smtp.gmail.com"
 smtp_port = 587
@@ -45,21 +45,32 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo):
         browser = p.chromium.launch()
         page = browser.new_page()
         page.set_viewport_size({"width": 1920, "height": 1080})
+
         url = f"http://localhost:3002/reportes{'D' if tipo == 'diario' else 'S'}?id_cliente={id_cliente}&linea={linea}"
         print(f"Abriendo URL: {url}")
         page.goto(url)
+
+        # Esperar a que el frontend avise que terminó
         page.wait_for_function("window.status === 'pdf-ready'", timeout=600000)
+
+        # Aplicar escala como en tu laptop (93.75%)
+        page.evaluate("document.body.style.transform = 'scale(0.9375)'")
+        page.evaluate("document.body.style.transformOrigin = 'top left'")
+
+        # Ajustar alto del PDF considerando la escala
+        full_height = page.evaluate("() => document.body.scrollHeight * 0.9375")
+
         fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
         pdf_path = os.path.join(downloads_folder, f"Reporte {tipo.capitalize()} {nombre_cliente} {alias} {fechaAyer}.pdf")
-        # Capturar el alto completo del contenido
-        page_height = page.evaluate("() => document.body.scrollHeight")
 
         page.pdf(
             path=pdf_path,
-            width="1920px",  # mismo que el viewport
-            height=f"{page_height}px",  # alto dinámico del contenido
+            width="1920px",
+            height=f"{full_height}px",
             print_background=True
         )
+
+        browser.close()
         return pdf_path
 
 def send_mail(pdf_file_path):

@@ -147,7 +147,7 @@ export default function Main() {
   };
 
   const getAnualValue = (value: number) => {
-    return value * 52;
+    return +(value * 52).toFixed(2);
   };
 
   const getColorClass = (value: number) => {
@@ -357,6 +357,9 @@ export default function Main() {
               [0.544, "yellow"],
               [0.689, "green"],
               [0.766, "#418FDE"],
+              [0.77, "yellow"],
+              [0.785, "black"],
+              [0.8, "yellow"],
               [0.889, "yellow"],
               [1, "red"],
             ],
@@ -367,9 +370,10 @@ export default function Main() {
           color: "black",
           distance: -40,
           formatter: function (value: number) {
-            if (value === 30) return "30%";
-            if (value === 100) return "100%";
-            if (value === 120) return "120%";
+            const rounded = Math.round(value);
+            if (rounded === 30) return "30%";
+            if (rounded === 100) return "100%";
+            if (rounded === 120) return "120%";
             return "";
           },
           fontSize: 16,
@@ -653,15 +657,6 @@ export default function Main() {
         },
         markLine: {
           symbol: "none",
-          label: {
-            position: "end",
-            formatter: (params: any) => {
-              if (params.name === "HP") return `HP (${params.value})`;
-              return params.name;
-            },
-            color: "#333",
-            fontWeight: "bold",
-          },
           lineStyle: {
             type: "solid",
             width: 2,
@@ -685,16 +680,6 @@ export default function Main() {
               lineStyle: { color: "yellow", width: 2, type: "solid" },
               name: "Alto",
             },
-            // Línea de referencia de HP del compresor
-            ...(compressorData?.hp
-              ? [
-                  {
-                    yAxis: compressorData.hp,
-                    lineStyle: { color: "red", type: "solid", width: 2 },
-                    name: "HP",
-                  },
-                ]
-              : []),
           ],
         },
       },
@@ -782,7 +767,10 @@ export default function Main() {
       summaryData &&
       summaryData.promedio_semanas_anteriores.total_kWh_anteriores > 0
     ) {
-      setTimeout(() => {}, 250000);
+      // Espera unos segundos por seguridad (opcional)
+      setTimeout(() => {
+        window.status = "pdf-ready";
+      }, 2000); // 2 segundos
     }
   }, [summaryData]);
 
@@ -819,7 +807,7 @@ export default function Main() {
 
   return (
     <main className="relative">
-      <div className="bg-gradient-to-r from-indigo-950 to-blue-400 text-white p-6">
+      <div className="w-full min-w-full bg-gradient-to-r from-indigo-950 to-blue-400 text-white p-6">
         {/* Main docker on rows */}
         <div className="flex justify-between items-start">
           {/* Left column: Titles */}
@@ -840,7 +828,7 @@ export default function Main() {
             <Image
               src="/Logo_Ventologix.png"
               alt="logo"
-              className="h-15 w-70"
+              className="h-15 w-70 mr-20"
               width={720}
               height={1080}
             />
@@ -1253,7 +1241,7 @@ export default function Main() {
           </div>
         </div>
 
-        <div className="flex flex-row items-start mt-10 mb-10">
+        <div className="flex flex-row items-start mt-2">
           {/* Columna izquierda: Notas */}
           <div className="flex flex-col flex-1 items-start">
             <h2 className="text-2xl font-bold text-left mt-5 ml-20">Notas:</h2>
