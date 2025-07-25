@@ -816,7 +816,7 @@ export default function Main() {
             <h2 className="text-3xl font-bold text-center">
               Compresor: {compressorData?.alias}
             </h2>
-            <p className="text-xl mt-2 text-center">
+            <p className="text-xl text-center">
               <span className="font-bold">Semana {semanaNumero}:</span>{" "}
               {fechaInicio} al {fechaFin}
             </p>
@@ -833,7 +833,7 @@ export default function Main() {
               height={1080}
             />
 
-            <div className="flex flex-wrap gap-16 items-start text-white mr-10 mt-10">
+            <div className="flex flex-wrap gap-16 items-start text-white mr-10 mt-5">
               {/* Client Information */}
               <div>
                 <h2 className="text-2xl font-bold">Información Cliente</h2>
@@ -896,7 +896,7 @@ export default function Main() {
         </div>
       </div>
 
-      <div className="flex items-start ml-20 gap-30">
+      <div className="flex items-start ml-40 gap-30">
         <div className="inline-block mt-20">
           {/* Primera fila */}
           <div className="flex">
@@ -972,7 +972,7 @@ export default function Main() {
         />
       </div>
 
-      <div className="flex items-center justify-center mt-10 mb-10">
+      <div className="flex items-center justify-center mt-5 mb-10">
         {/* Lado izquierdo */}
         <div className="flex flex-col gap-1 w-124">
           <div className="h-3 bg-blue-500 w-full"></div>
@@ -1241,10 +1241,10 @@ export default function Main() {
           </div>
         </div>
 
-        <div className="flex flex-row items-start mt-2">
+        <div className="flex flex-row items-start">
           {/* Columna izquierda: Notas */}
           <div className="flex flex-col flex-1 items-start">
-            <h2 className="text-2xl font-bold text-left mt-5 ml-20">Notas:</h2>
+            <h2 className="text-2xl font-bold text-left mt-2 ml-20">Notas:</h2>
             <p className="text-lg text-left ml-20">
               *El costo de 0.17 USD por kWh es estándar. Si desea modificarlo,
               por favor, comuníquese con su contacto en VENTOLOGIX.

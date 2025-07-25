@@ -53,12 +53,8 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo):
         # Esperar a que el frontend avise que terminó
         page.wait_for_function("window.status === 'pdf-ready'", timeout=600000)
 
-        # Aplicar escala como en tu laptop (93.75%)
-        page.evaluate("document.body.style.transform = 'scale(0.9375)'")
-        page.evaluate("document.body.style.transformOrigin = 'top left'")
-
-        # Ajustar alto del PDF considerando la escala
-        full_height = page.evaluate("() => document.body.scrollHeight * 0.9375")
+        # Obtener la altura real del contenido
+        full_height = page.evaluate("() => document.body.scrollHeight")
 
         fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
         pdf_path = os.path.join(downloads_folder, f"Reporte {tipo.capitalize()} {nombre_cliente} {alias} {fechaAyer}.pdf")
@@ -67,7 +63,8 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo):
             path=pdf_path,
             width="1920px",
             height=f"{full_height}px",
-            print_background=True
+            print_background=True,
+            margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
         )
 
         browser.close()
