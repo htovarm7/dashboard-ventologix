@@ -47,6 +47,7 @@ next-env.d.ts
 Destinatarios.json
 
 scripts/__pycache__
-scripts/api/__pycache__
 
 pdfs
+
+scripts/api/__pycache__

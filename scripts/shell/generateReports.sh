@@ -2,7 +2,7 @@
 
 LOGDIR="/home/hector_tovar/Ventologix/logs"
 LOGFILE="$LOGDIR/tarea_$(date +%F).log"
-PYTHON_SCRIPT="/home/hector_tovar/Ventologix/scripts/generatePDF.py"
+PYTHON_SCRIPT="/home/hector_tovar/Ventologix/scripts/generate_pdfs.py"
 VENV="/home/hector_tovar/Ventologix/vento/bin/activate"
 VENTO_DIR="/home/hector_tovar/Ventologix"
 SCRIPTS_DIR="$VENTO_DIR/scripts"

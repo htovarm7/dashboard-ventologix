@@ -894,6 +894,53 @@ def get_clients_data():
         return {"error": str(err)}
 
 
+@report.get("/all-clients", tags=["staticData"])
+def get_all_clients_data():
+    try:
+        # Conectar a la base de datos
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        # Obtener clientes con envío diario
+        cursor.execute("""
+            SELECT e.id_cliente, e.nombre_cliente, comp.linea, comp.Alias
+            FROM envios e
+            JOIN compresores comp ON e.id_cliente = comp.id_cliente
+        """)
+        diarios = cursor.fetchall()
+
+        while cursor.nextset():
+            pass
+
+        # Obtener clientes con envío semanal
+        cursor.execute("""
+            SELECT e.id_cliente, e.nombre_cliente, comp.linea, comp.Alias
+            FROM envios e
+            JOIN compresores comp ON e.id_cliente = comp.id_cliente
+        """)
+        semanales = cursor.fetchall()
+
+        # Cerrar conexión
+        cursor.close()
+        conn.close()
+
+        # Convertir a listas de diccionarios
+        data_diarios = [{"id_cliente": row[0], "nombre_cliente": row[1], "linea": row[2], "alias": row[3]} for row in diarios]
+        data_semanales = [{"id_cliente": row[0], "nombre_cliente": row[1], "linea": row[2], "alias": row[3]} for row in semanales]
+
+        return {
+            "diarios": data_diarios,
+            "semanales": data_semanales
+        }
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
+
 # Functions to calculate different metrics
 def percentage_load(data):
     load_records = [record for record in data if record['estado'] == "LOAD"]

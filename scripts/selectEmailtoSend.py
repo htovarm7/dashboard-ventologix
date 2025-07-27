@@ -1,3 +1,14 @@
+"""
+selectEmailtoSend.py
+
+Script para generar y enviar reportes PDF diarios por correo electrónico
+usando Playwright y configuración personalizada de destinatarios.
+
+Autor: Hector 
+Fecha: 2024-06
+"""
+
+
 from playwright.sync_api import sync_playwright
 import requests
 from datetime import datetime, timedelta
@@ -20,7 +31,7 @@ smtp_from = "andres.mirazo@ventologix.com"
 from_address = "vto@ventologix.com"
 logo_path = "/home/hector_tovar/Ventologix/public/Logo vento firma.jpg"
 ventologix_logo_path = "/home/hector_tovar/Ventologix/public/ventologix firma.jpg"
-smtp_password = os.getenv("SMTP_PASSWORD")  # Usa variable de entorno para la contraseña
+smtp_password = os.getenv("SMTP_PASSWORD")
 
 smtp_server = "smtp.gmail.com"
 smtp_port = 587
@@ -58,8 +69,6 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente,alias):
         page.wait_for_function("window.status === 'pdf-ready'",timeout=300000)
         print("Frontend listo, generando PDF...")
 
-        # Usamos fecha hoy pero el renombrado se hace luego
-        # Reporte Diario Cliente Alias Fecha
         pdf_path = os.path.join(downloads_folder, f"Reporte Diario {nombre_cliente} {alias} {fechaAyer}.pdf")
         page.pdf(path=pdf_path, format="A2", print_background=True)
         browser.close()
@@ -90,7 +99,6 @@ def send_error_mail(missing_files, admin_emails):
         print(f"Correo de advertencia enviado a {', '.join(admin_emails)}")
     except Exception as e:
         print(f"Error al enviar correo de advertencia: {e}")
-
 
 # --- Función para enviar correo ---
 def send_mail(recipientConfig, pdf_file_path):

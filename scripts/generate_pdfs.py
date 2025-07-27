@@ -1,4 +1,13 @@
-# generate_reportes.py (para diario y semanal)
+"""
+------------------------------------------------------------
+ Ventologix PDF Report Generator
+ Author: Hector Tovar
+ Description: Script that allows to generate the reports between daily or weekly.
+ For all clients and its sended to andres
+ Date: 2024-06
+------------------------------------------------------------
+"""
+
 from playwright.sync_api import sync_playwright
 import requests
 from datetime import datetime, timedelta
@@ -29,7 +38,7 @@ admin_correos = ["andres.mirazo@ventologix.com"]
 fecha_hoy = datetime.now()
 
 def obtener_clientes_desde_api():
-    response = requests.get("http://127.0.0.1:8000/report/clients-data")
+    response = requests.get("http://127.0.0.1:8000/report/all-clients")
     if response.status_code == 200:
         data = response.json()
         return {
