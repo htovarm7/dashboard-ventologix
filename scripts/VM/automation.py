@@ -20,7 +20,7 @@ smtp_from = "andres.mirazo@ventologix.com"
 from_address = "vto@ventologix.com"
 logo_path = "/home/hector_tovar/Ventologix/public/Logo vento firma.jpg"
 ventologix_logo_path = "/home/hector_tovar/Ventologix/public/ventologix firma.jpg"
-smtp_password = os.getenv("SMTP_PASSWORD")  # Usa variable de entorno para la contraseña
+smtp_password = os.getenv("SMTP_PASSWORD")
 
 smtp_server = "smtp.gmail.com"
 smtp_port = 587
@@ -60,6 +60,7 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente,alias):
 
         # Usamos fecha hoy pero el renombrado se hace luego
         # Reporte Diario Cliente Alias Fecha
+
 # --- Función para generar PDF con Playwright ---
 def generar_pdf_cliente(id_cliente, linea, nombre_cliente,alias):
     with sync_playwright() as p:

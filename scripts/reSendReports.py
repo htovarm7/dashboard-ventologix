@@ -1,11 +1,11 @@
 """
-selectEmailtoSend.py
-
-Script para generar y enviar reportes PDF diarios por correo electrónico
-usando Playwright y configuración personalizada de destinatarios.
-
-Autor: Hector 
-Fecha: 2024-06
+------------------------------------------------------------
+ Ventologix PDF Report Generator
+ Author: Hector Tovar
+ Description: Script that allows to generate the reports between daily or weekly.
+ Only for allowed clients and this code is mainly used if the client didn't receive its report
+ Date: 26-07-2025
+------------------------------------------------------------
 """
 
 
@@ -48,57 +48,45 @@ fecha_hoy = datetime.now()
 def obtener_clientes_desde_api():
     response = requests.get("http://127.0.0.1:8000/report/clients-data")
     if response.status_code == 200:
-        return response.json().get("data", [])
+        data = response.json()
+        return {
+            "diarios": data.get("diarios", []),
+            "semanales": data.get("semanales", [])
+        }
     else:
         print("Error al obtener datos de clientes")
-        return []
+        return {"diarios": [], "semanales": []}
 
 # --- Función para generar PDF con Playwright ---
-def generar_pdf_cliente(id_cliente, linea, nombre_cliente,alias):
+def generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo):
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page()
         page.set_viewport_size({"width": 1920, "height": 1080})
 
-        url = f"http://localhost:3002/reportesD?id_cliente={id_cliente}&linea={linea}"
+        url = f"http://localhost:3002/reportes{'D' if tipo == 'diario' else 'S'}?id_cliente={id_cliente}&linea={linea}"
         print(f"Abriendo URL: {url}")
         page.goto(url)
 
-        fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
-        print("Esperando que frontend avise que terminó de renderizar...")
-        page.wait_for_function("window.status === 'pdf-ready'",timeout=300000)
-        print("Frontend listo, generando PDF...")
+        # Esperar a que el frontend avise que terminó
+        page.wait_for_function("window.status === 'pdf-ready'", timeout=600000)
 
-        pdf_path = os.path.join(downloads_folder, f"Reporte Diario {nombre_cliente} {alias} {fechaAyer}.pdf")
-        page.pdf(path=pdf_path, format="A2", print_background=True)
+        # Obtener la altura real del contenido
+        full_height = page.evaluate("() => document.body.scrollHeight")
+
+        fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
+        pdf_path = os.path.join(downloads_folder, f"Reporte {tipo.capitalize()} {nombre_cliente} {alias} {fechaAyer}.pdf")
+
+        page.pdf(
+            path=pdf_path,
+            width="1920px",
+            height=f"{full_height}px",
+            print_background=True,
+            margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
+        )
+
         browser.close()
         return pdf_path
-
-def send_error_mail(missing_files, admin_emails):
-    if not missing_files:
-        return
-
-    msg = EmailMessage()
-    msg['From'] = f"{alias_name} <{from_address}>"
-    msg['To'] = ", ".join(admin_emails)
-    msg['Subject'] = "⚠️ Reporte - Archivos PDF no generados"
-
-    body = "<p>No se encontraron los siguientes archivos PDF esperados:</p><ul>"
-    for f in missing_files:
-        body += f"<li>{f}</li>"
-    body += "</ul><br>VTO logix"
-
-    msg.set_content("Este mensaje requiere un cliente con soporte HTML.")
-    msg.add_alternative(body, subtype='html')
-
-    try:
-        with smtplib.SMTP(smtp_server, smtp_port) as smtp:
-            smtp.starttls()
-            smtp.login(smtp_from, smtp_password)
-            smtp.send_message(msg)
-        print(f"Correo de advertencia enviado a {', '.join(admin_emails)}")
-    except Exception as e:
-        print(f"Error al enviar correo de advertencia: {e}")
 
 # --- Función para enviar correo ---
 def send_mail(recipientConfig, pdf_file_path):
@@ -163,25 +151,23 @@ def send_mail(recipientConfig, pdf_file_path):
 
 # --- Función principal que junta todo ---
 def main():
-    # Crear carpeta pdfs si no existe
     os.makedirs(downloads_folder, exist_ok=True)
 
-    # Leer configuración destinatarios
-    with open(os.path.join(os.path.dirname(BASE_DIR), "Destinatarios.json"), "r", encoding="utf-8-sig") as f:
-        config = json.load(f)
-
-    # Obtener clientes
-    clientes = obtener_clientes_desde_api()
-    if not clientes:
-        print("No se encontraron clientes.")
+    tipo = input("¿Qué tipo de reporte deseas generar? (diario/semanal): ").strip().lower()
+    if tipo not in ["diario", "semanal"]:
+        print("Tipo inválido. Debe ser 'diario' o 'semanal'.")
         return
 
-    # Mostrar clientes disponibles
+    clientes = obtener_clientes_desde_api()["diarios" if tipo == "diario" else "semanales"]
+
+    if not clientes:
+        print(f"No se encontraron clientes para el tipo {tipo}.")
+        return
+
     print("Clientes disponibles:")
     for idx, cliente in enumerate(clientes):
         print(f"{idx + 1}. {cliente['nombre_cliente']} (Alias: {cliente['alias']}, Línea: {cliente['linea']})")
 
-    # Elegir cliente
     seleccion = int(input("Selecciona el número del cliente a generar PDF: ")) - 1
     if seleccion < 0 or seleccion >= len(clientes):
         print("Selección inválida.")
@@ -191,43 +177,25 @@ def main():
     id_cliente = cliente['id_cliente']
     nombre_cliente = cliente['nombre_cliente']
     alias = cliente['alias'].strip()
-
-    # Preguntar línea
     linea = input(f"Ingrese la línea para {nombre_cliente} (valor por defecto: {cliente['linea']}): ") or cliente['linea']
 
-    # Generar PDF
     try:
-        print(f"Generando PDF para cliente {nombre_cliente}, línea {linea}")
-        pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias)
-    except Exception as e:
-        print(f"Error generando PDF: {e}")
-        return
+        print(f"\n🕒 Generando y enviando PDF para {nombre_cliente}...")
+        inicio = time.time()
 
-    # Determinar destinatario
-    fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
-    pdf_name_expected = f"Reporte Diario {nombre_cliente} {alias} {fechaAyer}.pdf"
-
-    destinatario_encontrado = False
-    for recipient in config['recipients']:
-        for fileConfig in recipient.get('files', []):
-            expected_name = fileConfig['fileName'].replace("{fecha}", fechaAyer) + ".pdf"
-            if expected_name == os.path.basename(pdf_path):
-                send_mail(recipient, pdf_path)
-                destinatario_encontrado = True
-                break
-        if destinatario_encontrado:
-            break
-
-    if not destinatario_encontrado:
-        print(f"No se encontró destinatario para {pdf_name_expected}, o no está configurado en Destinatarios.json.")
-
-    try:
+        pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo)
+        send_mail(pdf_path)
         os.remove(pdf_path)
+
+        fin = time.time()
+        duracion = fin - inicio
+        print(f"✅ PDF enviado correctamente en {duracion:.2f} segundos.\n")
+
     except Exception as e:
-        print(f"No se pudo eliminar {pdf_name_expected}: {e}")
+        print(f"❌ Error durante generación o envío: {e}")
 
-    print("Proceso finalizado.")
-
-if __name__ == "__main__":
+try:
     while True:
         main()
+except KeyboardInterrupt:
+    print("Ejecución detenida por el usuario.")

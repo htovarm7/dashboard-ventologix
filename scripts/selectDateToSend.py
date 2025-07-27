@@ -1,3 +1,13 @@
+"""
+------------------------------------------------------------
+ Ventologix PDF Report Generator Date
+ Author: Hector Tovar
+ Description: Script that allows to generate the reports by selecting a date.
+ For andres
+ Date: 26-07-2025
+------------------------------------------------------------
+"""
+
 from playwright.sync_api import sync_playwright
 import requests
 from datetime import datetime, timedelta
@@ -6,6 +16,7 @@ import smtplib
 from email.message import EmailMessage
 from dotenv import load_dotenv
 from email.utils import make_msgid
+import time
 
 load_dotenv()
 
@@ -29,10 +40,15 @@ destinatario_fijo = "andres.mirazo@ventologix.com"
 def obtener_clientes_desde_api():
     response = requests.get("http://127.0.0.1:8000/report/clients-data")
     if response.status_code == 200:
-        return response.json().get("data", [])
+        data = response.json()
+        return {
+            "diarios": data.get("diarios", []),
+            "semanales": data.get("semanales", [])
+        }
     else:
         print("Error al obtener datos de clientes")
-        return []
+        return {"diarios": [], "semanales": []}
+
 
 def generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, fecha_reporte):
     with sync_playwright() as p:
@@ -96,9 +112,11 @@ def send_mail(pdf_file_path, nombre_cliente, fecha_reporte):
 def main():
     os.makedirs(downloads_folder, exist_ok=True)
 
-    clientes = obtener_clientes_desde_api()
+    tipo = "diario"
+    clientes = obtener_clientes_desde_api()["diarios"]
+
     if not clientes:
-        print("No se encontraron clientes.")
+        print(f"No se encontraron clientes para el tipo {tipo}.")
         return
 
     print("Clientes disponibles:")
@@ -114,32 +132,25 @@ def main():
     id_cliente = cliente['id_cliente']
     nombre_cliente = cliente['nombre_cliente']
     alias = cliente['alias'].strip()
-
     linea = input(f"Ingrese la línea para {nombre_cliente} (valor por defecto: {cliente['linea']}): ") or cliente['linea']
 
-    while True:
-        fecha_str = input("Ingrese la fecha para el reporte (YYYY-MM-DD) [por defecto ayer]: ") or (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
-        try:
-            datetime.strptime(fecha_str, "%Y-%m-%d")
-            break
-        except ValueError:
-            print("⚠️ Fecha inválida, use formato YYYY-MM-DD.")
-
     try:
-        print(f"Generando PDF para cliente {nombre_cliente}, línea {linea}, fecha {fecha_str}")
-        pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, fecha_str)
-    except Exception as e:
-        print(f"Error generando PDF: {e}")
-        return
+        print(f"\n🕒 Generando y enviando PDF para {nombre_cliente}...")
+        inicio = time.time()
 
-    send_mail(pdf_path, nombre_cliente, fecha_str)
-
-    try:
+        pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo)
+        send_mail(pdf_path, nombre_cliente, tipo)
         os.remove(pdf_path)
+
+        fin = time.time()
+        duracion = fin - inicio
+        print(f"✅ PDF enviado correctamente en {duracion:.2f} segundos.\n")
+
     except Exception as e:
-        print(f"No se pudo eliminar {pdf_path}: {e}")
+        print(f"❌ Error durante generación o envío: {e}")
 
-    print("Proceso finalizado.")
-
-if __name__ == "__main__":
-    main()
+try:
+    while True:
+        main()
+except KeyboardInterrupt:
+    print("Ejecución detenida por el usuario.")
