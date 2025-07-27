@@ -149,53 +149,68 @@ def send_mail(recipientConfig, pdf_file_path):
     except Exception as e:
         print(f"Error al enviar correo: {e}")
 
+def clean_pdfs_folder():
+    """Elimina todos los archivos PDF generados en la carpeta pdfs."""
+    for filename in os.listdir(downloads_folder):
+        if filename.endswith(".pdf"):
+            try:
+                os.remove(os.path.join(downloads_folder, filename))
+                print(f"Archivo eliminado: {filename}")
+            except Exception as e:
+                print(f"No se pudo eliminar {filename}: {e}")
+
 # --- Función principal que junta todo ---
 def main():
     os.makedirs(downloads_folder, exist_ok=True)
 
-    tipo = input("¿Qué tipo de reporte deseas generar? (diario/semanal): ").strip().lower()
-    if tipo not in ["diario", "semanal"]:
-        print("Tipo inválido. Debe ser 'diario' o 'semanal'.")
+    # Cargar configuración de destinatarios desde Destinatarios.json
+    destinatarios_path = os.path.join("data", "recipients.json")
+    with open(destinatarios_path, "r", encoding="utf-8-sig") as f:
+        config = json.load(f)
+
+    clientes = obtener_clientes_desde_api()
+    todos_clientes = clientes.get("diarios", []) + clientes.get("semanales", [])
+    if not todos_clientes:
+        print("No se encontraron clientes.")
         return
 
-    clientes = obtener_clientes_desde_api()["diarios" if tipo == "diario" else "semanales"]
+    for cliente in todos_clientes:
+        id_cliente = cliente['id_cliente']
+        linea = cliente['linea']
+        nombre_cliente = cliente['nombre_cliente']
+        alias = (cliente.get('alias') or "").strip()
+        tipo = cliente.get('tipo', 'diario')  # Si el tipo no está, por defecto 'diario'
+        try:
+            print(f"Generando PDF para cliente {nombre_cliente}, línea {linea}")
+            generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo)
+        except Exception as e:
+            print(f"Error generando PDF para cliente {nombre_cliente}: {e}")
 
-    if not clientes:
-        print(f"No se encontraron clientes para el tipo {tipo}.")
-        return
+    missing_files = []
 
-    print("Clientes disponibles:")
-    for idx, cliente in enumerate(clientes):
-        print(f"{idx + 1}. {cliente['nombre_cliente']} (Alias: {cliente['alias']}, Línea: {cliente['linea']})")
+    for recipient in config['recipients']:
+        for fileConfig in recipient.get('files', []):
+            fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
+            pdf_name = fileConfig['fileName'].replace("{fecha}", fechaAyer) + ".pdf"
+            pdf_path = os.path.join(downloads_folder, pdf_name)
 
-    seleccion = int(input("Selecciona el número del cliente a generar PDF: ")) - 1
-    if seleccion < 0 or seleccion >= len(clientes):
-        print("Selección inválida.")
-        return
+            if os.path.isfile(pdf_path):
+                send_mail(recipient, pdf_path)
+                try:
+                    os.remove(pdf_path)
+                except Exception as e:
+                    print(f"No se pudo eliminar {pdf_name}: {e}")
+            else:
+                print(f"No se encontró archivo esperado: {pdf_name}")
+                missing_files.append(pdf_name)
 
-    cliente = clientes[seleccion]
-    id_cliente = cliente['id_cliente']
-    nombre_cliente = cliente['nombre_cliente']
-    alias = cliente['alias'].strip()
-    linea = input(f"Ingrese la línea para {nombre_cliente} (valor por defecto: {cliente['linea']}): ") or cliente['linea']
-
+if __name__ == "__main__":
     try:
-        print(f"\n🕒 Generando y enviando PDF para {nombre_cliente}...")
-        inicio = time.time()
-
-        pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo)
-        send_mail(pdf_path)
-        os.remove(pdf_path)
-
-        fin = time.time()
-        duracion = fin - inicio
-        print(f"✅ PDF enviado correctamente en {duracion:.2f} segundos.\n")
-
-    except Exception as e:
-        print(f"❌ Error durante generación o envío: {e}")
-
-try:
-    while True:
         main()
-except KeyboardInterrupt:
-    print("Ejecución detenida por el usuario.")
+    except KeyboardInterrupt:
+        print("\n⚠️ Proceso cancelado por el usuario. Limpiando PDFs generados...")
+        clean_pdfs_folder()
+        print("Carpeta de PDFs limpiada. Terminando proceso.")
+    except Exception as e:
+        print(f"\n❌ Error inesperado: {e}. Limpiando PDFs generados...")
+        clean_pdfs_folder()

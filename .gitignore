@@ -44,8 +44,6 @@ next-env.d.ts
 
 /venv310
 
-Destinatarios.json
-
 scripts/__pycache__
 
 pdfs

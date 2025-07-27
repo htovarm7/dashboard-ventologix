@@ -1,6 +1,6 @@
 "use client"
 
-import { fadeIn } from "../utils/motion-transitions";
+import { fadeIn } from "./utils/motion-transitions";
 import { motion } from "framer-motion";
 
 interface MotionTransitionProps {
