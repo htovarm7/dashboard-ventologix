@@ -8,7 +8,7 @@
  *
  * @version 1.0
  *
- * http://localhost:3002/reportesS?id_cliente=14&linea=A
+ * http://localhost:3002/reportesS?id_cliente=13&linea=A
  */
 
 "use client";
@@ -641,10 +641,20 @@ export default function Main() {
         fontWeight: "bold",
         color: "#333",
       },
-      max: (compressorData?.hp ?? 0) + (compressorData?.hp ?? 0) * 0.2 || 30,
+    },
+    legend: {
+      show: true,
+      data: ["Ciclos promedio por día"],
+      top: 30,
+      textStyle: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "#333",
+      },
     },
     series: [
       {
+        name: "Ciclos promedio por día",
         data: ciclosPorDia.kwhData,
         type: "bar",
         itemStyle: {
@@ -662,19 +672,16 @@ export default function Main() {
             width: 2,
           },
           data: [
-            // Rango Azul (hasta 8)
             {
               yAxis: 8,
               lineStyle: { color: "#418FDE", width: 2, type: "solid" },
               name: "Bajo",
             },
-            // Rango Verde (hasta 12)
             {
               yAxis: 12,
               lineStyle: { color: "green", width: 2, type: "solid" },
               name: "Óptimo",
             },
-            // Rango Amarillo (hasta 15)
             {
               yAxis: 15,
               lineStyle: { color: "yellow", width: 2, type: "solid" },
@@ -701,6 +708,17 @@ export default function Main() {
         fontWeight: "bold",
         color: "#333",
       },
+      max: (compressorData?.hp ?? 0) + (compressorData?.hp ?? 0) * 0.2 || 120,
+    },
+    legend: {
+      show: true,
+      data: ["HP Equivalente"],
+      top: 30,
+      textStyle: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "#333",
+      },
     },
     series: [
       {
@@ -713,6 +731,32 @@ export default function Main() {
           show: true,
           position: "top",
           formatter: "{c}",
+        },
+        markLine: {
+          symbol: "none",
+          lineStyle: {
+            type: "solid",
+            width: 2,
+            color: "#59aeb2",
+          },
+          data: [
+            {
+              yAxis: compressorData?.hp ?? 0,
+              label: {
+                show: true,
+                formatter: "HP Instalado",
+                position: "end",
+                color: "#59aeb2",
+                fontWeight: "bold",
+                fontSize: 14,
+              },
+              lineStyle: {
+                color: "#59aeb2",
+                width: 2,
+                type: "solid",
+              },
+            },
+          ],
         },
       },
     ],
@@ -1210,7 +1254,7 @@ export default function Main() {
 
           {/* Columna 2: Uso Activo */}
           <div className="flex-1 flex items-center justify-center p-4 ml-30 mb-30">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px] ml-40">
+            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px] mr-80">
               <h2 className="text-xl text-black font-bold">Uso Activo</h2>
               <p className="text-3xl font-bold text-black">
                 {summaryData?.semana_actual.horas_trabajadas || "0.0"} Hr
@@ -1256,7 +1300,7 @@ export default function Main() {
             </p>
           </div>
           {/* Columna derecha: Nota adicional */}
-          <div className="flex flex-col flex-1 items-start mt-15">
+          <div className="flex flex-col flex-1 items-start mt-5">
             <h1 className="text-2xl ml-140 text-blue-500 font-bold">
               {" "}
               Informacion Contacto Ventologix
