@@ -116,49 +116,78 @@ def send_mail(pdf_file_path):
 def main():
     os.makedirs(downloads_folder, exist_ok=True)
 
-    tipo = input("¿Qué tipo de reporte deseas generar? (diario/semanal): ").strip().lower()
-    if tipo not in ["diario", "semanal"]:
-        print("Tipo inválido. Debe ser 'diario' o 'semanal'.")
-        return
+    pdfs_generados = []
 
-    clientes = obtener_clientes_desde_api()["diarios" if tipo == "diario" else "semanales"]
+    while True:
+        tipo = input("¿Qué tipo de reporte deseas generar? (diario/semanal): ").strip().lower()
+        if tipo not in ["diario", "semanal"]:
+            print("Tipo inválido. Debe ser 'diario' o 'semanal'.")
+            continue
 
-    if not clientes:
-        print(f"No se encontraron clientes para el tipo {tipo}.")
-        return
+        clientes = obtener_clientes_desde_api()["diarios" if tipo == "diario" else "semanales"]
 
-    print("Clientes disponibles:")
-    for idx, cliente in enumerate(clientes):
-        print(f"{idx + 1}. {cliente['nombre_cliente']} (Alias: {cliente['alias']}, Línea: {cliente['linea']})")
+        if not clientes:
+            print(f"No se encontraron clientes para el tipo {tipo}.")
+            continue
 
-    seleccion = int(input("Selecciona el número del cliente a generar PDF: ")) - 1
-    if seleccion < 0 or seleccion >= len(clientes):
-        print("Selección inválida.")
-        return
+        print("Clientes disponibles:")
+        for idx, cliente in enumerate(clientes):
+            print(f"{idx + 1}. {cliente['nombre_cliente']} (Alias: {cliente['alias']}, Línea: {cliente['linea']})")
 
-    cliente = clientes[seleccion]
-    id_cliente = cliente['id_cliente']
-    nombre_cliente = cliente['nombre_cliente']
-    alias = cliente['alias'].strip()
-    linea = input(f"Ingrese la línea para {nombre_cliente} (valor por defecto: {cliente['linea']}): ") or cliente['linea']
+        try:
+            seleccion = int(input("Selecciona el número del cliente a generar PDF: ")) - 1
+        except ValueError:
+            print("Selección inválida.")
+            continue
 
-    try:
-        print(f"\n🕒 Generando y enviando PDF para {nombre_cliente}...")
-        inicio = time.time()
+        if seleccion < 0 or seleccion >= len(clientes):
+            print("Selección inválida.")
+            continue
 
-        pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo)
-        send_mail(pdf_path)
-        os.remove(pdf_path)
+        cliente = clientes[seleccion]
+        id_cliente = cliente['id_cliente']
+        nombre_cliente = cliente['nombre_cliente']
+        alias = cliente['alias'].strip()
+        linea = input(f"Ingrese la línea para {nombre_cliente} (valor por defecto: {cliente['linea']}): ") or cliente['linea']
 
-        fin = time.time()
-        duracion = fin - inicio
-        print(f"✅ PDF enviado correctamente en {duracion:.2f} segundos.\n")
+        try:
+            print(f"\n🕒 Generando PDF para {nombre_cliente}...")
+            inicio = time.time()
 
-    except Exception as e:
-        print(f"❌ Error durante generación o envío: {e}")
+            pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo)
+            pdfs_generados.append(pdf_path)
+
+            fin = time.time()
+            duracion = fin - inicio
+            print(f"✅ PDF generado correctamente en {duracion:.2f} segundos.\n")
+
+        except Exception as e:
+            print(f"❌ Error durante generación: {e}")
+
+        continuar = input("¿Deseas generar otro reporte? (s/n): ").strip().lower()
+        if continuar != "s":
+            break
+
+    if pdfs_generados:
+        print("\nPDFs generados:")
+        for idx, pdf in enumerate(pdfs_generados):
+            print(f"{idx + 1}. {os.path.basename(pdf)}")
+
+        enviar = input("¿Deseas enviar todos los PDFs generados por correo? (s/n): ").strip().lower()
+        if enviar == "s":
+            for pdf_path in pdfs_generados:
+                try:
+                    send_mail(pdf_path)
+                    os.remove(pdf_path)
+                    print(f"✅ PDF {os.path.basename(pdf_path)} enviado y eliminado.")
+                except Exception as e:
+                    print(f"❌ Error al enviar {os.path.basename(pdf_path)}: {e}")
+        else:
+            print("Los PDFs generados no se enviaron por correo.")
+    else:
+        print("No se generaron PDFs.")
 
 try:
-    while True:
-        main()
+    main()
 except KeyboardInterrupt:
     print("Ejecución detenida por el usuario.")
