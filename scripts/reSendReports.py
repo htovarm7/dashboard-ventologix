@@ -163,23 +163,28 @@ def clean_pdfs_folder():
 def main():
     os.makedirs(downloads_folder, exist_ok=True)
 
+    # Preguntar al usuario si desea generar reportes diarios o semanales
+    tipo_reporte = ""
+    while tipo_reporte not in ["diario", "semanal"]:
+        tipo_reporte = input("¿Qué tipo de reporte deseas generar? (diario/semanal): ").strip().lower()
+
     # Cargar configuración de destinatarios desde Destinatarios.json
     destinatarios_path = os.path.join("data", "recipients.json")
     with open(destinatarios_path, "r", encoding="utf-8-sig") as f:
         config = json.load(f)
 
     clientes = obtener_clientes_desde_api()
-    todos_clientes = clientes.get("diarios", []) + clientes.get("semanales", [])
-    if not todos_clientes:
+    clientes_filtrados = clientes.get("diarios", []) if tipo_reporte == "diario" else clientes.get("semanales", [])
+    if not clientes_filtrados:
         print("No se encontraron clientes.")
         return
 
-    for cliente in todos_clientes:
+    for cliente in clientes_filtrados:
         id_cliente = cliente['id_cliente']
         linea = cliente['linea']
         nombre_cliente = cliente['nombre_cliente']
         alias = (cliente.get('alias') or "").strip()
-        tipo = cliente.get('tipo', 'diario')  # Si el tipo no está, por defecto 'diario'
+        tipo = tipo_reporte
         try:
             print(f"Generando PDF para cliente {nombre_cliente}, línea {linea}")
             generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo)

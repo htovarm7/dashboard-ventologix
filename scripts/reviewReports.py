@@ -82,7 +82,7 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo):
 def send_mail(pdf_file_path):
     msg = EmailMessage()
     msg['From'] = f"{alias_name} <{from_address}>"
-    msg['To'] = "andres.mirazo@ventologix.com"
+    msg['To'] = "andres.mirazo@ventologix.com, octavio.murillo@ventologix.com"
     msg['Subject'] = "Reporte PDF generado"
 
     logo_cid = make_msgid(domain='ventologix.com')
