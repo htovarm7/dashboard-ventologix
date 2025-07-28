@@ -999,7 +999,7 @@ export default function Main() {
       </div>
 
       {/* Line Chart */}
-      <div className="flex justify-center ">
+      <div className="flex justify-center">
         <ReactECharts
           option={{
             ...consumoOptions,
@@ -1016,7 +1016,7 @@ export default function Main() {
         />
       </div>
 
-      <div className="flex items-center justify-center mt-5 mb-10">
+      <div className="flex items-center justify-center mb-5">
         {/* Lado izquierdo */}
         <div className="flex flex-col gap-1 w-124">
           <div className="h-3 bg-blue-500 w-full"></div>
@@ -1289,11 +1289,11 @@ export default function Main() {
           {/* Columna izquierda: Notas */}
           <div className="flex flex-col flex-1 items-start">
             <h2 className="text-2xl font-bold text-left mt-2 ml-20">Notas:</h2>
-            <p className="text-lg text-left ml-20">
+            <p className="text-m text-left ml-20">
               *El costo de 0.17 USD por kWh es estándar. Si desea modificarlo,
               por favor, comuníquese con su contacto en VENTOLOGIX.
             </p>
-            <p className="text-lg text-left ml-20">
+            <p className="text-m text-left ml-20">
               **El HP Equivalente es la métrica utilizada por VENTOLOGIX para
               calcular la cantidad real de HP utilizados, y se les aplica un
               factor de seguridad del 40%, según lo recomendado por el CAGI.

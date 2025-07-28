@@ -107,11 +107,16 @@ def send_mail(pdf_file_path):
     with open(pdf_file_path, 'rb') as pdf:
         msg.add_attachment(pdf.read(), maintype='application', subtype='pdf', filename=os.path.basename(pdf_file_path))
 
-    with smtplib.SMTP(smtp_server, smtp_port) as smtp:
-        smtp.starttls()
-        smtp.login(smtp_from, smtp_password)
-        smtp.send_message(msg)
-    print(f"Correo enviado con {os.path.basename(pdf_file_path)}")
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port) as smtp:
+            smtp.set_debuglevel(1)  # 🔍 VER MÁS DETALLES
+            smtp.starttls()
+            smtp.login(from_address, smtp_password)
+            smtp.send_message(msg)
+        print(f"Correo enviado con {os.path.basename(pdf_file_path)}")
+    except Exception as e:
+        print(f"❌ Error al enviar el correo: {e}")
+
 
 def main():
     os.makedirs(downloads_folder, exist_ok=True)
