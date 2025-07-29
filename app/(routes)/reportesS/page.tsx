@@ -1280,7 +1280,7 @@ export default function Main() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
           {/* Col 1: Pie + comentario */}
-          <div className="bg-white rounded-2xl  p-6 h-full flex flex-col text-center">
+          <div className="bg-white rounded-2xl p-6 h-full flex flex-col text-center">
             <p className="text-2xl font-bold mb-4 ml-50">
               Estados del Compresor
             </p>
@@ -1300,7 +1300,7 @@ export default function Main() {
           </div>
 
           {/* Col 2: Uso Activo */}
-          <div className="bg-white rounded-2xl flex flex-col justify-center text-center mb-40 ml-70">
+          <div className="bg-white rounded-2xl shadow p-4 w-[400px] flex flex-col justify-center text-center mb-40 ml-70">
             <h2 className="text-xl text-black font-bold">Uso Activo</h2>
             <p className="text-3xl font-bold text-black">
               {summaryData?.semana_actual.horas_trabajadas || "0.0"} Hr
@@ -1345,12 +1345,12 @@ export default function Main() {
           </div>
           {/* Columna derecha: Nota adicional */}
           <div className="flex flex-col flex-1 items-start mt-5">
-            <h1 className="text-2xl ml-140 text-blue-500 font-bold">
+            <h1 className="text-2xl ml-120 text-blue-500 font-bold">
               {" "}
               Informacion Contacto Ventologix
             </h1>
-            <p className="text-xl ml-140">Andrés Mirazo</p>
-            <p className="text-xl ml-140">Andres.mirazo@ventologix.com</p>
+            <p className="text-xl ml-120">Andrés Mirazo</p>
+            <p className="text-xl ml-120">Andres.mirazo@ventologix.com</p>
           </div>
         </div>
       </div>

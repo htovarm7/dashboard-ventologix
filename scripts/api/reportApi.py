@@ -893,7 +893,6 @@ def get_clients_data():
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-
 @report.get("/all-clients", tags=["staticData"])
 def get_all_clients_data():
     try:

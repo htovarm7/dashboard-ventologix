@@ -645,10 +645,10 @@ export default function Main() {
 
             <p className="text-xl text-left mt-2">
               • El costo por kilovatio-hora (kWh) utilizado en este análisis es
-              de <strong>${clientData?.costoUSD} USD/kWh</strong>, que es el estándar actualmente
-              aplicado. Sin embargo, si requiere confirmar este valor o necesita
-              ajustar la tarifa, puede verificar con su contacto en{" "}
-              <strong>VENTOLOGIX</strong>
+              de <strong>${clientData?.costoUSD} USD/kWh</strong>, que es el
+              estándar actualmente aplicado. Sin embargo, si requiere confirmar
+              este valor o necesita ajustar la tarifa, puede verificar con su
+              contacto en <strong>VENTOLOGIX</strong>
             </p>
 
             <h1 className="text-xl text-left mt-7 font-bold">
