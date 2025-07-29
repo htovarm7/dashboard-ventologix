@@ -532,7 +532,7 @@ export default function Main() {
           focus: "series",
         },
         itemStyle: {
-          color: "#001f54",
+          color: "#4db6ac",
         },
         data: consumoData.turno1,
       },
@@ -556,7 +556,7 @@ export default function Main() {
           focus: "series",
         },
         itemStyle: {
-          color: "#4db6ac",
+          color: "#001f54",
         },
         data: consumoData.turno3,
       },
@@ -564,6 +564,7 @@ export default function Main() {
   };
 
   // Bar Chart Options for kWh diarios, ciclos promedio, and hp equivalente
+
   const kwhHorasOption = {
     xAxis: {
       type: "category",
@@ -593,6 +594,16 @@ export default function Main() {
         },
       },
     ],
+    legend: {
+      show: true,
+      data: ["kWh", "Horas Trabajadas"],
+      top: 10,
+      textStyle: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "#333",
+      },
+    },
     series: [
       {
         name: "kWh",
@@ -708,12 +719,12 @@ export default function Main() {
         fontWeight: "bold",
         color: "#333",
       },
-      max: (compressorData?.hp ?? 0) + (compressorData?.hp ?? 0) * 0.2 || 120,
+      max: (compressorData?.hp ?? 0) * 1.2,
     },
     legend: {
       show: true,
       data: ["HP Equivalente"],
-      top: 30,
+      top: 10,
       textStyle: {
         fontSize: 16,
         fontWeight: "bold",
@@ -732,32 +743,67 @@ export default function Main() {
           position: "top",
           formatter: "{c}",
         },
-        markLine: {
-          symbol: "none",
-          lineStyle: {
-            type: "solid",
-            width: 2,
-            color: "#59aeb2",
-          },
-          data: [
-            {
-              yAxis: compressorData?.hp ?? 0,
-              label: {
-                show: true,
-                formatter: "HP Instalado",
-                position: "end",
-                color: "#59aeb2",
-                fontWeight: "bold",
-                fontSize: 14,
+        ...(compressorData?.hp
+          ? {
+              markLine: {
+                symbol: "none",
+                data: [
+                  {
+                    yAxis: (compressorData?.hp ?? 0) * 0.64,
+                    label: {
+                      formatter: "Malo",
+                      color: "red",
+                      fontWeight: "bold",
+                    },
+                    lineStyle: {
+                      color: "red",
+                      type: "solid",
+                      width: 2,
+                    },
+                  },
+                  {
+                    yAxis: (compressorData?.hp ?? 0) * 0.79,
+                    label: {
+                      formatter: "Regular",
+                      color: "yellow",
+                      fontWeight: "bold",
+                    },
+                    lineStyle: {
+                      color: "yellow",
+                      type: "solid",
+                      width: 2,
+                    },
+                  },
+                  {
+                    yAxis: (compressorData?.hp ?? 0) * 0.92,
+                    label: {
+                      formatter: "Óptimo",
+                      color: "green",
+                      fontWeight: "bold",
+                    },
+                    lineStyle: {
+                      color: "green",
+                      type: "solid",
+                      width: 2,
+                    },
+                  },
+                  {
+                    yAxis: compressorData?.hp,
+                    label: {
+                      formatter: "HP Instalado",
+                      color: "black",
+                      fontWeight: "bold",
+                    },
+                    lineStyle: {
+                      color: "black",
+                      type: "solid",
+                      width: 2,
+                    },
+                  },
+                ],
               },
-              lineStyle: {
-                color: "#59aeb2",
-                width: 2,
-                type: "solid",
-              },
-            },
-          ],
-        },
+            }
+          : {}),
       },
     ],
   };
@@ -1036,7 +1082,7 @@ export default function Main() {
         </div>
       </div>
 
-      <div className="flex flex-col mb-10">
+      <div className="flex flex-col">
         <div className="flex">
           <div className="flex-1 items-center text-center p-4">
             <p className="text-2xl font-bold">
@@ -1232,59 +1278,57 @@ export default function Main() {
           </div>
         </div>
 
-        <div className="flex mt-2">
-          {/* Columna 1: Pie Chart */}
-          <div className="flex-1 flex flex-col items-center p-4">
-            <p className="text-2xl font-bold mb-4 ml-60">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+          {/* Col 1: Pie + comentario */}
+          <div className="bg-white rounded-2xl  p-6 h-full flex flex-col text-center">
+            <p className="text-2xl font-bold mb-4 ml-50">
               Estados del Compresor
             </p>
 
-            {/* Pie chart centrado */}
-            <div style={{ width: "350px", height: "350px" }} className="ml-70">
-              <Pie data={dataPie} options={pieOptions} />
+            {/* Pie chart centrado y responsivo */}
+            <div className="flex-1 grid place-items-center ml-50">
+              <div className="w-[350px] h-[350px]">
+                <Pie data={dataPie} options={pieOptions} />
+              </div>
             </div>
 
-            {/* Comentario con estilo justificado y expansión de ancho */}
-            <div className="text-xl text-justify">
+            <div className="mt-4 text-xl text-justify break-words hyphens-auto">
               <VentoCom
                 html={summaryData?.comentarios.comentario_D || "Sin datos"}
               />
             </div>
           </div>
 
-          {/* Columna 2: Uso Activo */}
-          <div className="flex-1 flex items-center justify-center p-4 ml-30 mb-30">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px] mr-80">
-              <h2 className="text-xl text-black font-bold">Uso Activo</h2>
-              <p className="text-3xl font-bold text-black">
-                {summaryData?.semana_actual.horas_trabajadas || "0.0"} Hr
-              </p>
-              <p className="text-xl">Promedio ultimas 12 semanas:</p>
-              <p className="text-xl">
-                {summaryData?.promedio_semanas_anteriores
-                  .horas_trabajadas_anteriores || "0.0"}{" "}
-                hr
-              </p>
-              <p className="text-lg">
-                ({summaryData?.comparacion.porcentaje_horas || "0.00"}%)
-              </p>
-            </div>
+          {/* Col 2: Uso Activo */}
+          <div className="bg-white rounded-2xl flex flex-col justify-center text-center mb-40 ml-70">
+            <h2 className="text-xl text-black font-bold">Uso Activo</h2>
+            <p className="text-3xl font-bold text-black">
+              {summaryData?.semana_actual.horas_trabajadas || "0.0"} Hr
+            </p>
+            <p className="text-xl">Promedio últimas 12 semanas:</p>
+            <p className="text-xl">
+              {summaryData?.promedio_semanas_anteriores
+                .horas_trabajadas_anteriores || "0.0"}{" "}
+              hr
+            </p>
+            <p className="text-lg">
+              ({summaryData?.comparacion.porcentaje_horas || "0.00"}%)
+            </p>
           </div>
 
-          {/* Columna 3: Comentario */}
-          <div className="flex-1 flex flex-col justify-center text-left p-4 pr-10 mb-30 ml-20">
-            <h4 className="font-bold text-xl mb-2">
+          {/* Col 3: Comentario D */}
+          <div className="bg-white rounded-2xl p-6 flex flex-col ml-15 mb-40">
+            <h4 className="font-bold  text-left text-xl">
               D) Comparación de horas de Uso Activo:
             </h4>
             <div
-              className="text-xl text-justify"
+              className="text-xl text-justify mr-20"
               dangerouslySetInnerHTML={{
                 __html: summaryData?.comparacion.bloque_D || "Sin datos",
               }}
             />
           </div>
         </div>
-
         <div className="flex flex-row items-start">
           {/* Columna izquierda: Notas */}
           <div className="flex flex-col flex-1 items-start">

@@ -18,7 +18,9 @@ from email.message import EmailMessage
 from dotenv import load_dotenv
 from email.utils import make_msgid
 import time
+import locale
 
+locale.setlocale(locale.LC_TIME, "es_MX.UTF-8")
 inicio_total = time.time()
 
 
@@ -63,15 +65,32 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo):
         page.wait_for_function("window.status === 'pdf-ready'", timeout=600000)
 
         # Obtener la altura real del contenido
-        full_height = page.evaluate("() => document.body.scrollHeight")
+        # Obtener la altura real del contenido (usa el mayor entre <body> y <html>)
+        full_height = page.evaluate("""
+        () => Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+        )
+        """)
 
-        fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
-        pdf_path = os.path.join(downloads_folder, f"Reporte {tipo.capitalize()} {nombre_cliente} {alias} {fechaAyer}.pdf")
+        # Evitar página extra por redondeo
+        safe_height = max(full_height - 2, 1)
+
+        if tipo == "diario":
+            fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
+            pdf_name = f"Reporte Diario {nombre_cliente} {alias} {fechaAyer}.pdf"
+        else:
+            lunes, domingo = obtener_rango_semana_anterior(fecha_hoy)
+            fecha_str = fecha_hoy.strftime("%Y-%m-%d")
+            rango = f"Semana del {lunes.day} al {domingo.day} {domingo.strftime('%B')}"
+            pdf_name = f"Reporte Semanal {nombre_cliente} {alias} {fecha_str} ({rango}).pdf"
+
+        pdf_path = os.path.join(downloads_folder, pdf_name)
 
         page.pdf(
             path=pdf_path,
             width="1920px",
-            height=f"{full_height}px",
+            height=f"{safe_height}px",
             print_background=True,
             margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
         )
@@ -117,6 +136,10 @@ def send_mail(pdf_file_path):
     except Exception as e:
         print(f"❌ Error al enviar el correo: {e}")
 
+def obtener_rango_semana_anterior(fecha_base):
+    lunes_pasado = fecha_base - timedelta(days=fecha_base.weekday() + 7)
+    domingo_pasado = lunes_pasado + timedelta(days=6)
+    return lunes_pasado, domingo_pasado
 
 def main():
     os.makedirs(downloads_folder, exist_ok=True)
