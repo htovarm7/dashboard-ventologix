@@ -20,7 +20,10 @@ from dotenv import load_dotenv
 from email.utils import make_msgid
 import locale
 
-locale.setlocale(locale.LC_TIME, "es_MX.UTF-8")
+try:
+    locale.setlocale(locale.LC_TIME, "es_MX.UTF-8")
+except locale.Error:
+    print("Advertencia: No se pudo establecer el locale 'es_MX.UTF-8'. Se usará el locale predeterminado.")
 inicio_total = time.time()
 
 
