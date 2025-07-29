@@ -30,6 +30,7 @@ import {
   PointElement,
 } from "chart.js";
 import { Pie, Chart } from "react-chartjs-2";
+import { putBlur } from "@/utils/reportsFunctions";
 
 // ECharts for the gauge chart
 import ReactECharts from "echarts-for-react";
@@ -64,6 +65,8 @@ export default function Main() {
     RFC: string;
     direccion: string;
     costoUSD: number;
+    demoDiario: boolean;
+    demoSemanal: boolean;
   } | null>(null);
 
   const [compressorData, setCompresorData] = useState<{
@@ -506,7 +509,11 @@ export default function Main() {
               ${dayData?.costo_usd}
             </p>
           </div>
-          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+          <div
+            className={`bg-white rounded-2xl shadow p-4 text-center w-[250px] ${putBlur(
+              clientData?.demoDiario ?? false
+            )}`}
+          >
             <h2 className="text-xl text-black">kWh Utilizados</h2>
             <p className="text-3xl font-bold text-black">{dayData?.kWh} kWh</p>
           </div>
@@ -520,7 +527,9 @@ export default function Main() {
 
         {/* Gráficas */}
         <div
-          className="flex flex-row flex-wrap justify-center gap-4"
+          className={`flex flex-row flex-wrap justify-center gap-4 ${putBlur(
+            clientData?.demoDiario ?? false
+          )}`}
           id="grafico-listo"
         >
           <div className="bg-white rounded-2xl shadow p-4 w-[280px] items-center justify-center">

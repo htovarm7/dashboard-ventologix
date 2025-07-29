@@ -20,6 +20,12 @@ import { useSearchParams } from "next/navigation";
 import annotationPlugin from "chartjs-plugin-annotation";
 import Image from "next/image";
 import VentoCom from "@/components/vento_com";
+import {
+  getColorCiclos,
+  getColorClass,
+  getColorHp,
+  getAnualValue,
+} from "@/utils/reportsFunctions";
 
 // Libraries for charts
 import {
@@ -73,6 +79,8 @@ export default function Main() {
     RFC: string;
     direccion: string;
     costoUSD: number;
+    demoDiario: boolean;
+    demoSemanal: boolean;
   } | null>(null);
 
   const [compressorData, setCompresorData] = useState<{
@@ -131,30 +139,6 @@ export default function Main() {
       horas_trabajadas_anteriores: number;
     };
   } | null>(null);
-
-  // Devuelve la clase de color según el porcentaje (puede ser negativo o positivo)
-  const getColorCiclos = (value: number) => {
-    if (value <= -10) return "text-blue-500"; // Óptimo (disminución > 10%)
-    if (value < 0) return "text-green-600"; // Bueno (disminución entre 0% y 10%)
-    if (value <= 10) return "text-yellow-500"; // Intermedio (aumento entre 0% y 10%)
-    return "text-red-600"; // Muy malo (aumento > 10%)
-  };
-
-  const getColorHp = (value: number) => {
-    if (value > 15) return "text-red-600"; // Muy malo
-    if (value > 5) return "text-yellow-500"; // Intermedio
-    if (value <= 0) return "text-green-600"; // Bueno
-  };
-
-  const getAnualValue = (value: number) => {
-    return +(value * 52).toFixed(2);
-  };
-
-  const getColorClass = (value: number) => {
-    if (value >= 15) return "text-red-600"; // Muy malo
-    if (value >= 5) return "text-yellow-500"; // Intermedio
-    if (value <= 0) return "text-green-600"; // Bueno
-  };
 
   const searchParams = useSearchParams();
 

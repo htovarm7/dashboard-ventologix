@@ -38,8 +38,6 @@ smtp_password = os.getenv("SMTP_PASSWORD")
 smtp_server = "smtp.gmail.com"
 smtp_port = 587
 
-print("SMTP_PASSWORD presente:", bool(smtp_password))
-
 fecha_hoy = datetime.now()
 
 def obtener_clientes_desde_api():
@@ -112,10 +110,10 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo):
         browser.close()
         return pdf_path
 
-def send_mail(pdf_file_path):
+def send_mail(pdf_files_list):
     # === HARD-CODE ===
-    RECIPIENT = "andres.mirazo@ventologix.com, octavio.murillo@ventologix.com"
-    SUBJECT = "Reporte PDF generado"
+    RECIPIENT = "andres.mirazo@ventologix.com"
+    SUBJECT = f"Reportes PDF generados - {len(pdf_files_list)} archivos"
 
     msg = EmailMessage()
     msg['From'] = f"{alias_name} <{from_address}>"
@@ -125,9 +123,15 @@ def send_mail(pdf_file_path):
     logo_cid = make_msgid(domain='ventologix.com')
     ventologix_logo_cid = make_msgid(domain='ventologix.com')
 
+    # Crear lista de archivos para el cuerpo del correo
+    files_list = "<ul>"
+    for pdf_path in pdf_files_list:
+        files_list += f"<li><b>{os.path.basename(pdf_path)}</b></li>"
+    files_list += "</ul>"
+
     body = f"""
-    <p>Se adjunta el reporte generado:</p>
-    <p><b>{os.path.basename(pdf_file_path)}</b></p>
+    <p>Se adjuntan los siguientes reportes generados ({len(pdf_files_list)} archivos):</p>
+    {files_list}
     <br><p><img src="cid:{logo_cid[1:-1]}" alt="Logo Ventologix" /></p>
     <p><img src="cid:{ventologix_logo_cid[1:-1]}" alt="Ventologix Firma" /></p>
     <br>VTO logix<br>
@@ -137,20 +141,28 @@ def send_mail(pdf_file_path):
     msg.set_content("Este mensaje requiere un cliente con soporte HTML.")
     msg.add_alternative(body, subtype='html')
 
-    # Adjuntar PDF
-    with open(pdf_file_path, 'rb') as pdf:
-        msg.add_attachment(pdf.read(), maintype='application', subtype='pdf',
-                           filename=os.path.basename(pdf_file_path))
+    # Adjuntar imágenes si existen
+    for img_path, cid in [(logo_path, logo_cid), (ventologix_logo_path, ventologix_logo_cid)]:
+        if os.path.isfile(img_path):
+            with open(img_path, 'rb') as img:
+                msg.get_payload()[1].add_related(img.read(), maintype='image', subtype='jpeg', cid=cid)
+
+    # Adjuntar todos los PDFs
+    for pdf_path in pdf_files_list:
+        with open(pdf_path, 'rb') as pdf:
+            msg.add_attachment(pdf.read(), maintype='application', subtype='pdf',
+                               filename=os.path.basename(pdf_path))
 
     try:
         with smtplib.SMTP(smtp_server, smtp_port) as smtp:
-            # smtp.set_debuglevel(1)  # <-- descomenta si quieres ver el diálogo SMTP
             smtp.starttls()
             smtp.login("andres.mirazo@ventologix.com", smtp_password)
-            smtp.send_message(msg)  # toma To de los headers; no hay CC/BCC
-        print(f"Correo enviado a {RECIPIENT} con {os.path.basename(pdf_file_path)}")
+            smtp.send_message(msg)
+        print(f"Correo enviado a {RECIPIENT} con {len(pdf_files_list)} archivos PDF adjuntos")
+        return True
     except Exception as e:
         print(f"Error al enviar correo: {e}")
+        return False
 
 def obtener_rango_semana_anterior(fecha_base):
     lunes_pasado = fecha_base - timedelta(days=fecha_base.weekday() + 7)
@@ -219,13 +231,18 @@ def main():
 
         enviar = input("¿Deseas enviar todos los PDFs generados por correo? (s/n): ").strip().lower()
         if enviar == "s":
-            for pdf_path in pdfs_generados:
-                try:
-                    send_mail(pdf_path)
-                    os.remove(pdf_path)
-                    print(f"✅ PDF {os.path.basename(pdf_path)} enviado y eliminado.")
-                except Exception as e:
-                    print(f"❌ Error al enviar {os.path.basename(pdf_path)}: {e}")
+            print(f"\n📧 Enviando {len(pdfs_generados)} PDFs por correo...")
+            if send_mail(pdfs_generados):
+                # Solo eliminar archivos si el envío fue exitoso
+                for pdf_path in pdfs_generados:
+                    try:
+                        os.remove(pdf_path)
+                        print(f"✅ PDF {os.path.basename(pdf_path)} eliminado.")
+                    except Exception as e:
+                        print(f"❌ Error al eliminar {os.path.basename(pdf_path)}: {e}")
+                print(f"✅ Todos los PDFs fueron enviados exitosamente en un solo correo.")
+            else:
+                print("❌ Error al enviar el correo. Los PDFs se mantienen en la carpeta.")
         else:
             print("Los PDFs generados no se enviaron por correo.")
     else:
