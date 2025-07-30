@@ -791,7 +791,7 @@ def get_client_data(id_cliente: int = Query(..., description="ID del cliente")):
         cursor = conn.cursor()
 
         # Fetch data from the clientes table for id_cliente 7
-        cursor.execute(f"SELECT numero_cliente, nombre_cliente, RFC, direccion, CostokWh FROM clientes WHERE id_cliente = {id_cliente}")
+        cursor.execute(f"SELECT numero_cliente, nombre_cliente, RFC, direccion, CostokWh, demoDiario, demoSemanal FROM clientes WHERE id_cliente = {id_cliente}")
         results = cursor.fetchall()
 
         # Close resources
@@ -802,7 +802,7 @@ def get_client_data(id_cliente: int = Query(..., description="ID del cliente")):
             return {"error": "No data found for the specified client."}
 
         # Convert results into a list of dictionaries
-        data = [{"numero_cliente": row[0], "nombre_cliente": row[1], "RFC": row[2], "direccion": row[3], "costoUSD": row[4]} for row in results]
+        data = [{"numero_cliente": row[0], "nombre_cliente": row[1], "RFC": row[2], "direccion": row[3], "costoUSD": row[4], "demoDiario": row[5], "demoSemanal": row[6]} for row in results]
 
         return {
             "data": data
@@ -892,7 +892,6 @@ def get_clients_data():
 
     except mysql.connector.Error as err:
         return {"error": str(err)}
-
 
 @report.get("/all-clients", tags=["staticData"])
 def get_all_clients_data():

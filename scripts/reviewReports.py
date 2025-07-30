@@ -14,11 +14,16 @@ from datetime import datetime, timedelta
 import json
 import os
 import smtplib
+import time
 from email.message import EmailMessage
 from dotenv import load_dotenv
 from email.utils import make_msgid
-import time
+import locale
 
+try:
+    locale.setlocale(locale.LC_TIME, "es_MX.UTF-8")
+except locale.Error:
+    print("Advertencia: No se pudo establecer el locale 'es_MX.UTF-8'. Se usará el locale predeterminado.")
 inicio_total = time.time()
 
 
@@ -32,9 +37,10 @@ from_address = "vto@ventologix.com"
 logo_path = "public/Logo vento firma.jpg"
 ventologix_logo_path = "public/ventologix firma.jpg"
 smtp_password = os.getenv("SMTP_PASSWORD")
+
 smtp_server = "smtp.gmail.com"
 smtp_port = 587
-admin_correos = ["andres.mirazo@ventologix.com"]
+
 fecha_hoy = datetime.now()
 
 def obtener_clientes_desde_api():
@@ -55,44 +61,82 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo):
         page = browser.new_page()
         page.set_viewport_size({"width": 1920, "height": 1080})
 
-        url = f"http://localhost:3002/reportes{'D' if tipo == 'diario' else 'S'}?id_cliente={id_cliente}&linea={linea}"
-        print(f"Abriendo URL: {url}")
-        page.goto(url)
+        if tipo == "diario":
+            url = f"http://localhost:3002/reportesD?id_cliente={id_cliente}&linea={linea}"
+            print(f"Abriendo URL: {url}")
+            page.goto(url)
 
-        # Esperar a que el frontend avise que terminó
-        page.wait_for_function("window.status === 'pdf-ready'", timeout=600000)
+            fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
+            print("Esperando que frontend avise que terminó de renderizar...")
+            page.wait_for_function("window.status === 'pdf-ready'", timeout=300000)
+            print("Frontend listo, generando PDF...")
+            
+            pdf_name = f"Reporte Diario {nombre_cliente} {alias} {fechaAyer}.pdf"
+            pdf_path = os.path.join(downloads_folder, pdf_name)
+            page_height = page.evaluate("() => document.body.scrollHeight")
+            page.pdf(
+                path=pdf_path,
+                width="1920px",
+                height=f"{page_height}px",
+                print_background=True,
+                margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
+            )
+        else:
+            url = f"http://localhost:3002/reportesS?id_cliente={id_cliente}&linea={linea}"
+            print(f"Abriendo URL: {url}")
+            page.goto(url)
 
-        # Obtener la altura real del contenido
-        full_height = page.evaluate("() => document.body.scrollHeight")
+            page.wait_for_function("window.status === 'pdf-ready'", timeout=600000)
 
-        fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
-        pdf_path = os.path.join(downloads_folder, f"Reporte {tipo.capitalize()} {nombre_cliente} {alias} {fechaAyer}.pdf")
+            full_height = page.evaluate("""
+            () => Math.max(
+                document.body.scrollHeight,
+                document.documentElement.scrollHeight
+            )
+            """)
+            safe_height = max(full_height - 2, 1)
 
-        page.pdf(
-            path=pdf_path,
-            width="1920px",
-            height=f"{full_height}px",
-            print_background=True,
-            margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
-        )
+            lunes, domingo = obtener_rango_semana_anterior(fecha_hoy)
+            fecha_str = fecha_hoy.strftime("%Y-%m-%d")
+            rango = f"Semana del {lunes.day} al {domingo.day} {domingo.strftime('%B')}"
+            pdf_name = f"Reporte Semanal {nombre_cliente} {alias} {fecha_str} ({rango}).pdf"
+            pdf_path = os.path.join(downloads_folder, pdf_name)
+
+            page.pdf(
+                path=pdf_path,
+                width="1920px",
+                height=f"{safe_height}px",
+                print_background=True,
+                margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
+            )
 
         browser.close()
         return pdf_path
 
-def send_mail(pdf_file_path):
+def send_mail(pdf_files_list):
+    # === HARD-CODE ===
+    RECIPIENT = "andres.mirazo@ventologix.com"
+    SUBJECT = f"Reportes PDF generados - {len(pdf_files_list)} archivos"
+
     msg = EmailMessage()
     msg['From'] = f"{alias_name} <{from_address}>"
-    msg['To'] = "andres.mirazo@ventologix.com, octavio.murillo@ventologix.com"
-    msg['Subject'] = "Reporte PDF generado"
+    msg['To'] = RECIPIENT
+    msg['Subject'] = SUBJECT
 
     logo_cid = make_msgid(domain='ventologix.com')
     ventologix_logo_cid = make_msgid(domain='ventologix.com')
 
+    # Crear lista de archivos para el cuerpo del correo
+    files_list = "<ul>"
+    for pdf_path in pdf_files_list:
+        files_list += f"<li><b>{os.path.basename(pdf_path)}</b></li>"
+    files_list += "</ul>"
+
     body = f"""
-    <p>Se adjunta el reporte generado:</p>
-    <p><b>{os.path.basename(pdf_file_path)}</b></p>
-    <br><p><img src=\"cid:{logo_cid[1:-1]}\" alt=\"Logo Ventologix\" /></p>
-    <p><img src=\"cid:{ventologix_logo_cid[1:-1]}\" alt=\"Ventologix Firma\" /></p>
+    <p>Se adjuntan los siguientes reportes generados ({len(pdf_files_list)} archivos):</p>
+    {files_list}
+    <br><p><img src="cid:{logo_cid[1:-1]}" alt="Logo Ventologix" /></p>
+    <p><img src="cid:{ventologix_logo_cid[1:-1]}" alt="Ventologix Firma" /></p>
     <br>VTO logix<br>
     <a href='mailto:vto@ventologix.com'>vto@ventologix.com</a><br>
     <a href='https://www.ventologix.com'>www.ventologix.com</a><br>
@@ -100,23 +144,33 @@ def send_mail(pdf_file_path):
     msg.set_content("Este mensaje requiere un cliente con soporte HTML.")
     msg.add_alternative(body, subtype='html')
 
+    # Adjuntar imágenes si existen
     for img_path, cid in [(logo_path, logo_cid), (ventologix_logo_path, ventologix_logo_cid)]:
-        with open(img_path, 'rb') as img:
-            msg.get_payload()[1].add_related(img.read(), maintype='image', subtype='jpeg', cid=cid)
+        if os.path.isfile(img_path):
+            with open(img_path, 'rb') as img:
+                msg.get_payload()[1].add_related(img.read(), maintype='image', subtype='jpeg', cid=cid)
 
-    with open(pdf_file_path, 'rb') as pdf:
-        msg.add_attachment(pdf.read(), maintype='application', subtype='pdf', filename=os.path.basename(pdf_file_path))
+    # Adjuntar todos los PDFs
+    for pdf_path in pdf_files_list:
+        with open(pdf_path, 'rb') as pdf:
+            msg.add_attachment(pdf.read(), maintype='application', subtype='pdf',
+                               filename=os.path.basename(pdf_path))
 
     try:
         with smtplib.SMTP(smtp_server, smtp_port) as smtp:
-            smtp.set_debuglevel(1)  # 🔍 VER MÁS DETALLES
             smtp.starttls()
-            smtp.login(from_address, smtp_password)
+            smtp.login("andres.mirazo@ventologix.com", smtp_password)
             smtp.send_message(msg)
-        print(f"Correo enviado con {os.path.basename(pdf_file_path)}")
+        print(f"Correo enviado a {RECIPIENT} con {len(pdf_files_list)} archivos PDF adjuntos")
+        return True
     except Exception as e:
-        print(f"❌ Error al enviar el correo: {e}")
+        print(f"Error al enviar correo: {e}")
+        return False
 
+def obtener_rango_semana_anterior(fecha_base):
+    lunes_pasado = fecha_base - timedelta(days=fecha_base.weekday() + 7)
+    domingo_pasado = lunes_pasado + timedelta(days=6)
+    return lunes_pasado, domingo_pasado
 
 def main():
     os.makedirs(downloads_folder, exist_ok=True)
@@ -180,13 +234,18 @@ def main():
 
         enviar = input("¿Deseas enviar todos los PDFs generados por correo? (s/n): ").strip().lower()
         if enviar == "s":
-            for pdf_path in pdfs_generados:
-                try:
-                    send_mail(pdf_path)
-                    os.remove(pdf_path)
-                    print(f"✅ PDF {os.path.basename(pdf_path)} enviado y eliminado.")
-                except Exception as e:
-                    print(f"❌ Error al enviar {os.path.basename(pdf_path)}: {e}")
+            print(f"\n📧 Enviando {len(pdfs_generados)} PDFs por correo...")
+            if send_mail(pdfs_generados):
+                # Solo eliminar archivos si el envío fue exitoso
+                for pdf_path in pdfs_generados:
+                    try:
+                        os.remove(pdf_path)
+                        print(f"✅ PDF {os.path.basename(pdf_path)} eliminado.")
+                    except Exception as e:
+                        print(f"❌ Error al eliminar {os.path.basename(pdf_path)}: {e}")
+                print(f"✅ Todos los PDFs fueron enviados exitosamente en un solo correo.")
+            else:
+                print("❌ Error al enviar el correo. Los PDFs se mantienen en la carpeta.")
         else:
             print("Los PDFs generados no se enviaron por correo.")
     else:
