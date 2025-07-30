@@ -54,6 +54,9 @@ SOLO_TIPO = os.getenv("REPORTE_TIPO", "").strip().lower()     # "diario" | "sema
 
 FECHA_HOY = datetime.now()
 
+recipients_path = os.getenv("RECIPIENTS_JSON",
+                            "/home/hector_tovar/Ventologix/scripts/VM/data/recipients.json")
+
 
 # ------------- Utilidades de fecha -------------
 def obtener_rango_semana_anterior(fecha_base: datetime):
@@ -257,9 +260,9 @@ def send_error_mail(missing_files: list, admin_emails: list):
 
 # ------------- Core -------------
 def cargar_recipients():
-    path = os.path.join(BASE_DIR, "data", "recipients.json")
-    with open(path, "r", encoding="utf-8-sig") as f:
-        return json.load(f)
+    with open(recipients_path, "r", encoding="utf-8") as f:
+        recipients = json.load(f)
+    return recipients
 
 def clean_pdfs_folder():
     os.makedirs(DOWNLOADS_FOLDER, exist_ok=True)

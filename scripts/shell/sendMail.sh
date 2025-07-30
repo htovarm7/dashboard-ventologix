@@ -61,6 +61,7 @@ fi
 
 # Ejecutar Python (espera el frontend con Playwright internamente)
 echo "Ejecutando script Python..." >> $LOGFILE
+export RECIPIENTS_JSON="/home/hector_tovar/Ventologix/data/recipients.json"
 python $PYTHON_SCRIPT >> $LOGFILE 2>&1
 echo "Script Python finalizado" >> $LOGFILE
 
