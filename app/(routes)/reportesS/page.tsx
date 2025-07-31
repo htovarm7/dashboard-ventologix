@@ -25,7 +25,7 @@ import {
   getColorClass,
   getColorHp,
   getAnualValue,
-} from "@/utils/reportsFunctions";
+} from "@/lib/reportsFunctions";
 
 // Libraries for charts
 import {

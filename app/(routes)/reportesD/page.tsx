@@ -30,7 +30,7 @@ import {
   PointElement,
 } from "chart.js";
 import { Pie, Chart } from "react-chartjs-2";
-import { putBlur } from "@/utils/reportsFunctions";
+import { putBlur } from "@/lib/reportsFunctions";
 
 // ECharts for the gauge chart
 import ReactECharts from "echarts-for-react";
