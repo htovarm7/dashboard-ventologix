@@ -130,7 +130,7 @@ def generar_pdf_cliente(id_cliente: int, linea: str, nombre_cliente: str, alias:
         if tipo == "diario":
             url = f"http://localhost:3002/reportesD?id_cliente={id_cliente}&linea={linea}"
             print(f"Abriendo URL: {url}")
-            page.goto(url)
+            page.goto(url, timeout=300000)
 
             print("Esperando que frontend avise que terminó de renderizar...")
             page.wait_for_function("window.status === 'pdf-ready'", timeout=300000)
@@ -147,7 +147,7 @@ def generar_pdf_cliente(id_cliente: int, linea: str, nombre_cliente: str, alias:
         else:
             url = f"http://localhost:3002/reportesS?id_cliente={id_cliente}&linea={linea}"
             print(f"Abriendo URL: {url}")
-            page.goto(url)
+            page.goto(url, timeout=600000)
 
             page.wait_for_function("window.status === 'pdf-ready'", timeout=600000)
 
