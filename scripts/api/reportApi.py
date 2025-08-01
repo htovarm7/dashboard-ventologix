@@ -478,7 +478,7 @@ def get_pie_data_proc_weekly(id_cliente: int = Query(..., description="ID del cl
         cursor = conn.cursor()
 
         cursor.execute(
-            "call DataFiltradaWeekFecha(%s, %s, %s,  DATE_SUB(CURDATE(), INTERVAL 1 DAY))",
+            "call DataFiltradaWeek(%s, %s, %s)",
             (id_cliente, id_cliente, linea)
         )
 

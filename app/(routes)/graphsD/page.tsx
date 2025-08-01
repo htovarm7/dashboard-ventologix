@@ -7,18 +7,16 @@
  * This file implements the daily graphs, including a Line Chart and a Gauge Chart using both Chart.js and ECharts.
  *
  * @version 1.0
+ * http://localhost:3002/reportesD?id_cliente=10&linea=A
  */
 
 "use client";
 
-// Components from anothers files
-import TransitionPage from "@/components/transition-page";
-import NavBar from "@/components/navBar";
-
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import DatePicker from "react-datepicker";
+import React, { useCallback, useEffect, useState } from "react";
+import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
+import { useSearchParams } from "next/navigation";
+import annotationPlugin from "chartjs-plugin-annotation";
 
 // Libraries for charts
 import {
@@ -32,6 +30,7 @@ import {
   PointElement,
 } from "chart.js";
 import { Pie, Chart } from "react-chartjs-2";
+import { putBlur } from "@/lib/reportsFunctions";
 
 // ECharts for the gauge chart
 import ReactECharts from "echarts-for-react";
@@ -45,244 +44,237 @@ ChartJS.register(
   LineElement,
   CategoryScale,
   LinearScale,
-  PointElement
+  PointElement,
+  annotationPlugin,
+  ChartDataLabels
 );
+
+import type {
+  clientData,
+  compressorData,
+  dayData,
+  LineData,
+} from "@/lib/types";
 
 export default function Main() {
   // Constant Declarations
-  const router = useRouter();
-  const { id_cliente } = router.query;
-  const [chartData, setChartData] = useState([0, 0, 0]); // default values
+  const [chartData, setChartData] = useState([0, 0, 0]);
   const [lineChartData, setLineChartData] = useState<(number | null)[]>([]);
-  const [lineChartLabels, setLineChartLabels] = useState<string[]>([]); // default labels
-  const [maxData, setMaxData] = useState(0); // default max value
-  const [kWh, setKWh] = useState<number>(0); // default kWh value
-  const [hoursWorked, setHoursWorked] = useState<number>(0); // default hours worked value
-  const [usdCost, setUsdCost] = useState<number>(0); // default USD cost value
-  const [Load, setLoad] = useState<number>(0); // default load values
-  const [NoLoad, setNoLoad] = useState<number>(0); // default no load values
-  const [Off, setOff] = useState<number>(0); // default off values
-  const [firstHour, setFirstHour] = useState("");
-  const [lastHour, setLastHour] = useState("");
-  const [totalCiclos, setTotalCiclos] = useState(0);
-  const [promedioCiclosHora, setPromedioCiclosHora] = useState(0);
-  const [comentarioCiclos, setComentarioCiclos] = useState("");
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [hpNominal, setHPNominal] = useState<number>(0);
-  const [hpeq, setHPEquivalente] = useState<number>(0);
-  const [comentarioHp, setComentarioHp] = useState("");
+  const [lineChartLabels, setLineChartLabels] = useState<string[]>([]);
+  const [maxData, setMaxData] = useState(0);
+  const [Load, setLoad] = useState<number>(0);
+  const [NoLoad, setNoLoad] = useState<number>(0);
+  const [Off, setOff] = useState<number>(0);
+  const [clientData, setClientData] = useState<clientData | null>(null);
+  const [compressorData, setCompresorData] = useState<compressorData | null>(
+    null
+  );
+  const [dayData, setDayData] = useState<dayData | null>(null);
 
-  const [clientData, setClientData] = useState<{
-    numero_cliente: number;
-    nombre_cliente: string;
-    RFC: string;
-    direccion: string;
-  } | null>(null);
-
-  const [compressorData, setCompresorData] = useState<{
-    hp: number;
-    tipo: string;
-    voltaje: number;
-    marca: string;
-    numero_serie: number;
-    alias: string;
-  } | null>(null);
-
-  interface LineData {
-    time: string;
-    corriente: number;
-  }
-
-  useEffect(() => {
-    const fetchAllData = async () => {
-      try {
-        const [
-          pieRes,
-          lineRes,
-          commentsRes,
-          statsRes,
-          clientRes,
-          compressorRes,
-        ] = await Promise.all([
+  const fetchData = useCallback(async (id: string, linea: string) => {
+    try {
+      const [pieRes, lineRes, dayRes, clientRes, compressorRes] =
+        await Promise.all([
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/web/pie-data-proc?id_cliente=${id_cliente}`
+              `http://127.0.0.1:8000/report/pie-data-proc?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/web/line-data-proc?id_cliente=${id_cliente}`
+              `http://127.0.0.1:8000/report/line-data-proc?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/web/comments-data?id_cliente=${id_cliente}`
+              `http://127.0.0.1:8000/report/daily-report-data?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/web/stats-data?id_cliente=${id_cliente}`
+              `http://127.0.0.1:8000/report/client-data?id_cliente=${id}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/web/client-data?id_cliente=${id_cliente}`
-            );
-            return res.json();
-          })(),
-          (async () => {
-            const res = await fetch(
-              `http://127.0.0.1:8000/web/compressor-data?id_cliente=${id_cliente}`
+              `http://127.0.0.1:8000/report/compressor-data?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
         ]);
 
-        if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
-        if (compressorRes.data.length > 0)
-          setCompresorData(compressorRes.data[0]);
+      if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
+      if (compressorRes.data.length > 0)
+        setCompresorData(compressorRes.data[0]);
 
-        const stats = statsRes.data;
-        setKWh(stats.kWh);
-        setHoursWorked(stats.hours_worked);
-        setUsdCost(stats.usd_cost);
-        setHPNominal(stats.hp_nominal);
-        setHPEquivalente(stats.hp_equivalente);
-        setComentarioHp(stats.comentario_hp_equivalente);
+      const { LOAD, NOLOAD, OFF } = pieRes.data;
+      setChartData([LOAD, NOLOAD, OFF]);
+      setLoad(LOAD);
+      setNoLoad(NOLOAD);
+      setOff(OFF);
 
-        const comments = commentsRes.data;
-        setFirstHour(comments.first_time);
-        setLastHour(comments.last_time);
-        setTotalCiclos(comments.total_ciclos);
-        setPromedioCiclosHora(comments.promedio_ciclos_hora);
-        setComentarioCiclos(comments.comentario_ciclos);
+      setDayData(dayRes.data);
 
-        const { LOAD, NOLOAD, OFF } = pieRes.data;
-        setChartData([LOAD, NOLOAD, OFF]);
+      const rawData = (lineRes.data as LineData[]).map((item) => ({
+        time: new Date(item.time),
+        corriente: item.corriente,
+      }));
+      rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
 
-        setLoad(LOAD);
-        setNoLoad(NOLOAD);
-        setOff(OFF);
+      const times = rawData.map((item) =>
+        item.time.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })
+      );
 
-        const rawData = (lineRes.data as LineData[]).map((item) => ({
-          time: new Date(item.time),
-          corriente: item.corriente,
-        }));
-        rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
+      const currents: (number | null)[] = rawData.map((item) => item.corriente);
 
-        const times = rawData.map((item) =>
-          item.time.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          })
-        );
-
-        const currents: (number | null)[] = rawData.map(
-          (item) => item.corriente
-        );
-
-        if (!times.includes("23:59:59")) {
-          times.push("23:59:59");
-          currents.push(null);
-        }
-
-        setLineChartLabels(times);
-        setLineChartData(currents);
-        setMaxData(Math.max(...currents.filter((c) => c !== null)) * 1.3);
-      } catch (error) {
-        console.error("Error fetching data:", error);
+      if (!times.includes("23:59:59")) {
+        times.push("23:59:59");
+        currents.push(null);
       }
-    };
 
-    fetchAllData();
-  }, [id_cliente]);
+      console.log("clientRes:", clientRes);
 
-  const handleDownload = async () => {
-    const response = await fetch("http://localhost:8000/web/raw-data-excel");
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "raw_data.xlsx";
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
+      setLineChartLabels(times);
+      setLineChartData(currents);
+      setMaxData(
+        Math.max(...currents.filter((c): c is number => c !== null)) * 1.3
+      );
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  }, []);
 
-  const hp_instalado = hpNominal;
-  const hp_equivalente = hpeq;
-  const porcentajeUso = (hp_equivalente / hp_instalado) * 100;
+  const searchParams = useSearchParams();
 
-  const option = {
+  useEffect(() => {
+    const id = searchParams.get("id_cliente");
+    const linea = searchParams.get("linea") || "";
+    if (id) {
+      fetchData(id, linea);
+    }
+  }, [searchParams, fetchData]);
+
+  const limite = compressorData?.limite ?? 0;
+  const hp_instalado = dayData?.hp_nominal ?? 0;
+  const hp_equivalente = dayData?.hp_equivalente ?? 0;
+  const porcentajeUso = hp_instalado
+    ? (hp_equivalente / hp_instalado) * 100
+    : 0;
+  const aguja = Math.max(30, Math.min(120, porcentajeUso)); // Limita entre 30% y 120%
+
+  const HpOptions = {
     series: [
       {
         type: "gauge",
-        startAngle: 205,
-        endAngle: -25,
+        animation: false,
         min: 30,
         max: 120,
-        splitNumber: 9,
+        startAngle: 200,
+        endAngle: -20,
         axisLine: {
           lineStyle: {
-            width: 30,
+            width: 28,
             color: [
-              [0.377, "red"],
-              [0.544, "yellow"],
-              [0.689, "green"],
-              [0.766, "#418FDE"],
-              [0.889, "yellow"],
+              [0.3, "red"],
+              [0.53, "yellow"],
+              [0.66, "green"],
+              [0.83, "#418FDE"],
+              [0.92, "yellow"],
               [1, "red"],
             ],
           },
         },
-        pointer: {
+        axisLabel: {
           show: true,
-          length: "80%",
-          width: 5,
-        },
-        axisTick: {
-          distance: -35,
-          length: 8,
-          lineStyle: {
-            color: "#fff",
-            width: 1,
+          color: "black",
+          distance: -50,
+          formatter: function (value: number) {
+            if (value === 30) return "0";
+            if (value === 120) return "Max";
+            return "";
           },
+          fontSize: 16,
+          fontWeight: "bold",
         },
-        splitLine: {
-          distance: -40,
-          length: 10,
+        axisTick: { show: false },
+        splitLine: { show: false },
+        pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
+        detail: {
+          formatter: () => `${porcentajeUso.toFixed(0)}%`,
+          color: "black",
+          fontSize: 20,
+        },
+        title: {
+          offsetCenter: [0, "70%"],
+          formatter: () =>
+            `HP Equiv: ${hp_equivalente}\nHP Inst: ${hp_instalado}`,
+          fontSize: 14,
+        },
+        data: [{ value: aguja }],
+      },
+    ],
+  };
+
+  const ciclosOptions = {
+    series: [
+      {
+        type: "gauge",
+        animation: false,
+        min: 0,
+        max: 30,
+        startAngle: 200,
+        endAngle: -20,
+        axisLine: {
           lineStyle: {
-            color: "#fff",
-            width: 2,
+            width: 28,
+            color: [
+              [8 / 20, "#418FDE"],
+              [12 / 20, "green"],
+              [15 / 20, "yellow"],
+              [1, "red"],
+            ],
           },
         },
         axisLabel: {
-          distance: -50,
-          color: "#000",
+          show: true,
+          color: "black",
+          distance: -45,
+          formatter: (value: number) => {
+            if (value === 0) return "0";
+            if (value === 30)
+              return (dayData?.promedio_ciclos_hora ?? 0) > 30 ? "Max" : "30+";
+            return "";
+          },
           fontSize: 14,
+          fontWeight: "bold",
         },
+        axisTick: { show: false },
+        splitLine: { show: false },
+        pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
-          valueAnimation: true,
-          fontSize: 22,
-          offsetCenter: [0, "60%"],
-          formatter: `{value}%`,
-          color: (() => {
-            if (porcentajeUso <= 64) return "red";
-            if (porcentajeUso <= 79) return "black";
-            if (porcentajeUso <= 92) return "green";
-            if (porcentajeUso <= 99) return "#418FDE";
-            if (porcentajeUso <= 110) return "black";
-            if (porcentajeUso <= 120) return "red";
-            return "black";
-          })(),
+          formatter: () => `${dayData?.promedio_ciclos_hora}`,
+          fontSize: 20,
+        },
+        title: {
+          offsetCenter: [0, "75%"],
+          formatter: () =>
+            `Ciclos por hora (C/Hr): ${dayData?.promedio_ciclos_hora}`,
+          fontSize: 14,
         },
         data: [
           {
-            value: porcentajeUso.toFixed(0),
+            value:
+              (dayData?.promedio_ciclos_hora ?? 0) > 30
+                ? 30
+                : dayData?.promedio_ciclos_hora ?? 0,
           },
         ],
       },
@@ -290,36 +282,88 @@ export default function Main() {
   };
 
   const dataPie = {
-    labels: ["LOAD", "NO LOAD", "OFF"], // Etiquetas para las secciones del gráfico
+    labels: ["LOAD", "NO LOAD", "OFF"],
     datasets: [
       {
-        label: "Estados del Compresor", // Título del gráfico
-        data: chartData, // Los datos que provienen del backend
+        label: "Estados del Compresor",
+        data: chartData,
         backgroundColor: [
-          "rgb(0, 191, 255)", // Color para "LOAD"
-          "rgb(229, 255, 0)", // Color para "NO LOAD"
-          "rgb(126, 126, 126)", // Color para "OFF"
+          "rgb(0, 191, 255)",
+          "rgb(229, 255, 0)",
+          "rgb(126, 126, 126)",
         ],
-        hoverOffset: 30, // Efecto al pasar el mouse
+        hoverOffset: 30,
       },
     ],
-    options: {
-      layout: {
-        padding: 20,
+  };
+
+  const pieOptions = {
+    layout: {
+      padding: 20,
+    },
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: "0%",
+    plugins: {
+      datalabels: {
+        color: "black",
+        font: {
+          weight: "bold",
+          size: 18,
+        },
+        formatter: (value: string) => {
+          return value + "%";
+        },
       },
-      responsive: true,
-      maintainAspectRatio: false, // Muy útil si le defines height/width al canvas contenedor
-      cutout: "0%",
+      legend: {
+        display: true,
+        position: "bottom",
+      },
+    },
+    animation: {
+      duration: 0,
     },
   };
 
   // Line boundaries options
   const lineChartOptions = {
     responsive: true,
+    animation: {
+      duration: 0,
+    },
+    plugins: {
+      datalabels: {
+        display: false,
+        color: "black",
+        anchor: "end",
+        align: "top",
+        backgroundColor: null,
+        borderWidth: 0,
+        callout: {
+          display: false,
+        },
+      },
+      annotation: {
+        annotations: {
+          limite: {
+            type: "line",
+            yMin: limite,
+            yMax: limite,
+            borderColor: "black",
+            borderWidth: 4,
+            label: {
+              content: `Límite: ${limite} A`,
+              enabled: false,
+              position: "start",
+            },
+          },
+        },
+      },
+    },
     scales: {
       y: {
-        min: 0, // Lower boundary of the Y-axis
-        max: maxData, // Upper boundary of the Y-axis
+        min: 0,
+        max: maxData,
         ticks: {
           stepSize: 1,
         },
@@ -328,308 +372,284 @@ export default function Main() {
   };
 
   const dataLine = {
-    labels: lineChartLabels, // Labels for the X-axis of the line chart
+    labels: lineChartLabels,
     datasets: [
       {
-        label: "Corriente consumida en el dia", // Title of the dataset
-        data: lineChartData, // Data points for the line chart
-        borderColor: "rgb(13, 9, 255)", // Line color
-        backgroundColor: "rgba(82, 94, 255, 0.2)", // Area fill color
-        fill: "origin", // Fill from the origin of the Y-axis
-        tension: 0.4, // Line smoothing
-        pointBackgroundColor: "rgb(13, 9, 255)", // Color of the data points
-        pointRadius: 1, // Radius of the data points
-        borderWidth: 1, // Width of the line
+        label: "Corriente consumida en el dia",
+        data: lineChartData,
+        borderColor: "rgb(13, 9, 255)",
+        backgroundColor: "rgba(82, 94, 255, 0.2)",
+        tension: 0.4,
+        pointBackgroundColor: "rgb(13, 9, 255)",
+        pointRadius: 1,
+        borderWidth: 1,
+        fill: "start",
       },
     ],
   };
 
   useEffect(() => {
-    setTimeout(() => {
-      const ready = document.createElement("div");
-      ready.id = "grafico-listo";
-      document.body.appendChild(ready);
-
-      const ayer = new Date();
-      ayer.setDate(ayer.getDate() - 1);
-      const fechaAyer = ayer.toISOString().split("T")[0];
-
-      fetch("http://localhost:8000/api/generar_pdf", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          cliente: id_cliente,
-          fecha: fechaAyer,
-        }),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          console.log("Respuesta del backend:", data);
-        })
-        .catch((error) => {
-          console.error("Error al notificar al backend:", error);
-        });
-    }, 2000);
-  }, [id_cliente]);
+    if (lineChartData.length > 0 && chartData.length > 0) {
+      window.status = "pdf-ready";
+      setTimeout(() => {}, 250000);
+    }
+  }, [lineChartData, chartData]);
 
   return (
-    <main>
-      <TransitionPage />
-      <NavBar />
-
+    <main className="relative">
       {/* Here its the top section*/}
-      <div className="flex flex-col items-center mb-3">
-        <h1 className="text-3xl font-bold text-center">Reporte Diario</h1>
-        <h2 className="text-2xl font-bold text-center">
+      <div className="flex flex-col items-center mb-2">
+        <h1 className="text-4xl font-bold text-center">Reporte Diario</h1>
+        <h2 className="text-4xl font-bold text-center">
           {compressorData?.alias}
         </h2>
-        <h3 className="text-xl font-bold text-center">
+        <h3 className="text-3xl font-bold text-center">
           Fecha:{" "}
-          {new Date(
-            new Date().setDate(new Date().getDate())
-          ).toLocaleDateString("es-ES", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          })}
+          {new Date(new Date().setDate(new Date().getDate() - 1))
+            .toLocaleDateString("es-ES", {
+              weekday: "long",
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })
+            .replace(/^\w/, (c) => c.toUpperCase())}
         </h3>
         <Image
           src="/Ventologix_04.png"
           alt="logo"
-          className="h-16 w-auto mt-3 absolute top-0 left-0 m-3"
+          className="h-28 w-auto mt-3 absolute top-0 left-0 m-3"
+          width={300}
+          height={100}
         />
       </div>
 
-      <div className="mt-4 p-4">
-        <h2 className="text-xl font-bold mb-2 p-15">Información Compresor</h2>
+      <div className="mt-2 p-4">
+        <h2 className="text-3xl font-bold p-15">Información Compresor</h2>
         <div className="flex flex-wrap gap-60 items-center justify-center text-center">
           <div className="text-center">
-            <p className="text-xl ">{compressorData?.numero_serie}</p>
-            <p className="text-lg font-bold">Número de Serie</p>
+            <p className="text-2xl">{compressorData?.numero_serie}</p>
+            <p className="text-xl font-bold">Número de Serie</p>
           </div>
           <div className="text-center">
-            <p className="text-xl">{compressorData?.marca}</p>
-            <p className="text-lg font-bold">Marca</p>
+            <p className="text-2xl">{compressorData?.marca}</p>
+            <p className="text-xl font-bold">Marca</p>
           </div>
           <div className="text-center">
-            <p className="text-xl">{compressorData?.tipo}</p>
-            <p className="text-lg font-bold">Tipo</p>
+            <p className="text-2xl">{compressorData?.tipo}</p>
+            <p className="text-xl font-bold">Tipo</p>
           </div>
           <div className="text-center">
-            <p className="text-xl">{compressorData?.voltaje}</p>
-            <p className="text-lg font-bold">Voltaje</p>
+            <p className="text-2xl">{compressorData?.voltaje}</p>
+            <p className="text-xl font-bold">Voltaje</p>
           </div>
           <div className="text-center">
-            <p className="text-xl">{compressorData?.hp}</p>
-            <p className="text-lg font-bold">HP</p>
+            <p className="text-2xl">{compressorData?.hp}</p>
+            <p className="text-xl font-bold">HP</p>
           </div>
         </div>
 
         {/* Informaion del clinte */}
-        <h2 className="text-xl font-bold mb-2 p-15">
-          {" "}
-          Informacion del Cliente{" "}
-        </h2>
+        <h2 className="text-3xl font-bold p-15"> Informacion del Cliente </h2>
         <div className="flex flex-wrap gap-60 items-center justify-center text-center">
           <div className="text-center">
-            <p className="text-xl">{clientData?.nombre_cliente}</p>
-            <p className="text-lg font-bold">Nombre</p>
+            <p className="text-2xl">{clientData?.nombre_cliente}</p>
+            <p className="text-xl font-bold">Nombre</p>
           </div>
           <div className="text-center">
-            <p className="text-xl">{clientData?.numero_cliente}</p>
-            <p className="text-lg font-bold">Número de Cliente</p>
+            <p className="text-2xl">{clientData?.numero_cliente}</p>
+            <p className="text-xl font-bold">Número de Cliente</p>
           </div>
           <div className="text-center">
-            <p className="text-xl">{clientData?.RFC}</p>
-            <p className="text-lg font-bold">RFC</p>
+            <p className="text-2xl">{clientData?.RFC}</p>
+            <p className="text-xl font-bold">RFC</p>
           </div>
-          <div className="text-center">
-            <p className="text-xl">{clientData?.direccion}</p>
-            <p className="text-lg font-bold">Direccion</p>
-          </div>
+          {/* <div className="text-center">
+            <p className="text-2xl">{clientData?.direccion}</p>
+            <p className="text-xl font-bold">Direccion</p>
+          </div> */}
         </div>
       </div>
 
-      {/* Here its the graphs */}
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 gap-8">
-        <div className="flex justify-center mt-4 gap-10 items-center">
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Recargar Página
-          </button>
-          <button
-            onClick={handleDownload}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Descargar Raw Data
-          </button>
-
-          <div className="relative">
-            <h2 className="text-center font-bold text-blue-600 animate-bounce">
-              {" "}
-              Elige una fecha
-            </h2>
-            <DatePicker
-              selected={selectedDate}
-              onChange={(date) => setSelectedDate(date as Date)}
-              dateFormat="dd-MM-yyyy"
-              className="py-2 px-4 text-center font-bold border border-blue-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            <span className="absolute top-2 right-2 text-gray-400">
-              <i className="fas fa-calendar-alt"></i>
-            </span>
-          </div>
-        </div>
-
+      <div className="flex flex-col items-center justify-center p-4 gap-6">
         {/* KPIs */}
-        <div className="flex flex-row gap-8">
+        <div className="flex flex-row gap-8 mt-2">
           <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-            <h2 className="text-sm text-black">Gasto USD*</h2>
+            <h2 className="text-xl text-black">Gasto USD*</h2>
             <p className="text-3xl font-bold text-black">
-              ${usdCost.toFixed(2)}
+              ${dayData?.costo_usd}
             </p>
           </div>
-          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-            <h2 className="text-sm text-black">kWh Utilizados</h2>
-            <p className="text-3xl font-bold text-black">
-              {kWh.toFixed(0)} kWh
-            </p>
+          <div
+            className={`bg-white rounded-2xl shadow p-4 text-center w-[250px] ${putBlur(
+              clientData?.demoDiario ?? false
+            )}`}
+          >
+            <h2 className="text-xl text-black">kWh Utilizados</h2>
+            <p className="text-3xl font-bold text-black">{dayData?.kWh} kWh</p>
           </div>
           <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-            <h2 className="text-sm text-black">Horas Trabajadas</h2>
+            <h2 className="text-xl text-black">Horas Trabajadas</h2>
             <p className="text-3xl font-bold text-black">
-              {hoursWorked.toFixed(1)} h
+              {dayData?.horas_trabajadas} h
             </p>
           </div>
         </div>
 
         {/* Gráficas */}
-        <div className="flex flex-row flex-wrap justify-center gap-4">
-          <div className="bg-white rounded-s shadow p-4 w-[300] h-[300] flex flex-col items-center justify-center">
-            <h3 className="text-center text-black mb-2">
-              Estados del Compresor
-            </h3>
-            <Pie data={dataPie} />
-          </div>
-
-          <div className="bg-white rounded-2xl shadow p-4 w-[650px] h-[400px] flex flex-col">
-            <h3 className="text-center text-black mb-2">
-              Corriente consumida en el día
-            </h3>
-            <Chart type="line" data={dataLine} options={lineChartOptions} />
-          </div>
-
-          <div className="bg-white rounded-2xl shadow p-4 w-[280px] h-[280px] items-center justify-center">
-            <h2 style={{ textAlign: "center" }}>
+        <div
+          className={`flex flex-row flex-wrap justify-center gap-4 ${putBlur(
+            clientData?.demoDiario ?? false
+          )}`}
+          id="grafico-listo"
+        >
+          <div className="bg-white rounded-2xl shadow p-4 w-[280px] items-center justify-center">
+            <h2 className="text-xl" style={{ textAlign: "center" }}>
               <strong>Hp Equivalente:</strong> {hp_equivalente} Hp
             </h2>
-            <h2 style={{ textAlign: "center" }}>
+            <h2 className="text-xl" style={{ textAlign: "center" }}>
               <strong>Hp Instalado:</strong> {hp_instalado} Hp
             </h2>
             <ReactECharts
-              option={option}
-              style={{ height: "350px", width: "100%" }}
+              option={HpOptions}
+              style={{ height: "280px", width: "100%" }}
               notMerge={true}
               lazyUpdate={true}
               theme={"light"}
             />
           </div>
+          <div className="bg-white rounded-2xl shadow p-4 w-[280px] items-center justify-center">
+            <h2 className="text-xl" style={{ textAlign: "center" }}>
+              <strong>Ciclos por hora (C/hr):</strong>{" "}
+              {dayData?.promedio_ciclos_hora}
+            </h2>
+            <br></br>
+            <ReactECharts
+              option={ciclosOptions}
+              style={{ height: "280px", width: "100%" }}
+              notMerge={true}
+              lazyUpdate={true}
+              theme={"light"}
+            />
+          </div>
+
+          <div className="bg-white rounded-2xl shadow p-4 w-[650px] h-[400px] flex flex-col">
+            <h3 className="text-center text-black mb-2 font-bold">
+              Corriente consumida en el día
+            </h3>
+            <Chart type="line" data={dataLine} options={lineChartOptions} />
+          </div>
+
+          <div className="bg-white rounded-2xl shadow p-4 w-[280px] h-[400px] flex flex-col items-center justify-center">
+            <h3 className="text-center text-black  font-bold text-xl">
+              Estados del Compresor
+            </h3>
+            <Pie data={dataPie} options={pieOptions} />
+          </div>
         </div>
 
-        <div className="gap-10 items-left justify-left text-left">
-          <h1 className="text-3xl font-bold">Comentarios</h1>
-
-          <p className="text-lg text-left">
-            • El día de ayer{" "}
-            <strong>
-              (
-              {new Date(
-                new Date().setDate(new Date().getDate())
-              ).toLocaleDateString("es-ES", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-              })}
-              )
-            </strong>{" "}
-            se iniciaron labores a las <strong>{firstHour}</strong> y se
-            concluyeron a las <strong>{lastHour}</strong>
+        {Off == 100 ? (
+          <p className="text-5xl text-left mt-4 text-blue-700 text-bold">
+            {" "}
+            El compresor estuvo apagado todo el dia
           </p>
+        ) : (
+          <div className="gap-10 items-left justify-left text-left">
+            <h1 className="text-3xl font-bold">Comentarios</h1>
 
-          <p className="text-lg text-left mt-2">
-            • Entre las horas de <strong>{firstHour}</strong> y{" "}
-            <strong>{lastHour}</strong>, el compresor operó de la siguiente
-            manera:
-          </p>
+            <p className="text-xl text-left">
+              • El día de ayer{" "}
+              <strong>
+                (
+                {new Date(
+                  new Date().setDate(new Date().getDate() - 1)
+                ).toLocaleDateString("es-ES", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                })}
+                )
+              </strong>{" "}
+              se iniciaron labores a las{" "}
+              <strong>{dayData?.inicio_funcionamiento}</strong> y se concluyeron
+              a las <strong>{dayData?.fin_funcionamiento}</strong>
+            </p>
 
-          <ul className="list-disc ml-8 text-lg text-left">
-            <li>
-              <strong>LOAD:</strong> {Load}%
-            </li>
-            <li>
-              <strong>NO LOAD:</strong> {NoLoad}%
-            </li>
-            <li>
-              <strong>OFF:</strong> {Off}%
-            </li>
-          </ul>
+            <p className="text-xl text-left mt-2">
+              • Entre las horas de{" "}
+              <strong>{dayData?.inicio_funcionamiento}</strong> y{" "}
+              <strong>{dayData?.fin_funcionamiento}</strong>, el compresor operó
+              de la siguiente manera:
+            </p>
 
-          <p className="text-lg text-left mt-2">
-            • Durante el día se completaron un total de{" "}
-            <strong>{totalCiclos}</strong> ciclos de trabajo. Un ciclo se define
-            como un cambio desde el estado <strong>LOAD</strong> a{" "}
-            <strong>NO LOAD</strong> consecutivamente.
-          </p>
+            <ul className="list-disc ml-8 text-xl text-left">
+              <li>
+                <strong>LOAD:</strong> {Load}%
+              </li>
+              <li>
+                <strong>NO LOAD:</strong> {NoLoad}%
+              </li>
+              <li>
+                <strong>OFF:</strong> {Off}%
+              </li>
+            </ul>
 
-          <p className="text-lg text-left mt-2">
-            • El promedio de ciclos por hora trabajada fue de{" "}
-            <strong>{promedioCiclosHora}</strong> ciclos/hora.
-          </p>
+            <p className="text-xl text-left mt-2">
+              • Durante el día se completaron un total de{" "}
+              <strong>{dayData?.ciclos}</strong> ciclos de trabajo. Un ciclo se
+              define como un cambio desde el estado <strong>LOAD</strong> a{" "}
+              <strong>NO LOAD</strong> consecutivamente.
+            </p>
 
-          <p className="text-lg text-left mt-2">
-            • El costo total de operación del compresor fue de{" "}
-            <strong>${usdCost.toFixed(2)}</strong>.
-          </p>
+            <p className="text-xl text-left mt-2">
+              • El promedio de ciclos por hora trabajada fue de{" "}
+              <strong>{dayData?.promedio_ciclos_hora}</strong> ciclos/hora.
+            </p>
 
-          <p className="text-lg text-left mt-2">• {comentarioCiclos}</p>
+            <p className="text-xl text-left mt-2">
+              • El costo total de operación del compresor fue de{" "}
+              <strong>${dayData?.costo_usd}</strong>.
+            </p>
 
-          <p className="text-lg text-left mt-2">
-            • No se detectaron consumos con valores fuera de lo común.
-          </p>
+            <p className="text-xl text-left mt-2">
+              • {dayData?.comentario_ciclos}
+            </p>
 
-          <p className="text-lg text-left mt-2">• {comentarioHp}</p>
+            <p className="text-xl text-left mt-2">
+              • No se detectaron consumos con valores fuera de lo común.
+            </p>
 
-          <p className="text-sm text-left mt-2">
-            • El costo por kilovatio-hora (kWh) utilizado en este análisis es de{" "}
-            <strong>$0.17 USD/kWh</strong>, que es el estándar actualmente
-            aplicado. Sin embargo, si requiere confirmar este valor o necesita
-            ajustar la tarifa, puede verificar con su contacto en{" "}
-            <strong>VENTOLOGIX</strong>
-          </p>
+            <p className="text-xl text-left mt-2">
+              • {dayData?.comentario_hp_equivalente}
+            </p>
 
-          <h1 className="text-xl text-left mt-7 font-bold">
-            IQgineer VENTOLOGIX asignado:
-          </h1>
-          <p className="text-xl text-left mt-2">
-            <strong>Nombre:</strong> Ing. Andrés Mirazo
-          </p>
-          <p className="text-xl text-left mt-2">
-            <strong>Teléfono:</strong> 81 8477 7023
-          </p>
-          <p className="text-xl text-left mt-2">
-            <strong>Correo:</strong>{" "}
-            <a
-              href="mailto:Andres.Mirazo@ventologix.com"
-              className="text-blue-600 hover:scale-120 hover:text-blue-800  duration-300"
-            >
-              Andres.Mirazo@ventologix.com
-            </a>
-          </p>
-        </div>
+            <p className="text-xl text-left mt-2">
+              • El costo por kilovatio-hora (kWh) utilizado en este análisis es
+              de <strong>${clientData?.costoUSD} USD/kWh</strong>, que es el
+              estándar actualmente aplicado. Sin embargo, si requiere confirmar
+              este valor o necesita ajustar la tarifa, puede verificar con su
+              contacto en <strong>VENTOLOGIX</strong>
+            </p>
+
+            <h1 className="text-xl text-left mt-7 font-bold">
+              IQgineer VENTOLOGIX asignado:
+            </h1>
+            <p className="text-xl text-left mt-2">
+              <strong>Nombre:</strong> Ing. Andrés Mirazo
+            </p>
+            <p className="text-xl text-left mt-2">
+              <strong>Teléfono:</strong> 81 8477 7023
+            </p>
+            <p className="text-xl text-left mt-2">
+              <strong>Correo:</strong>{" "}
+              <a
+                href="mailto:Andres.Mirazo@ventologix.com"
+                className="text-blue-600 hover:scale-120 hover:text-blue-800  duration-300"
+              >
+                Andres.Mirazo@ventologix.com
+              </a>
+            </p>
+          </div>
+        )}
       </div>
     </main>
   );

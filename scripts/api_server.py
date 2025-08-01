@@ -35,7 +35,7 @@ import os
 from dotenv import load_dotenv
 
 from scripts.api.reportApi import report
-from scripts.api.webApi import webApi
+from scripts.api.webApi import web
 
 # Load environment variables
 load_dotenv()
@@ -53,4 +53,4 @@ app.add_middleware(
 
 # Incluir routers
 app.include_router(report)
-app.include_router(webApi)
+app.include_router(web)

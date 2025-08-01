@@ -114,7 +114,7 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo):
         return pdf_path
 
 def send_mail(pdf_files_list):
-    # === HARD-CODE ===
+    
     RECIPIENT = "andres.mirazo@ventologix.com"
     SUBJECT = f"Reportes PDF generados - {len(pdf_files_list)} archivos"
 

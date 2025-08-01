@@ -1,12 +1,21 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
-import { useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export default function Page() {
-  const { loginWithRedirect, logout, isAuthenticated, user, isLoading } = useAuth0();
+  const { loginWithRedirect, logout, isAuthenticated, user, isLoading, error } =
+    useAuth0();
+  const router = useRouter();
+  const [accessDenied, setAccessDenied] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/home");
+    }
+  }, [isAuthenticated, router]);
 
   if (isLoading) {
     return (
@@ -20,26 +29,73 @@ export default function Page() {
           priority
         />
         <span className="text-white text-2xl animate-pulse [font-family:monospace]">
-          {Array.from("Cargando...").map((char, i) => (
-            <span
-              key={i}
-              style={{
-          opacity: 1,
-          animation: `typewriter 1s steps(${i + 1}) forwards`,
-          animationDelay: `${i * 0.1}s`,
-              }}
-              className="inline-block"
-            >
-              {char}
-            </span>
-          ))}
-          <style jsx>{`
-            @keyframes typewriter {
-              from { opacity: 0; }
-              to { opacity: 1; }
-            }
-          `}</style>
+          Cargando...
         </span>
+      </div>
+    );
+  }
+
+  if (error) {
+    const errorDetails = `Hola Hector,%0D%0A%0D%0AEstoy intentando acceder al Dashboard de Ventologix pero no tengo autorización.%0D%0A%0D%0APor favor, podrías autorizar mi acceso al sistema.%0D%0A%0D%0AGracias,%0D%0A[Tu nombre]`;
+
+    const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&to=hector.tovar@ventologix.com&su=${encodeURIComponent(
+      "Solicitud de autorización de acceso"
+    )}&body=${errorDetails}`;
+
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-red-600 text-white p-8">
+        <div className="max-w-2xl text-center">
+          <h1 className="text-4xl font-bold mb-6">Acceso No Autorizado</h1>
+          <div className="bg-red-700 p-6 rounded-lg mb-8">
+            <p className="text-lg mb-4">
+              Lo sentimos, no estás autorizado para acceder a esta aplicación.
+            </p>
+            <p className="mb-4">
+              Para solicitar acceso al Dashboard de Ventologix, por favor
+              contacta al administrador.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <a
+              href={gmailLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block bg-white text-red-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+            >
+              📧 Contactar al administrador
+            </a>
+
+            <div className="block">
+              <button
+                className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-400 transition-colors"
+                onClick={() => (window.location.href = "/")}
+              >
+                🔄 Reintentar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (accessDenied) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-red-600 text-white p-8">
+        <h1 className="text-4xl font-bold mb-4">Acceso Denegado</h1>
+        <p className="mb-6">
+          Tu correo no está autorizado para ingresar a esta aplicación.
+        </p>
+        <button
+          className="bg-white text-red-600 px-4 py-2 rounded"
+          onClick={() => {
+            setAccessDenied(false);
+            logout({ logoutParams: { returnTo: window.location.origin } });
+          }}
+        >
+          Volver a Intentar
+        </button>
       </div>
     );
   }
@@ -47,29 +103,44 @@ export default function Page() {
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center ">
       <Image
-      src="/Ventologix_05.png"
-      alt="Ventologix Logo"
-      fill
-      className="absolute inset-0 object-cover z-0 opacity-40"
-      priority
+        src="/Ventologix_05.png"
+        alt="Ventologix Logo"
+        fill
+        className="absolute inset-0 object-cover z-0 opacity-40"
+        priority
       />
       <div className="relative z-10 flex flex-col items-center bg-cyan-600 rounded-3xl p-8 shadow-lg">
-      <h2 className="text-4xl text-white mb-4">Bienvenido a Ventologix Dashboard</h2>
-      <h2 className="text-xl text-white mb-8">
-        Aqui puedes verificar tus datos, con graficas diarias y semanales, asi mismo extraer tus datos en bruto
-      </h2>
-      {!isAuthenticated ? (
-        <button className="bg-blue-500 text-white p-2 rounded" onClick={() => loginWithRedirect()}>
-        Log In
-        </button>
-      ) : (
-        <>
-        <p className="text-white mb-2">Bienvenido, {user?.name}</p>
-        <button className="bg-red-500 text-white p-2 rounded" onClick={() => logout()}>
-          Log Out
-        </button>
-        </>
-      )}
+        <h2 className="text-4xl text-white mb-4">
+          Bienvenido a Ventologix Dashboard
+        </h2>
+        <h2 className="text-xl text-white mb-8">
+          Aquí puedes verificar tus datos, con gráficas diarias y semanales, así
+          mismo extraer tus datos en bruto.
+        </h2>
+        {!isAuthenticated ? (
+          <button
+            className="bg-blue-500 text-white p-2 rounded"
+            onClick={() =>
+              loginWithRedirect({
+                authorizationParams: {
+                  prompt: "login",
+                },
+              })
+            }
+          >
+            Log In
+          </button>
+        ) : (
+          <>
+            <p className="text-white mb-2">Bienvenido, {user?.name}</p>
+            <button
+              className="bg-red-500 text-white p-2 rounded"
+              onClick={() => logout()}
+            >
+              Log Out
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
