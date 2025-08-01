@@ -163,51 +163,100 @@ def clean_pdfs_folder():
 def main():
     os.makedirs(downloads_folder, exist_ok=True)
 
-    # Preguntar al usuario si desea generar reportes diarios o semanales
-    tipo_reporte = ""
-    while tipo_reporte not in ["diario", "semanal"]:
-        tipo_reporte = input("¿Qué tipo de reporte deseas generar? (diario/semanal): ").strip().lower()
+    pdfs_generados = []
 
-    # Cargar configuración de destinatarios desde Destinatarios.json
-    destinatarios_path = os.path.join("data", "recipients.json")
-    with open(destinatarios_path, "r", encoding="utf-8-sig") as f:
-        config = json.load(f)
+    while True:
+        tipo = input("¿Qué tipo de reporte deseas generar? (diario/semanal): ").strip().lower()
+        if tipo not in ["diario", "semanal"]:
+            print("Tipo inválido. Debe ser 'diario' o 'semanal'.")
+            continue
 
-    clientes = obtener_clientes_desde_api()
-    clientes_filtrados = clientes.get("diarios", []) if tipo_reporte == "diario" else clientes.get("semanales", [])
-    if not clientes_filtrados:
-        print("No se encontraron clientes.")
-        return
+        clientes = obtener_clientes_desde_api()["diarios" if tipo == "diario" else "semanales"]
 
-    for cliente in clientes_filtrados:
-        id_cliente = cliente['id_cliente']
-        linea = cliente['linea']
-        nombre_cliente = cliente['nombre_cliente']
-        alias = (cliente.get('alias') or "").strip()
-        tipo = tipo_reporte
+        if not clientes:
+            print(f"No se encontraron clientes para el tipo {tipo}.")
+            continue
+
+        print("Clientes disponibles:")
+        for idx, cliente in enumerate(clientes):
+            print(f"{idx + 1}. {cliente['nombre_cliente']} (Alias: {cliente['alias']}, Línea: {cliente['linea']})")
+
         try:
-            print(f"Generando PDF para cliente {nombre_cliente}, línea {linea}")
-            generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo)
+            seleccion = int(input("Selecciona el número del cliente a generar PDF: ")) - 1
+        except ValueError:
+            print("Selección inválida.")
+            continue
+
+        if seleccion < 0 or seleccion >= len(clientes):
+            print("Selección inválida.")
+            continue
+
+        cliente = clientes[seleccion]
+        id_cliente = cliente['id_cliente']
+        nombre_cliente = cliente['nombre_cliente']
+        alias = cliente['alias'].strip()
+        linea = input(f"Ingrese la línea para {nombre_cliente} (valor por defecto: {cliente['linea']}): ") or cliente['linea']
+
+        try:
+            print(f"\n🕒 Generando PDF para {nombre_cliente}...")
+            inicio = time.time()
+
+            pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo)
+            pdfs_generados.append(pdf_path)
+
+            fin = time.time()
+            duracion = fin - inicio
+            print(f"✅ PDF generado correctamente en {duracion:.2f} segundos.\n")
+
         except Exception as e:
-            print(f"Error generando PDF para cliente {nombre_cliente}: {e}")
+            print(f"❌ Error durante generación: {e}")
 
-    missing_files = []
+        continuar = input("¿Deseas generar otro reporte? (s/n): ").strip().lower()
+        if continuar != "s":
+            break
 
-    for recipient in config['recipients']:
-        for fileConfig in recipient.get('files', []):
-            fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
-            pdf_name = fileConfig['fileName'].replace("{fecha}", fechaAyer) + ".pdf"
-            pdf_path = os.path.join(downloads_folder, pdf_name)
+    if pdfs_generados:
+        print("\nPDFs generados:")
+        for idx, pdf in enumerate(pdfs_generados):
+            print(f"{idx + 1}. {os.path.basename(pdf)}")
 
-            if os.path.isfile(pdf_path):
-                send_mail(recipient, pdf_path)
-                try:
-                    os.remove(pdf_path)
-                except Exception as e:
-                    print(f"No se pudo eliminar {pdf_name}: {e}")
-            else:
-                print(f"No se encontró archivo esperado: {pdf_name}")
-                missing_files.append(pdf_name)
+        enviar = input("¿Deseas enviar todos los PDFs generados por correo? (s/n): ").strip().lower()
+        if enviar == "s":
+            print(f"\n📧 Enviando {len(pdfs_generados)} PDFs por correo...")
+
+            # Cargar configuración de destinatarios desde Destinatarios.json
+            destinatarios_path = os.path.join("data", "recipients.json")
+            with open(destinatarios_path, "r", encoding="utf-8-sig") as f:
+                config = json.load(f)
+
+            # Enviar cada PDF al destinatario correspondiente
+            for pdf_path in pdfs_generados:
+                pdf_name = os.path.basename(pdf_path)
+                enviado = False
+                for recipient in config['recipients']:
+                    for fileConfig in recipient.get('files', []):
+                        fechaAyer = (fecha_hoy - timedelta(days=1)).strftime("%Y-%m-%d")
+                        expected_name = fileConfig['fileName'].replace("{fecha}", fechaAyer) + ".pdf"
+                        if pdf_name == expected_name:
+                            send_mail(recipient, pdf_path)
+                            enviado = True
+                            break
+                    if enviado:
+                        break
+                if enviado:
+                    try:
+                        os.remove(pdf_path)
+                        print(f"✅ PDF {pdf_name} eliminado.")
+                    except Exception as e:
+                        print(f"❌ Error al eliminar {pdf_name}: {e}")
+                else:
+                    print(f"❌ No se encontró destinatario para {pdf_name}, no se envió ni eliminó.")
+
+            print(f"✅ Proceso de envío finalizado.")
+        else:
+            print("Los PDFs generados no se enviaron por correo.")
+    else:
+        print("No se generaron PDFs.")
 
 if __name__ == "__main__":
     try:
