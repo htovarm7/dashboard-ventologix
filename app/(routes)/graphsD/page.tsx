@@ -15,7 +15,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useAuth0 } from "@auth0/auth0-react";
 import annotationPlugin from "chartjs-plugin-annotation";
 
 // Libraries for charts
@@ -57,7 +58,9 @@ import type {
 } from "@/lib/types";
 
 export default function Main() {
-  // Constant Declarations
+  const { user, getIdTokenClaims, isAuthenticated, isLoading } = useAuth0();
+  const router = useRouter();
+
   const [chartData, setChartData] = useState([0, 0, 0]);
   const [lineChartData, setLineChartData] = useState<(number | null)[]>([]);
   const [lineChartLabels, setLineChartLabels] = useState<string[]>([]);
@@ -70,6 +73,9 @@ export default function Main() {
     null
   );
   const [dayData, setDayData] = useState<dayData | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [clientId, setClientId] = useState<string | null>(null);
 
   const fetchData = useCallback(async (id: string, linea: string) => {
     try {
@@ -77,31 +83,31 @@ export default function Main() {
         await Promise.all([
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/pie-data-proc?id_cliente=${id}&linea=${linea}`
+              `http://127.0.0.1:8080/report/pie-data-proc?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/line-data-proc?id_cliente=${id}&linea=${linea}`
+              `http://127.0.0.1:8080/report/line-data-proc?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/daily-report-data?id_cliente=${id}&linea=${linea}`
+              `http://127.0.0.1:8080/report/daily-report-data?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/client-data?id_cliente=${id}`
+              `http://127.0.0.1:8080/report/client-data?id_cliente=${id}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/compressor-data?id_cliente=${id}&linea=${linea}`
+              `http://127.0.0.1:8080/report/compressor-data?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
@@ -155,12 +161,59 @@ export default function Main() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const id = searchParams.get("id_cliente");
-    const linea = searchParams.get("linea") || "";
-    if (id) {
-      fetchData(id, linea);
+    const verifyAndLoadUser = async () => {
+      if (!isAuthenticated) {
+        router.push("/app");
+        return;
+      }
+
+      if (user?.email) {
+        try {
+          const response = await fetch("/api/verify-user", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email: user.email }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.authorized) {
+            setIsAuthorized(true);
+
+            const claims = await getIdTokenClaims();
+            const id_cliente = claims?.["https://vto.com/id_cliente"];
+
+            if (id_cliente) {
+              setClientId(id_cliente.toString());
+            } else if (data.id_cliente) {
+              setClientId(data.id_cliente.toString());
+            }
+          } else {
+            console.error("Usuario no autorizado:", data.error);
+            router.push("/");
+          }
+        } catch (error) {
+          console.error("Error verificando autorización:", error);
+          router.push("/");
+        }
+      }
+
+      setIsCheckingAuth(false);
+    };
+
+    if (!isLoading) {
+      verifyAndLoadUser();
     }
-  }, [searchParams, fetchData]);
+  }, [isAuthenticated, user, isLoading, router, getIdTokenClaims]);
+
+  useEffect(() => {
+    if (clientId && isAuthorized) {
+      const linea = searchParams.get("linea") || "A";
+      fetchData(clientId, linea);
+    }
+  }, [clientId, isAuthorized, searchParams, fetchData]);
 
   const limite = compressorData?.limite ?? 0;
   const hp_instalado = dayData?.hp_nominal ?? 0;
@@ -395,6 +448,30 @@ export default function Main() {
     }
   }, [lineChartData, chartData]);
 
+  // Verificaciones de carga y autorización
+  if (isLoading || isCheckingAuth) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verificando autorización...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized || !clientId) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600">
+            No autorizado para acceder a esta página
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="relative">
       {/* Here its the top section*/}
@@ -421,6 +498,12 @@ export default function Main() {
           width={300}
           height={100}
         />
+        <h2
+          className="text-2xl font-bold text-blue-700 hover:scale-110 absolute right-0 mr-6"
+          onClick={() => router.push("/home")}
+        >
+          Ir a Inicio
+        </h2>
       </div>
 
       <div className="mt-2 p-4">

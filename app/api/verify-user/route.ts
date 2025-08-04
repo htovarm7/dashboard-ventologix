@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { pool } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,19 +8,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email requerido' }, { status: 400 });
     }
 
-    const [rows] = await pool.query('SELECT id_cliente FROM usuarios_auth WHERE email = ?', [email]);
-    const result = rows as any[];
+    // Llamada al endpoint externo
+    const response = await fetch('https://80734d8d9721.ngrok-free.app/web/verify-email', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-API-Key': process.env.AUTH0_API_KEY || ''
+      },
+      body: JSON.stringify({ email }),
+    });
 
-    if (result && result.length > 0) {
+    const data = await response.json();
+
+    if (response.ok) {
       return NextResponse.json({ 
         authorized: true, 
-        id_cliente: result[0].id_cliente,
+        id_cliente: data.id_cliente,
         status: 'Usuario autorizado' 
       });
     } else {
       return NextResponse.json({ 
         authorized: false,
-        error: 'Email no autorizado' 
+        error: data.detail || data.error || 'Email no autorizado' 
       }, { status: 403 });
     }
   } catch (error) {

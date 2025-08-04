@@ -961,7 +961,7 @@ def verify_email(
         conn.close()
 
         if result:
-            return {"id_cliente": result[0]}
+            return {"authorized": True, "id_cliente": result[0]}
         else:
             raise HTTPException(status_code=403, detail="Email not authorized")
     except Exception as e:

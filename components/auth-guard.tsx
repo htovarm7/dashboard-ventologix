@@ -1,14 +1,18 @@
-"use client";
 import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
 
-const Home = () => {
+interface AuthGuardProps {
+  children: React.ReactNode;
+  onAuthSuccess?: (clientId: string) => void;
+}
+
+const AuthGuard: React.FC<AuthGuardProps> = ({ children, onAuthSuccess }) => {
   const { user, getIdTokenClaims, isAuthenticated, isLoading } = useAuth0();
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+  const [clientId, setClientId] = useState<string | null>(null);
 
   useEffect(() => {
     const verifyAndLoadUser = async () => {
@@ -17,12 +21,7 @@ const Home = () => {
         return;
       }
 
-      if (hasCheckedAuth) {
-        return;
-      }
-
       if (user?.email) {
-        setHasCheckedAuth(true);
         try {
           const response = await fetch("/api/verify-user", {
             method: "POST",
@@ -36,10 +35,23 @@ const Home = () => {
 
           if (response.ok && data.authorized) {
             setIsAuthorized(true);
-
+            
+            // Obtener ID del cliente desde los claims de Auth0
             const claims = await getIdTokenClaims();
             const id_cliente = claims?.["https://vto.com/id_cliente"];
-            console.log("ID Cliente:", id_cliente);
+            
+            let finalClientId: string;
+            if (id_cliente) {
+              finalClientId = id_cliente.toString();
+            } else if (data.id_cliente) {
+              // Fallback: usar el ID del cliente desde la API
+              finalClientId = data.id_cliente.toString();
+            } else {
+              throw new Error("No se pudo obtener el ID del cliente");
+            }
+
+            setClientId(finalClientId);
+            onAuthSuccess?.(finalClientId);
           } else {
             console.error("Usuario no autorizado:", data.error);
             router.push("/");
@@ -53,18 +65,12 @@ const Home = () => {
       setIsCheckingAuth(false);
     };
 
-    if (!isLoading && !hasCheckedAuth) {
+    if (!isLoading) {
       verifyAndLoadUser();
     }
-  }, [
-    isAuthenticated,
-    user,
-    isLoading,
-    router,
-    getIdTokenClaims,
-    hasCheckedAuth,
-  ]);
+  }, [isAuthenticated, user, isLoading, router, getIdTokenClaims, onAuthSuccess]);
 
+  // Pantalla de carga
   if (isLoading || isCheckingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -76,44 +82,19 @@ const Home = () => {
     );
   }
 
-  if (!isAuthorized) {
-    return null;
-  }
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
-      <h1 className="text-center text-5xl mb-8">
-        Bienvenido al Dashboard de Ventologix
-      </h1>
-      {user && (
-        <div className="text-3xl text-center mb-6">
-          <p className="text-black">Correo del Usuario: {user.email}</p>
-          <p className="text-black">Nombre del Usuario: {user.name}</p>
-          <p className="text-black">
-            ID Cliente: {user["https://vto.com/id_cliente"]}
-          </p>
-        </div>
-      )}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+  // Usuario no autorizado
+  if (!isAuthorized || !clientId) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h2
-            className="text-2xl text-blue-600 hover:scale-110 cursor-pointer transition-transform"
-            onClick={() => router.push("/graphsD")}
-          >
-            Reporte Diario
-          </h2>
-        </div>
-        <div className="text-center">
-          <h2
-            className="text-2xl text-green-600 hover:scale-110 cursor-pointer transition-transform"
-            onClick={() => router.push("/graphsW")}
-          >
-            Reporte Semanal
-          </h2>
+          <p className="text-red-600">No autorizado para acceder a esta página</p>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Usuario autorizado - renderizar contenido
+  return <>{children}</>;
 };
 
-export default Home;
+export default AuthGuard;

@@ -16,7 +16,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useAuth0 } from "@auth0/auth0-react";
 import annotationPlugin from "chartjs-plugin-annotation";
 import Image from "next/image";
 import VentoCom from "@/components/vento_com";
@@ -26,6 +27,14 @@ import {
   getColorHp,
   getAnualValue,
 } from "@/lib/reportsFunctions";
+
+import {
+  chartData,
+  consumoData,
+  SummaryData,
+  clientData,
+  compressorData,
+} from "@/lib/types";
 
 // Libraries for charts
 import {
@@ -57,88 +66,31 @@ ChartJS.register(
   ChartDataLabels
 );
 
-/*
-<p className={`text-lg ${getColorClass(summaryData?.comparacion.porcentaje_costo || 0)}`}>
-  {summaryData?.comparacion.porcentaje_costo.toFixed(2) || "0.00"}%
-</p>
-
-*/
-
 export default function Main() {
+  // Auth0 hooks
+  const { user, getIdTokenClaims, isAuthenticated, isLoading } = useAuth0();
+  const router = useRouter();
+
   // Constant Declarations
-  const [chartData, setChartData] = useState([0, 0, 0]);
-  const [consumoData, setConsumoData] = useState({
+  const [chartData, setChartData] = useState<chartData>([0, 0, 0]);
+  const [consumoData, setConsumoData] = useState<consumoData>({
     turno1: new Array(7).fill(0),
     turno2: new Array(7).fill(0),
     turno3: new Array(7).fill(0),
   });
 
-  const [clientData, setClientData] = useState<{
-    numero_cliente: number;
-    nombre_cliente: string;
-    RFC: string;
-    direccion: string;
-    costoUSD: number;
-    demoDiario: boolean;
-    demoSemanal: boolean;
-  } | null>(null);
+  const [clientData, setClientData] = useState<clientData | null>(null);
 
-  const [compressorData, setCompresorData] = useState<{
-    hp: number;
-    tipo: string;
-    voltaje: number;
-    marca: string;
-    numero_serie: number;
-    alias: string;
-    limite: number;
-  } | null>(null);
+  const [compressorData, setCompresorData] = useState<compressorData | null>(
+    null
+  );
 
-  const [summaryData, setSummaryData] = useState<{
-    semana_actual: {
-      total_kWh: number;
-      costo_estimado: number;
-      promedio_ciclos_por_hora: number;
-      promedio_hp_equivalente: number;
-      horas_trabajadas: number;
-    };
-    comparacion: {
-      bloque_A: string;
-      bloque_B: string;
-      bloque_C: string;
-      bloque_D: string;
-      porcentaje_kwh: number;
-      porcentaje_costo: number;
-      porcentaje_ciclos: number;
-      porcentaje_hp: number;
-      porcentaje_horas: number;
-    };
-    comentarios: {
-      comentario_A: string;
-      comentario_B: string;
-      comentario_C: string;
-      comentario_D: string;
-    };
-    detalle_semana_actual: {
-      semana: number;
-      fecha: string;
-      kWh: number;
-      horas_trabajadas: number;
-      kWh_load: number;
-      horas_load: number;
-      kWh_noload: number;
-      horas_noload: number;
-      hp_equivalente: number;
-      conteo_ciclos: number;
-      promedio_ciclos_por_hora: number;
-    }[];
-    promedio_semanas_anteriores: {
-      total_kWh_anteriores: number;
-      costo_estimado: number;
-      promedio_ciclos_por_hora: number;
-      promedio_hp_equivalente: number;
-      horas_trabajadas_anteriores: number;
-    };
-  } | null>(null);
+  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
+
+  // Estados de autorización
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [clientId, setClientId] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
 
@@ -148,31 +100,31 @@ export default function Main() {
         await Promise.all([
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/week/pie-data-proc?id_cliente=${id}&linea=${linea}`
+              `http://127.0.0.1:8080/report/week/pie-data-proc?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/week/shifts?id_cliente=${id}&linea=${linea}`
+              `http://127.0.0.1:8080/report/week/shifts?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/client-data?id_cliente=${id}`
+              `http://127.0.0.1:8080/report/client-data?id_cliente=${id}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/compressor-data?id_cliente=${id}&linea=${linea}`
+              `http://127.0.0.1:8080/report/compressor-data?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/week/summary-general?id_cliente=${id}&linea=${linea}`
+              `http://127.0.0.1:8080/report/week/summary-general?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
@@ -215,13 +167,64 @@ export default function Main() {
     }
   }, []);
 
+  // Verificar autorización y obtener ID del cliente
   useEffect(() => {
-    const id = searchParams.get("id_cliente");
-    const linea = searchParams.get("linea") || "";
-    if (id) {
-      fetchData(id, linea);
+    const verifyAndLoadUser = async () => {
+      if (!isAuthenticated) {
+        router.push("/app");
+        return;
+      }
+
+      if (user?.email) {
+        try {
+          const response = await fetch("/api/verify-user", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email: user.email }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.authorized) {
+            setIsAuthorized(true);
+
+            // Obtener ID del cliente desde los claims de Auth0
+            const claims = await getIdTokenClaims();
+            const id_cliente = claims?.["https://vto.com/id_cliente"];
+
+            if (id_cliente) {
+              setClientId(id_cliente.toString());
+            } else if (data.id_cliente) {
+              // Fallback: usar el ID del cliente desde la API
+              setClientId(data.id_cliente.toString());
+            }
+          } else {
+            console.error("Usuario no autorizado:", data.error);
+            router.push("/");
+          }
+        } catch (error) {
+          console.error("Error verificando autorización:", error);
+          router.push("/");
+        }
+      }
+
+      setIsCheckingAuth(false);
+    };
+
+    if (!isLoading) {
+      verifyAndLoadUser();
     }
-  }, [searchParams, fetchData]);
+  }, [isAuthenticated, user, isLoading, router, getIdTokenClaims]);
+
+  // Cargar datos una vez que tenemos el ID del cliente
+  useEffect(() => {
+    if (clientId && isAuthorized) {
+      const linea = searchParams.get("linea") || "A"; // Default a línea A
+      fetchData(clientId, linea);
+    }
+  }, [clientId, isAuthorized, searchParams, fetchData]);
 
   const diasSemana = [
     "Lunes",
@@ -879,6 +882,30 @@ export default function Main() {
 
   const semanaNumero = getISOWeekNumber(lastMonday);
 
+  // Verificaciones de carga y autorización
+  if (isLoading || isCheckingAuth) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verificando autorización...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized || !clientId) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600">
+            No autorizado para acceder a esta página
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="relative">
       <div className="w-full min-w-full bg-gradient-to-r from-indigo-950 to-blue-400 text-white p-6">
@@ -895,6 +922,12 @@ export default function Main() {
               {fechaInicio} al {fechaFin}
             </p>
           </div>
+          <h2
+            className="text-2xl font-bold text-blue-700 hover:scale-110 absolute left-2 ml-6"
+            onClick={() => router.push("/home")}
+          >
+            Ir a Inicio
+          </h2>
 
           {/* Right Column: Logo and data */}
           <div className="flex flex-col items-end">
