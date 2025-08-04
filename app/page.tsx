@@ -10,14 +10,43 @@ export default function Page() {
     useAuth0();
   const router = useRouter();
   const [accessDenied, setAccessDenied] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push("/home");
+    if (isAuthenticated && user?.email && !isCheckingAuth) {
+      setIsCheckingAuth(true);
+      verifyUserAuthorization(user.email);
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, user, isCheckingAuth]);
 
-  if (isLoading) {
+  const verifyUserAuthorization = async (email: string) => {
+    try {
+      const response = await fetch("/api/verify-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.authorized) {
+        // Usuario autorizado, redirigir a home
+        router.push("/home");
+      } else {
+        // Usuario no autorizado
+        setAccessDenied(true);
+        setIsCheckingAuth(false);
+      }
+    } catch (error) {
+      console.error("Error verificando autorización:", error);
+      setAccessDenied(true);
+      setIsCheckingAuth(false);
+    }
+  };
+
+  if (isLoading || isCheckingAuth) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-blue-600">
         <Image
@@ -35,8 +64,10 @@ export default function Page() {
     );
   }
 
-  if (error) {
-    const errorDetails = `Hola Hector,%0D%0A%0D%0AEstoy intentando acceder al Dashboard de Ventologix pero no tengo autorización.%0D%0A%0D%0APor favor, podrías autorizar mi acceso al sistema.%0D%0A%0D%0AGracias,%0D%0A[Tu nombre]`;
+  if (error || accessDenied) {
+    const errorDetails = `Hola Hector,%0D%0A%0D%0AEstoy intentando acceder al Dashboard de Ventologix pero no tengo autorización.%0D%0A%0D%0AMi correo electrónico es: ${
+      user?.email || "No disponible"
+    }%0D%0A%0D%0APor favor, podrías autorizar mi acceso al sistema.%0D%0A%0D%0AGracias,%0D%0A[Tu nombre]`;
 
     const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&to=hector.tovar@ventologix.com&su=${encodeURIComponent(
       "Solicitud de autorización de acceso"
@@ -50,6 +81,11 @@ export default function Page() {
             <p className="text-lg mb-4">
               Lo sentimos, no estás autorizado para acceder a esta aplicación.
             </p>
+            {user?.email && (
+              <p className="text-sm mb-4 bg-red-800 p-2 rounded">
+                Correo: {user.email}
+              </p>
+            )}
             <p className="mb-4">
               Para solicitar acceso al Dashboard de Ventologix, por favor
               contacta al administrador.
@@ -69,33 +105,19 @@ export default function Page() {
             <div className="block">
               <button
                 className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-400 transition-colors"
-                onClick={() => (window.location.href = "/")}
+                onClick={() => {
+                  setAccessDenied(false);
+                  setIsCheckingAuth(false);
+                  logout({
+                    logoutParams: { returnTo: window.location.origin },
+                  });
+                }}
               >
-                🔄 Reintentar
+                🔄 Cerrar sesión y reintentar
               </button>
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  if (accessDenied) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-red-600 text-white p-8">
-        <h1 className="text-4xl font-bold mb-4">Acceso Denegado</h1>
-        <p className="mb-6">
-          Tu correo no está autorizado para ingresar a esta aplicación.
-        </p>
-        <button
-          className="bg-white text-red-600 px-4 py-2 rounded"
-          onClick={() => {
-            setAccessDenied(false);
-            logout({ logoutParams: { returnTo: window.location.origin } });
-          }}
-        >
-          Volver a Intentar
-        </button>
       </div>
     );
   }

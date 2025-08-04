@@ -11,13 +11,6 @@ interface AuthProviderProps {
 export default function AuthProvider({ children }: AuthProviderProps) {
   const router = useRouter();
 
-  // Debug de configuración
-  console.log("Auth0 Config:", {
-    domain: process.env.NEXT_PUBLIC_AUTH0_DOMAIN,
-    clientId: process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID,
-    hasValidConfig: !!(process.env.NEXT_PUBLIC_AUTH0_DOMAIN && process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID)
-  });
-
   return (
     <Auth0Provider
       domain={process.env.NEXT_PUBLIC_AUTH0_DOMAIN || ""}
