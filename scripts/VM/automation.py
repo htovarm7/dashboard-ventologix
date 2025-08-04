@@ -224,12 +224,42 @@ def send_mail(recipient_config: dict, pdf_file_path: str):
 
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as smtp:
-            smtp.starttls()
+            smtp.starttls()  
             smtp.login(SMTP_FROM, SMTP_PASSWORD)
             smtp.send_message(msg, to_addrs=[*msg['To'].split(','), *msg.get('Cc', '').split(','), *bcc])
         print(f"Correo enviado a {msg['To']}")
     except Exception as e:
         print(f"Error al enviar correo: {e}")
+
+# def send_mail_Test(pdf_file_paths: list):
+#     msg = EmailMessage()
+#     msg['From'] = f"{ALIAS_NAME} <{FROM_ADDRESS}>"
+#     msg['To'] = "andres.mirazo@ventologix.com"
+#     msg['Subject'] = "Estos son los PDFs que se generarán mañana"
+
+#     body = "<p>Estos son los PDFs que se generarán mañana:</p><ul>"
+#     for pdf_path in pdf_file_paths:
+#         body += f"<li>{os.path.basename(pdf_path)}</li>"
+#     body += "</ul><br>VTO logix<br><a href='mailto:vto@ventologix.com'>vto@ventologix.com</a><br><a href='https://www.ventologix.com'>www.ventologix.com</a><br>"
+
+#     msg.set_content("Este mensaje requiere un cliente con soporte HTML.")
+#     msg.add_alternative(body, subtype='html')
+
+#     # Adjuntar PDFs
+#     for pdf_path in pdf_file_paths:
+#         if os.path.isfile(pdf_path):
+#             with open(pdf_path, 'rb') as pdf:
+#                 pdf_data = pdf.read()
+#                 msg.add_attachment(pdf_data, maintype='application', subtype='pdf', filename=os.path.basename(pdf_path))
+
+#     try:
+#         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as smtp:
+#             smtp.starttls()
+#             smtp.login(SMTP_FROM, SMTP_PASSWORD)
+#             smtp.send_message(msg)
+#         print("Correo enviado a andres.mirazo@ventologix.com")
+#     except Exception as e:
+#         print(f"Error al enviar correo: {e}")
 
 def send_error_mail(missing_files: list, admin_emails: list):
     if not missing_files:
@@ -339,12 +369,44 @@ def enviar_por_recipients(config: dict, seccion: str):
     if missing_files:
         send_error_mail(missing_files, ADMIN_CORREOS)
 
+# def enviar_por_recipients(config: dict, seccion: str):
+#     """
+#     - seccion: 'diarios' | 'semanales'
+#     - Usa config['diarios'] o config['semanales'].
+#     - Reemplaza {fecha} en 'fileName' según reglas del tipo.
+#     """
+#     missing_files = []
+
+#     # Construcción del valor {fecha} esperado por recipients.json
+#     for recipient in config.get(seccion, []):
+#         archivos = recipient.get('files', [])
+#         for file_cfg in archivos:
+#             date_offset = int(file_cfg.get('dateOffset', -1 if seccion == 'diarios' else 0))
+#             if seccion == "diarios":
+#                 etiqueta = etiqueta_fecha_diaria(FECHA_HOY, date_offset)
+#             else:
+#                 etiqueta = etiqueta_fecha_semanal(FECHA_HOY, date_offset)
+
+#             pdf_name = file_cfg['fileName'].replace("{fecha}", etiqueta) + ".pdf"
+#             pdf_path = os.path.join(DOWNLOADS_FOLDER, pdf_name)
+
+#             if os.path.isfile(pdf_path):
+#                 send_mail_Test(pdf_path)
+#                 try:
+#                     os.remove(pdf_path)
+#                 except Exception as e:
+#                     print(f"No se pudo eliminar {pdf_name}: {e}")
+#             else:
+#                 print(f"No se encontró archivo esperado: {pdf_name}")
+#                 missing_files.append(pdf_name)
+
+#     if missing_files:
+#         send_error_mail(missing_files, ADMIN_CORREOS)
+
 
 def main():
     os.makedirs(DOWNLOADS_FOLDER, exist_ok=True)
     inicio_total = time.time()
-
-    print("SMTP_PASSWORD presente:", bool(SMTP_PASSWORD))
 
     # Carga recipients y clientes
     recipients_cfg = cargar_recipients()
