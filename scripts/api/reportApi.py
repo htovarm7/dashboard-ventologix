@@ -41,7 +41,7 @@ report = APIRouter(prefix="/report", tags=["report"])
 DB_HOST = os.getenv("DB_HOST")
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_NAME = os.getenv("DB_NAME")
+DB_DATABASE = os.getenv("DB_DATABASE")
 
 # Daily endpoints
 @report.get("/pie-data-proc", tags=["daily"])
@@ -52,7 +52,7 @@ def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente")
             host=DB_HOST,
             user=DB_USER,
             password=DB_PASSWORD,
-            database=DB_NAME
+            database=DB_DATABASE
         )
         cursor = conn.cursor()
 
@@ -102,7 +102,7 @@ def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), li
             host=DB_HOST,
             user=DB_USER,
             password=DB_PASSWORD,
-            database=DB_NAME
+            database=DB_DATABASE
         )
         cursor = conn.cursor()
 
@@ -169,7 +169,7 @@ def get_daily_report(id_cliente: int = Query(..., description="ID del cliente"),
             host=DB_HOST,
             user=DB_USER,
             password=DB_PASSWORD,
-            database=DB_NAME
+            database=DB_DATABASE
         )
         cursor = conn.cursor()
 
@@ -268,7 +268,7 @@ def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente")
             host=DB_HOST,
             user=DB_USER,
             password=DB_PASSWORD,
-            database=DB_NAME
+            database=DB_DATABASE
         )
         cursor = conn.cursor()
 
@@ -318,7 +318,7 @@ def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), li
             host=DB_HOST,
             user=DB_USER,
             password=DB_PASSWORD,
-            database=DB_NAME
+            database=DB_DATABASE
         )
         cursor = conn.cursor()
 
@@ -384,7 +384,7 @@ def get_day_report(id_cliente: int = Query(..., description="ID del cliente"), l
             host=DB_HOST,
             user=DB_USER,
             password=DB_PASSWORD,
-            database=DB_NAME
+            database=DB_DATABASE
         )
         cursor = conn.cursor()
 
@@ -473,7 +473,7 @@ def get_pie_data_proc_weekly(id_cliente: int = Query(..., description="ID del cl
             host=DB_HOST,
             user=DB_USER,
             password=DB_PASSWORD,
-            database=DB_NAME
+            database=DB_DATABASE
         )
         cursor = conn.cursor()
 
@@ -521,7 +521,7 @@ def get_shifts(id_cliente: int = Query(..., description="ID del cliente"), linea
             host=DB_HOST,
             user=DB_USER,
             password=DB_PASSWORD,
-            database=DB_NAME
+            database=DB_DATABASE
         )
         cursor = conn.cursor()
 
@@ -560,7 +560,7 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
             host=DB_HOST,
             user=DB_USER,
             password=DB_PASSWORD,
-            database=DB_NAME
+            database=DB_DATABASE
         )
         cursor = conn.cursor()
 
@@ -786,7 +786,7 @@ def get_client_data(id_cliente: int = Query(..., description="ID del cliente")):
             host=DB_HOST,
             user=DB_USER,
             password=DB_PASSWORD,
-            database=DB_NAME
+            database=DB_DATABASE
         )
         cursor = conn.cursor()
 
@@ -819,7 +819,7 @@ def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente
             host=DB_HOST,
             user=DB_USER,
             password=DB_PASSWORD,
-            database=DB_NAME
+            database=DB_DATABASE
         )
         cursor = conn.cursor()
 
@@ -852,7 +852,7 @@ def get_clients_data():
             host=DB_HOST,
             user=DB_USER,
             password=DB_PASSWORD,
-            database=DB_NAME
+            database=DB_DATABASE
         )
         cursor = conn.cursor()
 
@@ -901,7 +901,7 @@ def get_all_clients_data():
             host=DB_HOST,
             user=DB_USER,
             password=DB_PASSWORD,
-            database=DB_NAME
+            database=DB_DATABASE
         )
         cursor = conn.cursor()
 
