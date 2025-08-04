@@ -1,7 +1,11 @@
 {
   "diarios": [
     {
-      "email": ["Emilio.alvarado@alltansa.com", "Ingenieria@alltansa.com", "agarza@alltansa.com"],
+      "email": [
+        "Emilio.alvarado@alltansa.com",
+        "Ingenieria@alltansa.com",
+        "agarza@alltansa.com"
+      ],
       "cc": ["octavio.murillo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
@@ -14,7 +18,11 @@
       ]
     },
     {
-      "email": ["peter@powerpaintsolutions.com", "Gerencia@powerpaintsolutions.com", "Emilio@powerpaintsolutions.com"],
+      "email": [
+        "peter@powerpaintsolutions.com",
+        "Gerencia@powerpaintsolutions.com",
+        "Emilio@powerpaintsolutions.com"
+      ],
       "cc": ["octavio.murillo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
@@ -27,7 +35,11 @@
       ]
     },
     {
-      "email": ["peter@powerpaintsolutions.com", "Gerencia@powerpaintsolutions.com", "Emilio@powerpaintsolutions.com"],
+      "email": [
+        "peter@powerpaintsolutions.com",
+        "Gerencia@powerpaintsolutions.com",
+        "Emilio@powerpaintsolutions.com"
+      ],
       "cc": ["octavio.murillo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
@@ -66,7 +78,7 @@
       ]
     },
     {
-      "email": ["amirelesh@bertran.com.mx","jsamaniegog@manttragimsa.com.mx"],
+      "email": ["amirelesh@bertran.com.mx", "jsamaniegog@manttragimsa.com.mx"],
       "cc": ["octavio.murillo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
@@ -79,7 +91,7 @@
       ]
     },
     {
-      "email": ["amirelesh@bertran.com.mx","jsamaniegog@manttragimsa.com.mx"],
+      "email": ["amirelesh@bertran.com.mx", "jsamaniegog@manttragimsa.com.mx"],
       "cc": ["octavio.murillo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
@@ -92,7 +104,10 @@
       ]
     },
     {
-      "email": ["lmerjil@calidra.com.mx","rhernandezl@calidra.com.mx, rmolina@calidra.com.mx, pnavarro@calidra.com.mx"],
+      "email": [
+        "lmerjil@calidra.com.mx",
+        "rhernandezl@calidra.com.mx, rmolina@calidra.com.mx, pnavarro@calidra.com.mx"
+      ],
       "cc": ["octavio.murillo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
@@ -105,7 +120,10 @@
       ]
     },
     {
-      "email": ["lmerjil@calidra.com.mx","rhernandezl@calidra.com.mx, rmolina@calidra.com.mx, pnavarro@calidra.com.mx"],
+      "email": [
+        "lmerjil@calidra.com.mx",
+        "rhernandezl@calidra.com.mx, rmolina@calidra.com.mx, pnavarro@calidra.com.mx"
+      ],
       "cc": ["octavio.murillo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
@@ -144,7 +162,10 @@
       ]
     },
     {
-      "email": ["andres.mirazo@ventologix.com", "octavio.murillo@ventologix.com"],
+      "email": [
+        "andres.mirazo@ventologix.com",
+        "octavio.murillo@ventologix.com"
+      ],
       "cc": [""],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
@@ -157,7 +178,10 @@
       ]
     },
     {
-      "email": ["andres.mirazo@ventologix.com", "octavio.murillo@ventologix.com"],
+      "email": [
+        "andres.mirazo@ventologix.com",
+        "octavio.murillo@ventologix.com"
+      ],
       "cc": [""],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
@@ -170,33 +194,44 @@
       ]
     },
     {
-      "email": ["leobardo.garcia@impac.com.mx", "ismael.rodriguez@impac.com.mx", "sergio.ortiz@impac.com.mx"],
+      "email": [
+        "leobardo.garcia@impac.com.mx",
+        "ismael.rodriguez@impac.com.mx",
+        "sergio.ortiz@impac.com.mx"
+      ],
       "cc": ["octavio.murillo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
       "emailBody": "<p>Estimado Ing. Leobardo :</p><p>Soy <strong>VTO 0019</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>'Compresor 1'</strong> instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
       "files": [
         {
-            "fileName": "Reporte Diario Impac Compresor 1 {fecha}",
+          "fileName": "Reporte Diario Impac (75hp) {fecha}",
           "dateOffset": -1
         }
       ]
     },
     {
-      "email": ["leobardo.garcia@impac.com.mx", "ismael.rodriguez@impac.com.mx", "sergio.ortiz@impac.com.mx"],
+      "email": [
+        "leobardo.garcia@impac.com.mx",
+        "ismael.rodriguez@impac.com.mx",
+        "sergio.ortiz@impac.com.mx"
+      ],
       "cc": ["octavio.murillo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
       "emailBody": "<p>Estimado Ing. Leobardo :</p><p>Soy <strong>VTO 0020</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>'Compresor 2'</strong> instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
       "files": [
         {
-          "fileName": "Reporte Diario Impac Compresor 2 {fecha}",
+          "fileName": "Reporte Diario Impac (100hp) {fecha}",
           "dateOffset": -1
         }
       ]
     },
     {
-      "email": ["andres.mirazo@ventologix.com", "octavio.murillo@ventologix.com"],
+      "email": [
+        "andres.mirazo@ventologix.com",
+        "octavio.murillo@ventologix.com"
+      ],
       "cc": [],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
@@ -221,42 +256,105 @@
       ]
     }
   ],
-  "semanales":[
+  "semanales": [
     {
-      "email": ["Emilio.alvarado@alltansa.com", "Ingenieria@alltansa.com", "agarza@alltansa.com"],
+      "email": [
+        "Emilio.alvarado@alltansa.com",
+        "Ingenieria@alltansa.com",
+        "agarza@alltansa.com"
+      ],
       "cc": ["octavio.murillo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Semanal VENTOLOGIX",
       "emailBody": "<p>Estimado Ing. Marco :</p><p>Soy <strong>VTO 001</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>Primario</strong> instalado en su planta, del cual anexo el <strong>reporte Semanal</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
       "files": [
         {
-          "fileName": "Reporte Semanal {nombre_cliente} {alias} {fecha_str} ({rango})",
+          "fileName": "Reporte Semanal Altansa {alias} {fecha_str} ({rango})",
           "dateOffset": -1
         }
       ]
     },
     {
-      "email": ["lmerjil@calidra.com.mx","rhernandezl@calidra.com.mx", "rmolina@calidra.com.mx", "pnavarro@calidra.com.mx"],
+      "email": [
+        "lmerjil@calidra.com.mx",
+        "rhernandezl@calidra.com.mx",
+        "rmolina@calidra.com.mx",
+        "pnavarro@calidra.com.mx"
+      ],
       "cc": ["octavio.murillo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Semanal VENTOLOGIX",
       "emailBody": "<p>Estimado Ing. Raymond Hernandez:</p><p>Soy <strong>VTO 010</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>'Compresor 1'</strong> instalado en su planta, del cual anexo el <strong>reporte SEMANAL</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
       "files": [
         {
-          "fileName": "Reporte Semanal {nombre_cliente} {alias} {fecha_str} ({rango})",
+          "fileName": "Reporte Semanal Calidra {alias} {fecha_str} ({rango})",
           "dateOffset": -1
         }
       ]
     },
     {
-      "email": ["lmerjil@calidra.com.mx","rhernandezl@calidra.com.mx, rmolina@calidra.com.mx, pnavarro@calidra.com.mx"],
+      "email": [
+        "lmerjil@calidra.com.mx",
+        "rhernandezl@calidra.com.mx, rmolina@calidra.com.mx, pnavarro@calidra.com.mx"
+      ],
       "cc": ["octavio.murillo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Semanal VENTOLOGIX",
       "emailBody": "<p>Estimado Ing. Raymond Hernandez :</p><p>Soy <strong>VTO 0011</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>'Compresor 2'</strong> instalado en su planta, del cual anexo el <strong>reporte Semanal</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
       "files": [
         {
-          "fileName": "Reporte Semanal {nombre_cliente} {alias} {fecha_str} ({rango})",
+          "fileName": "Reporte Semanal Calidra {alias} {fecha_str} ({rango})",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["andres.mirazo@ventologix.com"],
+      "cc": ["octavio.murillo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Semanal VENTOLOGIX",
+      "emailBody": "<p> Reporte semanal de Impac </p>",
+      "files": [
+        {
+          "fileName": "Reporte Semanal Impac (75hp) {fecha_str} ({rango})",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["andres.mirazo@ventologix.com"],
+      "cc": ["octavio.murillo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Semanal VENTOLOGIX",
+      "emailBody": "<p> Reporte semanal de Impac </p>",
+      "files": [
+        {
+          "fileName": "Reporte Semanal Impac (100hp) {fecha_str} ({rango})",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["andres.mirazo@ventologix.com"],
+      "cc": ["octavio.murillo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Semanal VENTOLOGIX",
+      "emailBody": "<p> Reportes semanales de Daltile </p>",
+      "files": [
+        {
+          "fileName": "Reporte Semanal Daltile ACM-0006 {fecha_str} ({rango})",
+          "dateOffset": -1
+        },
+        {
+          "fileName": "Reporte Semanal Daltile ACM-0005 {fecha_str} ({rango})",
+          "dateOffset": -1
+        },
+        {
+          "fileName": "Reporte Semanal Daltile ACM-0002 {fecha_str} ({rango})",
+          "dateOffset": -1
+        },
+        {
+          "fileName": "Reporte Semanal Daltile ACM-0004 {fecha_str} ({rango})",
           "dateOffset": -1
         }
       ]
