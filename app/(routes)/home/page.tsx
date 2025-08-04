@@ -102,8 +102,7 @@ const Home = () => {
             </div>
           )}
           <p className="text-center mb-6 text-xl">
-            Aqui podra revisar sus reportes Diarios, diarios por fecha y
-            semanales
+            Aqui podra revisar sus reportes diarios y semanales
           </p>
 
           {/* Menús dropdown con hover */}
@@ -161,10 +160,10 @@ const Home = () => {
 
             {/* Reporte Semanal */}
             <div className="relative text-center group">
-              <h2 className="text-2xl text-green-600 hover:scale-110 cursor-pointer transition-transform flex items-center justify-center gap-2">
+              <h2 className="text-2xl text-[rgb(0,32,91)] hover:scale-110 cursor-pointer transition-transform flex items-center justify-center gap-2">
                 Reporte Semanal
                 <svg
-                  className="w-4 h-4 text-green-400"
+                  className="w-4 h-4 text-[rgb(4,48,130)]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
