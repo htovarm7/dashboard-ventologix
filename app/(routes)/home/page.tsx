@@ -9,6 +9,8 @@ const Home = () => {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+  const [compresores, setCompresores] = useState<any[]>([]);
+  const [numeroCliente, setNumeroCliente] = useState<number | null>(null);
 
   useEffect(() => {
     const verifyAndLoadUser = async () => {
@@ -33,13 +35,15 @@ const Home = () => {
           });
 
           const data = await response.json();
+          console.log("Respuesta completa del API:", data);
 
           if (response.ok && data.authorized) {
             setIsAuthorized(true);
+            setCompresores(data.compresores || []);
+            setNumeroCliente(data.numero_cliente);
 
-            const claims = await getIdTokenClaims();
-            const id_cliente = claims?.["https://vto.com/id_cliente"];
-            console.log("ID Cliente:", id_cliente);
+            console.log("Número Cliente:", data.numero_cliente);
+            console.log("Compresores disponibles:", data.compresores);
           } else {
             console.error("Usuario no autorizado:", data.error);
             router.push("/");
@@ -48,12 +52,15 @@ const Home = () => {
           console.error("Error verificando autorización:", error);
           router.push("/");
         }
+      } else {
+        console.log("No hay email de usuario disponible");
       }
 
       setIsCheckingAuth(false);
     };
 
     if (!isLoading && !hasCheckedAuth) {
+      console.log("Iniciando verificación de usuario...");
       verifyAndLoadUser();
     }
   }, [
@@ -90,28 +97,123 @@ const Home = () => {
           <p className="text-black">Correo del Usuario: {user.email}</p>
           <p className="text-black">Nombre del Usuario: {user.name}</p>
           <p className="text-black">
-            ID Cliente: {user["https://vto.com/id_cliente"]}
+            Número Cliente: {numeroCliente || "Cargando..."}
           </p>
         </div>
       )}
+
+      {/* Menús dropdown con hover */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
-        <div className="text-center">
-          <h2
-            className="text-2xl text-blue-600 hover:scale-110 cursor-pointer transition-transform"
-            onClick={() => router.push("/graphsD")}
-          >
+        {/* Reporte Diario */}
+        <div className="relative text-center group">
+          <h2 className="text-2xl text-blue-600 hover:scale-110 cursor-pointer transition-transform flex items-center justify-center gap-2">
             Reporte Diario
+            <svg
+              className="w-4 h-4 text-blue-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
           </h2>
+          {compresores.length > 0 && (
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-10">
+              <div className="py-2">
+                <div className="px-3 py-2 text-xs text-gray-500 font-medium uppercase tracking-wide border-b border-gray-100">
+                  Seleccionar Compresor
+                </div>
+                {compresores.map((compresor) => (
+                  <button
+                    key={`diario-${compresor.id_cliente}-${compresor.linea}`}
+                    onClick={() => {
+                      // Guardar datos en sessionStorage para ocultar parámetros de URL
+                      sessionStorage.setItem(
+                        "selectedCompresor",
+                        JSON.stringify({
+                          id_cliente: compresor.id_cliente,
+                          linea: compresor.linea,
+                          alias: compresor.alias,
+                        })
+                      );
+                      router.push("/graphsD");
+                    }}
+                    className="block w-full px-4 py-3 text-left text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors border-b border-gray-50 last:border-b-0"
+                  >
+                    <div className="font-medium text-center">
+                      {compresor.alias}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-        <div className="text-center">
-          <h2
-            className="text-2xl text-green-600 hover:scale-110 cursor-pointer transition-transform"
-            onClick={() => router.push("/graphsW")}
-          >
+
+        {/* Reporte Semanal */}
+        <div className="relative text-center group">
+          <h2 className="text-2xl text-green-600 hover:scale-110 cursor-pointer transition-transform flex items-center justify-center gap-2">
             Reporte Semanal
+            <svg
+              className="w-4 h-4 text-green-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
           </h2>
+          {compresores.length > 0 && (
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-10">
+              <div className="py-2">
+                <div className="px-3 py-2 text-xs text-gray-500 font-medium uppercase tracking-wide border-b border-gray-100">
+                  Seleccionar Compresor
+                </div>
+                {compresores.map((compresor) => (
+                  <button
+                    key={`semanal-${compresor.id_cliente}-${compresor.linea}`}
+                    onClick={() => {
+                      sessionStorage.setItem(
+                        "selectedCompresor",
+                        JSON.stringify({
+                          id_cliente: compresor.id_cliente,
+                          linea: compresor.linea,
+                          alias: compresor.alias,
+                        })
+                      );
+                      router.push("/graphsW");
+                    }}
+                    className="block w-full px-4 py-3 text-left text-gray-700 hover:bg-green-50 hover:text-green-600 transition-colors border-b border-gray-50 last:border-b-0"
+                  >
+                    <div className="font-medium text-center">
+                      {compresor.alias}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Mensaje si no hay compresores */}
+      {compresores.length === 0 && isAuthorized && (
+        <div className="mt-8 text-center">
+          <p className="text-gray-600">
+            No hay compresores disponibles para este usuario
+          </p>
+        </div>
+      )}
     </div>
   );
 };

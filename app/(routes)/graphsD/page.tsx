@@ -76,6 +76,7 @@ export default function Main() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [clientId, setClientId] = useState<string | null>(null);
+  const [compresorAlias, setCompresorAlias] = useState<string>("");
 
   const fetchData = useCallback(async (id: string, linea: string) => {
     try {
@@ -181,15 +182,6 @@ export default function Main() {
 
           if (response.ok && data.authorized) {
             setIsAuthorized(true);
-
-            const claims = await getIdTokenClaims();
-            const id_cliente = claims?.["https://vto.com/id_cliente"];
-
-            if (id_cliente) {
-              setClientId(id_cliente.toString());
-            } else if (data.id_cliente) {
-              setClientId(data.id_cliente.toString());
-            }
           } else {
             console.error("Usuario no autorizado:", data.error);
             router.push("/");
@@ -208,13 +200,36 @@ export default function Main() {
     }
   }, [isAuthenticated, user, isLoading, router, getIdTokenClaims]);
 
+  // Cargar datos una vez que tenemos autorización
   useEffect(() => {
-    if (clientId && isAuthorized) {
-      const linea = searchParams.get("linea") || "A";
-      fetchData(clientId, linea);
-    }
-  }, [clientId, isAuthorized, searchParams, fetchData]);
+    if (isAuthorized) {
+      // Intentar obtener datos de sessionStorage primero
+      const savedCompresor = sessionStorage.getItem("selectedCompresor");
+      let id_cliente, linea;
 
+      if (savedCompresor) {
+        const compresorData = JSON.parse(savedCompresor);
+        id_cliente = compresorData.id_cliente.toString();
+        linea = compresorData.linea;
+        setCompresorAlias(
+          compresorData.alias || `Compresor ${id_cliente}-${linea}`
+        );
+      } else {
+        // Fallback a parámetros de URL si no hay datos en sessionStorage
+        id_cliente = searchParams.get("id_cliente");
+        linea = searchParams.get("linea") || "A";
+        setCompresorAlias(`Compresor ${id_cliente}-${linea}`);
+      }
+
+      if (id_cliente) {
+        setClientId(id_cliente);
+        fetchData(id_cliente, linea);
+      } else {
+        console.error("No se encontró información del compresor");
+        router.push("/home");
+      }
+    }
+  }, [isAuthorized, searchParams, fetchData, router]);
   const limite = compressorData?.limite ?? 0;
   const hp_instalado = dayData?.hp_nominal ?? 0;
   const hp_equivalente = dayData?.hp_equivalente ?? 0;
@@ -460,7 +475,7 @@ export default function Main() {
     );
   }
 
-  if (!isAuthorized || !clientId) {
+  if (!isAuthorized) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -474,11 +489,34 @@ export default function Main() {
 
   return (
     <main className="relative">
+      {/* Botón volver */}
+      <div className="absolute top-4 left-4 z-10">
+        <button
+          onClick={() => router.push("/home")}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          Volver
+        </button>
+      </div>
+
       {/* Here its the top section*/}
       <div className="flex flex-col items-center mb-2">
         <h1 className="text-4xl font-bold text-center">Reporte Diario</h1>
         <h2 className="text-4xl font-bold text-center">
-          {compressorData?.alias}
+          {compresorAlias || compressorData?.alias}
         </h2>
         <h3 className="text-3xl font-bold text-center">
           Fecha:{" "}

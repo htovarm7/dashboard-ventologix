@@ -134,12 +134,19 @@ def main():
     alias = cliente['alias'].strip()
     linea = input(f"Ingrese la línea para {nombre_cliente} (valor por defecto: {cliente['linea']}): ") or cliente['linea']
 
+    fecha_reporte = input("Ingrese la fecha del reporte (YYYY-MM-DD): ")
     try:
-        print(f"\n🕒 Generando y enviando PDF para {nombre_cliente}...")
+        datetime.strptime(fecha_reporte, "%Y-%m-%d")
+    except ValueError:
+        print("Fecha inválida. Debe tener formato YYYY-MM-DD.")
+        return
+
+    try:
+        print(f"\n🕒 Generando y enviando PDF para {nombre_cliente} en fecha {fecha_reporte}...")
         inicio = time.time()
 
-        pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo)
-        send_mail(pdf_path, nombre_cliente, tipo)
+        pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, fecha_reporte)
+        send_mail(pdf_path, nombre_cliente, fecha_reporte)
         os.remove(pdf_path)
 
         fin = time.time()

@@ -91,6 +91,7 @@ export default function Main() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [clientId, setClientId] = useState<string | null>(null);
+  const [compresorAlias, setCompresorAlias] = useState<string>("");
 
   const searchParams = useSearchParams();
 
@@ -189,17 +190,6 @@ export default function Main() {
 
           if (response.ok && data.authorized) {
             setIsAuthorized(true);
-
-            // Obtener ID del cliente desde los claims de Auth0
-            const claims = await getIdTokenClaims();
-            const id_cliente = claims?.["https://vto.com/id_cliente"];
-
-            if (id_cliente) {
-              setClientId(id_cliente.toString());
-            } else if (data.id_cliente) {
-              // Fallback: usar el ID del cliente desde la API
-              setClientId(data.id_cliente.toString());
-            }
           } else {
             console.error("Usuario no autorizado:", data.error);
             router.push("/");
@@ -218,14 +208,36 @@ export default function Main() {
     }
   }, [isAuthenticated, user, isLoading, router, getIdTokenClaims]);
 
-  // Cargar datos una vez que tenemos el ID del cliente
+  // Cargar datos una vez que tenemos autorización
   useEffect(() => {
-    if (clientId && isAuthorized) {
-      const linea = searchParams.get("linea") || "A"; // Default a línea A
-      fetchData(clientId, linea);
-    }
-  }, [clientId, isAuthorized, searchParams, fetchData]);
+    if (isAuthorized) {
+      // Intentar obtener datos de sessionStorage primero
+      const savedCompresor = sessionStorage.getItem("selectedCompresor");
+      let id_cliente, linea;
 
+      if (savedCompresor) {
+        const compresorData = JSON.parse(savedCompresor);
+        id_cliente = compresorData.id_cliente.toString();
+        linea = compresorData.linea;
+        setCompresorAlias(
+          compresorData.alias || `Compresor ${id_cliente}-${linea}`
+        );
+      } else {
+        // Fallback a parámetros de URL si no hay datos en sessionStorage
+        id_cliente = searchParams.get("id_cliente");
+        linea = searchParams.get("linea") || "A";
+        setCompresorAlias(`Compresor ${id_cliente}-${linea}`);
+      }
+
+      if (id_cliente) {
+        setClientId(id_cliente);
+        fetchData(id_cliente, linea);
+      } else {
+        console.error("No se encontró información del compresor");
+        router.push("/home");
+      }
+    }
+  }, [isAuthorized, searchParams, fetchData, router]);
   const diasSemana = [
     "Lunes",
     "Martes",
@@ -894,7 +906,7 @@ export default function Main() {
     );
   }
 
-  if (!isAuthorized || !clientId) {
+  if (!isAuthorized) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -908,6 +920,29 @@ export default function Main() {
 
   return (
     <main className="relative">
+      {/* Botón volver */}
+      <div className="absolute top-4 left-4 z-20">
+        <button
+          onClick={() => router.push("/home")}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          Volver
+        </button>
+      </div>
+
       <div className="w-full min-w-full bg-gradient-to-r from-indigo-950 to-blue-400 text-white p-6">
         {/* Main docker on rows */}
         <div className="flex justify-between items-start">
@@ -915,7 +950,7 @@ export default function Main() {
           <div className="flex-1 mr-60 p-6 ">
             <h1 className="text-4xl font-light text-center">Reporte Semanal</h1>
             <h2 className="text-3xl font-bold text-center">
-              Compresor: {compressorData?.alias}
+              Compresor: {compresorAlias || compressorData?.alias}
             </h2>
             <p className="text-xl text-center">
               <span className="font-bold">Semana {semanaNumero}:</span>{" "}

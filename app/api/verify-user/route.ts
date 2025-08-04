@@ -9,7 +9,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Llamada al endpoint externo
-    const response = await fetch('https://80734d8d9721.ngrok-free.app/web/verify-email', {
+    const apiUrl = process.env.FASTAPI_URL || 'https://80734d8d9721.ngrok-free.app';
+    const response = await fetch(`${apiUrl}/web/verify-email`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -19,11 +20,14 @@ export async function POST(request: NextRequest) {
     });
 
     const data = await response.json();
+    console.log('Respuesta del FastAPI:', { status: response.status, data });
 
     if (response.ok) {
+      // El endpoint FastAPI ahora devuelve numero_cliente y compresores
       return NextResponse.json({ 
         authorized: true, 
-        id_cliente: data.id_cliente,
+        numero_cliente: data.numero_cliente,
+        compresores: data.compresores,
         status: 'Usuario autorizado' 
       });
     } else {

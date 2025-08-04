@@ -954,20 +954,40 @@ def verify_email(
             password=DB_PASSWORD,
             database=DB_DATABASE
         )
-        cursor = conn.cursor()
-        cursor.execute("SELECT id_cliente FROM usuarios_auth WHERE email = %s", (email,))
+        cursor = conn.cursor(dictionary=True)
+
+        # Paso 1: Obtener numero_cliente
+        cursor.execute("SELECT numero_cliente FROM usuarios_auth WHERE email = %s", (email,))
         result = cursor.fetchone()
+
+        if not result:
+            raise HTTPException(status_code=403, detail="Email not authorized")
+
+        numero_cliente = result["numero_cliente"]
+
+        # Paso 2: Obtener id_cliente y linea usando el JOIN
+        query = """
+            SELECT c2.id_cliente, c2.linea, c2.alias
+            FROM usuarios_auth ua
+            JOIN clientes c ON ua.numero_cliente = c.numero_cliente
+            JOIN compresores c2 ON c.id_cliente = c2.proyecto
+            WHERE ua.numero_cliente = %s
+        """
+        cursor.execute(query, (numero_cliente,))
+        compresores = cursor.fetchall()
+
         cursor.close()
         conn.close()
 
-        if result:
-            return {"authorized": True, "id_cliente": result[0]}
-        else:
-            raise HTTPException(status_code=403, detail="Email not authorized")
+        return {
+            "authorized": True,
+            "numero_cliente": numero_cliente,
+            "compresores": compresores  # lista de diccionarios con id_cliente y linea
+        }
+
     except Exception as e:
         print("❌ Error en conexión MySQL:", e)
         raise HTTPException(status_code=500, detail=str(e))
-
 
 # Functions to calculate different metrics
 def percentage_load(data):
