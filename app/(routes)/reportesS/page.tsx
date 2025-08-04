@@ -178,6 +178,42 @@ export default function Main() {
           })(),
         ]);
 
+      if (!clientRes || !clientRes.data || !Array.isArray(clientRes.data)) {
+        console.error("Error: Datos de cliente inválidos o inexistentes");
+        window.status = "data-error";
+        return;
+      }
+
+      if (
+        !compressorRes ||
+        !compressorRes.data ||
+        !Array.isArray(compressorRes.data)
+      ) {
+        console.error("Error: Datos de compresor inválidos o inexistentes");
+        window.status = "data-error";
+        return;
+      }
+
+      if (!pieRes || !pieRes.data) {
+        console.error(
+          "Error: Datos de gráfica circular inválidos o inexistentes"
+        );
+        window.status = "data-error";
+        return;
+      }
+
+      if (!shiftRes || !shiftRes.data || !Array.isArray(shiftRes.data)) {
+        console.error("Error: Datos de turnos inválidos o inexistentes");
+        window.status = "data-error";
+        return;
+      }
+
+      if (!summaryRes) {
+        console.error("Error: Datos de resumen inválidos o inexistentes");
+        window.status = "data-error";
+        return;
+      }
+
       const turno1 = new Array(7).fill(0);
       const turno2 = new Array(7).fill(0);
       const turno3 = new Array(7).fill(0);
@@ -212,6 +248,7 @@ export default function Main() {
       setChartData([LOAD, NOLOAD, OFF]);
     } catch (error) {
       console.error("Error fetching data:", error);
+      window.status = "data-error";
     }
   }, []);
 
@@ -819,7 +856,7 @@ export default function Main() {
       datalabels: {
         color: "black",
         font: {
-          weight: "bold",
+          weight: "bold" as const,
           size: 20,
         },
         formatter: (value: number) => {
@@ -828,7 +865,7 @@ export default function Main() {
       },
       legend: {
         display: true,
-        position: "bottom",
+        position: "bottom" as const,
       },
     },
     animation: {

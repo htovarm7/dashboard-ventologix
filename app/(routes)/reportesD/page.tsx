@@ -137,6 +137,45 @@ export default function Main() {
           })(),
         ]);
 
+      // Validar que las respuestas tengan la estructura esperada
+      if (!clientRes || !clientRes.data || !Array.isArray(clientRes.data)) {
+        console.error("Error: Datos de cliente inválidos o inexistentes");
+        window.status = "data-error";
+        return;
+      }
+
+      if (
+        !compressorRes ||
+        !compressorRes.data ||
+        !Array.isArray(compressorRes.data)
+      ) {
+        console.error("Error: Datos de compresor inválidos o inexistentes");
+        window.status = "data-error";
+        return;
+      }
+
+      if (!pieRes || !pieRes.data) {
+        console.error(
+          "Error: Datos de gráfica circular inválidos o inexistentes"
+        );
+        window.status = "data-error";
+        return;
+      }
+
+      if (!lineRes || !lineRes.data || !Array.isArray(lineRes.data)) {
+        console.error(
+          "Error: Datos de gráfica lineal inválidos o inexistentes"
+        );
+        window.status = "data-error";
+        return;
+      }
+
+      if (!dayRes || !dayRes.data) {
+        console.error("Error: Datos del día inválidos o inexistentes");
+        window.status = "data-error";
+        return;
+      }
+
       if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
       if (compressorRes.data.length > 0)
         setCompresorData(compressorRes.data[0]);
@@ -179,6 +218,7 @@ export default function Main() {
       );
     } catch (error) {
       console.error("Error fetching data:", error);
+      window.status = "data-error";
     }
   }, []);
 
@@ -338,7 +378,7 @@ export default function Main() {
       datalabels: {
         color: "black",
         font: {
-          weight: "bold",
+          weight: "bold" as const,
           size: 18,
         },
         formatter: (value: string) => {
@@ -347,7 +387,7 @@ export default function Main() {
       },
       legend: {
         display: true,
-        position: "bottom",
+        position: "bottom" as const,
       },
     },
     animation: {
@@ -365,8 +405,8 @@ export default function Main() {
       datalabels: {
         display: false,
         color: "black",
-        anchor: "end",
-        align: "top",
+        anchor: "end" as const,
+        align: "top" as const,
         backgroundColor: null,
         borderWidth: 0,
         callout: {
@@ -376,7 +416,7 @@ export default function Main() {
       annotation: {
         annotations: {
           limite: {
-            type: "line",
+            type: "line" as const,
             yMin: limite,
             yMax: limite,
             borderColor: "black",
@@ -384,7 +424,7 @@ export default function Main() {
             label: {
               content: `Límite: ${limite} A`,
               enabled: false,
-              position: "start",
+              position: "start" as const,
             },
           },
         },
