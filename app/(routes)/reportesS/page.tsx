@@ -57,89 +57,30 @@ ChartJS.register(
   ChartDataLabels
 );
 
-/*
-<p className={`text-lg ${getColorClass(summaryData?.comparacion.porcentaje_costo || 0)}`}>
-  {summaryData?.comparacion.porcentaje_costo.toFixed(2) || "0.00"}%
-</p>
-
-*/
+import {
+  chartData,
+  consumoData,
+  SummaryData,
+  clientData,
+  compressorData,
+} from "@/lib/types";
 
 export default function Main() {
   // Constant Declarations
-  const [chartData, setChartData] = useState([0, 0, 0]);
-  const [consumoData, setConsumoData] = useState({
+  const [chartData, setChartData] = useState<chartData>([0, 0, 0]);
+  const [consumoData, setConsumoData] = useState<consumoData>({
     turno1: new Array(7).fill(0),
     turno2: new Array(7).fill(0),
     turno3: new Array(7).fill(0),
   });
 
-  const [clientData, setClientData] = useState<{
-    numero_cliente: number;
-    nombre_cliente: string;
-    RFC: string;
-    direccion: string;
-    costoUSD: number;
-    demoDiario: boolean;
-    demoSemanal: boolean;
-  } | null>(null);
+  const [clientData, setClientData] = useState<clientData | null>(null);
 
-  const [compressorData, setCompresorData] = useState<{
-    hp: number;
-    tipo: string;
-    voltaje: number;
-    marca: string;
-    numero_serie: number;
-    alias: string;
-    limite: number;
-  } | null>(null);
+  const [compressorData, setCompresorData] = useState<compressorData | null>(
+    null
+  );
 
-  const [summaryData, setSummaryData] = useState<{
-    semana_actual: {
-      total_kWh: number;
-      costo_estimado: number;
-      promedio_ciclos_por_hora: number;
-      promedio_hp_equivalente: number;
-      horas_trabajadas: number;
-    };
-    comparacion: {
-      bloque_A: string;
-      bloque_B: string;
-      bloque_C: string;
-      bloque_D: string;
-      porcentaje_kwh: number;
-      porcentaje_costo: number;
-      porcentaje_ciclos: number;
-      porcentaje_hp: number;
-      porcentaje_horas: number;
-    };
-    comentarios: {
-      comentario_A: string;
-      comentario_B: string;
-      comentario_C: string;
-      comentario_D: string;
-    };
-    detalle_semana_actual: {
-      semana: number;
-      fecha: string;
-      kWh: number;
-      horas_trabajadas: number;
-      kWh_load: number;
-      horas_load: number;
-      kWh_noload: number;
-      horas_noload: number;
-      hp_equivalente: number;
-      conteo_ciclos: number;
-      promedio_ciclos_por_hora: number;
-    }[];
-    promedio_semanas_anteriores: {
-      total_kWh_anteriores: number;
-      costo_estimado: number;
-      promedio_ciclos_por_hora: number;
-      promedio_hp_equivalente: number;
-      horas_trabajadas_anteriores: number;
-    };
-  } | null>(null);
-
+  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const searchParams = useSearchParams();
 
   const fetchData = useCallback(async (id: string, linea: string) => {
@@ -242,7 +183,19 @@ export default function Main() {
       if (compressorRes.data.length > 0)
         setCompresorData(compressorRes.data[0]);
       console.log("summaryRes:", summaryRes);
-      if (summaryRes) setSummaryData(summaryRes);
+      console.log("summaryRes structure:", JSON.stringify(summaryRes, null, 2));
+
+      if (summaryRes) {
+        console.log("semana_actual:", summaryRes.semana_actual);
+        console.log("detalle_semana_actual:", summaryRes.detalle_semana_actual);
+        console.log("comparacion:", summaryRes.comparacion);
+        console.log("comentarios:", summaryRes.comentarios);
+        console.log(
+          "promedio_semanas_anteriores:",
+          summaryRes.promedio_semanas_anteriores
+        );
+        setSummaryData(summaryRes);
+      }
 
       const { LOAD, NOLOAD, OFF } = pieRes.data;
       setChartData([LOAD, NOLOAD, OFF]);
@@ -272,15 +225,21 @@ export default function Main() {
 
   const kwhHorasPorDia = {
     categorias: diasSemana,
-    kwhData: summaryData?.detalle_semana_actual.map((d) => d.kWh) ?? [],
+    kwhData: summaryData?.detalle_semana_actual?.map((d) => d.kWh) ?? [],
     horasData:
-      summaryData?.detalle_semana_actual.map((d) => d.horas_trabajadas) ?? [],
+      summaryData?.detalle_semana_actual?.map((d) => d.horas_trabajadas) ?? [],
   };
+
+  // Debug logs para diagnosticar los datos
+  console.log("summaryData actual:", summaryData);
+  console.log("detalle_semana_actual:", summaryData?.detalle_semana_actual);
+  console.log("kwhData:", kwhHorasPorDia.kwhData);
+  console.log("horasData:", kwhHorasPorDia.horasData);
 
   const ciclosPorDia = {
     categorias: diasSemana,
     kwhData:
-      summaryData?.detalle_semana_actual.map(
+      summaryData?.detalle_semana_actual?.map(
         (d) => d.promedio_ciclos_por_hora
       ) ?? [],
   };
@@ -288,7 +247,7 @@ export default function Main() {
   const hpEquivalentePorDia = {
     categorias: diasSemana,
     kwhData:
-      summaryData?.detalle_semana_actual.map((d) => d.hp_equivalente) ?? [],
+      summaryData?.detalle_semana_actual?.map((d) => d.hp_equivalente) ?? [],
   };
 
   // Gauge Charts Options
@@ -332,7 +291,9 @@ export default function Main() {
           formatter: () =>
             `${
               summaryData?.semana_actual?.promedio_ciclos_por_hora !== undefined
-                ? summaryData.semana_actual.promedio_ciclos_por_hora.toFixed(1)
+                ? summaryData?.semana_actual?.promedio_ciclos_por_hora.toFixed(
+                    1
+                  )
                 : "0.0"
             }`,
           fontSize: 18,
@@ -352,7 +313,7 @@ export default function Main() {
           {
             value:
               summaryData?.semana_actual?.promedio_ciclos_por_hora !== undefined
-                ? summaryData.semana_actual.promedio_ciclos_por_hora
+                ? summaryData?.semana_actual?.promedio_ciclos_por_hora
                 : 0,
           },
         ],
@@ -406,27 +367,27 @@ export default function Main() {
         detail: {
           formatter: () =>
             `${
-              summaryData?.semana_actual.promedio_hp_equivalente !== undefined
-                ? summaryData.semana_actual.promedio_hp_equivalente
+              summaryData?.semana_actual?.promedio_hp_equivalente !== undefined
+                ? summaryData?.semana_actual?.promedio_hp_equivalente
                 : 0
             }%`,
           fontSize: 18,
           offsetCenter: [0, "30%"],
           color:
-            (summaryData?.semana_actual.promedio_hp_equivalente ?? 0) > 110
+            (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) > 110
               ? "red"
-              : (summaryData?.semana_actual.promedio_hp_equivalente ?? 0) > 99
+              : (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) > 99
               ? "black"
-              : (summaryData?.semana_actual.promedio_hp_equivalente ?? 0) > 92
+              : (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) > 92
               ? "#418FDE"
-              : (summaryData?.semana_actual.promedio_hp_equivalente ?? 0) > 79
+              : (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) > 79
               ? "green"
-              : (summaryData?.semana_actual.promedio_hp_equivalente ?? 0) > 64
+              : (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) > 64
               ? "yellow"
               : "red",
         },
         data: [
-          { value: summaryData?.semana_actual.promedio_hp_equivalente ?? 0 },
+          { value: summaryData?.semana_actual?.promedio_hp_equivalente ?? 0 },
         ],
       },
     ],
@@ -876,7 +837,7 @@ export default function Main() {
   useEffect(() => {
     if (
       summaryData &&
-      summaryData.promedio_semanas_anteriores.total_kWh_anteriores > 0
+      summaryData?.promedio_semanas_anteriores?.total_kWh_anteriores > 0
     ) {
       // Espera unos segundos por seguridad (opcional)
       setTimeout(() => {
@@ -1118,7 +1079,7 @@ export default function Main() {
               theme={"light"}
             />
             <VentoCom
-              html={summaryData?.comentarios.comentario_A || "Sin datos"}
+              html={summaryData?.comentarios?.comentario_A || "Sin datos"}
             />
           </div>
           <div className="flex-1 items-center text-center p-4">
@@ -1126,28 +1087,28 @@ export default function Main() {
               <h2 className="text-xl text-black font-bold">Costo $USD</h2>
               <p
                 className={`text-3xl font-bold ${getColorClass(
-                  summaryData?.semana_actual.costo_estimado || 0
+                  summaryData?.semana_actual?.costo_estimado || 0
                 )}`}
               >
-                ${summaryData?.semana_actual.costo_estimado || "0.00"} USD /
+                ${summaryData?.semana_actual?.costo_estimado || "0.00"} USD /
                 Semanal
               </p>
               <p className="text-xl text-black">
                 {" "}
                 Costo Anual aproximado, $
                 {getAnualValue(
-                  summaryData?.semana_actual.costo_estimado || 0
+                  summaryData?.semana_actual?.costo_estimado || 0
                 )}{" "}
                 USD
               </p>
               <p className="text-xl">Promedio ultimas 12 semanas:</p>
               <p className="text-xl">
                 $
-                {summaryData?.promedio_semanas_anteriores.costo_estimado ||
+                {summaryData?.promedio_semanas_anteriores?.costo_estimado ||
                   "0.00"}
               </p>
               <p className="text-lg">
-                ({summaryData?.comparacion.porcentaje_costo || "0.00"}
+                ({summaryData?.comparacion?.porcentaje_costo || "0.00"}
                 %)
               </p>
             </div>
@@ -1155,23 +1116,23 @@ export default function Main() {
               <h2 className="text-xl text-black font-bold">Consumo kWH</h2>
               <p
                 className={`text-3xl font-bold ${getColorClass(
-                  summaryData?.comparacion.porcentaje_costo || 0
+                  summaryData?.comparacion?.porcentaje_costo || 0
                 )}`}
               >
-                {summaryData?.semana_actual.total_kWh || "0.00"} kWh / Semanal
+                {summaryData?.semana_actual?.total_kWh || "0.00"} kWh / Semanal
               </p>
               <p className="text-xl text-black">
                 Gasto Anual aproximado,{" "}
-                {getAnualValue(summaryData?.semana_actual.total_kWh || 0)} kWh
+                {getAnualValue(summaryData?.semana_actual?.total_kWh || 0)} kWh
               </p>
               <p className="text-xl">Promedio ultimas 12 semanas:</p>
               <p className="text-xl">
                 {summaryData?.promedio_semanas_anteriores
-                  .total_kWh_anteriores || "0.00"}{" "}
+                  ?.total_kWh_anteriores || "0.00"}{" "}
                 kWh
               </p>
               <p className="text-lg">
-                ({summaryData?.comparacion.porcentaje_kwh || "0.00"}
+                ({summaryData?.comparacion?.porcentaje_kwh || "0.00"}
                 %)
               </p>
             </div>
@@ -1184,7 +1145,7 @@ export default function Main() {
             <div
               className="text-xl text-justify"
               dangerouslySetInnerHTML={{
-                __html: summaryData?.comparacion.bloque_A || "Sin datos",
+                __html: summaryData?.comparacion?.bloque_A || "Sin datos",
               }}
             />
           </div>
@@ -1204,7 +1165,7 @@ export default function Main() {
               theme={"light"}
             />
             <VentoCom
-              html={summaryData?.comentarios.comentario_B || "Sin datos"}
+              html={summaryData?.comentarios?.comentario_B || "Sin datos"}
             />
           </div>
           <div className="flex-1 items-center text-center p-4">
@@ -1214,20 +1175,20 @@ export default function Main() {
               </h2>
               <p
                 className={`text-3xl font-bold ${getColorCiclos(
-                  summaryData?.comparacion.porcentaje_ciclos || 0
+                  summaryData?.comparacion?.porcentaje_ciclos || 0
                 )}`}
               >
-                {summaryData?.semana_actual.promedio_ciclos_por_hora || "0.0"}{" "}
+                {summaryData?.semana_actual?.promedio_ciclos_por_hora || "0.0"}{" "}
                 C/Hr
               </p>
               <p className="text-xl">Promedio ultimas 12 semanas:</p>
               <p className="text-xl">
                 {summaryData?.promedio_semanas_anteriores
-                  .promedio_ciclos_por_hora || "0.0"}{" "}
+                  ?.promedio_ciclos_por_hora || "0.0"}{" "}
                 C/Hr
               </p>
               <p className="text-lg">
-                ({summaryData?.comparacion.porcentaje_ciclos || "0.00"}
+                ({summaryData?.comparacion?.porcentaje_ciclos || "0.00"}
                 %)
               </p>
             </div>
@@ -1241,7 +1202,7 @@ export default function Main() {
             <div
               className="text-xl text-justify"
               dangerouslySetInnerHTML={{
-                __html: summaryData?.comparacion.bloque_B || "Sin datos",
+                __html: summaryData?.comparacion?.bloque_B || "Sin datos",
               }}
             />
           </div>
@@ -1261,7 +1222,7 @@ export default function Main() {
               theme={"light"}
             />
             <VentoCom
-              html={summaryData?.comentarios.comentario_C || "Sin datos"}
+              html={summaryData?.comentarios?.comentario_C || "Sin datos"}
             />
           </div>
           <div className="flex-1 items-center text-center p-4">
@@ -1269,19 +1230,20 @@ export default function Main() {
               <h2 className="text-xl text-black font-bold">HP Equivalente**</h2>
               <p
                 className={`text-3xl font-bold ${getColorHp(
-                  summaryData?.comparacion.porcentaje_hp || 0
+                  summaryData?.comparacion?.porcentaje_hp || 0
                 )}`}
               >
-                {summaryData?.semana_actual.promedio_hp_equivalente || "0.0"} hp
+                {summaryData?.semana_actual?.promedio_hp_equivalente || "0.0"}{" "}
+                hp
               </p>
               <p className="text-xl">Promedio ultimas 12 semanas:</p>
               <p className="text-xl">
                 {summaryData?.promedio_semanas_anteriores
-                  .promedio_hp_equivalente || "0.0"}{" "}
+                  ?.promedio_hp_equivalente || "0.0"}{" "}
                 hp
               </p>
               <p className="text-lg">
-                ({summaryData?.comparacion.porcentaje_hp || "0.00"}%)
+                ({summaryData?.comparacion?.porcentaje_hp || "0.00"}%)
               </p>
             </div>
           </div>
@@ -1293,7 +1255,7 @@ export default function Main() {
             <div
               className="text-xl text-justify"
               dangerouslySetInnerHTML={{
-                __html: summaryData?.comparacion.bloque_C || "Sin datos",
+                __html: summaryData?.comparacion?.bloque_C || "Sin datos",
               }}
             />
           </div>
@@ -1315,7 +1277,7 @@ export default function Main() {
 
             <div className="mt-4 text-xl text-justify break-words hyphens-auto">
               <VentoCom
-                html={summaryData?.comentarios.comentario_D || "Sin datos"}
+                html={summaryData?.comentarios?.comentario_D || "Sin datos"}
               />
             </div>
           </div>
@@ -1324,16 +1286,16 @@ export default function Main() {
           <div className="bg-white rounded-2xl shadow p-4 w-[400px] flex flex-col justify-center text-center mb-40 ml-70">
             <h2 className="text-xl text-black font-bold">Uso Activo</h2>
             <p className="text-3xl font-bold text-black">
-              {summaryData?.semana_actual.horas_trabajadas || "0.0"} Hr
+              {summaryData?.semana_actual?.horas_trabajadas || "0.0"} Hr
             </p>
             <p className="text-xl">Promedio últimas 12 semanas:</p>
             <p className="text-xl">
               {summaryData?.promedio_semanas_anteriores
-                .horas_trabajadas_anteriores || "0.0"}{" "}
+                ?.horas_trabajadas_anteriores || "0.0"}{" "}
               hr
             </p>
             <p className="text-lg">
-              ({summaryData?.comparacion.porcentaje_horas || "0.00"}%)
+              ({summaryData?.comparacion?.porcentaje_horas || "0.00"}%)
             </p>
           </div>
 
@@ -1345,7 +1307,7 @@ export default function Main() {
             <div
               className="text-xl text-justify mr-20"
               dangerouslySetInnerHTML={{
-                __html: summaryData?.comparacion.bloque_D || "Sin datos",
+                __html: summaryData?.comparacion?.bloque_D || "Sin datos",
               }}
             />
           </div>
