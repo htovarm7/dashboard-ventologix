@@ -1,42 +1,17 @@
-# To intall the required packages, run:
-# pip install -r requirements.txt
-
-# Powerful data analysis and manipulation library
-pandas                  
-
-# Fundamental package for scientific computing with Python
-numpy                   
-
-# Library to create PDFs
-reportlab               
-
-# HTTP library for making requests
-requests                
-
-# Library for the SQL connection
-mysql-connector-python  
-
-# ORM for database management
-sqlalchemy              
-
-# Library for the management of .env
-python-dotenv           
-
-# Library for the management of the API
-fastapi                 
-
-# ASGI server for FastAPI
-uvicorn                 
-
-# Data validation (already included with FastAPI, but can be specified)
-pydantic                
-
-# End-to-end browser automation library
+pandas
+numpy
+reportlab
+requests
+mysql-connector-python
+sqlalchemy
+python-dotenv
+fastapi
+uvicorn
+pydantic
 playwright
-
-#MQTT client for Python
 paho-mqtt
-
 pytz
-
 google-cloud-bigquery
+google-api-python-client
+google-auth
+google-auth-oauthlib

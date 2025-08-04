@@ -48,4 +48,6 @@ scripts/__pycache__
 
 pdfs
 
+# Google Drive API credentials
+
 scripts/api/__pycache__

@@ -17,6 +17,11 @@ from email.message import EmailMessage
 from dotenv import load_dotenv
 from email.utils import make_msgid
 import locale
+from googleapiclient.discovery import build
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.http import MediaFileUpload
 
 # ---- Config regional (meses en español) ----
 try:
@@ -41,6 +46,12 @@ SMTP_PORT = 587
 # Rutas de logos (ajusta si es necesario)
 LOGO_PATH = os.path.join(BASE_DIR, "public", "Logo vento firma.jpg")
 VENTOLOGIX_LOGO_PATH = os.path.join(BASE_DIR, "public", "ventologix firma.jpg")
+
+# Google Drive Configuration
+GOOGLE_DRIVE_FOLDER_ID = "19YM9co-kyogK7iXeJ-Wwq1VnrICr50Xk"  # ID de la carpeta de Google Drive
+SCOPES = ['https://www.googleapis.com/auth/drive.file']
+CREDENTIALS_FILE = os.path.join(BASE_DIR, "credentials.json")
+TOKEN_FILE = os.path.join(BASE_DIR, "token.json")
 
 # Admins para alertas
 ADMIN_CORREOS = [
@@ -85,6 +96,97 @@ def etiqueta_fecha_semanal(fecha_base: datetime, offset_dias: int = 0) -> str:
         mes_domingo = domingo.strftime("%m")
     rango = f"Semana del {lunes.day} al {domingo.day} {mes_domingo}"
     return f"{fecha_str} ({rango})"
+
+
+# ------------- Google Drive Functions -------------
+def authenticate_google_drive():
+    """Autentica con Google Drive usando OAuth2."""
+    creds = None
+    
+    # El archivo token.json almacena los tokens de acceso y actualización del usuario.
+    if os.path.exists(TOKEN_FILE):
+        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+    
+    # Si no hay credenciales válidas disponibles, permite al usuario autenticarse.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            try:
+                creds.refresh(Request())
+            except Exception as e:
+                print(f"Error al refrescar token: {e}")
+                # Si falla el refresh, eliminar token y reautenticar
+                if os.path.exists(TOKEN_FILE):
+                    os.remove(TOKEN_FILE)
+                creds = None
+        
+        if not creds:
+            if not os.path.exists(CREDENTIALS_FILE):
+                print(f"Error: No se encontró el archivo de credenciales en {CREDENTIALS_FILE}")
+                print("Descarga el archivo credentials.json desde Google Cloud Console y colócalo en la carpeta scripts/VM/")
+                print("Asegúrate de que sea para 'Aplicación de escritorio'")
+                return None
+            
+            try:
+                flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
+                # Usar un puerto específico para evitar problemas de redirect_uri
+                creds = flow.run_local_server(port=8080, open_browser=True)
+            except Exception as e:
+                print(f"Error durante la autenticación OAuth: {e}")
+                print("Verifica que:")
+                print("1. El archivo credentials.json sea para 'Aplicación de escritorio'")
+                print("2. Las URIs de redirección estén configuradas correctamente")
+                print("3. Revisa el archivo GOOGLE_DRIVE_SETUP.md para más detalles")
+                return None
+        
+        # Guarda las credenciales para la próxima ejecución
+        try:
+            with open(TOKEN_FILE, 'w') as token:
+                token.write(creds.to_json())
+            print(f"Token guardado en {TOKEN_FILE}")
+        except Exception as e:
+            print(f"Error al guardar token: {e}")
+    
+    return creds
+
+def upload_to_google_drive(file_path: str, folder_id: str = GOOGLE_DRIVE_FOLDER_ID) -> bool:
+    """
+    Sube un archivo a Google Drive en la carpeta especificada.
+    
+    Args:
+        file_path: Ruta del archivo a subir
+        folder_id: ID de la carpeta de Google Drive donde subir el archivo
+    
+    Returns:
+        bool: True si la subida fue exitosa, False en caso contrario
+    """
+    try:
+        creds = authenticate_google_drive()
+        if not creds:
+            return False
+        
+        service = build('drive', 'v3', credentials=creds)
+        
+        file_name = os.path.basename(file_path)
+        
+        file_metadata = {
+            'name': file_name,
+            'parents': [folder_id]
+        }
+        
+        media = MediaFileUpload(file_path, mimetype='application/pdf')
+        
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+        
+        print(f"Archivo {file_name} subido exitosamente a Google Drive con ID: {file.get('id')}")
+        return True
+        
+    except Exception as e:
+        print(f"Error al subir {os.path.basename(file_path)} a Google Drive: {e}")
+        return False
 
 
 # ------------- API clientes -------------
@@ -314,6 +416,7 @@ def debe_generar_semanales_hoy(fecha_base: datetime) -> bool:
 def generar_todos_los_pdfs(clientes: list, tipo: str) -> set:
     """
     Genera PDFs para cada cliente del tipo indicado y devuelve el conjunto de nombres de archivo generados.
+    Si el tipo es 'semanal', también sube los archivos a Google Drive.
     """
     generados = set()
     for c in clientes:
@@ -330,6 +433,16 @@ def generar_todos_los_pdfs(clientes: list, tipo: str) -> set:
 
             pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo, etiqueta)
             generados.add(os.path.basename(pdf_path))
+            
+            # Si es un reporte semanal, subirlo a Google Drive
+            if tipo == "semanal":
+                print(f"Subiendo reporte semanal a Google Drive: {os.path.basename(pdf_path)}")
+                upload_success = upload_to_google_drive(pdf_path)
+                if upload_success:
+                    print(f"✅ Reporte semanal {os.path.basename(pdf_path)} subido exitosamente a Google Drive")
+                else:
+                    print(f"❌ Error al subir {os.path.basename(pdf_path)} a Google Drive")
+                    
         except Exception as e:
             print(f"Error generando PDF para {c.get('nombre_cliente')} ({tipo}): {e}")
     return generados
