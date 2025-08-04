@@ -48,7 +48,7 @@ export default function Page() {
 
   if (isLoading || isCheckingAuth) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-blue-600">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black">
         <Image
           src="/Ventologix_01.png"
           alt="Ventologix Logo"
@@ -131,7 +131,7 @@ export default function Page() {
         className="absolute inset-0 object-cover z-0 opacity-40"
         priority
       />
-      <div className="relative z-10 flex flex-col items-center bg-cyan-600 rounded-3xl p-8 shadow-lg">
+      <div className="relative z-10 flex flex-col items-center bg-[rgb(0,32,91)] rounded-3xl p-8 shadow-lg">
         <h2 className="text-4xl text-white mb-4">
           Bienvenido a Ventologix Dashboard
         </h2>
@@ -141,7 +141,7 @@ export default function Page() {
         </h2>
         {!isAuthenticated ? (
           <button
-            className="bg-blue-500 text-white p-2 rounded"
+            className="bg-blue-500 text-white text-2xl p-2 rounded"
             onClick={() =>
               loginWithRedirect({
                 authorizationParams: {
