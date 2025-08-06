@@ -15,7 +15,7 @@ export default function Page() {
   const verifyUserAuthorization = useCallback(
     async (email: string) => {
       try {
-        const response = await fetch("/api/verify-user", {
+        const response = await fetch("/api/verify-user-extern", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -26,10 +26,18 @@ export default function Page() {
         const data = await response.json();
 
         if (response.ok && data.authorized) {
-          // Usuario autorizado, redirigir a home
+          sessionStorage.setItem(
+            "userData",
+            JSON.stringify({
+              numero_cliente: data.numero_cliente,
+              es_admin: data.es_admin,
+              compresores: data.compresores,
+              email: email,
+            })
+          );
+
           router.push("/home");
         } else {
-          // Usuario no autorizado
           setAccessDenied(true);
           setIsCheckingAuth(false);
         }
@@ -43,11 +51,23 @@ export default function Page() {
   );
 
   useEffect(() => {
-    if (isAuthenticated && user?.email && !isCheckingAuth) {
+    // Si ya está autenticado y ya tenemos datos en sessionStorage, redirigir directamente
+    if (isAuthenticated && sessionStorage.getItem("userData")) {
+      router.push("/home");
+      return;
+    }
+
+    // Solo verificar si está autenticado, tiene email y no está ya verificando
+    if (
+      isAuthenticated &&
+      user?.email &&
+      !isCheckingAuth &&
+      !sessionStorage.getItem("userData")
+    ) {
       setIsCheckingAuth(true);
       verifyUserAuthorization(user.email);
     }
-  }, [isAuthenticated, user, isCheckingAuth, verifyUserAuthorization]);
+  }, [isAuthenticated, user, isCheckingAuth, verifyUserAuthorization, router]);
 
   if (isLoading || isCheckingAuth) {
     return (
@@ -111,6 +131,8 @@ export default function Page() {
                 onClick={() => {
                   setAccessDenied(false);
                   setIsCheckingAuth(false);
+                  // Limpiar datos almacenados
+                  sessionStorage.removeItem("userData");
                   logout({
                     logoutParams: { returnTo: window.location.origin },
                   });
@@ -160,7 +182,11 @@ export default function Page() {
             <p className="text-white mb-2">Bienvenido, {user?.name}</p>
             <button
               className="bg-red-500 text-white p-2 rounded"
-              onClick={() => logout()}
+              onClick={() => {
+                // Limpiar datos almacenados al hacer logout
+                sessionStorage.removeItem("userData");
+                logout();
+              }}
             >
               Log Out
             </button>

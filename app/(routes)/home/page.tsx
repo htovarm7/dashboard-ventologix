@@ -4,7 +4,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
 import ReportDropdown from "../../../components/ReportDropdown";
 import DateReportDropdown from "../../../components/DateReportDropdown";
-import { Compresor } from "../../../types/common";
+import { Compresor, ClientData } from "../../../types/common";
 
 const Home = () => {
   const { user, getIdTokenClaims, isAuthenticated, isLoading, logout } =
@@ -14,12 +14,14 @@ const Home = () => {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
   const [compresores, setCompresores] = useState<Compresor[]>([]);
+  const [clientData, setClientData] = useState<ClientData>({});
   const [numeroCliente, setNumeroCliente] = useState<number | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   useEffect(() => {
     const verifyAndLoadUser = async () => {
       if (!isAuthenticated) {
-        router.push("/app");
+        router.push("/");
         return;
       }
 
@@ -27,37 +29,37 @@ const Home = () => {
         return;
       }
 
-      if (user?.email) {
-        setHasCheckedAuth(true);
+      // Primero intentar cargar desde sessionStorage
+      const userData = sessionStorage.getItem("userData");
+      if (userData) {
         try {
-          const response = await fetch("/api/verify-user", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ email: user.email }),
+          const parsedData = JSON.parse(userData);
+          setIsAuthorized(true);
+          setCompresores(parsedData.compresores || []);
+          setNumeroCliente(parsedData.numero_cliente);
+          setIsAdmin(parsedData.es_admin === 1); // Guardar el estado de admin
+          setIsCheckingAuth(false);
+          setHasCheckedAuth(true);
+
+          console.log("Usuario cargado desde sessionStorage:", {
+            numero_cliente: parsedData.numero_cliente,
+            es_admin: parsedData.es_admin,
+            compresores_count: parsedData.compresores?.length || 0,
           });
-
-          const data = await response.json();
-          console.log("Respuesta completa del API:", data);
-
-          if (response.ok && data.authorized) {
-            setIsAuthorized(true);
-            setCompresores(data.compresores || []);
-            setNumeroCliente(data.numero_cliente);
-
-            console.log("Número Cliente:", data.numero_cliente);
-            console.log("Compresores disponibles:", data.compresores);
-          } else {
-            console.error("Usuario no autorizado:", data.error);
-            router.push("/");
-          }
+          return;
         } catch (error) {
-          console.error("Error verificando autorización:", error);
-          router.push("/");
+          console.error("Error parsing userData from sessionStorage:", error);
+          sessionStorage.removeItem("userData");
         }
-      } else {
-        console.log("No hay email de usuario disponible");
+      }
+
+      // Si no hay datos en sessionStorage, redirigir al inicio para nueva autenticación
+      if (user?.email && !userData) {
+        console.log(
+          "No hay datos en sessionStorage, redirigiendo para autenticación"
+        );
+        router.push("/");
+        return;
       }
 
       setIsCheckingAuth(false);
@@ -67,14 +69,7 @@ const Home = () => {
       console.log("Iniciando verificación de usuario...");
       verifyAndLoadUser();
     }
-  }, [
-    isAuthenticated,
-    user,
-    isLoading,
-    router,
-    getIdTokenClaims,
-    hasCheckedAuth,
-  ]);
+  }, [isAuthenticated, user, isLoading, router, hasCheckedAuth]);
 
   if (isLoading || isCheckingAuth) {
     return (
@@ -152,6 +147,7 @@ const Home = () => {
             <ReportDropdown
               title="Reporte Diario"
               compresores={compresores}
+              isAdmin={isAdmin}
               colorScheme={{
                 text: "text-blue-600",
                 icon: "text-blue-400",
@@ -164,6 +160,7 @@ const Home = () => {
                     id_cliente: compresor.id_cliente,
                     linea: compresor.linea,
                     alias: compresor.alias,
+                    nombre_cliente: clientData.nombre_cliente,
                   })
                 );
                 router.push("/graphsD");
@@ -174,6 +171,7 @@ const Home = () => {
             <DateReportDropdown
               title="Reporte por Fecha"
               compresores={compresores}
+              isAdmin={isAdmin}
               colorScheme={{
                 text: "text-purple-600",
                 icon: "text-purple-400",
@@ -185,6 +183,7 @@ const Home = () => {
             <ReportDropdown
               title="Reporte Semanal"
               compresores={compresores}
+              isAdmin={isAdmin}
               colorScheme={{
                 text: "text-[rgb(0,32,91)]",
                 icon: "text-[rgb(4,48,130)]",

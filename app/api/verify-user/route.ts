@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
       let compresorsResults;
       if (es_admin) {
-        // Admin: obtener todos los compresores
+        // Admin: obtener todos los compresores con nombre_cliente
         const [rows] = await connection.execute(`
           SELECT c2.id_cliente, c2.linea, c2.alias, c.nombre_cliente
           FROM clientes c
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
         `) as [mysql.RowDataPacket[], mysql.FieldPacket[]];
         compresorsResults = rows;
       } else {
-        // Usuario normal: solo sus compresores
+        // Usuario normal: solo sus compresores sin nombre_cliente
         const [rows] = await connection.execute(`
           SELECT c2.id_cliente, c2.linea, c2.alias
           FROM usuarios_auth ua

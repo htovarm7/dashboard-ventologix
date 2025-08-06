@@ -11,16 +11,18 @@ interface DateReportDropdownProps {
     icon: string;
     hover: string;
   };
+  isAdmin?: boolean; // Nueva prop para saber si es admin
 }
 
 const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
   title,
   compresores,
   colorScheme,
+  isAdmin = false, // Valor por defecto
 }) => {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split('T')[0] // Fecha actual en formato YYYY-MM-DD
+    new Date().toISOString().split("T")[0] // Fecha actual en formato YYYY-MM-DD
   );
 
   const handleCompressorSelect = (compresor: Compresor) => {
@@ -44,7 +46,9 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
 
   return (
     <div className="relative text-center group">
-      <h2 className={`text-2xl ${colorScheme.text} hover:scale-110 cursor-pointer transition-transform flex items-center justify-center gap-2`}>
+      <h2
+        className={`text-2xl ${colorScheme.text} hover:scale-110 cursor-pointer transition-transform flex items-center justify-center gap-2`}
+      >
         {title}
         <svg
           className={`w-4 h-4 ${colorScheme.icon}`}
@@ -66,7 +70,7 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
             <div className="px-3 py-2 text-xs text-gray-500 font-medium uppercase tracking-wide border-b border-gray-100">
               Seleccionar Fecha y Compresor
             </div>
-            
+
             {/* Selector de fecha */}
             <div className="px-4 py-3 border-b border-gray-100">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -77,21 +81,29 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                max={new Date().toISOString().split('T')[0]} // No permitir fechas futuras
+                max={new Date().toISOString().split("T")[0]} // No permitir fechas futuras
               />
             </div>
-            
-            {compresores.map((compresor) => (
-              <button
-                key={`date-${compresor.id_cliente}-${compresor.linea}`}
-                onClick={() => handleCompressorSelect(compresor)}
-                className={`block w-full px-4 py-3 text-left text-gray-700 ${colorScheme.hover} transition-colors border-b border-gray-50 last:border-b-0`}
-              >
-                <div className="font-medium text-center">
-                  {compresor.alias}
-                </div>
-              </button>
-            ))}
+
+            {/* Lista scrolleable de compresores */}
+            <div className="max-h-64 overflow-y-auto">
+              {compresores.map((compresor) => (
+                <button
+                  key={`date-${compresor.id_cliente}-${compresor.linea}`}
+                  onClick={() => handleCompressorSelect(compresor)}
+                  className={`block w-full px-4 py-3 text-left text-gray-700 ${colorScheme.hover} transition-colors border-b border-gray-50 last:border-b-0`}
+                >
+                  <div className="text-center">
+                    <div className="font-medium">{compresor.alias}</div>
+                    {isAdmin && compresor.nombre_cliente && (
+                      <div className="text-sm text-gray-500 mt-1">
+                        {compresor.nombre_cliente}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
