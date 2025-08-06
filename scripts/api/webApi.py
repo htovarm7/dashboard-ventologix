@@ -956,24 +956,35 @@ def verify_email(
         )
         cursor = conn.cursor(dictionary=True)
 
-        # Paso 1: Obtener numero_cliente
-        cursor.execute("SELECT numero_cliente FROM usuarios_auth WHERE email = %s", (email,))
+        # Paso 1: Obtener numero_cliente y es_admin
+        cursor.execute("SELECT numero_cliente, es_admin FROM usuarios_auth WHERE email = %s", (email,))
         result = cursor.fetchone()
 
         if not result:
             raise HTTPException(status_code=403, detail="Email not authorized")
 
         numero_cliente = result["numero_cliente"]
+        es_admin = result.get("es_admin", False)
 
-        # Paso 2: Obtener id_cliente y linea usando el JOIN
-        query = """
-            SELECT c2.id_cliente, c2.linea, c2.alias
-            FROM usuarios_auth ua
-            JOIN clientes c ON ua.numero_cliente = c.numero_cliente
-            JOIN compresores c2 ON c.id_cliente = c2.proyecto
-            WHERE ua.numero_cliente = %s
-        """
-        cursor.execute(query, (numero_cliente,))
+        if es_admin:
+            # Admin: obtener todos los compresores
+            query = """
+                SELECT c2.id_cliente, c2.linea, c2.alias, c.nombre_cliente
+                FROM clientes c
+                JOIN compresores c2 ON c.id_cliente = c2.proyecto
+            """
+            cursor.execute(query)
+        else:
+            # Usuario normal: compresores por cliente
+            query = """
+                SELECT c2.id_cliente, c2.linea, c2.alias
+                FROM usuarios_auth ua
+                JOIN clientes c ON ua.numero_cliente = c.numero_cliente
+                JOIN compresores c2 ON c.id_cliente = c2.proyecto
+                WHERE ua.numero_cliente = %s
+            """
+            cursor.execute(query, (numero_cliente,))
+
         compresores = cursor.fetchall()
 
         cursor.close()
@@ -982,11 +993,11 @@ def verify_email(
         return {
             "authorized": True,
             "numero_cliente": numero_cliente,
-            "compresores": compresores  # lista de diccionarios con id_cliente y linea
+            "es_admin": es_admin,
+            "compresores": compresores
         }
 
     except Exception as e:
-        print("❌ Error en conexión MySQL:", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 # Functions to calculate different metrics
