@@ -13,7 +13,7 @@
 
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, Suspense } from "react";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams } from "next/navigation";
@@ -65,7 +65,7 @@ import {
   compressorData,
 } from "@/lib/types";
 
-export default function Main() {
+function MainContent() {
   // Constant Declarations
   const [chartData, setChartData] = useState<chartData>([0, 0, 0]);
   const [consumoData, setConsumoData] = useState<consumoData>({
@@ -159,23 +159,25 @@ export default function Main() {
       const turno2 = new Array(7).fill(0);
       const turno3 = new Array(7).fill(0);
 
-      shiftRes.data.forEach((item: any) => {
-        const fecha = new Date(item.fecha);
-        const dia = fecha.getDay();
-        const diaSemana = 6 - dia;
+      shiftRes.data.forEach(
+        (item: { fecha: string; Turno: number; kwhTurno: number }) => {
+          const fecha = new Date(item.fecha);
+          const dia = fecha.getDay();
+          const diaSemana = 6 - dia;
 
-        switch (item.Turno) {
-          case 1:
-            turno1[diaSemana] += item.kwhTurno;
-            break;
-          case 2:
-            turno2[diaSemana] += item.kwhTurno;
-            break;
-          case 3:
-            turno3[diaSemana] += item.kwhTurno;
-            break;
+          switch (item.Turno) {
+            case 1:
+              turno1[diaSemana] += item.kwhTurno;
+              break;
+            case 2:
+              turno2[diaSemana] += item.kwhTurno;
+              break;
+            case 3:
+              turno3[diaSemana] += item.kwhTurno;
+              break;
+          }
         }
-      });
+      );
 
       setConsumoData({ turno1, turno2, turno3 });
 
@@ -1338,5 +1340,22 @@ export default function Main() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function Main() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando...</p>
+          </div>
+        </div>
+      }
+    >
+      <MainContent />
+    </Suspense>
   );
 }

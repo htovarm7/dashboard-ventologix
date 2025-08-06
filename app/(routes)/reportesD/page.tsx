@@ -12,7 +12,7 @@
 
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, Suspense } from "react";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams } from "next/navigation";
@@ -49,7 +49,7 @@ ChartJS.register(
   ChartDataLabels
 );
 
-export default function Main() {
+function MainContent() {
   // Constant Declarations
   const [chartData, setChartData] = useState([0, 0, 0]);
   const [lineChartData, setLineChartData] = useState<(number | null)[]>([]);
@@ -722,5 +722,22 @@ export default function Main() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function Main() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando...</p>
+          </div>
+        </div>
+      }
+    >
+      <MainContent />
+    </Suspense>
   );
 }

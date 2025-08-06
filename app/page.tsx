@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -12,39 +12,42 @@ export default function Page() {
   const [accessDenied, setAccessDenied] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(false);
 
+  const verifyUserAuthorization = useCallback(
+    async (email: string) => {
+      try {
+        const response = await fetch("/api/verify-user", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.authorized) {
+          // Usuario autorizado, redirigir a home
+          router.push("/home");
+        } else {
+          // Usuario no autorizado
+          setAccessDenied(true);
+          setIsCheckingAuth(false);
+        }
+      } catch (error) {
+        console.error("Error verificando autorización:", error);
+        setAccessDenied(true);
+        setIsCheckingAuth(false);
+      }
+    },
+    [router]
+  );
+
   useEffect(() => {
     if (isAuthenticated && user?.email && !isCheckingAuth) {
       setIsCheckingAuth(true);
       verifyUserAuthorization(user.email);
     }
-  }, [isAuthenticated, user, isCheckingAuth]);
-
-  const verifyUserAuthorization = async (email: string) => {
-    try {
-      const response = await fetch("/api/verify-user", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.authorized) {
-        // Usuario autorizado, redirigir a home
-        router.push("/home");
-      } else {
-        // Usuario no autorizado
-        setAccessDenied(true);
-        setIsCheckingAuth(false);
-      }
-    } catch (error) {
-      console.error("Error verificando autorización:", error);
-      setAccessDenied(true);
-      setIsCheckingAuth(false);
-    }
-  };
+  }, [isAuthenticated, user, isCheckingAuth, verifyUserAuthorization]);
 
   if (isLoading || isCheckingAuth) {
     return (

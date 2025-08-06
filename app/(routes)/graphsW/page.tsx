@@ -13,7 +13,7 @@
 
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, Suspense } from "react";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -66,7 +66,7 @@ ChartJS.register(
   ChartDataLabels
 );
 
-export default function Main() {
+function MainContent() {
   // Auth0 hooks
   const { user, getIdTokenClaims, isAuthenticated, isLoading } = useAuth0();
   const router = useRouter();
@@ -90,7 +90,6 @@ export default function Main() {
   // Estados de autorización
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [clientId, setClientId] = useState<string | null>(null);
   const [compresorAlias, setCompresorAlias] = useState<string>("");
 
   const searchParams = useSearchParams();
@@ -135,23 +134,25 @@ export default function Main() {
       const turno2 = new Array(7).fill(0);
       const turno3 = new Array(7).fill(0);
 
-      shiftRes.data.forEach((item: any) => {
-        const fecha = new Date(item.fecha);
-        const dia = fecha.getDay();
-        const diaSemana = 6 - dia;
+      shiftRes.data.forEach(
+        (item: { fecha: string; Turno: number; kwhTurno: number }) => {
+          const fecha = new Date(item.fecha);
+          const dia = fecha.getDay();
+          const diaSemana = 6 - dia;
 
-        switch (item.Turno) {
-          case 1:
-            turno1[diaSemana] += item.kwhTurno;
-            break;
-          case 2:
-            turno2[diaSemana] += item.kwhTurno;
-            break;
-          case 3:
-            turno3[diaSemana] += item.kwhTurno;
-            break;
+          switch (item.Turno) {
+            case 1:
+              turno1[diaSemana] += item.kwhTurno;
+              break;
+            case 2:
+              turno2[diaSemana] += item.kwhTurno;
+              break;
+            case 3:
+              turno3[diaSemana] += item.kwhTurno;
+              break;
+          }
         }
-      });
+      );
 
       setConsumoData({ turno1, turno2, turno3 });
 
@@ -230,7 +231,6 @@ export default function Main() {
       }
 
       if (id_cliente) {
-        setClientId(id_cliente);
         fetchData(id_cliente, linea);
       } else {
         console.error("No se encontró información del compresor");
@@ -833,7 +833,7 @@ export default function Main() {
       datalabels: {
         color: "black",
         font: {
-          weight: "bold",
+          weight: "bold" as const,
           size: 20,
         },
         formatter: (value: number) => {
@@ -842,7 +842,7 @@ export default function Main() {
       },
       legend: {
         display: true,
-        position: "bottom",
+        position: "bottom" as const,
       },
     },
     animation: {
@@ -1400,5 +1400,22 @@ export default function Main() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function Main() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando...</p>
+          </div>
+        </div>
+      }
+    >
+      <MainContent />
+    </Suspense>
   );
 }

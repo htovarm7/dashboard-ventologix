@@ -1,11 +1,9 @@
 "use client";
 import React from "react";
-import { useRouter } from "next/navigation";
 import { Compresor } from "../types/common";
 
 interface ReportDropdownProps {
   title: string;
-  icon: React.ReactNode;
   compresores: Compresor[];
   colorScheme: {
     text: string;
@@ -13,12 +11,11 @@ interface ReportDropdownProps {
     hover: string;
   };
   onCompressorSelect: (compresor: Compresor) => void;
-  children?: React.ReactNode; // Para opciones adicionales como fecha
+  children?: React.ReactNode;
 }
 
 const ReportDropdown: React.FC<ReportDropdownProps> = ({
   title,
-  icon,
   compresores,
   colorScheme,
   onCompressorSelect,

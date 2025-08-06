@@ -12,7 +12,7 @@
 
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, Suspense } from "react";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -57,7 +57,7 @@ import type {
   LineData,
 } from "@/lib/types";
 
-export default function Main() {
+function MainContent() {
   const { user, getIdTokenClaims, isAuthenticated, isLoading } = useAuth0();
   const router = useRouter();
 
@@ -75,7 +75,6 @@ export default function Main() {
   const [dayData, setDayData] = useState<dayData | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [clientId, setClientId] = useState<string | null>(null);
   const [compresorAlias, setCompresorAlias] = useState<string>("");
 
   const fetchData = useCallback(async (id: string, linea: string) => {
@@ -219,7 +218,6 @@ export default function Main() {
       }
 
       if (id_cliente) {
-        setClientId(id_cliente);
         fetchData(id_cliente, linea);
       } else {
         console.error("No se encontró información del compresor");
@@ -373,7 +371,7 @@ export default function Main() {
       datalabels: {
         color: "black",
         font: {
-          weight: "bold",
+          weight: "bold" as const,
           size: 18,
         },
         formatter: (value: string) => {
@@ -382,7 +380,7 @@ export default function Main() {
       },
       legend: {
         display: true,
-        position: "bottom",
+        position: "bottom" as const,
       },
     },
     animation: {
@@ -400,8 +398,8 @@ export default function Main() {
       datalabels: {
         display: false,
         color: "black",
-        anchor: "end",
-        align: "top",
+        anchor: "end" as const,
+        align: "top" as const,
         backgroundColor: null,
         borderWidth: 0,
         callout: {
@@ -411,7 +409,7 @@ export default function Main() {
       annotation: {
         annotations: {
           limite: {
-            type: "line",
+            type: "line" as const,
             yMin: limite,
             yMax: limite,
             borderColor: "black",
@@ -419,7 +417,7 @@ export default function Main() {
             label: {
               content: `Límite: ${limite} A`,
               enabled: false,
-              position: "start",
+              position: "start" as const,
             },
           },
         },
@@ -762,5 +760,22 @@ export default function Main() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function Main() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando...</p>
+          </div>
+        </div>
+      }
+    >
+      <MainContent />
+    </Suspense>
   );
 }

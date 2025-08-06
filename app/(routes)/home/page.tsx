@@ -151,7 +151,6 @@ const Home = () => {
             {/* Reporte Diario */}
             <ReportDropdown
               title="Reporte Diario"
-              icon={null}
               compresores={compresores}
               colorScheme={{
                 text: "text-blue-600",
@@ -185,7 +184,6 @@ const Home = () => {
             {/* Reporte Semanal */}
             <ReportDropdown
               title="Reporte Semanal"
-              icon={null}
               compresores={compresores}
               colorScheme={{
                 text: "text-[rgb(0,32,91)]",

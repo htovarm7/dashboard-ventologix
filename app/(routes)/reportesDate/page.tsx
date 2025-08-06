@@ -12,7 +12,7 @@
 
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, Suspense } from "react";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams } from "next/navigation";
@@ -48,7 +48,7 @@ ChartJS.register(
   ChartDataLabels
 );
 
-export default function Main() {
+function MainContent() {
   // Constant Declarations
   const [chartData, setChartData] = useState([0, 0, 0]);
   const [lineChartData, setLineChartData] = useState<number[]>([]);
@@ -306,7 +306,7 @@ export default function Main() {
       datalabels: {
         color: "black",
         font: {
-          weight: "bold",
+          weight: "bold" as const,
           size: 18,
         },
         formatter: (value: string) => {
@@ -315,7 +315,7 @@ export default function Main() {
       },
       legend: {
         display: true,
-        position: "bottom",
+        position: "bottom" as const,
       },
     },
     animation: {
@@ -327,13 +327,15 @@ export default function Main() {
   // Line boundaries options
   const lineChartOptions = {
     responsive: true,
-    animation: false,
+    animation: {
+      duration: 0,
+    },
     plugins: {
       datalabels: {
         display: false,
         color: "black",
-        anchor: "end",
-        align: "top",
+        anchor: "end" as const,
+        align: "top" as const,
         backgroundColor: null,
         borderWidth: 0,
         callout: {
@@ -343,7 +345,7 @@ export default function Main() {
       annotation: {
         annotations: {
           limite: {
-            type: "line",
+            type: "line" as const,
             yMin: limite,
             yMax: limite,
             borderColor: "black",
@@ -351,7 +353,7 @@ export default function Main() {
             label: {
               content: `Límite: ${limite} A`,
               enabled: false,
-              position: "start",
+              position: "start" as const,
             },
           },
         },
@@ -638,5 +640,22 @@ export default function Main() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function Main() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando...</p>
+          </div>
+        </div>
+      }
+    >
+      <MainContent />
+    </Suspense>
   );
 }
