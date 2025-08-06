@@ -92,18 +92,22 @@ const Home = () => {
   }
   return (
     <main className="bg-[rgb(65,143,222)] min-h-screen relative">
-      {/* Botón de Logout en la esquina superior derecha */}
       <div className="absolute top-4 right-4 z-10">
         <button
-          onClick={() => {
-            // Limpiar sessionStorage
-            sessionStorage.removeItem("selectedCompresor");
-            // Hacer logout
-            logout({
-              logoutParams: {
-                returnTo: window.location.origin,
-              },
-            });
+          onClick={async () => {
+            if (confirm("¿Estás seguro que deseas cerrar sesión?")) {
+              try {
+                sessionStorage.clear();
+                localStorage.clear();
+                await logout({
+                  logoutParams: { returnTo: window.location.origin + "/" },
+                });
+              } catch (error) {
+                console.error("Error durante logout:", error);
+                alert("Cerrando sesión...");
+                window.location.href = "/";
+              }
+            }
           }}
           className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg"
         >
