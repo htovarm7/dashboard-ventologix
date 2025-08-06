@@ -563,7 +563,6 @@ export default function Main() {
   };
 
   // Bar Chart Options for kWh diarios, ciclos promedio, and hp equivalente
-
   const kwhHorasOption = {
     xAxis: {
       type: "category",
@@ -957,12 +956,6 @@ export default function Main() {
               {fechaInicio} al {fechaFin}
             </p>
           </div>
-          <h2
-            className="text-2xl font-bold text-blue-700 hover:scale-110 absolute left-2 ml-6"
-            onClick={() => router.push("/home")}
-          >
-            Ir a Inicio
-          </h2>
 
           {/* Right Column: Logo and data */}
           <div className="flex flex-col items-end">
