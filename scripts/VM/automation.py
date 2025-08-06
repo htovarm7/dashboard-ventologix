@@ -200,17 +200,27 @@ def obtener_clientes_desde_api():
     }
     """
     try:
+        print("🔗 Conectando a API para obtener lista de clientes...")
         response = requests.get("http://127.0.0.1:8000/report/clients-data", timeout=60)
         if response.status_code == 200:
             data = response.json()
+            diarios = data.get("diarios", [])
+            semanales = data.get("semanales", [])
+            
+            print(f"✅ API respondió exitosamente")
+            print(f"📊 Clientes diarios encontrados: {len(diarios)}")
+            print(f"📊 Clientes semanales encontrados: {len(semanales)}")
+            
             return {
-                "diarios": data.get("diarios", []),
-                "semanales": data.get("semanales", [])
+                "diarios": diarios,
+                "semanales": semanales
             }
         else:
-            print(f"Error al obtener clientes: {response.status_code} {response.text}")
+            print(f"❌ Error al obtener clientes: {response.status_code} {response.text}")
     except Exception as e:
-        print(f"Excepción al llamar a API de clientes: {e}")
+        print(f"❌ Excepción al llamar a API de clientes: {e}")
+    
+    print("⚠️ Retornando listas vacías debido a error en API")
     return {"diarios": [], "semanales": []}
 
 
@@ -446,18 +456,26 @@ def generar_todos_los_pdfs(clientes: list, tipo: str) -> set:
     Genera PDFs para cada cliente del tipo indicado y devuelve el conjunto de nombres de archivo generados.
     Si el tipo es 'semanal', también sube los archivos a Google Drive.
     """
+    print(f"\n🔄 Iniciando generación de PDFs {tipo}...")
+    print(f"📊 Total de clientes a procesar: {len(clientes)}")
+    
     generados = set()
-    for c in clientes:
+    for i, c in enumerate(clientes, 1):
         try:
             id_cliente = c['id_cliente']
             linea = c['linea']
             nombre_cliente = c['nombre_cliente']
             alias = (c.get('alias') or "").strip()
 
+            print(f"\n🏭 Procesando cliente {i}/{len(clientes)}: {nombre_cliente} - {alias}")
+            print(f"   ID Cliente: {id_cliente}, Línea: {linea}")
+
             if tipo == "diario":
                 etiqueta = etiqueta_fecha_diaria(FECHA_HOY, -1)
             else:
                 etiqueta = etiqueta_fecha_semanal(FECHA_HOY, 0)
+
+            print(f"   📅 Etiqueta de fecha: {etiqueta}")
 
             pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo, etiqueta)
             
@@ -467,10 +485,11 @@ def generar_todos_los_pdfs(clientes: list, tipo: str) -> set:
                 continue
                 
             generados.add(os.path.basename(pdf_path))
+            print(f"✅ PDF generado exitosamente: {os.path.basename(pdf_path)}")
             
             # Si es un reporte semanal, subirlo a Google Drive
             if tipo == "semanal":
-                print(f"Subiendo reporte semanal a Google Drive: {os.path.basename(pdf_path)}")
+                print(f"📤 Subiendo reporte semanal a Google Drive: {os.path.basename(pdf_path)}")
                 upload_success = upload_to_google_drive(pdf_path)
                 if upload_success:
                     print(f"✅ Reporte semanal {os.path.basename(pdf_path)} subido exitosamente a Google Drive")
@@ -478,7 +497,14 @@ def generar_todos_los_pdfs(clientes: list, tipo: str) -> set:
                     print(f"❌ Error al subir {os.path.basename(pdf_path)} a Google Drive")
                     
         except Exception as e:
-            print(f"Error generando PDF para {c.get('nombre_cliente')} ({tipo}): {e}")
+            print(f"❌ Error generando PDF para {c.get('nombre_cliente')} ({tipo}): {e}")
+    
+    print(f"\n📈 Resumen de generación {tipo}:")
+    print(f"  ✅ PDFs generados exitosamente: {len(generados)}")
+    print(f"  📁 Archivos creados:")
+    for archivo in sorted(generados):
+        print(f"    - {archivo}")
+    
     return generados
 
 
@@ -651,6 +677,11 @@ def enviar_por_recipients(config: dict, seccion: str):
 
 def main():
     os.makedirs(DOWNLOADS_FOLDER, exist_ok=True)
+    
+    # Limpiar PDFs antiguos antes de generar nuevos
+    print("🧹 Limpiando PDFs antiguos...")
+    clean_pdfs_folder()
+    
     inicio_total = time.time()
 
     # Carga recipients y clientes
@@ -666,10 +697,21 @@ def main():
     # ---- DIARIOS ----
     if ejecutar_diarios and recipients_cfg.get("diarios"):
         print("\n=== Generando DIARIOS ===")
+        print(f"📅 Generando reportes para la fecha: {etiqueta_fecha_diaria(FECHA_HOY, -1)}")
+        print(f"🏭 Clientes encontrados para reportes diarios: {len(clientes_diarios)}")
+        
+        # Mostrar lista de clientes que se van a procesar
+        for i, cliente in enumerate(clientes_diarios, 1):
+            print(f"  {i}. {cliente.get('nombre_cliente')} - {cliente.get('alias')} (ID: {cliente.get('id_cliente')}, Línea: {cliente.get('linea')})")
+        
         generar_todos_los_pdfs(clientes_diarios, "diario")
         enviar_por_recipients(recipients_cfg, "diarios")
     else:
         print("\n=== DIARIOS omitidos ===")
+        if not ejecutar_diarios:
+            print("Razón: SOLO_TIPO no incluye 'diario'")
+        if not recipients_cfg.get("diarios"):
+            print("Razón: No hay configuración de recipients para diarios")
 
     # ---- SEMANALES ----
     if ejecutar_semanales and recipients_cfg.get("semanales"):

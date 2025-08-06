@@ -8,9 +8,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email requerido' }, { status: 400 });
     }
 
-    // Llamada al endpoint externo
-    const apiUrl = process.env.FASTAPI_URL || 'https://80734d8d9721.ngrok-free.app';
-    const response = await fetch(`${apiUrl}/web/verify-email`, {
+    const apiUrl = process.env.FASTAPI_URL || 'https://2b1956075aa6.ngrok-free.app/web/verify-email';
+    console.log('Intentando conectar a:', apiUrl);
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -19,11 +20,24 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({ email }),
     });
 
+    console.log('Response status:', response.status);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+    // Verificar si la respuesta es JSON válido
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const textResponse = await response.text();
+      console.log('Respuesta no es JSON:', textResponse.substring(0, 200));
+      return NextResponse.json({ 
+        authorized: false,
+        error: 'Servidor FastAPI no disponible o respondiendo incorrectamente' 
+      }, { status: 503 });
+    }
+
     const data = await response.json();
     console.log('Respuesta del FastAPI:', { status: response.status, data });
 
     if (response.ok) {
-      // El endpoint FastAPI ahora devuelve numero_cliente y compresores
       return NextResponse.json({ 
         authorized: true, 
         numero_cliente: data.numero_cliente,
