@@ -4,13 +4,11 @@ import json
 import dotenv
 import os
 
-# Cargar variables de entorno desde .env
 dotenv.load_dotenv()
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_WHATSAPP_FROM = os.getenv("TWILIO_WHATSAPP_FROM")
 
-# Configuración Twilio
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 db_config = {
@@ -138,4 +136,3 @@ def enviar_alertas():
 
 if __name__ == "__main__":
     enviar_alertas()
-
