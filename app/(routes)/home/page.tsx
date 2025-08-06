@@ -7,7 +7,8 @@ import DateReportDropdown from "../../../components/DateReportDropdown";
 import { Compresor } from "../../../types/common";
 
 const Home = () => {
-  const { user, getIdTokenClaims, isAuthenticated, isLoading } = useAuth0();
+  const { user, getIdTokenClaims, isAuthenticated, isLoading, logout } =
+    useAuth0();
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -90,7 +91,39 @@ const Home = () => {
     return null;
   }
   return (
-    <main className="bg-[rgb(65,143,222)] min-h-screen">
+    <main className="bg-[rgb(65,143,222)] min-h-screen relative">
+      {/* Botón de Logout en la esquina superior derecha */}
+      <div className="absolute top-4 right-4 z-10">
+        <button
+          onClick={() => {
+            // Limpiar sessionStorage
+            sessionStorage.removeItem("selectedCompresor");
+            // Hacer logout
+            logout({
+              logoutParams: {
+                returnTo: window.location.origin,
+              },
+            });
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+            />
+          </svg>
+          Cerrar Sesión
+        </button>
+      </div>
+
       <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="bg-white rounded-3xl p-5 shadow-md w-full max-w-4xl">
           <h1 className="text-center text-5xl mb-8">
@@ -105,7 +138,8 @@ const Home = () => {
             </div>
           )}
           <p className="text-center mb-6 text-xl">
-            Aquí podrá revisar sus reportes diarios, por fecha específica y semanales
+            Aquí podrá revisar sus reportes diarios, por fecha específica y
+            semanales
           </p>
 
           {/* Menús dropdown con hover */}
@@ -118,7 +152,7 @@ const Home = () => {
               colorScheme={{
                 text: "text-blue-600",
                 icon: "text-blue-400",
-                hover: "hover:bg-blue-50 hover:text-blue-600"
+                hover: "hover:bg-blue-50 hover:text-blue-600",
               }}
               onCompressorSelect={(compresor) => {
                 sessionStorage.setItem(
@@ -140,7 +174,7 @@ const Home = () => {
               colorScheme={{
                 text: "text-purple-600",
                 icon: "text-purple-400",
-                hover: "hover:bg-purple-50 hover:text-purple-600"
+                hover: "hover:bg-purple-50 hover:text-purple-600",
               }}
             />
 
@@ -152,7 +186,7 @@ const Home = () => {
               colorScheme={{
                 text: "text-[rgb(0,32,91)]",
                 icon: "text-[rgb(4,48,130)]",
-                hover: "hover:bg-green-50 hover:text-green-600"
+                hover: "hover:bg-green-50 hover:text-green-600",
               }}
               onCompressorSelect={(compresor) => {
                 sessionStorage.setItem(
