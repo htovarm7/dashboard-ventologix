@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email requerido' }, { status: 400 });
     }
 
-    const apiUrl = process.env.FASTAPI_URL || 'https://2b1956075aa6.ngrok-free.app/web/verify-email';
+    const apiUrl = 'https://916dcb09fbd9.ngrok-free.app/web/verify-email';
     console.log('Intentando conectar a:', apiUrl);
     
     const response = await fetch(apiUrl, {
