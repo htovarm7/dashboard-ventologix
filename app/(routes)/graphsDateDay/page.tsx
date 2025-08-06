@@ -194,6 +194,23 @@ export default function Main() {
   );
 
   useEffect(() => {
+    // Intentar obtener datos de sessionStorage primero
+    const storedCompresor = sessionStorage.getItem("selectedCompresor");
+    
+    if (storedCompresor) {
+      try {
+        const data = JSON.parse(storedCompresor);
+        if (data.id_cliente && data.linea && data.date) {
+          console.log("Datos del compresor desde sessionStorage:", data);
+          fetchData(data.id_cliente.toString(), data.linea, data.date);
+          return;
+        }
+      } catch (error) {
+        console.error("Error parseando datos de sessionStorage:", error);
+      }
+    }
+    
+    // Fallback a URL parameters
     const id = searchParams.get("id_cliente");
     const linea = searchParams.get("linea") || "";
     const date = searchParams.get("date") || "";
@@ -628,6 +645,19 @@ export default function Main() {
             </p>
           </div>
         )}
+
+        {/* Botón Volver */}
+        <div className="mt-8 text-center">
+          <button
+            onClick={() => {
+              sessionStorage.removeItem("selectedCompresor");
+              window.location.href = "/home";
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+          >
+            ← Volver al Dashboard
+          </button>
+        </div>
       </div>
     </main>
   );

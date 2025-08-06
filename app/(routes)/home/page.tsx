@@ -2,6 +2,9 @@
 import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
+import ReportDropdown from "../../../components/ReportDropdown";
+import DateReportDropdown from "../../../components/DateReportDropdown";
+import { Compresor } from "../../../types/common";
 
 const Home = () => {
   const { user, getIdTokenClaims, isAuthenticated, isLoading } = useAuth0();
@@ -9,7 +12,7 @@ const Home = () => {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
-  const [compresores, setCompresores] = useState<any[]>([]);
+  const [compresores, setCompresores] = useState<Compresor[]>([]);
   const [numeroCliente, setNumeroCliente] = useState<number | null>(null);
 
   useEffect(() => {
@@ -102,111 +105,67 @@ const Home = () => {
             </div>
           )}
           <p className="text-center mb-6 text-xl">
-            Aqui podra revisar sus reportes diarios y semanales
+            Aquí podrá revisar sus reportes diarios, por fecha específica y semanales
           </p>
 
           {/* Menús dropdown con hover */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Reporte Diario */}
-            <div className="relative text-center group">
-              <h2 className="text-2xl text-blue-600 hover:scale-110 cursor-pointer transition-transform flex items-center justify-center gap-2">
-                Reporte Diario
-                <svg
-                  className="w-4 h-4 text-blue-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </h2>
-              {compresores.length > 0 && (
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-10">
-                  <div className="py-2">
-                    <div className="px-3 py-2 text-xs text-gray-500 font-medium uppercase tracking-wide border-b border-gray-100">
-                      Seleccionar Compresor
-                    </div>
-                    {compresores.map((compresor) => (
-                      <button
-                        key={`diario-${compresor.id_cliente}-${compresor.linea}`}
-                        onClick={() => {
-                          // Guardar datos en sessionStorage para ocultar parámetros de URL
-                          sessionStorage.setItem(
-                            "selectedCompresor",
-                            JSON.stringify({
-                              id_cliente: compresor.id_cliente,
-                              linea: compresor.linea,
-                              alias: compresor.alias,
-                            })
-                          );
-                          router.push("/graphsD");
-                        }}
-                        className="block w-full px-4 py-3 text-left text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors border-b border-gray-50 last:border-b-0"
-                      >
-                        <div className="font-medium text-center">
-                          {compresor.alias}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            <ReportDropdown
+              title="Reporte Diario"
+              icon={null}
+              compresores={compresores}
+              colorScheme={{
+                text: "text-blue-600",
+                icon: "text-blue-400",
+                hover: "hover:bg-blue-50 hover:text-blue-600"
+              }}
+              onCompressorSelect={(compresor) => {
+                sessionStorage.setItem(
+                  "selectedCompresor",
+                  JSON.stringify({
+                    id_cliente: compresor.id_cliente,
+                    linea: compresor.linea,
+                    alias: compresor.alias,
+                  })
+                );
+                router.push("/graphsD");
+              }}
+            />
+
+            {/* Reporte Diario por Fecha */}
+            <DateReportDropdown
+              title="Reporte por Fecha"
+              compresores={compresores}
+              colorScheme={{
+                text: "text-purple-600",
+                icon: "text-purple-400",
+                hover: "hover:bg-purple-50 hover:text-purple-600"
+              }}
+            />
 
             {/* Reporte Semanal */}
-            <div className="relative text-center group">
-              <h2 className="text-2xl text-[rgb(0,32,91)] hover:scale-110 cursor-pointer transition-transform flex items-center justify-center gap-2">
-                Reporte Semanal
-                <svg
-                  className="w-4 h-4 text-[rgb(4,48,130)]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </h2>
-              {compresores.length > 0 && (
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-10">
-                  <div className="py-2">
-                    <div className="px-3 py-2 text-xs text-gray-500 font-medium uppercase tracking-wide border-b border-gray-100">
-                      Seleccionar Compresor
-                    </div>
-                    {compresores.map((compresor) => (
-                      <button
-                        key={`semanal-${compresor.id_cliente}-${compresor.linea}`}
-                        onClick={() => {
-                          sessionStorage.setItem(
-                            "selectedCompresor",
-                            JSON.stringify({
-                              id_cliente: compresor.id_cliente,
-                              linea: compresor.linea,
-                              alias: compresor.alias,
-                            })
-                          );
-                          router.push("/graphsW");
-                        }}
-                        className="block w-full px-4 py-3 text-left text-gray-700 hover:bg-green-50 hover:text-green-600 transition-colors border-b border-gray-50 last:border-b-0"
-                      >
-                        <div className="font-medium text-center">
-                          {compresor.alias}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            <ReportDropdown
+              title="Reporte Semanal"
+              icon={null}
+              compresores={compresores}
+              colorScheme={{
+                text: "text-[rgb(0,32,91)]",
+                icon: "text-[rgb(4,48,130)]",
+                hover: "hover:bg-green-50 hover:text-green-600"
+              }}
+              onCompressorSelect={(compresor) => {
+                sessionStorage.setItem(
+                  "selectedCompresor",
+                  JSON.stringify({
+                    id_cliente: compresor.id_cliente,
+                    linea: compresor.linea,
+                    alias: compresor.alias,
+                  })
+                );
+                router.push("/graphsW");
+              }}
+            />
           </div>
 
           {/* Mensaje si no hay compresores */}
