@@ -2,7 +2,7 @@ export interface Compresor {
   id_cliente: number;
   linea: string;
   alias: string;
-  nombre_cliente?: string; // Solo presente para administradores
+  nombre_cliente?: string;
 }
 
 export interface CompresorWithDate extends Compresor {

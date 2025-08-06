@@ -18,6 +18,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth0 } from "@auth0/auth0-react";
 import annotationPlugin from "chartjs-plugin-annotation";
+import { useAuthCheck } from "@/hooks/useAuthCheck";
 
 // Libraries for charts
 import {
@@ -58,8 +59,8 @@ import type {
 } from "@/lib/types";
 
 function MainContent() {
-  const { user, getIdTokenClaims, isAuthenticated, isLoading } = useAuth0();
   const router = useRouter();
+  const { isAuthorized, isCheckingAuth } = useAuthCheck();
 
   const [chartData, setChartData] = useState([0, 0, 0]);
   const [lineChartData, setLineChartData] = useState<(number | null)[]>([]);
@@ -73,8 +74,6 @@ function MainContent() {
     null
   );
   const [dayData, setDayData] = useState<dayData | null>(null);
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [compresorAlias, setCompresorAlias] = useState<string>("");
 
   const fetchData = useCallback(async (id: string, linea: string) => {
@@ -159,45 +158,6 @@ function MainContent() {
   }, []);
 
   const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const verifyAndLoadUser = async () => {
-      if (!isAuthenticated) {
-        router.push("/app");
-        return;
-      }
-
-      if (user?.email) {
-        try {
-          const response = await fetch("/api/verify-user", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ email: user.email }),
-          });
-
-          const data = await response.json();
-
-          if (response.ok && data.authorized) {
-            setIsAuthorized(true);
-          } else {
-            console.error("Usuario no autorizado:", data.error);
-            router.push("/");
-          }
-        } catch (error) {
-          console.error("Error verificando autorización:", error);
-          router.push("/");
-        }
-      }
-
-      setIsCheckingAuth(false);
-    };
-
-    if (!isLoading) {
-      verifyAndLoadUser();
-    }
-  }, [isAuthenticated, user, isLoading, router, getIdTokenClaims]);
 
   useEffect(() => {
     if (isAuthorized) {
@@ -458,7 +418,7 @@ function MainContent() {
     }
   }, [lineChartData, chartData]);
 
-  if (isLoading || isCheckingAuth) {
+  if (isCheckingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

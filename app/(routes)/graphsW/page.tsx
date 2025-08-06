@@ -18,6 +18,7 @@ import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth0 } from "@auth0/auth0-react";
+import { useAuthCheck } from "@/hooks/useAuthCheck";
 import annotationPlugin from "chartjs-plugin-annotation";
 import Image from "next/image";
 import VentoCom from "@/components/vento_com";
@@ -68,8 +69,8 @@ ChartJS.register(
 
 function MainContent() {
   // Auth0 hooks
-  const { user, getIdTokenClaims, isAuthenticated, isLoading } = useAuth0();
   const router = useRouter();
+  const { isAuthorized, isCheckingAuth } = useAuthCheck();
 
   // Constant Declarations
   const [chartData, setChartData] = useState<chartData>([0, 0, 0]);
@@ -87,9 +88,7 @@ function MainContent() {
 
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
 
-  // Estados de autorización
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  // Estados locales
   const [compresorAlias, setCompresorAlias] = useState<string>("");
 
   const searchParams = useSearchParams();
@@ -168,46 +167,6 @@ function MainContent() {
       console.error("Error fetching data:", error);
     }
   }, []);
-
-  // Verificar autorización y obtener ID del cliente
-  useEffect(() => {
-    const verifyAndLoadUser = async () => {
-      if (!isAuthenticated) {
-        router.push("/app");
-        return;
-      }
-
-      if (user?.email) {
-        try {
-          const response = await fetch("/api/verify-user", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ email: user.email }),
-          });
-
-          const data = await response.json();
-
-          if (response.ok && data.authorized) {
-            setIsAuthorized(true);
-          } else {
-            console.error("Usuario no autorizado:", data.error);
-            router.push("/");
-          }
-        } catch (error) {
-          console.error("Error verificando autorización:", error);
-          router.push("/");
-        }
-      }
-
-      setIsCheckingAuth(false);
-    };
-
-    if (!isLoading) {
-      verifyAndLoadUser();
-    }
-  }, [isAuthenticated, user, isLoading, router, getIdTokenClaims]);
 
   // Cargar datos una vez que tenemos autorización
   useEffect(() => {
@@ -894,7 +853,7 @@ function MainContent() {
   const semanaNumero = getISOWeekNumber(lastMonday);
 
   // Verificaciones de carga y autorización
-  if (isLoading || isCheckingAuth) {
+  if (isCheckingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
