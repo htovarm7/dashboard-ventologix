@@ -7,7 +7,7 @@
  * This file implements the daily graphs, including a Line Chart and a Gauge Chart using both Chart.js and ECharts.
  *
  * @version 1.0
- * http://localhost:3002/reportesDate?id_cliente=7&linea=A&date=2025-05-30
+ * http://localhost:3002/reportesD?id_cliente=10&linea=A
  */
 
 "use client";
@@ -15,7 +15,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useAuth0 } from "@auth0/auth0-react";
 import annotationPlugin from "chartjs-plugin-annotation";
 
 // Libraries for charts
@@ -30,6 +31,7 @@ import {
   PointElement,
 } from "chart.js";
 import { Pie, Chart } from "react-chartjs-2";
+import { putBlur } from "@/lib/reportsFunctions";
 
 // ECharts for the gauge chart
 import ReactECharts from "echarts-for-react";
@@ -48,206 +50,249 @@ ChartJS.register(
   ChartDataLabels
 );
 
-import { useRouter } from "next/navigation";
-import { clientData, compressorData, LineData } from "../../../lib/types";
+import type {
+  clientData,
+  compressorData,
+  dayData,
+  LineData,
+} from "@/lib/types";
 
 export default function Main() {
-  // Constant Declarations
+  const { user, getIdTokenClaims, isAuthenticated, isLoading } = useAuth0();
+  const router = useRouter();
+
   const [chartData, setChartData] = useState([0, 0, 0]);
-  const [lineChartData, setLineChartData] = useState<number[]>([]);
+  const [lineChartData, setLineChartData] = useState<(number | null)[]>([]);
   const [lineChartLabels, setLineChartLabels] = useState<string[]>([]);
   const [maxData, setMaxData] = useState(0);
-  const [kWh, setKWh] = useState<number>(0);
-  const [hoursWorked, setHoursWorked] = useState<number>(0);
-  const [usdCost, setUsdCost] = useState<number>(0);
   const [Load, setLoad] = useState<number>(0);
   const [NoLoad, setNoLoad] = useState<number>(0);
   const [Off, setOff] = useState<number>(0);
-  const [firstHour, setFirstHour] = useState("");
-  const [lastHour, setLastHour] = useState("");
-  const [totalCiclos, setTotalCiclos] = useState(0);
-  const [promedioCiclosHora, setPromedioCiclosHora] = useState(0);
-  const [comentarioCiclos, setComentarioCiclos] = useState("");
-  const [hpNominal, setHPNominal] = useState<number>(0);
-  const [hpeq, setHPEquivalente] = useState<number>(0);
-  const [comentarioHp, setComentarioHp] = useState("");
-
   const [clientData, setClientData] = useState<clientData | null>(null);
-
   const [compressorData, setCompresorData] = useState<compressorData | null>(
     null
   );
-
-  interface LineData {
-    time: string;
-    corriente: number;
-  }
-
-  const searchParams = useSearchParams();
+  const [dayData, setDayData] = useState<dayData | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [clientId, setClientId] = useState<string | null>(null);
+  const [compresorAlias, setCompresorAlias] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("");
 
   const fetchData = useCallback(
     async (id: string, linea: string, date: string) => {
       try {
-        const [
-          pieRes,
-          lineRes,
-          commentsRes,
-          statsRes,
-          clientRes,
-          compressorRes,
-        ] = await Promise.all([
-          (async () => {
-            const res = await fetch(
-              `http://127.0.0.1:8000/report/pie-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}]`
-            );
-            return res.json();
-          })(),
-          (async () => {
-            const res = await fetch(
-              `http://127.0.0.1:8000/report/line-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}]`
-            );
-            return res.json();
-          })(),
-          (async () => {
-            const res = await fetch(
-              `http://127.0.0.1:8000/report/comments-data-day?id_cliente=${id}&linea=${linea}&date=${date}]`
-            );
-            return res.json();
-          })(),
-          (async () => {
-            const res = await fetch(
-              `http://127.0.0.1:8000/report/stats-data-day?id_cliente=${id}&linea=${linea}&date=${date}]`
-            );
-            return res.json();
-          })(),
-          (async () => {
-            const res = await fetch(
-              `http://127.0.0.1:8000/report/client-data?id_cliente=${id}&linea=${linea}`
-            );
-            return res.json();
-          })(),
-          (async () => {
-            const res = await fetch(
-              `http://127.0.0.1:8000/report/compressor-data?id_cliente=${id}&linea=${linea}`
-            );
-            return res.json();
-          })(),
-        ]);
+        const [pieRes, lineRes, dayRes, clientRes, compressorRes] =
+          await Promise.all([
+            (async () => {
+              const res = await fetch(
+                `http://127.0.0.1:8080/report/pie-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}`
+              );
+              return res.json();
+            })(),
+            (async () => {
+              const res = await fetch(
+                `http://127.0.0.1:8080/report/line-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}`
+              );
+              return res.json();
+            })(),
+            (async () => {
+              const res = await fetch(
+                `http://127.0.0.1:8080/report/day-report-data?id_cliente=${id}&linea=${linea}&date=${date}`
+              );
+              return res.json();
+            })(),
+            (async () => {
+              const res = await fetch(
+                `http://127.0.0.1:8080/report/client-data?id_cliente=${id}`
+              );
+              return res.json();
+            })(),
+            (async () => {
+              const res = await fetch(
+                `http://127.0.0.1:8080/report/compressor-data?id_cliente=${id}&linea=${linea}`
+              );
+              return res.json();
+            })(),
+          ]);
 
-        if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
-        if (compressorRes.data.length > 0)
+        console.log("pieRes:", pieRes);
+        console.log("lineRes:", lineRes);
+        console.log("dayRes:", dayRes);
+        console.log("clientRes:", clientRes);
+        console.log("compressorRes:", compressorRes);
+
+        if (clientRes.data && clientRes.data.length > 0)
+          setClientData(clientRes.data[0]);
+        if (compressorRes.data && compressorRes.data.length > 0)
           setCompresorData(compressorRes.data[0]);
 
-        const stats = statsRes.data;
-        setKWh(stats.kWh);
-        setHoursWorked(stats.hours_worked);
-        setUsdCost(stats.usd_cost);
-        setHPNominal(stats.hp_nominal);
-        setHPEquivalente(stats.hp_equivalente);
-        setComentarioHp(stats.comentario_hp_equivalente);
-
-        const comments = commentsRes.data;
-        setFirstHour(comments.first_time);
-        setLastHour(comments.last_time);
-        setTotalCiclos(comments.total_ciclos);
-        setPromedioCiclosHora(comments.promedio_ciclos_hora);
-        setComentarioCiclos(comments.comentario_ciclos);
-
-        const { LOAD, NOLOAD, OFF } = pieRes.data;
-        setChartData([LOAD, NOLOAD, OFF]);
-
-        setLoad(LOAD);
-        setNoLoad(NOLOAD);
-        setOff(OFF);
-
-        const rawData = (lineRes.data as LineData[]).map((item) => ({
-          time: new Date(item.time),
-          corriente: item.corriente,
-        }));
-        rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
-
-        const times = rawData.map((item) =>
-          item.time.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          })
-        );
-
-        const currents: (number | null)[] = rawData.map(
-          (item) => item.corriente
-        );
-
-        if (!times.includes("23:59:59")) {
-          times.push("23:59:59");
-          currents.push(null);
+        // Verificar que pieRes.data existe y tiene las propiedades esperadas
+        if (pieRes.data && typeof pieRes.data === "object") {
+          const { LOAD, NOLOAD, OFF } = pieRes.data;
+          setChartData([LOAD || 0, NOLOAD || 0, OFF || 0]);
+          setLoad(LOAD || 0);
+          setNoLoad(NOLOAD || 0);
+          setOff(OFF || 0);
+        } else {
+          console.error("pieRes.data no tiene el formato esperado:", pieRes);
+          // Valores por defecto
+          setChartData([0, 0, 100]);
+          setLoad(0);
+          setNoLoad(0);
+          setOff(100);
         }
 
-        setLineChartLabels(times);
-        setLineChartData(currents.map((c) => (c === null ? 0 : c)));
-        setMaxData(Math.max(...currents.filter((c) => c !== null)) * 1.3);
+        if (dayRes.data) {
+          setDayData(dayRes.data);
+        }
+
+        // Verificar que lineRes.data existe antes de procesarlo
+        if (lineRes.data && Array.isArray(lineRes.data)) {
+          const rawData = (lineRes.data as LineData[]).map((item) => ({
+            time: new Date(item.time),
+            corriente: item.corriente,
+          }));
+          rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
+
+          const times = rawData.map((item) =>
+            item.time.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            })
+          );
+
+          const currents: (number | null)[] = rawData.map(
+            (item) => item.corriente
+          );
+
+          if (!times.includes("23:59:59")) {
+            times.push("23:59:59");
+            currents.push(null);
+          }
+
+          setLineChartLabels(times);
+          setLineChartData(currents);
+          setMaxData(
+            Math.max(...currents.filter((c): c is number => c !== null)) * 1.3
+          );
+        } else {
+          console.error("lineRes.data no es un array válido:", lineRes);
+          setLineChartLabels([]);
+          setLineChartData([]);
+          setMaxData(0);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
+        // Establecer valores por defecto en caso de error
+        setChartData([0, 0, 100]);
+        setLoad(0);
+        setNoLoad(0);
+        setOff(100);
+        setLineChartLabels([]);
+        setLineChartData([]);
+        setMaxData(0);
       }
     },
     []
   );
 
+  const searchParams = useSearchParams();
+
   useEffect(() => {
-    // Intentar obtener datos de sessionStorage primero
-    const storedCompresor = sessionStorage.getItem("selectedCompresor");
-    
-    if (storedCompresor) {
-      try {
-        const data = JSON.parse(storedCompresor);
-        if (data.id_cliente && data.linea && data.date) {
-          console.log("Datos del compresor desde sessionStorage:", data);
-          fetchData(data.id_cliente.toString(), data.linea, data.date);
-          return;
+    const verifyAndLoadUser = async () => {
+      if (!isAuthenticated) {
+        router.push("/app");
+        return;
+      }
+
+      if (user?.email) {
+        try {
+          const response = await fetch("/api/verify-user", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email: user.email }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.authorized) {
+            setIsAuthorized(true);
+          } else {
+            console.error("Usuario no autorizado:", data.error);
+            router.push("/");
+          }
+        } catch (error) {
+          console.error("Error verificando autorización:", error);
+          router.push("/");
         }
-      } catch (error) {
-        console.error("Error parseando datos de sessionStorage:", error);
+      }
+
+      setIsCheckingAuth(false);
+    };
+
+    if (!isLoading) {
+      verifyAndLoadUser();
+    }
+  }, [isAuthenticated, user, isLoading, router, getIdTokenClaims]);
+
+  useEffect(() => {
+    if (isAuthorized) {
+      const savedCompresor = sessionStorage.getItem("selectedCompresor");
+      let id_cliente, linea, date;
+
+      if (savedCompresor) {
+        const compresorData = JSON.parse(savedCompresor);
+        id_cliente = compresorData.id_cliente.toString();
+        linea = compresorData.linea;
+        date = compresorData.date; // Nueva propiedad para la fecha
+        setCompresorAlias(
+          compresorData.alias || `Compresor ${id_cliente}-${linea}`
+        );
+        setSelectedDate(date || "");
+      } else {
+        // Fallback a URL parameters
+        id_cliente = searchParams.get("id_cliente");
+        linea = searchParams.get("linea") || "A";
+        date =
+          searchParams.get("date") || new Date().toISOString().split("T")[0]; // Fecha actual como fallback
+        setCompresorAlias(`Compresor ${id_cliente}-${linea}`);
+        setSelectedDate(date);
+      }
+
+      if (id_cliente && date) {
+        setClientId(id_cliente);
+        console.log("Obteniendo datos para:", { id_cliente, linea, date });
+        fetchData(id_cliente, linea, date);
+      } else {
+        console.error("No se encontró información del compresor o fecha");
+        router.push("/home");
       }
     }
-    
-    // Fallback a URL parameters
-    const id = searchParams.get("id_cliente");
-    const linea = searchParams.get("linea") || "";
-    const date = searchParams.get("date") || "";
-
-    if (id) {
-      fetchData(id, linea, date);
-    }
-  }, [searchParams, fetchData]);
-
+  }, [isAuthorized, searchParams, fetchData, router]);
   const limite = compressorData?.limite ?? 0;
-  const hp_instalado = hpNominal;
-  const hp_equivalente = hpeq;
+  const hp_instalado = dayData?.hp_nominal ?? 0;
+  const hp_equivalente = dayData?.hp_equivalente ?? 0;
   const porcentajeUso = hp_instalado
     ? (hp_equivalente / hp_instalado) * 100
     : 0;
   const aguja = Math.max(30, Math.min(120, porcentajeUso)); // Limita entre 30% y 120%
 
-  function getColor(porcentaje: number) {
-    if (porcentaje <= 64) return "red";
-    if (porcentaje <= 79) return "black";
-    if (porcentaje <= 92) return "green";
-    if (porcentaje <= 99) return "#418FDE";
-    if (porcentaje <= 110) return "black";
-    if (porcentaje <= 120) return "red";
-    return "black";
-  }
-
-  const gaugeOptions = {
+  const HpOptions = {
     series: [
       {
         type: "gauge",
         animation: false,
         min: 30,
         max: 120,
+        startAngle: 200,
+        endAngle: -20,
         axisLine: {
           lineStyle: {
-            width: 30,
+            width: 28,
             color: [
               [0.3, "red"],
               [0.53, "yellow"],
@@ -258,23 +303,24 @@ export default function Main() {
             ],
           },
         },
-        pointer: {
-          itemStyle: {
-            color: "black",
+        axisLabel: {
+          show: true,
+          color: "black",
+          distance: -50,
+          formatter: function (value: number) {
+            if (value === 30) return "0";
+            if (value === 120) return "Max";
+            return "";
           },
-          length: "60%",
+          fontSize: 16,
+          fontWeight: "bold",
         },
-        axisTick: {
-          distance: -30,
-          length: 0,
-        },
-        splitLine: {
-          distance: -30,
-          length: 0,
-        },
+        axisTick: { show: false },
+        splitLine: { show: false },
+        pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
           formatter: () => `${porcentajeUso.toFixed(0)}%`,
-          color: getColor(porcentajeUso),
+          color: "black",
           fontSize: 20,
         },
         title: {
@@ -284,6 +330,64 @@ export default function Main() {
           fontSize: 14,
         },
         data: [{ value: aguja }],
+      },
+    ],
+  };
+
+  const ciclosOptions = {
+    series: [
+      {
+        type: "gauge",
+        animation: false,
+        min: 0,
+        max: 30,
+        startAngle: 200,
+        endAngle: -20,
+        axisLine: {
+          lineStyle: {
+            width: 28,
+            color: [
+              [8 / 20, "#418FDE"],
+              [12 / 20, "green"],
+              [15 / 20, "yellow"],
+              [1, "red"],
+            ],
+          },
+        },
+        axisLabel: {
+          show: true,
+          color: "black",
+          distance: -45,
+          formatter: (value: number) => {
+            if (value === 0) return "0";
+            if (value === 30)
+              return (dayData?.promedio_ciclos_hora ?? 0) > 30 ? "Max" : "30+";
+            return "";
+          },
+          fontSize: 14,
+          fontWeight: "bold",
+        },
+        axisTick: { show: false },
+        splitLine: { show: false },
+        pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
+        detail: {
+          formatter: () => `${dayData?.promedio_ciclos_hora}`,
+          fontSize: 20,
+        },
+        title: {
+          offsetCenter: [0, "75%"],
+          formatter: () =>
+            `Ciclos por hora (C/Hr): ${dayData?.promedio_ciclos_hora}`,
+          fontSize: 14,
+        },
+        data: [
+          {
+            value:
+              (dayData?.promedio_ciclos_hora ?? 0) > 30
+                ? 30
+                : dayData?.promedio_ciclos_hora ?? 0,
+          },
+        ],
       },
     ],
   };
@@ -328,7 +432,6 @@ export default function Main() {
       },
     },
     animation: {
-      animate: false,
       duration: 0,
     },
   };
@@ -336,7 +439,9 @@ export default function Main() {
   // Line boundaries options
   const lineChartOptions = {
     responsive: true,
-    animation: false,
+    animation: {
+      duration: 0,
+    },
     plugins: {
       datalabels: {
         display: false,
@@ -401,55 +506,87 @@ export default function Main() {
     }
   }, [lineChartData, chartData]);
 
-  const dateParam = searchParams.get("date") || "";
-
-  let shortDate = "";
-  let longDate = "";
-
-  if (dateParam) {
-    const formattedDates = formatSpanishDate(dateParam);
-    shortDate = formattedDates.shortDate;
-    longDate = formattedDates.longDate;
+  if (isLoading || isCheckingAuth) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verificando autorización...</p>
+        </div>
+      </div>
+    );
   }
 
-  function formatSpanishDate(dateString: string) {
-    const [year, month, day] = dateString.split("-").map(Number);
-    const dateObj = new Date(year, month - 1, day);
-
-    const shortDate = dateObj.toLocaleDateString("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-
-    let longDate = dateObj.toLocaleDateString("es-ES", {
-      weekday: "long",
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-
-    longDate = longDate.charAt(0).toUpperCase() + longDate.slice(1);
-    longDate = longDate.replace(/ de (\d{4})$/, " del $1");
-
-    return { shortDate, longDate };
+  if (!isAuthorized) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600">
+            No autorizado para acceder a esta página
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <main className="relative">
+      <div className="absolute top-4 left-4 z-10">
+        <button
+          onClick={() => router.push("/home")}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          Volver
+        </button>
+      </div>
+
       {/* Here its the top section*/}
       <div className="flex flex-col items-center mb-2">
-        <h1 className="text-4xl font-bold text-center">Reporte Diario</h1>
+        <h1 className="text-4xl font-bold text-center">
+          Reporte Diario por Fecha
+        </h1>
         <h2 className="text-4xl font-bold text-center">
-          {compressorData?.alias}
+          {compresorAlias || compressorData?.alias}
         </h2>
-        <h3 className="text-3xl font-bold text-center">Fecha: {longDate}</h3>
+        <h3 className="text-3xl font-bold text-center">
+          Fecha:{" "}
+          {selectedDate
+            ? new Date(selectedDate + "T00:00:00")
+                .toLocaleDateString("es-ES", {
+                  weekday: "long",
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                })
+                .replace(/^\w/, (c) => c.toUpperCase())
+            : new Date(new Date().setDate(new Date().getDate() - 1))
+                .toLocaleDateString("es-ES", {
+                  weekday: "long",
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                })
+                .replace(/^\w/, (c) => c.toUpperCase())}
+        </h3>
         <Image
           src="/Ventologix_04.png"
           alt="logo"
           className="h-28 w-auto mt-3 absolute top-0 left-0 m-3"
-          width={112}
-          height={112}
+          width={300}
+          height={100}
         />
       </div>
 
@@ -506,26 +643,30 @@ export default function Main() {
           <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
             <h2 className="text-xl text-black">Gasto USD*</h2>
             <p className="text-3xl font-bold text-black">
-              ${usdCost.toFixed(2)}
+              ${dayData?.costo_usd}
             </p>
           </div>
-          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
+          <div
+            className={`bg-white rounded-2xl shadow p-4 text-center w-[250px] ${putBlur(
+              clientData?.demoDiario ?? false
+            )}`}
+          >
             <h2 className="text-xl text-black">kWh Utilizados</h2>
-            <p className="text-3xl font-bold text-black">
-              {kWh.toFixed(0)} kWh
-            </p>
+            <p className="text-3xl font-bold text-black">{dayData?.kWh} kWh</p>
           </div>
           <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
             <h2 className="text-xl text-black">Horas Trabajadas</h2>
             <p className="text-3xl font-bold text-black">
-              {hoursWorked.toFixed(1)} h
+              {dayData?.horas_trabajadas} h
             </p>
           </div>
         </div>
 
         {/* Gráficas */}
         <div
-          className="flex flex-row flex-wrap justify-center gap-4"
+          className={`flex flex-row flex-wrap justify-center gap-4 ${putBlur(
+            clientData?.demoDiario ?? false
+          )}`}
           id="grafico-listo"
         >
           <div className="bg-white rounded-2xl shadow p-4 w-[280px] items-center justify-center">
@@ -536,7 +677,21 @@ export default function Main() {
               <strong>Hp Instalado:</strong> {hp_instalado} Hp
             </h2>
             <ReactECharts
-              option={gaugeOptions}
+              option={HpOptions}
+              style={{ height: "280px", width: "100%" }}
+              notMerge={true}
+              lazyUpdate={true}
+              theme={"light"}
+            />
+          </div>
+          <div className="bg-white rounded-2xl shadow p-4 w-[280px] items-center justify-center">
+            <h2 className="text-xl" style={{ textAlign: "center" }}>
+              <strong>Ciclos por hora (C/hr):</strong>{" "}
+              {dayData?.promedio_ciclos_hora}
+            </h2>
+            <br></br>
+            <ReactECharts
+              option={ciclosOptions}
               style={{ height: "280px", width: "100%" }}
               notMerge={true}
               lazyUpdate={true}
@@ -569,15 +724,37 @@ export default function Main() {
             <h1 className="text-3xl font-bold">Comentarios</h1>
 
             <p className="text-xl text-left">
-              • El día <strong>{shortDate}</strong> se iniciaron labores a las{" "}
-              <strong>{firstHour}</strong> y se concluyeron a las{" "}
-              <strong>{lastHour}</strong>
+              • El día{" "}
+              <strong>
+                (
+                {selectedDate
+                  ? new Date(selectedDate + "T00:00:00").toLocaleDateString(
+                      "es-ES",
+                      {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      }
+                    )
+                  : new Date(
+                      new Date().setDate(new Date().getDate() - 1)
+                    ).toLocaleDateString("es-ES", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
+                )
+              </strong>{" "}
+              se iniciaron labores a las{" "}
+              <strong>{dayData?.inicio_funcionamiento}</strong> y se concluyeron
+              a las <strong>{dayData?.fin_funcionamiento}</strong>
             </p>
 
             <p className="text-xl text-left mt-2">
-              • Entre las horas de <strong>{firstHour}</strong> y{" "}
-              <strong>{lastHour}</strong>, el compresor operó de la siguiente
-              manera:
+              • Entre las horas de{" "}
+              <strong>{dayData?.inicio_funcionamiento}</strong> y{" "}
+              <strong>{dayData?.fin_funcionamiento}</strong>, el compresor operó
+              de la siguiente manera:
             </p>
 
             <ul className="list-disc ml-8 text-xl text-left">
@@ -594,35 +771,39 @@ export default function Main() {
 
             <p className="text-xl text-left mt-2">
               • Durante el día se completaron un total de{" "}
-              <strong>{totalCiclos}</strong> ciclos de trabajo. Un ciclo se
+              <strong>{dayData?.ciclos}</strong> ciclos de trabajo. Un ciclo se
               define como un cambio desde el estado <strong>LOAD</strong> a{" "}
               <strong>NO LOAD</strong> consecutivamente.
             </p>
 
             <p className="text-xl text-left mt-2">
               • El promedio de ciclos por hora trabajada fue de{" "}
-              <strong>{promedioCiclosHora}</strong> ciclos/hora.
+              <strong>{dayData?.promedio_ciclos_hora}</strong> ciclos/hora.
             </p>
 
             <p className="text-xl text-left mt-2">
               • El costo total de operación del compresor fue de{" "}
-              <strong>${usdCost.toFixed(2)}</strong>.
+              <strong>${dayData?.costo_usd}</strong>.
             </p>
 
-            <p className="text-xl text-left mt-2">• {comentarioCiclos}</p>
+            <p className="text-xl text-left mt-2">
+              • {dayData?.comentario_ciclos}
+            </p>
 
             <p className="text-xl text-left mt-2">
               • No se detectaron consumos con valores fuera de lo común.
             </p>
 
-            <p className="text-xl text-left mt-2">• {comentarioHp}</p>
+            <p className="text-xl text-left mt-2">
+              • {dayData?.comentario_hp_equivalente}
+            </p>
 
             <p className="text-xl text-left mt-2">
               • El costo por kilovatio-hora (kWh) utilizado en este análisis es
-              de <strong>$0.17 USD/kWh</strong>, que es el estándar actualmente
-              aplicado. Sin embargo, si requiere confirmar este valor o necesita
-              ajustar la tarifa, puede verificar con su contacto en{" "}
-              <strong>VENTOLOGIX</strong>
+              de <strong>${clientData?.costoUSD} USD/kWh</strong>, que es el
+              estándar actualmente aplicado. Sin embargo, si requiere confirmar
+              este valor o necesita ajustar la tarifa, puede verificar con su
+              contacto en <strong>VENTOLOGIX</strong>
             </p>
 
             <h1 className="text-xl text-left mt-7 font-bold">
@@ -645,19 +826,6 @@ export default function Main() {
             </p>
           </div>
         )}
-
-        {/* Botón Volver */}
-        <div className="mt-8 text-center">
-          <button
-            onClick={() => {
-              sessionStorage.removeItem("selectedCompresor");
-              window.location.href = "/home";
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
-          >
-            ← Volver al Dashboard
-          </button>
-        </div>
       </div>
     </main>
   );
