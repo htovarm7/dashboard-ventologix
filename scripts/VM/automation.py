@@ -201,24 +201,39 @@ def obtener_clientes_desde_api():
     """
     try:
         print("🔗 Conectando a API para obtener lista de clientes...")
+        print("🌐 URL de API: http://127.0.0.1:8000/report/clients-data")
+        
         response = requests.get("http://127.0.0.1:8000/report/clients-data", timeout=60)
+        print(f"📡 Código de respuesta HTTP: {response.status_code}")
+        print(f"📄 Headers de respuesta: {dict(response.headers)}")
+        
         if response.status_code == 200:
             data = response.json()
+            print(f"📊 Respuesta completa de la API:")
+            print(f"   Raw JSON: {response.text[:500]}...")  # Primeros 500 caracteres
+            
             diarios = data.get("diarios", [])
             semanales = data.get("semanales", [])
             
             print(f"✅ API respondió exitosamente")
             print(f"📊 Clientes diarios encontrados: {len(diarios)}")
+            if diarios:
+                print(f"   Primer cliente diario: {diarios[0]}")
             print(f"📊 Clientes semanales encontrados: {len(semanales)}")
+            if semanales:
+                print(f"   Primer cliente semanal: {semanales[0]}")
             
             return {
                 "diarios": diarios,
                 "semanales": semanales
             }
         else:
-            print(f"❌ Error al obtener clientes: {response.status_code} {response.text}")
+            print(f"❌ Error al obtener clientes: {response.status_code}")
+            print(f"📄 Contenido de error: {response.text}")
     except Exception as e:
         print(f"❌ Excepción al llamar a API de clientes: {e}")
+        import traceback
+        print(f"📋 Traceback completo: {traceback.format_exc()}")
     
     print("⚠️ Retornando listas vacías debido a error en API")
     return {"diarios": [], "semanales": []}
@@ -675,8 +690,84 @@ def enviar_por_recipients(config: dict, seccion: str):
 #         send_error_mail(missing_files, ADMIN_CORREOS)
 
 
+def test_api_connectivity():
+    """Prueba la conectividad con la API y muestra información de debug."""
+    print("\n🔍 === DIAGNÓSTICO DE API ===")
+    
+    # Test 1: Verificar que la API esté respondiendo
+    try:
+        print("🧪 Test 1: Conectividad básica con la API...")
+        response = requests.get("http://127.0.0.1:8000", timeout=10)
+        print(f"   ✅ API responde en puerto 8000 - Status: {response.status_code}")
+    except Exception as e:
+        print(f"   ❌ Error conectando a API base: {e}")
+        return False
+    
+    # Test 2: Verificar endpoints específicos disponibles
+    try:
+        print("🧪 Test 2: Verificando endpoints disponibles...")
+        response = requests.get("http://127.0.0.1:8000/docs", timeout=10)
+        print(f"   ✅ Endpoint /docs disponible - Status: {response.status_code}")
+    except Exception as e:
+        print(f"   ⚠️ Endpoint /docs no disponible: {e}")
+    
+    # Test 3: Verificar endpoint específico de clientes
+    try:
+        print("🧪 Test 3: Verificando endpoint /report/clients-data...")
+        response = requests.get("http://127.0.0.1:8000/report/clients-data", timeout=30)
+        print(f"   📡 Status Code: {response.status_code}")
+        print(f"   📏 Tamaño de respuesta: {len(response.text)} caracteres")
+        print(f"   📄 Content-Type: {response.headers.get('content-type', 'No especificado')}")
+        
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                print(f"   ✅ JSON válido recibido")
+                print(f"   🔑 Keys en respuesta: {list(data.keys()) if isinstance(data, dict) else 'No es diccionario'}")
+                
+                if isinstance(data, dict):
+                    for key, value in data.items():
+                        if isinstance(value, list):
+                            print(f"   📊 {key}: {len(value)} elementos")
+                        else:
+                            print(f"   📊 {key}: {type(value).__name__}")
+                            
+                return True
+            except Exception as json_error:
+                print(f"   ❌ Error parseando JSON: {json_error}")
+                print(f"   📄 Respuesta cruda (primeros 200 chars): {response.text[:200]}")
+        else:
+            print(f"   ❌ Error HTTP: {response.status_code}")
+            print(f"   📄 Respuesta de error: {response.text[:200]}")
+            
+    except Exception as e:
+        print(f"   ❌ Error en test de endpoint: {e}")
+        import traceback
+        print(f"   📋 Traceback: {traceback.format_exc()}")
+    
+    print("🔍 === FIN DIAGNÓSTICO ===\n")
+    return False
+
+
 def main():
+    print(f"🖥️ === INFORMACIÓN DEL ENTORNO ===")
+    print(f"📅 Fecha actual: {FECHA_HOY}")
+    print(f"📁 Directorio base: {BASE_DIR}")
+    print(f"📁 Carpeta de PDFs: {DOWNLOADS_FOLDER}")
+    print(f"📁 Recipients JSON: {recipients_path}")
+    print(f"🔧 FORZAR_SEMANALES: {FORZAR_SEMANALES}")
+    print(f"🔧 SOLO_TIPO: '{SOLO_TIPO}'")
+    print(f"🌐 Variables de entorno relevantes:")
+    print(f"   RECIPIENTS_JSON: {os.getenv('RECIPIENTS_JSON', 'No definida')}")
+    print(f"   REPORTE_TIPO: {os.getenv('REPORTE_TIPO', 'No definida')}")
+    print(f"   FORZAR_SEMANALES: {os.getenv('FORZAR_SEMANALES', 'No definida')}")
+    print(f"=== FIN INFORMACIÓN ENTORNO ===\n")
+    
     os.makedirs(DOWNLOADS_FOLDER, exist_ok=True)
+    
+    # Diagnóstico inicial de API
+    if not test_api_connectivity():
+        print("⚠️ Problemas detectados con la API. Continuando con datos vacíos...")
     
     # Limpiar PDFs antiguos antes de generar nuevos
     print("🧹 Limpiando PDFs antiguos...")
