@@ -19,9 +19,12 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         redirect_uri:
           typeof window !== "undefined" ? window.location.origin : "",
       }}
-      onRedirectCallback={(appState) => {
+      onRedirectCallback={(appState, user) => {
+        console.log("🔍 Auth0 Redirect Callback:", { appState, user });
         router.push(appState?.returnTo || "/");
       }}
+      useRefreshTokens={true}
+      cacheLocation="localstorage"
     >
       {children}
     </Auth0Provider>

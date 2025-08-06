@@ -1,4 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mysql from 'mysql2/promise';
+
+// Database configuration
+const dbConfig = {
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_DATABASE || 'ventologix'
+};
+
+// GET endpoint for testing database connection
+export async function GET() {
+  try {
+    console.log('🔗 Probando conexión a base de datos...');
+    const connection = await mysql.createConnection(dbConfig);
+    
+    // Test basic connection
+    const [result] = await connection.execute('SELECT 1 as test') as [mysql.RowDataPacket[], mysql.FieldPacket[]];
+    
+    // Test usuarios_auth table
+    const [userCount] = await connection.execute('SELECT COUNT(*) as count FROM usuarios_auth') as [mysql.RowDataPacket[], mysql.FieldPacket[]];
+    
+    await connection.end();
+    
+    return NextResponse.json({ 
+      status: 'Database connection successful',
+      test: result[0],
+      usuarios_auth_count: userCount[0].count,
+      config: {
+        host: dbConfig.host,
+        database: dbConfig.database,
+        user: dbConfig.user
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error en test de conexión:', error);
+    return NextResponse.json({ 
+      error: 'Database connection failed',
+      debug: error instanceof Error ? error.message : 'Unknown error',
+      config: {
+        host: dbConfig.host,
+        database: dbConfig.database,
+        user: dbConfig.user
+      }
+    }, { status: 500 });
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,50 +55,78 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email requerido' }, { status: 400 });
     }
 
-    const apiUrl = 'https://916dcb09fbd9.ngrok-free.app/web/verify-email';
-    console.log('Intentando conectar a:', apiUrl);
-    
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'X-API-Key': process.env.AUTH0_API_KEY || ''
-      },
-      body: JSON.stringify({ email }),
+    console.log('🔍 Verificando email:', email);
+    console.log('🔗 Conectando a base de datos:', {
+      host: dbConfig.host,
+      database: dbConfig.database,
+      user: dbConfig.user
     });
 
-    console.log('Response status:', response.status);
-    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+    const connection = await mysql.createConnection(dbConfig);
 
-    // Verificar si la respuesta es JSON válido
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const textResponse = await response.text();
-      console.log('Respuesta no es JSON:', textResponse.substring(0, 200));
-      return NextResponse.json({ 
-        authorized: false,
-        error: 'Servidor FastAPI no disponible o respondiendo incorrectamente' 
-      }, { status: 503 });
-    }
+    try {
+      console.log('✅ Conexión a base de datos establecida');
+      
+      // Paso 1: Obtener numero_cliente
+      console.log('📊 Ejecutando query para usuario:', email);
+      const [userResults] = await connection.execute(
+        'SELECT numero_cliente FROM usuarios_auth WHERE email = ?',
+        [email]
+      ) as [mysql.RowDataPacket[], mysql.FieldPacket[]];
 
-    const data = await response.json();
-    console.log('Respuesta del FastAPI:', { status: response.status, data });
+      console.log('📊 Resultados de usuarios_auth:', userResults);
 
-    if (response.ok) {
+      if (userResults.length === 0) {
+        await connection.end();
+        console.log('❌ Email no encontrado en usuarios_auth');
+        return NextResponse.json({ 
+          authorized: false,
+          error: 'Email not authorized',
+          debug: `Email ${email} no encontrado en la base de datos`
+        }, { status: 403 });
+      }
+
+      const numero_cliente = userResults[0].numero_cliente;
+      console.log('✅ Usuario encontrado, numero_cliente:', numero_cliente);
+
+      // Paso 2: Obtener id_cliente y linea usando el JOIN
+      const query = `
+        SELECT c2.id_cliente, c2.linea, c2.alias
+        FROM usuarios_auth ua
+        JOIN clientes c ON ua.numero_cliente = c.numero_cliente
+        JOIN compresores c2 ON c.id_cliente = c2.proyecto
+        WHERE ua.numero_cliente = ?
+      `;
+
+      console.log('📊 Ejecutando query para compresores, numero_cliente:', numero_cliente);
+      const [compresorsResults] = await connection.execute(query, [numero_cliente]) as [mysql.RowDataPacket[], mysql.FieldPacket[]];
+
+      console.log('📊 Resultados de compresores:', compresorsResults);
+
+      await connection.end();
+
       return NextResponse.json({ 
         authorized: true, 
-        numero_cliente: data.numero_cliente,
-        compresores: data.compresores,
+        numero_cliente: numero_cliente,
+        compresores: compresorsResults,
         status: 'Usuario autorizado' 
       });
-    } else {
+
+    } catch (dbError) {
+      await connection.end();
+      console.error('❌ Error en conexión MySQL:', dbError);
       return NextResponse.json({ 
         authorized: false,
-        error: data.detail || data.error || 'Email no autorizado' 
-      }, { status: 403 });
+        error: 'Database error',
+        debug: dbError instanceof Error ? dbError.message : 'Unknown database error'
+      }, { status: 500 });
     }
+
   } catch (error) {
-    console.error('Error verificando usuario:', error);
-    return NextResponse.json({ error: 'Error de servidor' }, { status: 500 });
+    console.error('❌ Error verificando usuario:', error);
+    return NextResponse.json({ 
+      error: 'Error de servidor',
+      debug: error instanceof Error ? error.message : 'Unknown server error'
+    }, { status: 500 });
   }
 }
