@@ -11,13 +11,23 @@ interface AuthProviderProps {
 export default function AuthProvider({ children }: AuthProviderProps) {
   const router = useRouter();
 
+  const domain = process.env.NEXT_PUBLIC_AUTH0_DOMAIN;
+  const clientId = process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID;
+
+  console.log("🔧 Auth0 Config:", { domain, clientId });
+
+  if (!domain || !clientId) {
+    console.error("❌ Variables de entorno Auth0 faltantes:", { domain, clientId });
+    return <div>Error: Configuración Auth0 incompleta</div>;
+  }
+
   return (
     <Auth0Provider
-      domain={process.env.NEXT_PUBLIC_AUTH0_DOMAIN || ""}
-      clientId={process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID || ""}
+      domain={domain}
+      clientId={clientId}
       authorizationParams={{
-        redirect_uri:
-          typeof window !== "undefined" ? window.location.origin : "",
+        redirect_uri: typeof window !== "undefined" ? window.location.origin : "",
+        scope: "openid profile email"
       }}
       onRedirectCallback={(appState, user) => {
         console.log("🔍 Auth0 Redirect Callback:", { appState, user });

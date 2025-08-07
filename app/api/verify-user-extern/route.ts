@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// URL de la API externa
-const EXTERNAL_API_URL = 'https://fa9702c7434e.ngrok-free.app/web/verify-email';
+const EXTERNAL_API_URL = 'http://127.0.0.1:8080/web/verify-email';
 
 export async function POST(req: NextRequest) {
     try {
@@ -13,12 +12,11 @@ export async function POST(req: NextRequest) {
 
         console.log('🔍 Verificando email con API externa:', email);
 
-        // Hacer fetch a la API externa
         const response = await fetch(EXTERNAL_API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-api-key': process.env.AUTH0_API_KEY || '' // Header de autorización requerido por la API
+                'x-api-key': process.env.AUTH0_API_KEY || ''
             },
             body: JSON.stringify({ email })
         });
