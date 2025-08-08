@@ -942,11 +942,7 @@ def get_all_clients_data():
 @web.post("/verify-email", tags=["auth"])
 def verify_email(
     email: EmailStr = Body(..., embed=True),
-    x_api_key: str = Header(None)
 ):
-    if x_api_key != os.getenv("AUTH0_API_KEY"):
-        raise HTTPException(status_code=403, detail="Unauthorized")
-
     try:
         conn = mysql.connector.connect(
             host=DB_HOST,
