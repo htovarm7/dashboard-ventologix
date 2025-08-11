@@ -71,32 +71,22 @@ recipients_path = os.getenv("RECIPIENTS_JSON",
 
 
 # ------------- Utilidades de fecha -------------
-def obtener_rango_semana_anterior(fecha_base: datetime):
-    """Devuelve (lunes, domingo) de la semana anterior a fecha_base."""
-    lunes_pasado = fecha_base - timedelta(days=fecha_base.weekday() + 7)
-    domingo_pasado = lunes_pasado + timedelta(days=6)
-    return lunes_pasado, domingo_pasado
-
-
-def etiqueta_fecha_diaria(fecha_base: datetime, offset_dias: int = -1) -> str:
-    """YYYY-MM-DD para diarios (por defecto: ayer)."""
-    return (fecha_base + timedelta(days=offset_dias)).strftime("%Y-%m-%d")
-
-
-def etiqueta_fecha_semanal(fecha_base: datetime, offset_dias: int = 0) -> str:
-    """
-    Devuelve: 'YYYY-MM-DD (Semana del L al D mes)'
-    - YYYY-MM-DD: fecha_base + offset_dias (para control desde JSON).
-    - Rango: siempre lunes-domingo de la semana anterior a fecha_base.
-    """
-    fecha_str = (fecha_base + timedelta(days=offset_dias)).strftime("%Y-%m-%d")
-    lunes, domingo = obtener_rango_semana_anterior(fecha_base)
+def get_fecha_reporte(tipo: str = "diario", fecha_base: datetime = None) -> str:
+    """Genera el formato de fecha para reportes diarios o semanales."""
+    fecha_base = fecha_base or datetime.now()
+    
+    if tipo == "diario":
+        return (fecha_base - timedelta(days=1)).strftime("%Y-%m-%d")
+    
+    # Para reporte semanal
+    lunes = fecha_base - timedelta(days=fecha_base.weekday() + 7)
+    domingo = lunes + timedelta(days=6)
+    fecha = fecha_base.strftime("%Y-%m-%d")
     try:
-        mes_domingo = domingo.strftime("%B")  # respeta locale si disponible
+        mes = domingo.strftime("%B")
     except Exception:
-        mes_domingo = domingo.strftime("%m")
-    rango = f"Semana del {lunes.day} al {domingo.day} {mes_domingo}"
-    return f"{fecha_str} ({rango})"
+        mes = domingo.strftime("%m")
+    return f"{fecha} (Semana del {lunes.day} al {domingo.day} {mes})"
 
 
 # ------------- Google Drive Functions -------------
@@ -200,28 +190,15 @@ def obtener_clientes_desde_api():
     }
     """
     try:
-        print("🔗 Conectando a API para obtener lista de clientes...")
-        print("🌐 URL de API: http://127.0.0.1:8000/report/clients-data")
-        
+        print("Obteniendo lista de clientes de la API...")
         response = requests.get("http://127.0.0.1:8000/report/clients-data", timeout=60)
-        print(f"📡 Código de respuesta HTTP: {response.status_code}")
-        print(f"📄 Headers de respuesta: {dict(response.headers)}")
         
         if response.status_code == 200:
             data = response.json()
-            print(f"📊 Respuesta completa de la API:")
-            print(f"   Raw JSON: {response.text[:500]}...")  # Primeros 500 caracteres
-            
             diarios = data.get("diarios", [])
             semanales = data.get("semanales", [])
             
-            print(f"✅ API respondió exitosamente")
-            print(f"📊 Clientes diarios encontrados: {len(diarios)}")
-            if diarios:
-                print(f"   Primer cliente diario: {diarios[0]}")
-            print(f"📊 Clientes semanales encontrados: {len(semanales)}")
-            if semanales:
-                print(f"   Primer cliente semanal: {semanales[0]}")
+            print(f"Encontrados {len(diarios)} clientes diarios y {len(semanales)} clientes semanales")
             
             return {
                 "diarios": diarios,
@@ -441,8 +418,7 @@ def generar_todos_los_pdfs(clientes: list, tipo: str) -> set:
     Genera PDFs para cada cliente del tipo indicado y devuelve el conjunto de nombres de archivo generados.
     Si el tipo es 'semanal', también sube los archivos a Google Drive.
     """
-    print(f"\n🔄 Iniciando generación de PDFs {tipo}...")
-    print(f"📊 Total de clientes a procesar: {len(clientes)}")
+    print(f"\nGenerando PDFs {tipo} para {len(clientes)} clientes...")
     
     generados = set()
     for i, c in enumerate(clientes, 1):
@@ -452,37 +428,23 @@ def generar_todos_los_pdfs(clientes: list, tipo: str) -> set:
             nombre_cliente = c['nombre_cliente']
             alias = (c.get('alias') or "").strip()
 
-            print(f"\n🏭 Procesando cliente {i}/{len(clientes)}: {nombre_cliente} - {alias}")
-            print(f"   ID Cliente: {id_cliente}, Línea: {linea}")
+            print(f"[{i}/{len(clientes)}] {nombre_cliente} - {alias}...")
 
-            if tipo == "diario":
-                etiqueta = etiqueta_fecha_diaria(FECHA_HOY, -1)
-            else:
-                etiqueta = etiqueta_fecha_semanal(FECHA_HOY, 0)
-
-            print(f"   📅 Etiqueta de fecha: {etiqueta}")
-
+            etiqueta = get_fecha_reporte(tipo, FECHA_HOY)
             pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo, etiqueta)
             
-            # Verificar si el PDF se generó exitosamente
             if pdf_path is None:
-                print(f"❌ Saltando cliente {nombre_cliente} ({tipo}) debido a datos inválidos")
+                print(f"  Error: datos inválidos para {nombre_cliente}")
                 continue
                 
             generados.add(os.path.basename(pdf_path))
-            print(f"✅ PDF generado exitosamente: {os.path.basename(pdf_path)}")
             
-            # Si es un reporte semanal, subirlo a Google Drive
-            if tipo == "semanal":
-                print(f"📤 Subiendo reporte semanal a Google Drive: {os.path.basename(pdf_path)}")
-                upload_success = upload_to_google_drive(pdf_path)
-                if upload_success:
-                    print(f"✅ Reporte semanal {os.path.basename(pdf_path)} subido exitosamente a Google Drive")
-                else:
-                    print(f"❌ Error al subir {os.path.basename(pdf_path)} a Google Drive")
+            # Subir a Google Drive si es semanal
+            if tipo == "semanal" and not upload_to_google_drive(pdf_path):
+                print(f"  Error: no se pudo subir a Google Drive")
                     
         except Exception as e:
-            print(f"❌ Error generando PDF para {c.get('nombre_cliente')} ({tipo}): {e}")
+            print(f"  Error: {e}")
     
     print(f"\n📈 Resumen de generación {tipo}:")
     print(f"  ✅ PDFs generados exitosamente: {len(generados)}")
@@ -517,7 +479,7 @@ def enviar_por_recipients(config: dict, seccion: str):
             date_offset = int(file_cfg.get('dateOffset', -1 if seccion == 'diarios' else 0))
             
             if seccion == "diarios":
-                etiqueta = etiqueta_fecha_diaria(FECHA_HOY, date_offset)
+                etiqueta = get_fecha_reporte("diario", FECHA_HOY, date_offset)
                 # Para diarios, buscar archivos que contengan la fecha
                 expected_date = etiqueta
                 matching_files = [f for f in pdf_files if expected_date in os.path.basename(f) and "Diario" in os.path.basename(f)]
@@ -551,35 +513,30 @@ def enviar_por_recipients(config: dict, seccion: str):
                 
             else:
                 # Para semanales, buscar archivos que contengan la fecha y "Semanal"
-                fecha_str = (FECHA_HOY + timedelta(days=date_offset)).strftime("%Y-%m-%d")
-                lunes, domingo = obtener_rango_semana_anterior(FECHA_HOY)
-                try:
-                    mes_domingo = domingo.strftime("%B")
-                except Exception:
-                    mes_domingo = domingo.strftime("%m")
-                rango = f"Semana del {lunes.day} al {domingo.day} {mes_domingo}"
+                fecha_str = get_fecha_reporte("diario", FECHA_HOY, date_offset)
                 
                 # Buscar archivos por patrones específicos según el cliente
                 file_name_template = file_cfg['fileName']
-                matching_files = []
+                keywords = []
                 
-                # Mapeo de patrones en recipients.json a nombres reales generados
+                # Extraer palabras clave del nombre del archivo
                 if "Altansa" in file_name_template or "ALLTANSA" in file_name_template:
-                    matching_files = [f for f in pdf_files if "ALLTANSA" in os.path.basename(f) and "Semanal" in os.path.basename(f) and fecha_str in os.path.basename(f)]
-                elif "Calidra" in file_name_template:
-                    matching_files = [f for f in pdf_files if "Calidra" in os.path.basename(f) and "Semanal" in os.path.basename(f) and fecha_str in os.path.basename(f)]
-                elif "Impac (75hp)" in file_name_template:
-                    matching_files = [f for f in pdf_files if "Impac" in os.path.basename(f) and "Compresor 1" in os.path.basename(f) and "Semanal" in os.path.basename(f) and fecha_str in os.path.basename(f)]
-                elif "Impac (100hp)" in file_name_template:
-                    matching_files = [f for f in pdf_files if "Impac" in os.path.basename(f) and "Compresor 2" in os.path.basename(f) and "Semanal" in os.path.basename(f) and fecha_str in os.path.basename(f)]
-                elif "Daltile ACM-0006" in file_name_template:
-                    matching_files = [f for f in pdf_files if "Daltile" in os.path.basename(f) and "ACM-0006" in os.path.basename(f) and "Semanal" in os.path.basename(f) and fecha_str in os.path.basename(f)]
-                elif "Daltile ACM-0005" in file_name_template:
-                    matching_files = [f for f in pdf_files if "Daltile" in os.path.basename(f) and "ACM-0005" in os.path.basename(f) and "Semanal" in os.path.basename(f) and fecha_str in os.path.basename(f)]
-                elif "Daltile ACM-0002" in file_name_template:
-                    matching_files = [f for f in pdf_files if "Daltile" in os.path.basename(f) and "ACM-0002" in os.path.basename(f) and "Semanal" in os.path.basename(f) and fecha_str in os.path.basename(f)]
-                elif "Daltile ACM-0004" in file_name_template:
-                    matching_files = [f for f in pdf_files if "Daltile" in os.path.basename(f) and "ACM-0004" in os.path.basename(f) and "Semanal" in os.path.basename(f) and fecha_str in os.path.basename(f)]
+                    keywords = ["ALLTANSA"]
+                elif "Impac" in file_name_template:
+                    keywords = ["Impac", "Compresor " + ("1" if "75hp" in file_name_template else "2")]
+                elif "Daltile" in file_name_template:
+                    keywords = ["Daltile", file_name_template.split()[-1]]  # Extraer el código ACM
+                else:
+                    # Para otros clientes, usar la primera palabra del template
+                    keywords = [next(word for word in file_name_template.split() if word not in ["Diario", "Semanal"])]
+                
+                # Buscar archivos que coincidan con todas las palabras clave
+                matching_files = [
+                    f for f in pdf_files 
+                    if all(keyword in os.path.basename(f) for keyword in keywords)
+                    and "Semanal" in os.path.basename(f) 
+                    and fecha_str in os.path.basename(f)
+                ]
 
             if matching_files:
                 # Enviar el primer archivo que coincida
@@ -627,18 +584,17 @@ def enviar_por_recipients(config: dict, seccion: str):
 
 
 def main():
-    print(f"🖥️ === INFORMACIÓN DEL ENTORNO ===")
-    print(f"📅 Fecha actual: {FECHA_HOY}")
-    print(f"📁 Directorio base: {BASE_DIR}")
-    print(f"📁 Carpeta de PDFs: {DOWNLOADS_FOLDER}")
-    print(f"📁 Recipients JSON: {recipients_path}")
-    print(f"🔧 FORZAR_SEMANALES: {FORZAR_SEMANALES}")
-    print(f"🔧 SOLO_TIPO: '{SOLO_TIPO}'")
-    print(f"🌐 Variables de entorno relevantes:")
-    print(f"   RECIPIENTS_JSON: {os.getenv('RECIPIENTS_JSON', 'No definida')}")
-    print(f"   REPORTE_TIPO: {os.getenv('REPORTE_TIPO', 'No definida')}")
-    print(f"   FORZAR_SEMANALES: {os.getenv('FORZAR_SEMANALES', 'No definida')}")
-    print(f"=== FIN INFORMACIÓN ENTORNO ===\n")
+    env_info = {
+        "Fecha actual": FECHA_HOY,
+        "Directorio base": BASE_DIR,
+        "Carpeta PDFs": DOWNLOADS_FOLDER,
+        "Recipients JSON": recipients_path,
+        "FORZAR_SEMANALES": FORZAR_SEMANALES,
+        "SOLO_TIPO": SOLO_TIPO
+    }
+    print("=== CONFIGURACIÓN ===")
+    for key, value in env_info.items():
+        print(f"{key}: {value}")
     
     os.makedirs(DOWNLOADS_FOLDER, exist_ok=True)
     
@@ -661,7 +617,7 @@ def main():
     # ---- DIARIOS ----
     if ejecutar_diarios and recipients_cfg.get("diarios"):
         print("\n=== Generando DIARIOS ===")
-        print(f"📅 Generando reportes para la fecha: {etiqueta_fecha_diaria(FECHA_HOY, -1)}")
+        print(f"📅 Generando reportes para la fecha: {get_fecha_reporte('diario', FECHA_HOY, -1)}")
         print(f"🏭 Clientes encontrados para reportes diarios: {len(clientes_diarios)}")
         
         # Mostrar lista de clientes que se van a procesar
