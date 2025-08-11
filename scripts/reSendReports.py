@@ -71,32 +71,22 @@ FECHA_HOY = datetime.now()
 
 
 # ------------- Utilidades de fecha -------------
-def obtener_rango_semana_anterior(fecha_base: datetime):
-    """Devuelve (lunes, domingo) de la semana anterior a fecha_base."""
-    lunes_pasado = fecha_base - timedelta(days=fecha_base.weekday() + 7)
-    domingo_pasado = lunes_pasado + timedelta(days=6)
-    return lunes_pasado, domingo_pasado
-
-
-def etiqueta_fecha_diaria(fecha_base: datetime, offset_dias: int = -1) -> str:
-    """YYYY-MM-DD para diarios (por defecto: ayer)."""
-    return (fecha_base + timedelta(days=offset_dias)).strftime("%Y-%m-%d")
-
-
-def etiqueta_fecha_semanal(fecha_base: datetime, offset_dias: int = 0) -> str:
-    """
-    Devuelve: 'YYYY-MM-DD (Semana del L al D mes)'
-    - YYYY-MM-DD: fecha_base + offset_dias (para control desde JSON).
-    - Rango: siempre lunes-domingo de la semana anterior a fecha_base.
-    """
-    fecha_str = (fecha_base + timedelta(days=offset_dias)).strftime("%Y-%m-%d")
-    lunes, domingo = obtener_rango_semana_anterior(fecha_base)
+def get_fecha(tipo: str = "diario", fecha_base: datetime = None) -> str:
+    """Genera formato de fecha según el tipo de reporte."""
+    fecha_base = fecha_base or datetime.now()
+    
+    if tipo == "diario":
+        return (fecha_base - timedelta(days=1)).strftime("%Y-%m-%d")
+    
+    # Para reporte semanal
+    lunes = fecha_base - timedelta(days=fecha_base.weekday() + 7)
+    domingo = lunes + timedelta(days=6)
+    fecha = fecha_base.strftime("%Y-%m-%d")
     try:
-        mes_domingo = domingo.strftime("%B")  # respeta locale si disponible
+        mes = domingo.strftime("%B")
     except Exception:
-        mes_domingo = domingo.strftime("%m")
-    rango = f"Semana del {lunes.day} al {domingo.day} {mes_domingo}"
-    return f"{fecha_str} ({rango})"
+        mes = domingo.strftime("%m")
+    return f"{fecha} (Semana del {lunes.day} al {domingo.day} {mes})"
 
 
 # ------------- Google Drive Functions -------------
@@ -291,61 +281,61 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo, etiqueta
 
 # --- Función para enviar correo ---
 def send_mail(recipientConfig, pdf_file_path):
+    """Envía correo con PDF adjunto y firmas."""
     msg = EmailMessage()
     msg['From'] = f"{ALIAS_NAME} <{FROM_ADDRESS}>"
-
-    # Destinatarios
-    if isinstance(recipientConfig['email'], list):
-        msg['To'] = ", ".join(recipientConfig['email'])
-    else:
-        msg['To'] = recipientConfig['email']
-
-    if 'cc' in recipientConfig and recipientConfig['cc']:
-        if isinstance(recipientConfig['cc'], list):
-            msg['Cc'] = ", ".join(recipientConfig['cc'])
-        else:
-            msg['Cc'] = recipientConfig['cc']
-
-    bcc = []
-    if 'bcc' in recipientConfig and recipientConfig['bcc']:
-        if isinstance(recipientConfig['bcc'], list):
-            bcc = recipientConfig['bcc']
-        else:
-            bcc = [recipientConfig['bcc']]
-
     msg['Subject'] = recipientConfig['emailSubject']
 
-    logo_cid = make_msgid(domain='ventologix.com')
-    ventologix_logo_cid = make_msgid(domain='ventologix.com')
+    # Procesar destinatarios
+    for field, key in [('To', 'email'), ('Cc', 'cc'), ('Bcc', 'bcc')]:
+        if key in recipientConfig and recipientConfig[key]:
+            value = recipientConfig[key]
+            msg[field] = ", ".join(value if isinstance(value, list) else [value])
 
+    # Generar IDs únicos para las imágenes
+    logo_cid = make_msgid(domain='ventologix.com')
+    firma_cid = make_msgid(domain='ventologix.com')
+
+    # Crear cuerpo HTML con firma
     body = recipientConfig['emailBody'] + f"""
     <br><p><img src="cid:{logo_cid[1:-1]}" alt="Logo Ventologix" /></p>
-    <p><img src="cid:{ventologix_logo_cid[1:-1]}" alt="Ventologix Firma" /></p>
+    <p><img src="cid:{firma_cid[1:-1]}" alt="Ventologix Firma" /></p>
     <br>VTO logix<br>
     <a href='mailto:vto@ventologix.com'>vto@ventologix.com</a><br>
     <a href='https://www.ventologix.com'>www.ventologix.com</a><br>
     """
 
+    # Configurar contenido
     msg.set_content("Este mensaje requiere un cliente con soporte HTML.")
     msg.add_alternative(body, subtype='html')
 
-    # Adjuntar imágenes (si existen)
-    for img_path, cid in [(LOGO_PATH, logo_cid), (VENTOLOGIX_LOGO_PATH, ventologix_logo_cid)]:
-        if os.path.isfile(img_path):
-            with open(img_path, 'rb') as img:
-                img_data = img.read()
-                msg.get_payload()[1].add_related(img_data, maintype='image', subtype='jpeg', cid=cid)
+    # Adjuntar imágenes y PDF
+    def attach_file(file_path, maintype, subtype, cid=None):
+        if os.path.isfile(file_path):
+            with open(file_path, 'rb') as f:
+                data = f.read()
+                if cid:
+                    msg.get_payload()[1].add_related(data, maintype=maintype, subtype=subtype, cid=cid)
+                else:
+                    msg.add_attachment(data, maintype=maintype, subtype=subtype, 
+                                     filename=os.path.basename(file_path))
 
+    # Adjuntar logos
+    attach_file(LOGO_PATH, 'image', 'jpeg', logo_cid)
+    attach_file(VENTOLOGIX_LOGO_PATH, 'image', 'jpeg', firma_cid)
     # Adjuntar PDF
-    with open(pdf_file_path, 'rb') as pdf:
-        pdf_data = pdf.read()
-        msg.add_attachment(pdf_data, maintype='application', subtype='pdf', filename=os.path.basename(pdf_file_path))
+    attach_file(pdf_file_path, 'application', 'pdf')
 
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as smtp:
             smtp.starttls()
             smtp.login(SMTP_FROM, SMTP_PASSWORD)
-            smtp.send_message(msg, to_addrs=[*msg['To'].split(','), *msg.get('Cc', '').split(','), *bcc])
+            all_recipients = [addr.strip() for addr in (
+                msg['To'].split(',') +
+                (msg.get('Cc', '').split(',') if msg.get('Cc') else []) +
+                (msg.get('Bcc', '').split(',') if msg.get('Bcc') else [])
+            ) if addr.strip()]
+            smtp.send_message(msg, to_addrs=all_recipients)
         print(f"Correo enviado a {msg['To']}")
     except Exception as e:
         print(f"Error al enviar correo: {e}")
@@ -402,11 +392,8 @@ def main():
             print(f"\n🕒 Generando PDF para {nombre_cliente}...")
             inicio = time.time()
 
-            # Generar etiqueta de fecha apropiada según el tipo
-            if tipo == "diario":
-                etiqueta = etiqueta_fecha_diaria(FECHA_HOY, -1)
-            else:
-                etiqueta = etiqueta_fecha_semanal(FECHA_HOY, 0)
+            # Generar etiqueta de fecha según el tipo
+            etiqueta = get_fecha(tipo, FECHA_HOY)
 
             pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo, etiqueta)
             
@@ -465,18 +452,14 @@ def main():
                 for idx, recipient in enumerate(config.get(tipo_reporte, [])):
                     for fileConfig in recipient.get('files', []):
                         # Para diarios, usar fecha de ayer
+                        # Obtener fecha según el tipo de reporte
+                        fecha = get_fecha(tipo_reporte.rstrip('s'), FECHA_HOY)  # quita la 's' de 'diarios'/'semanales'
+                        
                         if tipo_reporte == "diarios":
-                            fecha_esperada = etiqueta_fecha_diaria(FECHA_HOY, -1)
-                            expected_name = fileConfig['fileName'].replace("{fecha}", fecha_esperada) + ".pdf"
+                            expected_name = fileConfig['fileName'].replace("{fecha}", fecha) + ".pdf"
                         else:
-                            # Para semanales, reemplazar todos los placeholders
-                            fecha_str = (FECHA_HOY + timedelta(days=0)).strftime("%Y-%m-%d")
-                            lunes, domingo = obtener_rango_semana_anterior(FECHA_HOY)
-                            try:
-                                mes_domingo = domingo.strftime("%B")
-                            except Exception:
-                                mes_domingo = domingo.strftime("%m")
-                            rango = f"Semana del {lunes.day} al {domingo.day} {mes_domingo}"
+                            fecha_str, rango = fecha.split(" (", 1)
+                            rango = rango.rstrip(")")
                             
                             expected_pattern = fileConfig['fileName']
                             expected_pattern = expected_pattern.replace("{fecha_str}", fecha_str)
@@ -484,10 +467,7 @@ def main():
                             expected_pattern = expected_pattern.replace("{alias}", "*")  # Placeholder para alias
                             expected_name = expected_pattern + ".pdf"
                         
-                        print(f"   Comparando con: {expected_name}")
-                        
-                        # Usar coincidencia mejorada para nombres de archivos
-                        if archivo_coincide_mejorado(pdf_name, expected_name, tipo_reporte):
+                        if archivo_coincide(pdf_name, expected_name, tipo_reporte):
                             print(f"   ✅ Match encontrado en recipient #{idx + 1}!")
                             print(f"📧 Enviando {pdf_name} a {recipient.get('email', 'N/A')}...")
                             send_mail(recipient, pdf_path)
@@ -510,81 +490,29 @@ def main():
     else:
         print("No se generaron PDFs.")
 
-def archivos_coinciden(archivo_generado: str, archivo_esperado: str) -> bool:
-    """
-    Función auxiliar para verificar si un archivo generado coincide con el patrón esperado,
-    teniendo en cuenta variaciones en nombres de clientes y aliases.
-    """
-    # Remover extensiones para comparar
-    gen = archivo_generado.replace(".pdf", "")
-    esp = archivo_esperado.replace(".pdf", "")
-    
-    # Si contienen palabras clave similares, considerarlos coincidentes
-    palabras_gen = gen.lower().split()
-    palabras_esp = esp.lower().split()
-    
-    # Verificar si hay coincidencias significativas
-    coincidencias = 0
-    for palabra in palabras_esp:
-        if palabra in palabras_gen:
-            coincidencias += 1
-    
-    # Si al menos el 60% de las palabras coinciden, considerarlo una coincidencia
-    return coincidencias >= len(palabras_esp) * 0.6
-
-def archivo_coincide_mejorado(archivo_generado: str, expected_name: str, tipo_reporte: str) -> bool:
-    """
-    Función mejorada para hacer matching entre archivos generados y patrones esperados.
-    Maneja casos específicos como ALLTANSA vs Altansa, etc.
-    """
-    # Remover extensiones
+def archivo_coincide(archivo_generado: str, expected_name: str, tipo_reporte: str) -> bool:
+    """Función simplificada para verificar coincidencia de nombres de archivos."""
     gen = archivo_generado.replace(".pdf", "").lower()
     esp = expected_name.replace(".pdf", "").lower()
     
-    # Mapeos de nombres conocidos
-    name_mappings = {
-        "alltansa": "altansa",
-        "altansa": "alltansa", 
-        "impac compresor 1 (75hp)": "impac (75hp)",
-        "impac compresor 2 (100 hp)": "impac (100hp)",
-        "impac (75hp)": "impac compresor 1 (75hp)",
-        "impac (100hp)": "impac compresor 2 (100 hp)"
-    }
-    
-    # Aplicar mapeos
-    for original, mapped in name_mappings.items():
-        if original in gen:
-            gen = gen.replace(original, mapped)
-        if original in esp:
-            esp = esp.replace(original, mapped)
-    
-    # Verificar coincidencia exacta después de normalización
-    if gen == esp:
-        return True
-    
-    # Verificar palabras clave importantes
-    palabras_gen = set(gen.split())
-    palabras_esp = set(esp.split())
-    
-    # Palabras críticas que deben coincidir
+    # Palabras críticas que deben coincidir exactamente
     critical_words = {"daltile", "acm-0002", "acm-0004", "acm-0005", "acm-0006", 
                      "calidra", "liebherr", "linamar", "bci", "penox"}
     
+    # Si hay palabras críticas, deben coincidir exactamente
     for word in critical_words:
-        if word in palabras_esp and word not in palabras_gen:
+        if word in esp and word not in gen:
             return False
-        if word in palabras_gen and word not in palabras_esp:
+        if word in gen and word not in esp:
             return False
     
-    # Verificar coincidencia por porcentaje de palabras
+    # Comparar palabras comunes
+    palabras_gen = set(gen.split())
+    palabras_esp = set(esp.split())
     intersection = palabras_gen.intersection(palabras_esp)
-    union = palabras_gen.union(palabras_esp)
     
-    if len(union) > 0:
-        similarity = len(intersection) / len(union)
-        return similarity >= 0.7
-    
-    return False
+    # Si hay al menos 70% de coincidencia en las palabras
+    return len(intersection) >= len(palabras_esp) * 0.7
 
 if __name__ == "__main__":
     try:
