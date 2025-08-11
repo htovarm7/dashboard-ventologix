@@ -386,36 +386,6 @@ def send_mail(recipient_config: dict, pdf_file_path: str):
     except Exception as e:
         print(f"Error al enviar correo: {e}")
 
-# def send_mail_Test(pdf_file_paths: list):
-#     msg = EmailMessage()
-#     msg['From'] = f"{ALIAS_NAME} <{FROM_ADDRESS}>"
-#     msg['To'] = "andres.mirazo@ventologix.com"
-#     msg['Subject'] = "Estos son los PDFs que se generarán mañana"
-
-#     body = "<p>Estos son los PDFs que se generarán mañana:</p><ul>"
-#     for pdf_path in pdf_file_paths:
-#         body += f"<li>{os.path.basename(pdf_path)}</li>"
-#     body += "</ul><br>VTO logix<br><a href='mailto:vto@ventologix.com'>vto@ventologix.com</a><br><a href='https://www.ventologix.com'>www.ventologix.com</a><br>"
-
-#     msg.set_content("Este mensaje requiere un cliente con soporte HTML.")
-#     msg.add_alternative(body, subtype='html')
-
-#     # Adjuntar PDFs
-#     for pdf_path in pdf_file_paths:
-#         if os.path.isfile(pdf_path):
-#             with open(pdf_path, 'rb') as pdf:
-#                 pdf_data = pdf.read()
-#                 msg.add_attachment(pdf_data, maintype='application', subtype='pdf', filename=os.path.basename(pdf_path))
-
-#     try:
-#         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as smtp:
-#             smtp.starttls()
-#             smtp.login(SMTP_FROM, SMTP_PASSWORD)
-#             smtp.send_message(msg)
-#         print("Correo enviado a andres.mirazo@ventologix.com")
-#     except Exception as e:
-#         print(f"Error al enviar correo: {e}")
-
 def send_error_mail(missing_files: list, admin_emails: list):
     if not missing_files:
         return
@@ -655,99 +625,6 @@ def enviar_por_recipients(config: dict, seccion: str):
     else:
         print("  🎉 Todos los reportes disponibles fueron enviados exitosamente!")
 
-# def enviar_por_recipients(config: dict, seccion: str):
-#     """
-#     - seccion: 'diarios' | 'semanales'
-#     - Usa config['diarios'] o config['semanales'].
-#     - Reemplaza {fecha} en 'fileName' según reglas del tipo.
-#     """
-#     missing_files = []
-
-#     # Construcción del valor {fecha} esperado por recipients.json
-#     for recipient in config.get(seccion, []):
-#         archivos = recipient.get('files', [])
-#         for file_cfg in archivos:
-#             date_offset = int(file_cfg.get('dateOffset', -1 if seccion == 'diarios' else 0))
-#             if seccion == "diarios":
-#                 etiqueta = etiqueta_fecha_diaria(FECHA_HOY, date_offset)
-#             else:
-#                 etiqueta = etiqueta_fecha_semanal(FECHA_HOY, date_offset)
-
-#             pdf_name = file_cfg['fileName'].replace("{fecha}", etiqueta) + ".pdf"
-#             pdf_path = os.path.join(DOWNLOADS_FOLDER, pdf_name)
-
-#             if os.path.isfile(pdf_path):
-#                 send_mail_Test(pdf_path)
-#                 try:
-#                     os.remove(pdf_path)
-#                 except Exception as e:
-#                     print(f"No se pudo eliminar {pdf_name}: {e}")
-#             else:
-#                 print(f"No se encontró archivo esperado: {pdf_name}")
-#                 missing_files.append(pdf_name)
-
-#     if missing_files:
-#         send_error_mail(missing_files, ADMIN_CORREOS)
-
-
-def test_api_connectivity():
-    """Prueba la conectividad con la API y muestra información de debug."""
-    print("\n🔍 === DIAGNÓSTICO DE API ===")
-    
-    # Test 1: Verificar que la API esté respondiendo
-    try:
-        print("🧪 Test 1: Conectividad básica con la API...")
-        response = requests.get("http://127.0.0.1:8000", timeout=10)
-        print(f"   ✅ API responde en puerto 8000 - Status: {response.status_code}")
-    except Exception as e:
-        print(f"   ❌ Error conectando a API base: {e}")
-        return False
-    
-    # Test 2: Verificar endpoints específicos disponibles
-    try:
-        print("🧪 Test 2: Verificando endpoints disponibles...")
-        response = requests.get("http://127.0.0.1:8000/docs", timeout=10)
-        print(f"   ✅ Endpoint /docs disponible - Status: {response.status_code}")
-    except Exception as e:
-        print(f"   ⚠️ Endpoint /docs no disponible: {e}")
-    
-    # Test 3: Verificar endpoint específico de clientes
-    try:
-        print("🧪 Test 3: Verificando endpoint /report/clients-data...")
-        response = requests.get("http://127.0.0.1:8000/report/clients-data", timeout=30)
-        print(f"   📡 Status Code: {response.status_code}")
-        print(f"   📏 Tamaño de respuesta: {len(response.text)} caracteres")
-        print(f"   📄 Content-Type: {response.headers.get('content-type', 'No especificado')}")
-        
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                print(f"   ✅ JSON válido recibido")
-                print(f"   🔑 Keys en respuesta: {list(data.keys()) if isinstance(data, dict) else 'No es diccionario'}")
-                
-                if isinstance(data, dict):
-                    for key, value in data.items():
-                        if isinstance(value, list):
-                            print(f"   📊 {key}: {len(value)} elementos")
-                        else:
-                            print(f"   📊 {key}: {type(value).__name__}")
-                            
-                return True
-            except Exception as json_error:
-                print(f"   ❌ Error parseando JSON: {json_error}")
-                print(f"   📄 Respuesta cruda (primeros 200 chars): {response.text[:200]}")
-        else:
-            print(f"   ❌ Error HTTP: {response.status_code}")
-            print(f"   📄 Respuesta de error: {response.text[:200]}")
-            
-    except Exception as e:
-        print(f"   ❌ Error en test de endpoint: {e}")
-        import traceback
-        print(f"   📋 Traceback: {traceback.format_exc()}")
-    
-    print("🔍 === FIN DIAGNÓSTICO ===\n")
-    return False
-
 
 def main():
     print(f"🖥️ === INFORMACIÓN DEL ENTORNO ===")
@@ -764,10 +641,6 @@ def main():
     print(f"=== FIN INFORMACIÓN ENTORNO ===\n")
     
     os.makedirs(DOWNLOADS_FOLDER, exist_ok=True)
-    
-    # Diagnóstico inicial de API
-    if not test_api_connectivity():
-        print("⚠️ Problemas detectados con la API. Continuando con datos vacíos...")
     
     # Limpiar PDFs antiguos antes de generar nuevos
     print("🧹 Limpiando PDFs antiguos...")
