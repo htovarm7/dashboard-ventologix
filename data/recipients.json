@@ -229,30 +229,30 @@
     },
     {
       "email": [
-        "andres.mirazo@ventologix.com",
-        "octavio.murillo@ventologix.com"
+      "andres.mirazo@ventologix.com",
+      "octavio.murillo@ventologix.com"
       ],
       "cc": [],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
-      "emailBody": "<p>Estos son los 4 reportes de Datile</p>",
+      "emailBody": "<p>Estos son los 4 reportes de Daltile</p>",
       "files": [
-        {
-          "fileName": "Reporte Diario Daltile ACM-0002 {fecha}",
-          "dateOffset": -1
-        },
-        {
-          "fileName": "Reporte Diario Daltile ACM-0004 {fecha}",
-          "dateOffset": -1
-        },
-        {
-          "fileName": "Reporte Diario Daltile ACM-0005 {fecha}",
-          "dateOffset": -1
-        },
-        {
-          "fileName": "Reporte Diario Daltile ACM-0006 {fecha}",
-          "dateOffset": -1
-        }
+      {
+        "fileName": "Reporte Diario Daltile ACM-0002 {fecha}",
+        "dateOffset": -1
+      },
+      {
+        "fileName": "Reporte Diario Daltile ACM-0004 {fecha}",
+        "dateOffset": -1
+      },
+      {
+        "fileName": "Reporte Diario Daltile ACM-0005 {fecha}",
+        "dateOffset": -1
+      },
+      {
+        "fileName": "Reporte Diario Daltile ACM-0006 {fecha}",
+        "dateOffset": -1
+      }
       ]
     }
   ],
