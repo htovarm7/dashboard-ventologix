@@ -617,7 +617,7 @@ def main():
     # ---- DIARIOS ----
     if ejecutar_diarios and recipients_cfg.get("diarios"):
         print("\n=== Generando DIARIOS ===")
-        print(f"📅 Generando reportes para la fecha: {get_fecha_reporte('diario', FECHA_HOY, -1)}")
+        print(f"📅 Generando reportes para la fecha: {get_fecha_reporte('diario', FECHA_HOY)}")
         print(f"🏭 Clientes encontrados para reportes diarios: {len(clientes_diarios)}")
         
         # Mostrar lista de clientes que se van a procesar
