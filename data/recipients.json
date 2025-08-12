@@ -229,7 +229,7 @@
     },
     {
       "email": ["juan.zamora@daltile.com.mx","adrian.ostos@daltile.com.mx"],
-      "cc": ["octavio.murillo@ventologix.com"],
+      "cc": ["octavio.murillo@ventologix.com","andres.mirazo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
       "emailBody": "<p>Estos son los 4 reportes de Daltile</p>",
