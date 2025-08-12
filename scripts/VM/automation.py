@@ -67,7 +67,7 @@ SOLO_TIPO = os.getenv("REPORTE_TIPO", "").strip().lower()     # "diario" | "sema
 FECHA_HOY = datetime.now()
 
 recipients_path = os.getenv("RECIPIENTS_JSON",
-                            "/home/hector_tovar/Ventologix/scripts/VM/data/recipients.json")
+                            "/home/hector_tovar/Ventologix/data/recipients.json")
 
 
 # ------------- Utilidades de fecha -------------
