@@ -14,8 +14,6 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   const domain = process.env.NEXT_PUBLIC_AUTH0_DOMAIN;
   const clientId = process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID;
 
-  console.log("🔧 Auth0 Config:", { domain, clientId });
-
   if (!domain || !clientId) {
     console.error("❌ Variables de entorno Auth0 faltantes:", { domain, clientId });
     return <div>Error: Configuración Auth0 incompleta</div>;
