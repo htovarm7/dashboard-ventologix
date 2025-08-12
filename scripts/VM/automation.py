@@ -583,19 +583,7 @@ def enviar_por_recipients(config: dict, seccion: str):
         print("  🎉 Todos los reportes disponibles fueron enviados exitosamente!")
 
 
-def main():
-    env_info = {
-        "Fecha actual": FECHA_HOY,
-        "Directorio base": BASE_DIR,
-        "Carpeta PDFs": DOWNLOADS_FOLDER,
-        "Recipients JSON": recipients_path,
-        "FORZAR_SEMANALES": FORZAR_SEMANALES,
-        "SOLO_TIPO": SOLO_TIPO
-    }
-    print("=== CONFIGURACIÓN ===")
-    for key, value in env_info.items():
-        print(f"{key}: {value}")
-    
+def main():    
     os.makedirs(DOWNLOADS_FOLDER, exist_ok=True)
     
     # Limpiar PDFs antiguos antes de generar nuevos
@@ -617,8 +605,6 @@ def main():
     # ---- DIARIOS ----
     if ejecutar_diarios and recipients_cfg.get("diarios"):
         print("\n=== Generando DIARIOS ===")
-        print(f"📅 Generando reportes para la fecha: {get_fecha_reporte('diario', FECHA_HOY)}")
-        print(f"🏭 Clientes encontrados para reportes diarios: {len(clientes_diarios)}")
         
         # Mostrar lista de clientes que se van a procesar
         for i, cliente in enumerate(clientes_diarios, 1):

@@ -284,7 +284,7 @@
       "emailBody": "<p>Estimado Ing. Raymond Hernandez:</p><p>Soy <strong>VTO 010</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>'Compresor 1'</strong> instalado en su planta, del cual anexo el <strong>reporte SEMANAL</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
       "files": [
         {
-          "fileName": "Reporte Semanal Calidra {alias} {fecha_str} ({rango})",
+          "fileName": "Reporte Semanal Calidra HORNO 5 {fecha_str} ({rango})",
           "dateOffset": -1
         }
       ]
@@ -300,7 +300,7 @@
       "emailBody": "<p>Estimado Ing. Raymond Hernandez :</p><p>Soy <strong>VTO 0011</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>'Compresor 2'</strong> instalado en su planta, del cual anexo el <strong>reporte Semanal</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
       "files": [
         {
-          "fileName": "Reporte Semanal Calidra {alias} {fecha_str} ({rango})",
+          "fileName": "Reporte Semanal Calidra HORNO MEARZ {fecha_str} ({rango})",
           "dateOffset": -1
         }
       ]
