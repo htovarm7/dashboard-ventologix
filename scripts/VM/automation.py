@@ -479,7 +479,7 @@ def enviar_por_recipients(config: dict, seccion: str):
             date_offset = int(file_cfg.get('dateOffset', -1 if seccion == 'diarios' else 0))
             
             if seccion == "diarios":
-                etiqueta = get_fecha_reporte("diario", FECHA_HOY)
+                etiqueta = get_fecha_reporte("diario", FECHA_HOY, date_offset)
                 # Para diarios, buscar archivos que contengan la fecha
                 expected_date = etiqueta
                 matching_files = [f for f in pdf_files if expected_date in os.path.basename(f) and "Diario" in os.path.basename(f)]
@@ -513,7 +513,7 @@ def enviar_por_recipients(config: dict, seccion: str):
                 
             else:
                 # Para semanales, buscar archivos que contengan la fecha y "Semanal"
-                fecha_str = get_fecha_reporte("diario", FECHA_HOY)
+                fecha_str = get_fecha_reporte("diario", FECHA_HOY, date_offset)
                 
                 # Buscar archivos por patrones específicos según el cliente
                 file_name_template = file_cfg['fileName']
@@ -617,7 +617,7 @@ def main():
     # ---- DIARIOS ----
     if ejecutar_diarios and recipients_cfg.get("diarios"):
         print("\n=== Generando DIARIOS ===")
-        print(f"📅 Generando reportes para la fecha: {get_fecha_reporte('diario', FECHA_HOY)}")
+        print(f"📅 Generando reportes para la fecha: {get_fecha_reporte('diario', FECHA_HOY, -1)}")
         print(f"🏭 Clientes encontrados para reportes diarios: {len(clientes_diarios)}")
         
         # Mostrar lista de clientes que se van a procesar
