@@ -2,9 +2,9 @@
 import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
-import ReportDropdown from "../../../components/ReportDropdown";
-import DateReportDropdown from "../../../components/DateReportDropdown";
-import { Compresor, ClientData } from "../../../types/common";
+import ReportDropdown from "@/components/ReportDropdown";
+import DateReportDropdown from "@/components/DateReportDropdown";
+import { Compresor, ClientData } from "@/types/common";
 
 const Home = () => {
   const { user, getIdTokenClaims, isAuthenticated, isLoading, logout } =
