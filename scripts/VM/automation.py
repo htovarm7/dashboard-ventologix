@@ -464,6 +464,7 @@ def enviar_por_recipients(config: dict, seccion: str):
     """
     missing_files = []
     sent_files = []
+    processed_files = set()  # Rastrear archivos ya procesados para evitar duplicados
 
     # Obtener lista de archivos PDF generados
     pdf_files = glob.glob(os.path.join(DOWNLOADS_FOLDER, "*.pdf"))
@@ -498,6 +499,10 @@ def enviar_por_recipients(config: dict, seccion: str):
                     matching_files = [f for f in matching_files if "Penox" in os.path.basename(f) and "Compresor 2" in os.path.basename(f)]
                 elif "Manttra Gimsa" in file_name_template:
                     matching_files = [f for f in matching_files if "Manttra Gimsa" in os.path.basename(f)]
+                elif "Calidra HORNO 5" in file_name_template:
+                    matching_files = [f for f in matching_files if "Calidra" in os.path.basename(f) and "HORNO 5" in os.path.basename(f)]
+                elif "Calidra HORNO MEARZ" in file_name_template:
+                    matching_files = [f for f in matching_files if "Calidra" in os.path.basename(f) and "HORNO MEARZ" in os.path.basename(f)]
                 elif "Calidra" in file_name_template:
                     matching_files = [f for f in matching_files if "Calidra" in os.path.basename(f)]
                 elif "Liebherr" in file_name_template:
@@ -539,17 +544,39 @@ def enviar_por_recipients(config: dict, seccion: str):
                 ]
 
             if matching_files:
-                # Enviar el primer archivo que coincida
-                pdf_path = matching_files[0]
-                pdf_name = os.path.basename(pdf_path)
-                print(f"📧 Enviando archivo: {pdf_name}")
-                send_mail(recipient, pdf_path)
-                sent_files.append(pdf_name)
-                try:
-                    os.remove(pdf_path)
-                    print(f"🗑️ Archivo eliminado: {pdf_name}")
-                except Exception as e:
-                    print(f"⚠️ No se pudo eliminar {pdf_name}: {e}")
+                # Filtrar archivos que no han sido procesados aún
+                unprocessed_files = [f for f in matching_files if os.path.basename(f) not in processed_files]
+                # Verificar si el archivo todavía existe antes de intentar enviarlo
+                existing_files = [f for f in unprocessed_files if os.path.exists(f)]
+                
+                if existing_files:
+                    # Enviar el primer archivo que coincida y que todavía exista
+                    pdf_path = existing_files[0]
+                    pdf_name = os.path.basename(pdf_path)
+                    print(f"📧 Enviando archivo: {pdf_name}")
+                    
+                    try:
+                        send_mail(recipient, pdf_path)
+                        sent_files.append(pdf_name)
+                        processed_files.add(pdf_name)  # Marcar como procesado
+                        try:
+                            os.remove(pdf_path)
+                            print(f"🗑️ Archivo eliminado: {pdf_name}")
+                        except Exception as e:
+                            print(f"⚠️ No se pudo eliminar {pdf_name}: {e}")
+                    except FileNotFoundError:
+                        print(f"❌ Error: El archivo {pdf_name} ya no existe. Probablemente fue enviado en una iteración anterior.")
+                        processed_files.add(pdf_name)  # Marcar como procesado para evitar futuros intentos
+                    except Exception as e:
+                        print(f"❌ Error enviando correo para {pdf_name}: {e}")
+                        # No agregamos a processed_files para permitir reintento en caso de error temporal
+                else:
+                    # El archivo fue encontrado pero ya no existe o ya fue procesado
+                    file_name_template = file_cfg['fileName']
+                    if any(os.path.basename(f) in processed_files for f in matching_files):
+                        print(f"⚠️ Archivo ya fue procesado anteriormente: {file_name_template}")
+                    else:
+                        print(f"⚠️ Archivo encontrado pero ya no existe: {file_name_template}")
             else:
                 # Solo agregar a missing_files si el cliente no parece estar inactivo
                 file_name_template = file_cfg['fileName']
@@ -640,5 +667,11 @@ if __name__ == "__main__":
         clean_pdfs_folder()
         print("Carpeta de PDFs limpiada. Terminando proceso.")
     except Exception as e:
-        print(f"\n❌ Error inesperado: {e}. Limpiando PDFs generados...")
-        clean_pdfs_folder()
+        print(f"\n❌ Error inesperado: {e}")
+        # Solo limpiar PDFs si el error no está relacionado con envío de correos
+        if "No such file or directory" not in str(e) and "FileNotFoundError" not in str(e):
+            print("Limpiando PDFs generados...")
+            clean_pdfs_folder()
+        else:
+            print("Error relacionado con archivos. No se limpiarán PDFs automáticamente.")
+            print("Revise los logs para identificar el problema específico.")
