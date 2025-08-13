@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { URL_API } from "@/lib/global";
 
-const EXTERNAL_API_URL = "http://127.0.0.1:8000/web/verify-email";
+const EXTERNAL_API_URL = `${URL_API}/web/verify-email`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,7 +17,6 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": process.env.AUTH0_API_KEY || "",
       },
       body: JSON.stringify({ email }),
     });

@@ -19,6 +19,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth0 } from "@auth0/auth0-react";
 import annotationPlugin from "chartjs-plugin-annotation";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
+import { URL_API } from "@/lib/global";
 
 // Libraries for charts
 import {
@@ -82,31 +83,31 @@ function MainContent() {
         await Promise.all([
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8080/report/pie-data-proc?id_cliente=${id}&linea=${linea}`
+              `${URL_API}/report/pie-data-proc?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8080/report/line-data-proc?id_cliente=${id}&linea=${linea}`
+              `${URL_API}/report/line-data-proc?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8080/report/daily-report-data?id_cliente=${id}&linea=${linea}`
+              `${URL_API}/report/daily-report-data?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8080/report/client-data?id_cliente=${id}`
+              `${URL_API}/report/client-data?id_cliente=${id}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8080/report/compressor-data?id_cliente=${id}&linea=${linea}`
+              `${URL_API}/report/compressor-data?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),

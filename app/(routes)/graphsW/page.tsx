@@ -53,6 +53,7 @@ import {
 import ReactECharts from "echarts-for-react";
 
 import { Pie } from "react-chartjs-2";
+import { URL_API } from "@/lib/global";
 
 // Register the necessary components for Chart.js
 ChartJS.register(
@@ -99,31 +100,31 @@ function MainContent() {
         await Promise.all([
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8080/report/week/pie-data-proc?id_cliente=${id}&linea=${linea}`
+              `${URL_API}/report/week/pie-data-proc?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8080/report/week/shifts?id_cliente=${id}&linea=${linea}`
+              `${URL_API}/report/week/shifts?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8080/report/client-data?id_cliente=${id}`
+              `${URL_API}/report/client-data?id_cliente=${id}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8080/report/compressor-data?id_cliente=${id}&linea=${linea}`
+              `${URL_API}/report/compressor-data?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8080/report/week/summary-general?id_cliente=${id}&linea=${linea}`
+              `${URL_API}/report/week/summary-general?id_cliente=${id}&linea=${linea}`
             );
             return res.json();
           })(),
