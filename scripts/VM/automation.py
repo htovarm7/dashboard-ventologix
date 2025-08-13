@@ -353,19 +353,44 @@ def send_mail(recipient_config: dict, pdf_file_path: str):
         print(f"❌ Error enviando a {msg['To']}: {e}")
         return False
 
-def send_error_mail(missing_files: list, admin_emails: list):
-    if not missing_files:
+def send_error_mail(missing_files: list = None, failed_pdfs: list = None, admin_emails: list = None):
+    """
+    Envía correo de error a los administradores con información sobre:
+    - missing_files: Archivos PDF que se esperaban pero no se encontraron
+    - failed_pdfs: PDFs que fallaron durante la generación
+    """
+    if not missing_files and not failed_pdfs:
         return
+    
+    if admin_emails is None:
+        admin_emails = ADMIN_CORREOS
 
     msg = EmailMessage()
     msg['From'] = f"{ALIAS_NAME} <{FROM_ADDRESS}>"
     msg['To'] = ", ".join(admin_emails)
-    msg['Subject'] = "⚠️ Reporte - Archivos PDF no generados"
+    msg['Subject'] = "⚠️ Reporte - Errores en generación/envío de PDFs"
 
-    body = "<p>No se encontraron los siguientes archivos PDF esperados:</p><ul>"
-    for f in missing_files:
-        body += f"<li>{f}</li>"
-    body += "</ul><br>VTO logix"
+    body = "<h3>Reporte de Errores - Ventologix</h3>"
+    
+    if failed_pdfs:
+        body += "<h4>PDFs que fallaron en la generación:</h4><ul>"
+        for pdf in failed_pdfs:
+            body += f"<li><strong>{pdf['nombre_cliente']} - {pdf['alias']}</strong> (Tipo: {pdf['tipo']})"
+            if 'error' in pdf:
+                body += f" - Error: {pdf['error']}"
+            body += "</li>"
+        body += "</ul>"
+    
+    if missing_files:
+        body += "<h4>Archivos PDF esperados pero no encontrados:</h4><ul>"
+        for f in missing_files:
+            body += f"<li>{f}</li>"
+        body += "</ul>"
+    
+    body += f"<br><p><strong>Fecha/Hora:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>"
+    body += "<br>VTO logix<br>"
+    body += "<a href='mailto:vto@ventologix.com'>vto@ventologix.com</a><br>"
+    body += "<a href='https://www.ventologix.com'>www.ventologix.com</a>"
 
     msg.set_content("Este mensaje requiere un cliente con soporte HTML.")
     msg.add_alternative(body, subtype='html')
@@ -375,9 +400,9 @@ def send_error_mail(missing_files: list, admin_emails: list):
             smtp.starttls()
             smtp.login(SMTP_FROM, SMTP_PASSWORD)
             smtp.send_message(msg)
-        print(f"Correo de advertencia enviado a {', '.join(admin_emails)}")
+        print(f"✅ Correo de error enviado a {', '.join(admin_emails)}")
     except Exception as e:
-        print(f"Error al enviar correo de advertencia: {e}")
+        print(f"❌ Error al enviar correo de advertencia: {e}")
 
 
 # ------------- Core -------------
@@ -407,14 +432,19 @@ def debe_generar_semanales_hoy(fecha_base: datetime) -> bool:
         return True
     return fecha_base.weekday() == 0  # Lunes
 
-def generar_todos_los_pdfs(clientes: list, tipo: str) -> set:
+def generar_todos_los_pdfs(clientes: list, tipo: str) -> tuple[set, list]:
     """
-    Genera PDFs para cada cliente del tipo indicado y devuelve el conjunto de nombres de archivo generados.
+    Genera PDFs para cada cliente del tipo indicado.
+    Retorna una tupla con:
+    - set: nombres de archivo generados exitosamente
+    - list: clientes que fallaron en la generación
     Si el tipo es 'semanal', también sube los archivos a Google Drive.
     """
     print(f"\nGenerando PDFs {tipo} para {len(clientes)} clientes...")
     
     generados = set()
+    fallidos = []
+    
     for i, c in enumerate(clientes, 1):
         try:
             id_cliente = c['id_cliente']
@@ -430,6 +460,12 @@ def generar_todos_los_pdfs(clientes: list, tipo: str) -> set:
             
             if pdf_path is None:
                 print("❌")
+                fallidos.append({
+                    'nombre_cliente': nombre_cliente,
+                    'alias': alias,
+                    'tipo': tipo,
+                    'etiqueta': etiqueta
+                })
                 continue
                 
             print("✅")
@@ -441,13 +477,21 @@ def generar_todos_los_pdfs(clientes: list, tipo: str) -> set:
                     
         except Exception as e:
             print("❌")
+            fallidos.append({
+                'nombre_cliente': nombre_cliente,
+                'alias': alias,
+                'tipo': tipo,
+                'error': str(e)
+            })
     
     print(f"\n📈 Resumen: {len(generados)} PDFs generados de {len(clientes)} clientes")
+    if fallidos:
+        print(f"⚠️ {len(fallidos)} PDFs fallaron en la generación")
     
-    return generados
+    return generados, fallidos
 
 
-def enviar_por_recipients(config: dict, seccion: str):
+def enviar_por_recipients(config: dict, seccion: str, failed_generation_pdfs: list = None):
     """
     Envía correos basándose directamente en recipients.json.
     Busca archivos PDF que coincidan con los nombres especificados.
@@ -510,8 +554,9 @@ def enviar_por_recipients(config: dict, seccion: str):
 
     print(f"📈 Enviados: {len(sent_files)} | Faltantes: {len(missing_files)}")
     
-    if missing_files:
-        send_error_mail(missing_files, ADMIN_CORREOS)
+    # Enviar correo de error si hay problemas
+    if missing_files or failed_generation_pdfs:
+        send_error_mail(missing_files=missing_files, failed_pdfs=failed_generation_pdfs)
 
 
 def main():    
@@ -535,16 +580,16 @@ def main():
     # ---- DIARIOS ----
     if ejecutar_diarios and recipients_cfg.get("diarios"):
         print("\n=== DIARIOS ===")
-        generar_todos_los_pdfs(clientes_diarios, "diario")
-        enviar_por_recipients(recipients_cfg, "diarios")
+        pdfs_generados, pdfs_fallidos = generar_todos_los_pdfs(clientes_diarios, "diario")
+        enviar_por_recipients(recipients_cfg, "diarios", pdfs_fallidos)
     else:
         print("\n=== DIARIOS omitidos ===")
 
     # ---- SEMANALES ----
     if ejecutar_semanales and recipients_cfg.get("semanales"):
         print("\n=== SEMANALES ===")
-        generar_todos_los_pdfs(clientes_semanales, "semanal")
-        enviar_por_recipients(recipients_cfg, "semanales")
+        pdfs_generados, pdfs_fallidos = generar_todos_los_pdfs(clientes_semanales, "semanal")
+        enviar_por_recipients(recipients_cfg, "semanales", pdfs_fallidos)
     else:
         print("\n=== SEMANALES omitidos ===")
 
@@ -560,6 +605,19 @@ if __name__ == "__main__":
         clean_pdfs_folder()
     except Exception as e:
         print(f"\n❌ Error inesperado: {e}")
+        
+        # Enviar correo de error crítico a los administradores
+        try:
+            error_info = [{
+                'nombre_cliente': 'Sistema',
+                'alias': 'Error General',
+                'tipo': 'crítico',
+                'error': str(e)
+            }]
+            send_error_mail(failed_pdfs=error_info)
+        except Exception as email_error:
+            print(f"❌ No se pudo enviar correo de error: {email_error}")
+        
         # Solo limpiar PDFs si el error no está relacionado con envío de correos
         if "No such file or directory" not in str(e) and "FileNotFoundError" not in str(e):
             print("Limpiando PDFs generados...")
