@@ -190,7 +190,6 @@ def obtener_clientes_desde_api():
     }
     """
     try:
-        print("Obteniendo lista de clientes de la API...")
         response = requests.get("http://127.0.0.1:8000/report/clients-data", timeout=60)
         
         if response.status_code == 200:
@@ -198,21 +197,17 @@ def obtener_clientes_desde_api():
             diarios = data.get("diarios", [])
             semanales = data.get("semanales", [])
             
-            print(f"Encontrados {len(diarios)} clientes diarios y {len(semanales)} clientes semanales")
+            print(f"📋 API: {len(diarios)} diarios, {len(semanales)} semanales")
             
             return {
                 "diarios": diarios,
                 "semanales": semanales
             }
         else:
-            print(f"❌ Error al obtener clientes: {response.status_code}")
-            print(f"📄 Contenido de error: {response.text}")
+            print(f"❌ Error API: {response.status_code}")
     except Exception as e:
-        print(f"❌ Excepción al llamar a API de clientes: {e}")
-        import traceback
-        print(f"📋 Traceback completo: {traceback.format_exc()}")
+        print(f"❌ Error conectando API: {e}")
     
-    print("⚠️ Retornando listas vacías debido a error en API")
     return {"diarios": [], "semanales": []}
 
 
@@ -234,23 +229,18 @@ def generar_pdf_cliente(id_cliente: int, linea: str, nombre_cliente: str, alias:
 
         if tipo == "diario":
             url = f"http://localhost:3002/reportesD?id_cliente={id_cliente}&linea={linea}"
-            print(f"Abriendo URL: {url}")
             page.goto(url, timeout=300000)
 
-            print("Esperando que frontend avise que terminó de renderizar...")
             try:
                 page.wait_for_function("window.status === 'pdf-ready' || window.status === 'data-error'", timeout=300000)
                 
                 # Verificar si hay error de datos
                 status = page.evaluate("() => window.status")
                 if status == "data-error":
-                    print(f"ERROR: Datos inválidos para cliente {id_cliente}, línea {linea}. Cancelando generación de PDF.")
                     browser.close()
                     return None
-                    
-                print("Frontend listo, generando PDF...")
+
             except Exception as e:
-                print(f"Error esperando estado del frontend: {e}")
                 browser.close()
                 return None
 
@@ -264,7 +254,6 @@ def generar_pdf_cliente(id_cliente: int, linea: str, nombre_cliente: str, alias:
             )
         else:
             url = f"http://localhost:3002/reportesS?id_cliente={id_cliente}&linea={linea}"
-            print(f"Abriendo URL: {url}")
             page.goto(url, timeout=600000)
 
             try:
@@ -273,13 +262,10 @@ def generar_pdf_cliente(id_cliente: int, linea: str, nombre_cliente: str, alias:
                 # Verificar si hay error de datos
                 status = page.evaluate("() => window.status")
                 if status == "data-error":
-                    print(f"ERROR: Datos inválidos para cliente {id_cliente}, línea {linea}. Cancelando generación de PDF.")
                     browser.close()
                     return None
-                    
-                print("Frontend listo, generando PDF semanal...")
+
             except Exception as e:
-                print(f"Error esperando estado del frontend: {e}")
                 browser.close()
                 return None
 
@@ -300,11 +286,14 @@ def generar_pdf_cliente(id_cliente: int, linea: str, nombre_cliente: str, alias:
             )
 
         browser.close()
-        print(f"PDF generado: {os.path.basename(pdf_path)}")
         return pdf_path
 
 # ------------- Envío correo -------------
 def send_mail(recipient_config: dict, pdf_file_path: str):
+    # Verificar que el archivo existe antes de proceder
+    if not os.path.exists(pdf_file_path):
+        return False
+    
     msg = EmailMessage()
     msg['From'] = f"{ALIAS_NAME} <{FROM_ADDRESS}>"
 
@@ -359,9 +348,10 @@ def send_mail(recipient_config: dict, pdf_file_path: str):
             smtp.starttls()  
             smtp.login(SMTP_FROM, SMTP_PASSWORD)
             smtp.send_message(msg, to_addrs=[*msg['To'].split(','), *msg.get('Cc', '').split(','), *bcc])
-        print(f"Correo enviado a {msg['To']}")
+        return True
     except Exception as e:
-        print(f"Error al enviar correo: {e}")
+        print(f"❌ Error enviando a {msg['To']}: {e}")
+        return False
 
 def send_error_mail(missing_files: list, admin_emails: list):
     if not missing_files:
@@ -397,14 +387,18 @@ def cargar_recipients():
     return recipients
 
 def clean_pdfs_folder():
+    """Limpia todos los archivos PDF de la carpeta de descargas."""
     os.makedirs(DOWNLOADS_FOLDER, exist_ok=True)
+    count = 0
     for filename in os.listdir(DOWNLOADS_FOLDER):
         if filename.endswith(".pdf"):
             try:
                 os.remove(os.path.join(DOWNLOADS_FOLDER, filename))
-                print(f"Archivo eliminado: {filename}")
-            except Exception as e:
-                print(f"No se pudo eliminar {filename}: {e}")
+                count += 1
+            except Exception:
+                pass
+    if count > 0:
+        print(f"🧹 {count} archivos PDF eliminados")
 
 
 def debe_generar_semanales_hoy(fecha_base: datetime) -> bool:
@@ -428,166 +422,102 @@ def generar_todos_los_pdfs(clientes: list, tipo: str) -> set:
             nombre_cliente = c['nombre_cliente']
             alias = (c.get('alias') or "").strip()
 
-            print(f"[{i}/{len(clientes)}] {nombre_cliente} - {alias}...")
+            # Línea compacta con resultado
+            print(f"[{i}/{len(clientes)}] {nombre_cliente} - {alias}...", end=" ")
 
             etiqueta = get_fecha_reporte(tipo, FECHA_HOY)
             pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo, etiqueta)
             
             if pdf_path is None:
-                print(f"  Error: datos inválidos para {nombre_cliente}")
+                print("❌")
                 continue
                 
+            print("✅")
             generados.add(os.path.basename(pdf_path))
             
             # Subir a Google Drive si es semanal
             if tipo == "semanal" and not upload_to_google_drive(pdf_path):
-                print(f"  Error: no se pudo subir a Google Drive")
+                print(f"  ⚠️ Error subiendo a Google Drive")
                     
         except Exception as e:
-            print(f"  Error: {e}")
+            print("❌")
     
-    print(f"\n📈 Resumen de generación {tipo}:")
-    print(f"  ✅ PDFs generados exitosamente: {len(generados)}")
-    print(f"  📁 Archivos creados:")
-    for archivo in sorted(generados):
-        print(f"    - {archivo}")
+    print(f"\n📈 Resumen: {len(generados)} PDFs generados de {len(clientes)} clientes")
     
     return generados
 
 
 def enviar_por_recipients(config: dict, seccion: str):
     """
-    - seccion: 'diarios' | 'semanales'
-    - Usa config['diarios'] o config['semanales'].
-    - Busca archivos generados que coincidan con los patrones de recipients.json
-    - Solo envía correos para archivos que realmente existen (fueron generados exitosamente)
+    Envía correos basándose directamente en recipients.json.
+    Busca archivos PDF que coincidan con los nombres especificados.
     """
     missing_files = []
     sent_files = []
+    archivos_enviados = set()
 
     # Obtener lista de archivos PDF generados
     pdf_files = glob.glob(os.path.join(DOWNLOADS_FOLDER, "*.pdf"))
-    pdf_basenames = [os.path.basename(f) for f in pdf_files]
     
-    print(f"\n📂 Archivos PDF encontrados en {DOWNLOADS_FOLDER}:")
-    for pdf in pdf_basenames:
-        print(f"  - {pdf}")
+    print(f"\n� Enviando correos para {len(pdf_files)} archivos PDF...")
 
     for recipient in config.get(seccion, []):
         archivos = recipient.get('files', [])
         for file_cfg in archivos:
-            date_offset = int(file_cfg.get('dateOffset', -1 if seccion == 'diarios' else 0))
-            
+            # Construir nombre esperado del archivo
             if seccion == "diarios":
                 etiqueta = get_fecha_reporte("diario", FECHA_HOY)
-                # Para diarios, buscar archivos que contengan la fecha
-                expected_date = etiqueta
-                matching_files = [f for f in pdf_files if expected_date in os.path.basename(f) and "Diario" in os.path.basename(f)]
-                
-                # Filtrado más específico para diarios basado en el fileName template
-                file_name_template = file_cfg['fileName']
-                if "ALLTANSA" in file_name_template:
-                    matching_files = [f for f in matching_files if "ALLTANSA" in os.path.basename(f) and "Primario" in os.path.basename(f)]
-                elif "Power Paint Solutions Primario" in file_name_template:
-                    matching_files = [f for f in matching_files if "Power Paint Solutions" in os.path.basename(f) and "Primario" in os.path.basename(f)]
-                elif "Power Paint Solutions Secundario" in file_name_template:
-                    matching_files = [f for f in matching_files if "Power Paint Solutions" in os.path.basename(f) and "Secundario" in os.path.basename(f)]
-                elif "Penox Mexico Compresor 1" in file_name_template:
-                    matching_files = [f for f in matching_files if "Penox" in os.path.basename(f) and "Compresor 1" in os.path.basename(f)]
-                elif "Penox Mexico Compresor 2" in file_name_template:
-                    matching_files = [f for f in matching_files if "Penox" in os.path.basename(f) and "Compresor 2" in os.path.basename(f)]
-                elif "Manttra Gimsa" in file_name_template:
-                    matching_files = [f for f in matching_files if "Manttra Gimsa" in os.path.basename(f)]
-                elif "Calidra" in file_name_template:
-                    matching_files = [f for f in matching_files if "Calidra" in os.path.basename(f)]
-                elif "Liebherr" in file_name_template:
-                    matching_files = [f for f in matching_files if "Liebherr" in os.path.basename(f)]
-                elif "Linamar" in file_name_template:
-                    matching_files = [f for f in matching_files if "Linamar" in os.path.basename(f)]
-                elif "BCI" in file_name_template:
-                    matching_files = [f for f in matching_files if "BCI" in os.path.basename(f)]
-                elif "Daltile" in file_name_template:
-                    matching_files = [f for f in matching_files if "Daltile" in os.path.basename(f)]
-                elif "Impac" in file_name_template:
-                    matching_files = [f for f in matching_files if "Impac" in os.path.basename(f)]
-                
+                expected_name = file_cfg['fileName'].replace("{fecha}", etiqueta) + ".pdf"
             else:
-                # Para semanales, buscar archivos que contengan la fecha y "Semanal"
-                fecha_str = get_fecha_reporte("diario", FECHA_HOY)
+                etiqueta = get_fecha_reporte("semanal", FECHA_HOY)
+                expected_name = file_cfg['fileName'].replace("{fecha_str}", etiqueta.split(' ')[0]) + ".pdf"
+            
+            # Buscar archivo que coincida exactamente
+            matching_file = None
+            for pdf_file in pdf_files:
+                if os.path.basename(pdf_file) == expected_name:
+                    matching_file = pdf_file
+                    break
+            
+            # Si no encuentra exacto, buscar por coincidencia parcial
+            if not matching_file:
+                file_name_base = file_cfg['fileName'].split(' {')[0]  # Quitar parte de fecha
+                for pdf_file in pdf_files:
+                    if file_name_base in os.path.basename(pdf_file) and etiqueta.split(' ')[0] in os.path.basename(pdf_file):
+                        matching_file = pdf_file
+                        break
+            
+            if matching_file and os.path.exists(matching_file):
+                pdf_name = os.path.basename(matching_file)
                 
-                # Buscar archivos por patrones específicos según el cliente
-                file_name_template = file_cfg['fileName']
-                keywords = []
+                # Verificar si ya fue enviado
+                if pdf_name in archivos_enviados:
+                    continue
                 
-                # Extraer palabras clave del nombre del archivo
-                if "Altansa" in file_name_template or "ALLTANSA" in file_name_template:
-                    keywords = ["ALLTANSA"]
-                elif "Impac" in file_name_template:
-                    keywords = ["Impac", "Compresor " + ("1" if "75hp" in file_name_template else "2")]
-                elif "Daltile" in file_name_template:
-                    keywords = ["Daltile", file_name_template.split()[-1]]  # Extraer el código ACM
-                else:
-                    # Para otros clientes, usar la primera palabra del template
-                    keywords = [next(word for word in file_name_template.split() if word not in ["Diario", "Semanal"])]
-                
-                # Buscar archivos que coincidan con todas las palabras clave
-                matching_files = [
-                    f for f in pdf_files 
-                    if all(keyword in os.path.basename(f) for keyword in keywords)
-                    and "Semanal" in os.path.basename(f) 
-                    and fecha_str in os.path.basename(f)
-                ]
-
-            if matching_files:
-                # Enviar el primer archivo que coincida
-                pdf_path = matching_files[0]
-                pdf_name = os.path.basename(pdf_path)
-                print(f"📧 Enviando archivo: {pdf_name}")
-                send_mail(recipient, pdf_path)
-                sent_files.append(pdf_name)
-                try:
-                    os.remove(pdf_path)
-                    print(f"🗑️ Archivo eliminado: {pdf_name}")
-                except Exception as e:
-                    print(f"⚠️ No se pudo eliminar {pdf_name}: {e}")
+                if send_mail(recipient, matching_file):
+                    sent_files.append(pdf_name)
+                    archivos_enviados.add(pdf_name)
+                    
+                    try:
+                        os.remove(matching_file)
+                        pdf_files.remove(matching_file)
+                    except Exception as e:
+                        print(f"⚠️ No se pudo eliminar {pdf_name}: {e}")
             else:
-                # Solo agregar a missing_files si el cliente no parece estar inactivo
-                file_name_template = file_cfg['fileName']
-                
-                # Determinar si es un cliente que probablemente está inactivo
-                is_likely_inactive = False
-                if "Penox" in file_name_template:
-                    # Penox parece estar inactivo ya que no aparece en la API
-                    is_likely_inactive = True
-                    print(f"⚠️ Cliente Penox parece estar inactivo - saltando: {file_name_template}")
-                
-                if not is_likely_inactive:
-                    # Construir nombre esperado para el error solo si no es un cliente inactivo
-                    if seccion == "diarios":
-                        expected_name = file_cfg['fileName'].replace("{fecha}", etiqueta) + ".pdf"
-                    else:
-                        expected_name = file_cfg['fileName'] + ".pdf"
-                    print(f"❌ No se encontró archivo que coincida con: {file_cfg['fileName']}")
+                # Cliente inactivo check
+                if "Penox" not in file_cfg['fileName']:
                     missing_files.append(expected_name)
 
-    print(f"\n📈 Resumen de envío de {seccion}:")
-    print(f"  ✅ Archivos enviados: {len(sent_files)}")
-    print(f"  ❌ Archivos faltantes: {len(missing_files)}")
+    print(f"📈 Enviados: {len(sent_files)} | Faltantes: {len(missing_files)}")
     
     if missing_files:
-        print(f"  📋 Archivos faltantes:")
-        for mf in missing_files:
-            print(f"    - {mf}")
         send_error_mail(missing_files, ADMIN_CORREOS)
-    else:
-        print("  🎉 Todos los reportes disponibles fueron enviados exitosamente!")
 
 
 def main():    
     os.makedirs(DOWNLOADS_FOLDER, exist_ok=True)
     
     # Limpiar PDFs antiguos antes de generar nuevos
-    print("🧹 Limpiando PDFs antiguos...")
     clean_pdfs_folder()
     
     inicio_total = time.time()
@@ -604,41 +534,30 @@ def main():
 
     # ---- DIARIOS ----
     if ejecutar_diarios and recipients_cfg.get("diarios"):
-        print("\n=== Generando DIARIOS ===")
-        
-        # Mostrar lista de clientes que se van a procesar
-        for i, cliente in enumerate(clientes_diarios, 1):
-            print(f"  {i}. {cliente.get('nombre_cliente')} - {cliente.get('alias')} (ID: {cliente.get('id_cliente')}, Línea: {cliente.get('linea')})")
-        
+        print("\n=== DIARIOS ===")
         generar_todos_los_pdfs(clientes_diarios, "diario")
         enviar_por_recipients(recipients_cfg, "diarios")
     else:
         print("\n=== DIARIOS omitidos ===")
-        if not ejecutar_diarios:
-            print("Razón: SOLO_TIPO no incluye 'diario'")
-        if not recipients_cfg.get("diarios"):
-            print("Razón: No hay configuración de recipients para diarios")
 
     # ---- SEMANALES ----
     if ejecutar_semanales and recipients_cfg.get("semanales"):
-        print("\n=== Generando SEMANALES ===")
+        print("\n=== SEMANALES ===")
         generar_todos_los_pdfs(clientes_semanales, "semanal")
         enviar_por_recipients(recipients_cfg, "semanales")
     else:
-        print("\n=== SEMANALES omitidos (no es lunes o no forzado) ===")
+        print("\n=== SEMANALES omitidos ===")
 
     fin_total = time.time()
-    print(f"\nProceso finalizado en {fin_total - inicio_total:.2f} s.")
+    print(f"\n✅ Proceso finalizado en {fin_total - inicio_total:.2f}s")
 
 
-# ---- Ejecutar con control de interrupción ----
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
         print("\n⚠️ Proceso cancelado por el usuario. Limpiando PDFs generados...")
         clean_pdfs_folder()
-        print("Carpeta de PDFs limpiada. Terminando proceso.")
     except Exception as e:
         print(f"\n❌ Error inesperado: {e}. Limpiando PDFs generados...")
         clean_pdfs_folder()
