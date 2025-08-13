@@ -559,5 +559,11 @@ if __name__ == "__main__":
         print("\n⚠️ Proceso cancelado por el usuario. Limpiando PDFs generados...")
         clean_pdfs_folder()
     except Exception as e:
-        print(f"\n❌ Error inesperado: {e}. Limpiando PDFs generados...")
-        clean_pdfs_folder()
+        print(f"\n❌ Error inesperado: {e}")
+        # Solo limpiar PDFs si el error no está relacionado con envío de correos
+        if "No such file or directory" not in str(e) and "FileNotFoundError" not in str(e):
+            print("Limpiando PDFs generados...")
+            clean_pdfs_folder()
+        else:
+            print("Error relacionado con archivos. No se limpiarán PDFs automáticamente.")
+            print("Revise los logs para identificar el problema específico.")
