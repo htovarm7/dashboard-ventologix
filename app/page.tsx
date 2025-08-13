@@ -11,6 +11,7 @@ export default function Page() {
   const router = useRouter();
   const [accessDenied, setAccessDenied] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(false);
+  const [hasChecked, setHasChecked] = useState(false);
 
   const verifyUserAuthorization = useCallback(
     async (email: string) => {
@@ -40,11 +41,13 @@ export default function Page() {
         } else {
           setAccessDenied(true);
           setIsCheckingAuth(false);
+          setHasChecked(true);
         }
       } catch (error) {
         console.error("Error verificando autorización:", error);
         setAccessDenied(true);
         setIsCheckingAuth(false);
+        setHasChecked(true);
       }
     },
     [router]
@@ -57,17 +60,25 @@ export default function Page() {
       return;
     }
 
-    // Solo verificar si está autenticado, tiene email y no está ya verificando
+    // Solo verificar si está autenticado, tiene email, no está ya verificando y no ha verificado antes
     if (
       isAuthenticated &&
       user?.email &&
       !isCheckingAuth &&
+      !hasChecked &&
       !sessionStorage.getItem("userData")
     ) {
       setIsCheckingAuth(true);
       verifyUserAuthorization(user.email);
     }
-  }, [isAuthenticated, user, isCheckingAuth, verifyUserAuthorization, router]);
+  }, [
+    isAuthenticated,
+    user,
+    isCheckingAuth,
+    hasChecked,
+    verifyUserAuthorization,
+    router,
+  ]);
 
   if (isLoading || isCheckingAuth) {
     return (
@@ -104,11 +115,6 @@ export default function Page() {
             <p className="text-lg mb-4">
               Lo sentimos, no estás autorizado para acceder a esta aplicación.
             </p>
-            {user?.email && (
-              <p className="text-sm mb-4 bg-red-800 p-2 rounded">
-                Correo: {user.email}
-              </p>
-            )}
             <p className="mb-4">
               Para solicitar acceso al Dashboard de Ventologix, por favor
               contacta al administrador.
@@ -131,6 +137,7 @@ export default function Page() {
                 onClick={() => {
                   setAccessDenied(false);
                   setIsCheckingAuth(false);
+                  setHasChecked(false);
                   // Limpiar datos almacenados
                   sessionStorage.removeItem("userData");
                   logout({

@@ -1069,21 +1069,21 @@ function MainContent() {
 
       <div className="flex items-center justify-center mb-5">
         {/* Lado izquierdo */}
-        <div className="flex flex-col gap-1 w-124">
-          <div className="h-3 bg-blue-500 w-full"></div>
-          <div className="h-3 bg-blue-500 w-3/4"></div>
+        <div className="flex flex-col w-124">
+          <div className="h-3 bg-black w-full"></div>
+          <div className="h-3 bg-black w-3/4"></div>
         </div>
 
         {/* Texto */}
-        <h1 className="mx-6 text-blue-900 font-bold text-4xl text-center">
+        <h1 className="mx-6 text-black-900 text-blue-700 font-bold text-4xl text-center">
           Semana Pasada <span className="font-normal text-black">vs</span>{" "}
           Promedio 12 Semanas Anteriores
         </h1>
 
         {/* Lado derecho */}
-        <div className="flex flex-col gap-1 w-124">
-          <div className="h-3 bg-blue-500 w-full"></div>
-          <div className="h-3 bg-blue-500 w-3/4 self-end"></div>
+        <div className="flex flex-col w-124">
+          <div className="h-3 bg-black w-full"></div>
+          <div className="h-3 bg-black w-3/4 self-end"></div>
         </div>
       </div>
 

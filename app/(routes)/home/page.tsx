@@ -17,6 +17,9 @@ const Home = () => {
   const [clientData, setClientData] = useState<ClientData>({});
   const [numeroCliente, setNumeroCliente] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [selectedCompresor, setSelectedCompresor] = useState<Compresor | null>(
+    null
+  );
 
   useEffect(() => {
     const verifyAndLoadUser = async () => {
@@ -40,6 +43,9 @@ const Home = () => {
           setIsAdmin(parsedData.es_admin === 1); // Guardar el estado de admin
           setIsCheckingAuth(false);
           setHasCheckedAuth(true);
+
+          // NO seleccionar automáticamente ningún compresor
+          // El usuario debe elegir uno manualmente
 
           console.log("Usuario cargado desde sessionStorage:", {
             numero_cliente: parsedData.numero_cliente,
@@ -136,72 +142,121 @@ const Home = () => {
               </p>
             </div>
           )}
+
+          {/* Selector de compresor */}
+          {compresores.length > 0 && (
+            <div className="p-4 mb-6">
+              <div className="text-center">
+                <h2 className="text-2xl font-semibold text-blue-700 mb-4">
+                  Seleccionar Compresor
+                </h2>
+
+                {/* Dropdown para seleccionar compresor */}
+                <div className="mb-4">
+                  <select
+                    value={
+                      selectedCompresor?.id_cliente +
+                        "-" +
+                        selectedCompresor?.linea || ""
+                    }
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const [id_cliente, linea] = e.target.value.split("-");
+                        const compresor = compresores.find(
+                          (c) =>
+                            c.id_cliente.toString() === id_cliente &&
+                            c.linea === linea
+                        );
+                        if (compresor) {
+                          setSelectedCompresor(compresor);
+                        }
+                      } else {
+                        setSelectedCompresor(null);
+                      }
+                    }}
+                    className="w-full text-center max-w-md px-4 py-2"
+                  >
+                    <option value="">-- Seleccione un compresor --</option>
+                    {compresores.map((compresor) => (
+                      <option
+                        key={`${compresor.id_cliente}-${compresor.linea}`}
+                        value={`${compresor.id_cliente}-${compresor.linea}`}
+                      >
+                        {compresor.alias}{" "}
+                        {compresor.nombre_cliente || clientData.nombre_cliente}{" "}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Mostrar información del compresor seleccionado */}
+                {selectedCompresor && (
+                  <>
+                    <div className="text-blue-600 mb-4">
+                      <p className="font-medium">
+                        <strong>Compresor:</strong> {selectedCompresor.alias}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           <p className="text-center mb-6 text-xl">
             Aquí podrá revisar sus reportes diarios, por fecha específica y
             semanales
           </p>
 
-          {/* Menús dropdown con hover */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Reporte Diario */}
-            <ReportDropdown
-              title="Reporte Diario"
-              compresores={compresores}
-              isAdmin={isAdmin}
-              colorScheme={{
-                text: "text-blue-600",
-                icon: "text-blue-400",
-                hover: "hover:bg-blue-50 hover:text-blue-600",
-              }}
-              onCompressorSelect={(compresor) => {
-                sessionStorage.setItem(
-                  "selectedCompresor",
-                  JSON.stringify({
-                    id_cliente: compresor.id_cliente,
-                    linea: compresor.linea,
-                    alias: compresor.alias,
-                    nombre_cliente: clientData.nombre_cliente,
-                  })
-                );
-                router.push("/graphsD");
-              }}
-            />
+          {/* Menús dropdown con hover - Solo Reporte por Fecha y Semanal */}
+          {selectedCompresor ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 justify-items-center">
+              {/* Reporte Diario por Fecha */}
+              <DateReportDropdown
+                title="Reporte por Fecha"
+                compresores={compresores}
+                isAdmin={isAdmin}
+                selectedCompresor={selectedCompresor}
+                colorScheme={{
+                  text: "text-purple-600",
+                  icon: "text-purple-400",
+                  hover: "hover:bg-purple-50 hover:text-purple-600",
+                }}
+              />
 
-            {/* Reporte Diario por Fecha */}
-            <DateReportDropdown
-              title="Reporte por Fecha"
-              compresores={compresores}
-              isAdmin={isAdmin}
-              colorScheme={{
-                text: "text-purple-600",
-                icon: "text-purple-400",
-                hover: "hover:bg-purple-50 hover:text-purple-600",
-              }}
-            />
-
-            {/* Reporte Semanal */}
-            <ReportDropdown
-              title="Reporte Semanal"
-              compresores={compresores}
-              isAdmin={isAdmin}
-              colorScheme={{
-                text: "text-[rgb(0,32,91)]",
-                icon: "text-[rgb(4,48,130)]",
-                hover: "hover:bg-green-50 hover:text-green-600",
-              }}
-              onCompressorSelect={(compresor) => {
-                sessionStorage.setItem(
-                  "selectedCompresor",
-                  JSON.stringify({
-                    id_cliente: compresor.id_cliente,
-                    linea: compresor.linea,
-                    alias: compresor.alias,
-                  })
-                );
-                router.push("/graphsW");
-              }}
-            />
-          </div>
+              {/* Reporte Semanal */}
+              <ReportDropdown
+                title="Reporte Semanal"
+                compresores={compresores}
+                isAdmin={isAdmin}
+                selectedCompresor={selectedCompresor}
+                staticMode={true}
+                colorScheme={{
+                  text: "text-[rgb(0,32,91)]",
+                  icon: "text-[rgb(4,48,130)]",
+                  hover: "hover:bg-green-50 hover:text-green-600",
+                }}
+                onCompressorSelect={(compresor) => {
+                  sessionStorage.setItem(
+                    "selectedCompresor",
+                    JSON.stringify({
+                      id_cliente:
+                        selectedCompresor?.id_cliente || compresor.id_cliente,
+                      linea: selectedCompresor?.linea || compresor.linea,
+                      alias: selectedCompresor?.alias || compresor.alias,
+                    })
+                  );
+                  router.push("/graphsW");
+                }}
+              />
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-600 text-lg">
+                Por favor, seleccione un compresor para acceder a los reportes
+              </p>
+            </div>
+          )}
 
           {/* Mensaje si no hay compresores */}
           {compresores.length === 0 && isAuthorized && (

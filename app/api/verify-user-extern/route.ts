@@ -11,8 +11,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email requerido" }, { status: 400 });
     }
 
-    console.log("🔍 Verificando email con API externa:", email);
-
     const response = await fetch(EXTERNAL_API_URL, {
       method: "POST",
       headers: {
@@ -22,20 +20,12 @@ export async function POST(req: NextRequest) {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(
-        "❌ Error en API externa:",
-        response.status,
-        response.statusText,
-        errorText
-      );
       return NextResponse.json(
         {
           authorized: false,
-          error: "Error en verificación externa",
-          debug: `API externa respondió con status ${response.status}: ${errorText}`,
+          error: "Email no autorizado",
         },
-        { status: response.status }
+        { status: 403 }
       );
     }
 
@@ -46,8 +36,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           authorized: false,
-          error: "Email no autorizado por API externa",
-          debug: externalData.error || "Usuario no encontrado",
+          error: "Email no autorizado",
         },
         { status: 403 }
       );
@@ -60,18 +49,16 @@ export async function POST(req: NextRequest) {
         numero_cliente: externalData.numero_cliente,
         es_admin: externalData.es_admin || false,
         compresores: externalData.compresores || [],
-        status: "Usuario autorizado por API externa",
+        status: "Usuario autorizado",
         external_response: externalData,
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error("❌ Error conectando con API externa:", error);
     return NextResponse.json(
       {
         authorized: false,
-        error: "Error de conexión con API externa",
-        debug: error instanceof Error ? error.message : "Unknown error",
+        error: "Error de conexión",
       },
       { status: 500 }
     );

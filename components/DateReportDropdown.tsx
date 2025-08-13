@@ -11,23 +11,30 @@ interface DateReportDropdownProps {
     icon: string;
     hover: string;
   };
-  isAdmin?: boolean; // Nueva prop para saber si es admin
+  isAdmin?: boolean;
+  selectedCompresor?: Compresor | null; // Nuevo prop para compresor preseleccionado
 }
 
 const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
   title,
   compresores,
   colorScheme,
-  isAdmin = false, // Valor por defecto
+  isAdmin = false,
+  selectedCompresor = null, // Valor por defecto
 }) => {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0] // Fecha actual en formato YYYY-MM-DD
   );
 
-  const handleCompressorSelect = (compresor: Compresor) => {
+  const handleDateSelect = () => {
     if (!selectedDate) {
       alert("Por favor selecciona una fecha");
+      return;
+    }
+
+    if (!selectedCompresor) {
+      alert("No hay compresor seleccionado");
       return;
     }
 
@@ -35,9 +42,9 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
     sessionStorage.setItem(
       "selectedCompresor",
       JSON.stringify({
-        id_cliente: compresor.id_cliente,
-        linea: compresor.linea,
-        alias: compresor.alias,
+        id_cliente: selectedCompresor.id_cliente,
+        linea: selectedCompresor.linea,
+        alias: selectedCompresor.alias,
         date: selectedDate,
       })
     );
@@ -64,11 +71,12 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
           />
         </svg>
       </h2>
-      {compresores.length > 0 && (
+
+      {selectedCompresor && (
         <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-10">
           <div className="py-2">
             <div className="px-3 py-2 text-xs text-gray-500 font-medium uppercase tracking-wide border-b border-gray-100">
-              Seleccionar Fecha y Compresor
+              Seleccionar Fecha para {selectedCompresor.alias}
             </div>
 
             {/* Selector de fecha */}
@@ -85,24 +93,14 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
               />
             </div>
 
-            {/* Lista scrolleable de compresores */}
-            <div className="max-h-64 overflow-y-auto">
-              {compresores.map((compresor) => (
-                <button
-                  key={`date-${compresor.id_cliente}-${compresor.linea}`}
-                  onClick={() => handleCompressorSelect(compresor)}
-                  className={`block w-full px-4 py-3 text-left text-gray-700 ${colorScheme.hover} transition-colors border-b border-gray-50 last:border-b-0`}
-                >
-                  <div className="text-center">
-                    <div className="font-medium">{compresor.alias}</div>
-                    {isAdmin && compresor.nombre_cliente && (
-                      <div className="text-sm text-gray-500 mt-1">
-                        {compresor.nombre_cliente}
-                      </div>
-                    )}
-                  </div>
-                </button>
-              ))}
+            {/* Botón para ir al reporte */}
+            <div className="px-4 py-3">
+              <button
+                onClick={handleDateSelect}
+                className={`w-full px-4 py-2 text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors font-medium`}
+              >
+                Ver Reporte por Fecha
+              </button>
             </div>
           </div>
         </div>
