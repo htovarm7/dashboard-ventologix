@@ -16,7 +16,7 @@
 import React, { useCallback, useEffect, useState, Suspense } from "react";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import annotationPlugin from "chartjs-plugin-annotation";
 import Image from "next/image";
 import VentoCom from "@/components/vento_com";
@@ -65,9 +65,14 @@ import {
   compressorData,
 } from "@/lib/types";
 import { URL_API } from "@/lib/global";
+import { useAuthCheck } from "@/hooks/useAuthCheck";
 
 function MainContent() {
   // Constant Declarations
+
+  const router = useRouter();
+  const { isAuthorized, isCheckingAuth } = useAuthCheck();
+
   const [chartData, setChartData] = useState<chartData>([0, 0, 0]);
   const [consumoData, setConsumoData] = useState<consumoData>({
     turno1: new Array(7).fill(0),
@@ -82,41 +87,75 @@ function MainContent() {
   );
 
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
-  const searchParams = useSearchParams();
+  const [compresorAlias, setCompresorAlias] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("");
 
   const fetchData = useCallback(
-    async (id: string, linea: string, fecha: string) => {
+    async (id: string, linea: string, date: string) => {
       try {
+        const formattedDate = new Date(date).toISOString().split("T")[0];
+        console.log("Fecha formateada:", formattedDate);
+
         const [pieRes, shiftRes, clientRes, compressorRes, summaryRes] =
           await Promise.all([
             (async () => {
               const res = await fetch(
-                `${URL_API}/report/week/pie-data-proc?id_cliente=${id}&linea=${linea}`
+                `${URL_API}/report/dateWeek/pie-data-proc?id_cliente=${id}&linea=${linea}&fecha=${formattedDate}`
               );
+              if (!res.ok) {
+                console.error(
+                  `Error en pie-data-proc: ${res.status} ${res.statusText}`
+                );
+                throw new Error(`HTTP error! status: ${res.status}`);
+              }
               return res.json();
             })(),
             (async () => {
               const res = await fetch(
-                `${URL_API}/report/week/shifts?id_cliente=${id}&linea=${linea}`
+                `${URL_API}/report/dateWeek/shifts?id_cliente=${id}&linea=${linea}&fecha=${formattedDate}`
               );
+              if (!res.ok) {
+                console.error(
+                  `Error en shifts: ${res.status} ${res.statusText}`
+                );
+                throw new Error(`HTTP error! status: ${res.status}`);
+              }
               return res.json();
             })(),
             (async () => {
               const res = await fetch(
                 `${URL_API}/report/client-data?id_cliente=${id}`
               );
+              if (!res.ok) {
+                console.error(
+                  `Error en client-data: ${res.status} ${res.statusText}`
+                );
+                throw new Error(`HTTP error! status: ${res.status}`);
+              }
               return res.json();
             })(),
             (async () => {
               const res = await fetch(
                 `${URL_API}/report/compressor-data?id_cliente=${id}&linea=${linea}`
               );
+              if (!res.ok) {
+                console.error(
+                  `Error en compressor-data: ${res.status} ${res.statusText}`
+                );
+                throw new Error(`HTTP error! status: ${res.status}`);
+              }
               return res.json();
             })(),
             (async () => {
               const res = await fetch(
-                `${URL_API}/report/week/summary-general?id_cliente=${id}&linea=${linea}`
+                `${URL_API}/report/dateWeek/summary-general?id_cliente=${id}&linea=${linea}&fecha=${formattedDate}`
               );
+              if (!res.ok) {
+                console.error(
+                  `Error en summary-general: ${res.status} ${res.statusText}`
+                );
+                throw new Error(`HTTP error! status: ${res.status}`);
+              }
               return res.json();
             })(),
           ]);
@@ -217,14 +256,40 @@ function MainContent() {
     []
   );
 
+  const searchParams = useSearchParams();
+
   useEffect(() => {
-    const id = searchParams.get("id_cliente");
-    const linea = searchParams.get("linea") || "";
-    const fecha = searchParams.get("fecha") || "";
-    if (id) {
-      fetchData(id, linea, fecha);
+    if (isAuthorized) {
+      const savedCompresor = sessionStorage.getItem("selectedCompresor");
+      let id_cliente, linea, date;
+
+      if (savedCompresor) {
+        const compresorData = JSON.parse(savedCompresor);
+        id_cliente = compresorData.id_cliente.toString();
+        linea = compresorData.linea;
+        date = compresorData.date;
+        setCompresorAlias(
+          compresorData.alias || `Compresor ${id_cliente}-${linea}`
+        );
+        setSelectedDate(date || "");
+      } else {
+        id_cliente = searchParams.get("id_cliente");
+        linea = searchParams.get("linea") || "A";
+        date =
+          searchParams.get("date") || new Date().toISOString().split("T")[0];
+        setCompresorAlias(`Compresor ${id_cliente}-${linea}`);
+        setSelectedDate(date);
+      }
+
+      if (id_cliente && date) {
+        console.log("Obteniendo datos para:", { id_cliente, linea, date });
+        fetchData(id_cliente, linea, date);
+      } else {
+        console.error("No se encontró información del compresor o fecha");
+        router.push("/home");
+      }
     }
-  }, [searchParams, fetchData]);
+  }, [isAuthorized, searchParams, fetchData, router]);
 
   const diasSemana = [
     "Lunes",
@@ -853,19 +918,21 @@ function MainContent() {
     }
   }, [summaryData]);
 
-  const today = new Date();
-
-  // Obtener el lunes de la semana pasada
-  const dayOfWeek = today.getDay(); // Domingo = 0, Lunes = 1, ..., Sábado = 6
+  // Usar la fecha seleccionada para calcular la semana
+  const currentDate = new Date(selectedDate || new Date());
+  const dayOfWeek = currentDate.getDay(); // Domingo = 0, Lunes = 1, ..., Sábado = 6
   const daysSinceMonday = (dayOfWeek + 6) % 7; // Convierte Domingo=6, Lunes=0, ..., Sábado=5
-  const lastMonday = new Date(today);
-  lastMonday.setDate(today.getDate() - daysSinceMonday - 7); // lunes pasado
+  const lastMonday = new Date(currentDate);
+  lastMonday.setDate(currentDate.getDate() - daysSinceMonday); // lunes de la semana actual
 
   const lastSunday = new Date(lastMonday);
   lastSunday.setDate(lastMonday.getDate() + 6);
 
-  const options: Intl.DateTimeFormatOptions = { day: "2-digit", month: "long" };
-  const fechaInicio = lastMonday.toLocaleDateString("es-ES", options);
+  const dateOptions: Intl.DateTimeFormatOptions = {
+    day: "2-digit",
+    month: "long",
+  };
+  const fechaInicio = lastMonday.toLocaleDateString("es-ES", dateOptions);
   const fechaFin = lastSunday.toLocaleDateString("es-ES", {
     day: "2-digit",
     month: "long",
@@ -886,6 +953,28 @@ function MainContent() {
 
   return (
     <main className="relative">
+      {/* Botón volver */}
+      <div className="absolute top-4 left-4 z-20">
+        <button
+          onClick={() => router.push("/home")}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          Volver
+        </button>
+      </div>
       <div className="w-full min-w-full bg-gradient-to-r from-indigo-950 to-blue-400 text-white p-6">
         {/* Main docker on rows */}
         <div className="flex justify-between items-start">

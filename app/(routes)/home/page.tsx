@@ -139,11 +139,11 @@ const Home = () => {
             <div className="p-4 mb-6">
               <div className="text-center">
                 <h2 className="text-2xl font-semibold text-blue-700 mb-4">
-                  Seleccionar Compresor
+                  Seleccione el Compresor a mostrar
                 </h2>
 
                 {/* Dropdown para seleccionar compresor */}
-                <div className="mb-4">
+                <div>
                   <select
                     value={
                       selectedCompresor?.id_cliente +
@@ -165,7 +165,7 @@ const Home = () => {
                         setSelectedCompresor(null);
                       }
                     }}
-                    className="w-full text-center max-w-md px-4 py-2"
+                    className="w-full text-center text-xl max-w-md px-4 py-2 border border-black"
                   >
                     <option value="">-- Seleccione un compresor --</option>
                     {compresores.map((compresor) => (
@@ -179,22 +179,11 @@ const Home = () => {
                     ))}
                   </select>
                 </div>
-
-                {/* Mostrar información del compresor seleccionado */}
-                {selectedCompresor && (
-                  <>
-                    <div className="text-blue-600 mb-4">
-                      <p className="font-medium">
-                        <strong>Compresor:</strong> {selectedCompresor.alias}
-                      </p>
-                    </div>
-                  </>
-                )}
               </div>
             </div>
           )}
 
-          <p className="text-center mb-6 text-xl">
+          <p className="text-center mt-3 mb-6 text-xl">
             Aquí podrá revisar sus reportes diarios, por fecha específica y
             semanales
           </p>
