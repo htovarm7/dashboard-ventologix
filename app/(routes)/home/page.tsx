@@ -201,12 +201,13 @@ const Home = () => {
 
           {/* Menús dropdown con hover - Solo Reporte por Fecha y Semanal */}
           {selectedCompresor ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 justify-items-center">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center">
               {/* Reporte Diario por Fecha */}
               <DateReportDropdown
                 title="Reporte por Fecha"
                 compresores={compresores}
                 Rol={rol!}
+                tipo="DIARIO"
                 selectedCompresor={selectedCompresor}
                 colorScheme={{
                   text: "text-purple-600",
@@ -237,6 +238,18 @@ const Home = () => {
                     })
                   );
                   router.push("/graphsW");
+                }}
+              />
+              <DateReportDropdown
+                title="Reporte por Semana"
+                compresores={compresores}
+                tipo="SEMANAL"
+                Rol={rol!}
+                selectedCompresor={selectedCompresor}
+                colorScheme={{
+                  text: "text-cyan-600",
+                  icon: "text-cyan-400",
+                  hover: "hover:bg-cyan-50 hover:text-cyan-600",
                 }}
               />
             </div>

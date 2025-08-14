@@ -13,12 +13,14 @@ interface DateReportDropdownProps {
   };
   Rol?: number;
   selectedCompresor?: Compresor | null; // Nuevo prop para compresor preseleccionado
+  tipo?: string;
 }
 
 const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
   title,
   compresores,
   colorScheme,
+  tipo,
   Rol = 2,
   selectedCompresor = null,
 }) => {
@@ -38,7 +40,6 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
       return;
     }
 
-    // Guardar datos en sessionStorage
     sessionStorage.setItem(
       "selectedCompresor",
       JSON.stringify({
@@ -48,7 +49,12 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
         date: selectedDate,
       })
     );
-    router.push("/graphsDateDay");
+    if (tipo === "DIARIO") {
+      router.push("/graphsDateDay");
+    }
+    if (tipo === "SEMANAL") {
+      router.push("/graphsDateWeek");
+    }
   };
 
   return (

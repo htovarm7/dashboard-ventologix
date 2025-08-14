@@ -778,7 +778,7 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
         return {"error": str(err)}
 
 # Select Week Endpoints
-@report.get("/week/pie-data-proc", tags=["selectWeek"])
+@report.get("/dateWeek/pie-data-proc", tags=["selectWeek"])
 def get_pie_data_proc_date_week(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Linea del cliente"), fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
         # Connect to DB
@@ -826,7 +826,7 @@ def get_pie_data_proc_date_week(id_cliente: int = Query(..., description="ID del
     except mysql.connector.Error as err:
         return {"error": str(err)}
     
-@report.get("/week/shifts", tags=["selectWeek"])
+@report.get("/dateWeek/shifts", tags=["selectWeek"])
 def get_shifts_by_week(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente"), fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
         # Connect to DB
@@ -865,7 +865,7 @@ def get_shifts_by_week(id_cliente: int = Query(..., description="ID del cliente"
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/week/summary-general", tags=["selectWeek"])
+@report.get("/dateWeek/summary-general", tags=["selectWeek"])
 def get_week_summary_general(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente"), fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
         # Conectar a base de datos

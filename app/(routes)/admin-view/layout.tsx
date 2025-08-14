@@ -8,7 +8,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Dashboard de Ventologix",
+  title: "Admin Dashboard",
   icons: { icon: "/favicon.ico" },
 };
 
