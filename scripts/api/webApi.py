@@ -952,26 +952,35 @@ def verify_email(
         )
         cursor = conn.cursor(dictionary=True)
 
-        # Paso 1: Obtener numero_cliente y es_admin
-        cursor.execute("SELECT numero_cliente, es_admin FROM usuarios_auth WHERE email = %s", (email,))
+        # Paso 1: Obtener numero_cliente y rol
+        cursor.execute("SELECT numero_cliente, rol FROM usuarios_auth WHERE email = %s", (email,))
         result = cursor.fetchone()
 
         if not result:
             raise HTTPException(status_code=403, detail="Email not authorized")
 
         numero_cliente = result["numero_cliente"]
-        es_admin = result.get("es_admin", False)
+        rol = result.get("rol", 2)  # Por defecto cliente (2) si no hay valor
 
-        if es_admin:
-            # Admin: obtener todos los compresores
+        # Lógica según el rol
+        if rol == 0:  # Super admin
             query = """
                 SELECT c2.id_cliente, c2.linea, c2.alias, c.nombre_cliente
                 FROM clientes c
                 JOIN compresores c2 ON c.id_cliente = c2.proyecto
             """
             cursor.execute(query)
-        else:
-            # Usuario normal: compresores por cliente
+
+        elif rol == 1:  # Admin
+            query = """
+                SELECT c2.id_cliente, c2.linea, c2.alias, c.nombre_cliente
+                FROM clientes c
+                JOIN compresores c2 ON c.id_cliente = c2.proyecto
+                WHERE c.numero_cliente = %s
+            """
+            cursor.execute(query, (numero_cliente,))
+
+        else:  # Cliente
             query = """
                 SELECT c2.id_cliente, c2.linea, c2.alias
                 FROM usuarios_auth ua
@@ -989,7 +998,7 @@ def verify_email(
         return {
             "authorized": True,
             "numero_cliente": numero_cliente,
-            "es_admin": es_admin,
+            "rol": rol,
             "compresores": compresores
         }
 

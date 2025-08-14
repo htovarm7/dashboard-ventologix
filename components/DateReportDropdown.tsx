@@ -11,7 +11,7 @@ interface DateReportDropdownProps {
     icon: string;
     hover: string;
   };
-  isAdmin?: boolean;
+  Rol?: number;
   selectedCompresor?: Compresor | null; // Nuevo prop para compresor preseleccionado
 }
 
@@ -19,8 +19,8 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
   title,
   compresores,
   colorScheme,
-  isAdmin = false,
-  selectedCompresor = null, // Valor por defecto
+  Rol = 2,
+  selectedCompresor = null,
 }) => {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(

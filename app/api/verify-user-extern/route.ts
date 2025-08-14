@@ -31,7 +31,6 @@ export async function POST(req: NextRequest) {
 
     const externalData = await response.json();
 
-    // Verificar si la respuesta externa indica autorización
     if (!externalData.authorized) {
       return NextResponse.json(
         {
@@ -42,12 +41,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Retornar la información del usuario desde la API externa
     return NextResponse.json(
       {
         authorized: true,
         numero_cliente: externalData.numero_cliente,
-        es_admin: externalData.es_admin || false,
+        Rol: externalData.rol || false,
         compresores: externalData.compresores || [],
         status: "Usuario autorizado",
         external_response: externalData,

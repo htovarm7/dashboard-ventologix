@@ -18,6 +18,19 @@ export type compressorData = {
     limite: number;
   };
 
+export type Engineer = {
+  id: string;
+  name: string;
+  email: string;
+  compressors: string[];
+};
+
+export type EngineerFormData = {
+  name: string;
+  email: string;
+  compressors: string[];
+};
+
 export type dayData = {
     fecha: string;
     inicio_funcionamiento: string;
@@ -93,4 +106,11 @@ export type SummaryData = {
     promedio_hp_equivalente: number;
     horas_trabajadas_anteriores: number;
   };
+};
+
+export type EngineerData = {
+  id: number;
+  nombre: string;
+  email: string;
+  activo: boolean;
 };

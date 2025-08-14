@@ -15,7 +15,10 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   const clientId = process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID;
 
   if (!domain || !clientId) {
-    console.error("❌ Variables de entorno Auth0 faltantes:", { domain, clientId });
+    console.error("❌ Variables de entorno Auth0 faltantes:", {
+      domain,
+      clientId,
+    });
     return <div>Error: Configuración Auth0 incompleta</div>;
   }
 
@@ -24,12 +27,16 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       domain={domain}
       clientId={clientId}
       authorizationParams={{
-        redirect_uri: typeof window !== "undefined" ? window.location.origin : "",
-        scope: "openid profile email"
+        redirect_uri:
+          typeof window !== "undefined" ? window.location.origin : "",
+        scope: "openid profile email",
       }}
       onRedirectCallback={(appState, user) => {
         console.log("🔍 Auth0 Redirect Callback:", { appState, user });
-        router.push(appState?.returnTo || "/");
+        // Asegurarnos de que la ruta sea correcta
+        const route = appState?.returnTo || "/home";
+        console.log("📍 Redirigiendo a:", route);
+        router.push(route);
       }}
       useRefreshTokens={true}
       cacheLocation="localstorage"

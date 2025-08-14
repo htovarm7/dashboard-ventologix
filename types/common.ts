@@ -11,4 +11,12 @@ export interface CompresorWithDate extends Compresor {
 
 export interface ClientData {
   nombre_cliente?: string;
+  rol?: number;
+}
+
+export interface UserData {
+  numero_cliente: number;
+  rol: number;
+  compresores: Compresor[];
+  authorized: boolean;
 }

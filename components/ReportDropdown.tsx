@@ -12,9 +12,9 @@ interface ReportDropdownProps {
   };
   onCompressorSelect: (compresor: Compresor) => void;
   children?: React.ReactNode;
-  isAdmin?: boolean;
-  selectedCompresor?: Compresor | null; // Nuevo prop para compresor preseleccionado
-  staticMode?: boolean; // Nuevo prop para modo estático
+  Rol?: number;
+  selectedCompresor?: Compresor | null;
+  staticMode?: boolean;
 }
 
 const ReportDropdown: React.FC<ReportDropdownProps> = ({
@@ -23,7 +23,7 @@ const ReportDropdown: React.FC<ReportDropdownProps> = ({
   colorScheme,
   onCompressorSelect,
   children,
-  isAdmin = false,
+  Rol = 2,
   selectedCompresor = null,
   staticMode = false,
 }) => {
@@ -78,7 +78,7 @@ const ReportDropdown: React.FC<ReportDropdownProps> = ({
                 >
                   <div className="text-center">
                     <div className="font-medium">{compresor.alias}</div>
-                    {isAdmin && compresor.nombre_cliente && (
+                    {Rol && compresor.nombre_cliente && (
                       <div className="text-sm text-gray-500 mt-1">
                         {compresor.nombre_cliente}
                       </div>

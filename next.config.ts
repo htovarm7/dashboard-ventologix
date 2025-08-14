@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
     };
     return config;
   },
+  // Asegurarse de que no hay basePath configurado
+  basePath: '',
 };
 
 export default nextConfig;

@@ -31,7 +31,7 @@ export default function Page() {
             "userData",
             JSON.stringify({
               numero_cliente: data.numero_cliente,
-              es_admin: data.es_admin,
+              rol: data.Rol,
               compresores: data.compresores,
               email: email,
             })
@@ -54,13 +54,13 @@ export default function Page() {
   );
 
   useEffect(() => {
-    // Si ya está autenticado y ya tenemos datos en sessionStorage, redirigir directamente
+    if (isLoading) return;
+
     if (isAuthenticated && sessionStorage.getItem("userData")) {
       router.push("/home");
       return;
     }
 
-    // Solo verificar si está autenticado, tiene email, no está ya verificando y no ha verificado antes
     if (
       isAuthenticated &&
       user?.email &&
@@ -74,6 +74,7 @@ export default function Page() {
   }, [
     isAuthenticated,
     user,
+    isLoading,
     isCheckingAuth,
     hasChecked,
     verifyUserAuthorization,
@@ -86,8 +87,8 @@ export default function Page() {
         <Image
           src="/Ventologix_01.png"
           alt="Ventologix Logo"
-          width={1080}
-          height={1080}
+          width={720}
+          height={720}
           className="animate-bounce mb-4"
           priority
         />
@@ -190,7 +191,6 @@ export default function Page() {
             <button
               className="bg-red-500 text-white p-2 rounded"
               onClick={() => {
-                // Limpiar datos almacenados al hacer logout
                 sessionStorage.removeItem("userData");
                 logout();
               }}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import ReportDropdown from "@/components/ReportDropdown";
 import DateReportDropdown from "@/components/DateReportDropdown";
 import { Compresor, ClientData } from "@/types/common";
+import AdminSettings from "@/components/AdminSettings";
 
 const Home = () => {
   const { user, getIdTokenClaims, isAuthenticated, isLoading, logout } =
@@ -16,7 +17,7 @@ const Home = () => {
   const [compresores, setCompresores] = useState<Compresor[]>([]);
   const [clientData, setClientData] = useState<ClientData>({});
   const [numeroCliente, setNumeroCliente] = useState<number | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [rol, setRol] = useState<number | null>(null);
   const [selectedCompresor, setSelectedCompresor] = useState<Compresor | null>(
     null
   );
@@ -32,7 +33,6 @@ const Home = () => {
         return;
       }
 
-      // Primero intentar cargar desde sessionStorage
       const userData = sessionStorage.getItem("userData");
       if (userData) {
         try {
@@ -40,18 +40,9 @@ const Home = () => {
           setIsAuthorized(true);
           setCompresores(parsedData.compresores || []);
           setNumeroCliente(parsedData.numero_cliente);
-          setIsAdmin(parsedData.es_admin === 1); // Guardar el estado de admin
+          setRol(parsedData.rol);
           setIsCheckingAuth(false);
           setHasCheckedAuth(true);
-
-          // NO seleccionar automáticamente ningún compresor
-          // El usuario debe elegir uno manualmente
-
-          console.log("Usuario cargado desde sessionStorage:", {
-            numero_cliente: parsedData.numero_cliente,
-            es_admin: parsedData.es_admin,
-            compresores_count: parsedData.compresores?.length || 0,
-          });
           return;
         } catch (error) {
           console.error("Error parsing userData from sessionStorage:", error);
@@ -59,7 +50,6 @@ const Home = () => {
         }
       }
 
-      // Si no hay datos en sessionStorage, redirigir al inicio para nueva autenticación
       if (user?.email && !userData) {
         console.log(
           "No hay datos en sessionStorage, redirigiendo para autenticación"
@@ -129,6 +119,7 @@ const Home = () => {
         </button>
       </div>
 
+      <AdminSettings isVisible={rol === 1} />
       <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="bg-white rounded-3xl p-5 shadow-md w-full max-w-4xl">
           <h1 className="text-center text-5xl mb-8">
@@ -215,7 +206,7 @@ const Home = () => {
               <DateReportDropdown
                 title="Reporte por Fecha"
                 compresores={compresores}
-                isAdmin={isAdmin}
+                Rol={rol!}
                 selectedCompresor={selectedCompresor}
                 colorScheme={{
                   text: "text-purple-600",
@@ -223,12 +214,11 @@ const Home = () => {
                   hover: "hover:bg-purple-50 hover:text-purple-600",
                 }}
               />
-
               {/* Reporte Semanal */}
               <ReportDropdown
                 title="Reporte Semanal"
                 compresores={compresores}
-                isAdmin={isAdmin}
+                Rol={rol !== null ? rol : undefined}
                 selectedCompresor={selectedCompresor}
                 staticMode={true}
                 colorScheme={{
