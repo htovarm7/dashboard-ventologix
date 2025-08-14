@@ -128,15 +128,39 @@ const AdminView = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Panel de Administración</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Panel de Administración</h1>
+        <button
+          onClick={() => router.push("/")}
+          className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Volver al Dashboard
+        </button>
+      </div>
 
-      <div className="grid grid-cols-1 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md">
+      <div className="bg-white rounded-lg shadow-md">
+        <div className="p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold mb-4">Gestión de Ingenieros</h2>
-
-          {/* Formulario para agregar/editar ingeniero */}
-          <form onSubmit={handleSubmit} className="mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-wrap items-end gap-4"
+          >
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre
+              </label>
               <input
                 type="text"
                 placeholder="Nombre del ingeniero"
@@ -144,8 +168,13 @@ const AdminView = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                className="p-2 border rounded"
+                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
               <input
                 type="email"
                 placeholder="Correo electrónico"
@@ -153,8 +182,13 @@ const AdminView = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
-                className="p-2 border rounded"
+                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Compresores
+              </label>
               <select
                 multiple
                 value={formData.compressors}
@@ -167,7 +201,7 @@ const AdminView = () => {
                     ),
                   })
                 }
-                className="p-2 border rounded"
+                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 {compressors.map((compressor) => (
                   <option key={compressor.id} value={compressor.id}>
@@ -175,55 +209,91 @@ const AdminView = () => {
                   </option>
                 ))}
               </select>
-              <button
-                type="submit"
-                className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-              >
-                {editingEngineer ? "Actualizar" : "Agregar"} Ingeniero
-              </button>
             </div>
-          </form>
-
-          {/* Lista de ingenieros */}
-          <div className="space-y-4">
-            {engineers.map((engineer) => (
-              <div
-                key={engineer.id}
-                className="border p-4 rounded flex justify-between items-center"
+            <button
+              type="submit"
+              className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex items-center gap-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
               >
-                <div>
-                  <h3 className="font-semibold">{engineer.name}</h3>
-                  <p className="text-sm text-gray-600">{engineer.email}</p>
-                  <p className="text-sm text-gray-500">
-                    Compresores: {engineer.compressors.join(", ")}
-                  </p>
+                {editingEngineer ? (
+                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                ) : (
+                  <path
+                    fillRule="evenodd"
+                    d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                    clipRule="evenodd"
+                  />
+                )}
+              </svg>
+              {editingEngineer ? "Actualizar" : "Agregar"} Ingeniero
+            </button>
+          </form>
+        </div>
+
+        <div className="p-6">
+          <div className="max-h-[500px] overflow-y-auto">
+            <div className="space-y-4">
+              {engineers.map((engineer) => (
+                <div
+                  key={engineer.id}
+                  className="border border-gray-200 p-4 rounded-lg hover:shadow-md transition-shadow flex justify-between items-center gap-4"
+                >
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-lg text-gray-900 truncate">
+                      {engineer.name}
+                    </h3>
+                    <p className="text-sm text-gray-600 truncate">
+                      {engineer.email}
+                    </p>
+                    <p className="text-sm text-gray-500 truncate">
+                      Compresores: {engineer.compressors.join(", ")}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => handleEdit(engineer)}
+                      className="bg-yellow-500 text-white px-3 py-2 rounded-md hover:bg-yellow-600 transition-colors flex items-center gap-1"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                      </svg>
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(engineer.id)}
+                      className="bg-red-500 text-white px-3 py-2 rounded-md hover:bg-red-600 transition-colors flex items-center gap-1"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Eliminar
+                    </button>
+                  </div>
                 </div>
-                <div className="space-x-2">
-                  <button
-                    onClick={() => handleEdit(engineer)}
-                    className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => handleDelete(engineer.id)}
-                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
-
-      <button
-        onClick={() => router.push("/")}
-        className="mt-8 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-      >
-        Volver al Dashboard
-      </button>
     </div>
   );
 };
