@@ -2,13 +2,20 @@ import mysql from 'mysql2/promise';
 import process from 'process';
 
 export const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'usuario',
-  password: process.env.DB_PASSWORD || 'password',
-  database: process.env.DB_DATABASE || 'database',
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT) || 3306,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  connectTimeout: 60000, // 60 segundos
+  enableKeepAlive: true,
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: true } : undefined,
+  debug: process.env.NODE_ENV === 'development',
+  maxIdle: 10, // máximo de conexiones inactivas
+  idleTimeout: 60000, // tiempo máximo de inactividad
 });
 
 export async function dbQuery<T>(
