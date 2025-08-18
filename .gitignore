@@ -43,6 +43,7 @@ next-env.d.ts
 /vento
 
 /venv310
+/venv311
 
 scripts/__pycache__
 

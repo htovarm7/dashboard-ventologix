@@ -204,7 +204,7 @@ const Home = () => {
                   hover: "hover:bg-purple-50 hover:text-purple-600",
                 }}
               />
-              {/* Reporte Semanal */}
+              {/* Reporte Semanal 
               <ReportDropdown
                 title="Reporte Semanal"
                 compresores={compresores}
@@ -229,6 +229,7 @@ const Home = () => {
                   router.push("/graphsW");
                 }}
               />
+              */}
               <DateReportDropdown
                 title="Reporte por Semana"
                 compresores={compresores}

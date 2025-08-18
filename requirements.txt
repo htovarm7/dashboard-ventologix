@@ -20,3 +20,5 @@ google-auth
 google-auth-oauthlib
 twilio
 pydantic[email]
+statsmodels
+pmdarima
