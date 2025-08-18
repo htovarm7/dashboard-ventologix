@@ -38,7 +38,7 @@ def obtener_kwh_fp(device_id, proyecto_id, linea):
     cursor.close()
     return pd.DataFrame([(fila[0], fila[1]) for fila in datos], columns=['Fecha', 'kWh'])
 
-# 🗕 Llamadas
+# 🗕 Llamadas HARDCODEADO
 llamadas = [
     (16, 16, 'A'),
     (18, 18, 'A'),
@@ -46,6 +46,7 @@ llamadas = [
     (17, 17, 'A')
 ]
 
+# HARDCODEADO MODIFICAR
 nombres_compresores = {
     'kWh_16_A': 'ACM0006',
     'kWh_18_A': 'ACM0002',
@@ -140,7 +141,7 @@ else:
         conf_int_upper = np.expm1(conf_int.iloc[:, 1])
         predicciones = np.maximum(predicciones, 0)
 
-# 💡 Líneas de Consumo Máximo
+# 💡HARDCODEADO
 voltaje = 440
 fp = 0.9
 horas = 24
@@ -148,6 +149,7 @@ horas = 24
 def calc_kwh_max(amperes):
     return np.sqrt(3) * voltaje * amperes * fp * horas / 1000
 
+# HARDCODEADO
 corrientes = {
     '16A': 126,
     '17A': 112.8,

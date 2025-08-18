@@ -22,3 +22,4 @@ twilio
 pydantic[email]
 statsmodels
 pmdarima
+matplotlib
