@@ -16,7 +16,7 @@ export default function Page() {
   const verifyUserAuthorization = useCallback(
     async (email: string) => {
       try {
-        const response = await fetch("/api/verify-user", {
+        const response = await fetch("/api/verify-user-extern", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

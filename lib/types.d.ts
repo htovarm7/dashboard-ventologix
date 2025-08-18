@@ -16,6 +16,7 @@ export type compressorData = {
     numero_serie: number;
     alias: string;
     limite: number;
+    date: string;
   };
 
 export type Engineer = {
