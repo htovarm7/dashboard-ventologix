@@ -26,8 +26,8 @@ downloads_folder = "pdfs"
 alias_name = "VTO LOGIX"
 smtp_from = "andres.mirazo@ventologix.com"
 from_address = "vto@ventologix.com"
-logo_path = "/home/hector_tovar/Ventologix/public/Logo vento firma.jpg"
-ventologix_logo_path = "/home/hector_tovar/Ventologix/public/ventologix firma.jpg"
+logo_path = "public/Logo vento firma.jpg"
+ventologix_logo_path = "public/ventologix firma.jpg"
 smtp_password = os.getenv("SMTP_PASSWORD")
 
 smtp_server = "smtp.gmail.com"
@@ -146,12 +146,10 @@ def main():
         inicio = time.time()
 
         pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, fecha_reporte)
-        send_mail(pdf_path, nombre_cliente, fecha_reporte)
-        os.remove(pdf_path)
 
         fin = time.time()
         duracion = fin - inicio
-        print(f"✅ PDF enviado correctamente en {duracion:.2f} segundos.\n")
+        print(f"✅ PDF generado correctamente en {duracion:.2f} segundos.\n")
 
     except Exception as e:
         print(f"❌ Error durante generación o envío: {e}")
