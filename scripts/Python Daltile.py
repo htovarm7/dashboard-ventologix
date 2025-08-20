@@ -14,8 +14,6 @@ DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_DATABASE = os.getenv("DB_DATABASE")
 
-
-# 🚀 Conexión MySQL
 db_connection = mysql.connector.connect(
     host=DB_HOST,
     user=DB_USER,
@@ -23,7 +21,12 @@ db_connection = mysql.connector.connect(
     database=DB_DATABASE
 )
 
-# 🔄 Función para llamar al SP con FP
+def do_queries(id_cliente,linea):
+    cursor = db_connection.cursor("")
+    
+    cursor.execute("")
+
+
 def obtener_kwh_fp(device_id, proyecto_id, linea):
     cursor = db_connection.cursor()
     fecha_fin = date.today() - timedelta(days=2)
