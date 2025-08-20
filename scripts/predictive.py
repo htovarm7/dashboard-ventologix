@@ -55,11 +55,11 @@ def obtener_kwh_fp(id_cliente, linea):
         database=DB_DATABASE
     )
     cursor = conn.cursor()
-    cursor.execute("select voltaje, alias, segundosPorRegistro from compresores c where id_cliente = %s", (id_cliente))
-    compresorData  = cursor.fetchone
-    voltaje = compresorData["voltaje"]
-    segundosPR = compresorData["segundosPorRegistro"]
-    alias = compresorData["alias"]
+    cursor.execute("select voltaje, alias, segundosPorRegistro from compresores c where id_cliente = %s", (id_cliente,))
+    compresorData = cursor.fetchone()
+    voltaje = compresorData[0]
+    segundosPR = compresorData[2]
+    alias = compresorData[1]
     fecha_fin = date.today() - timedelta(days=2)
     fecha_inicio = fecha_fin - timedelta(days=17)
     cursor.callproc('CalcularKHWSemanalesPorEstadoConCiclosFP', [
@@ -80,7 +80,7 @@ def forecast_endpoint(
     linea: str = Query(..., description="Línea del cliente")
 ):
     try:
-        df = obtener_kwh_fp(id_cliente, id_cliente, linea)
+        df = obtener_kwh_fp(id_cliente, linea)
         if df.empty:
             return {"error": "No hay datos para este cliente/línea"}
 
