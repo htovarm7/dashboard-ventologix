@@ -18,28 +18,29 @@ export default function Page() {
   const verifyUserAuthorization = useCallback(
     async (userInfo: any) => {
       try {
-
         let requestBody;
-        
+
         // Detectar el tipo de login basado en la estructura del user
-        if (userInfo.email && userInfo.email.includes('@')) {
+        if (userInfo.email && userInfo.email.includes("@")) {
           // Login con Google - tiene email válido
           requestBody = { email: userInfo.email };
         } else if (userInfo.nickname || userInfo.username) {
           // Login con username/password - usar nickname o username
-          const username = userInfo.nickname || userInfo.username || userInfo.name;
+          const username =
+            userInfo.nickname || userInfo.username || userInfo.name;
           requestBody = { user: username };
-        } else if (userInfo.sub && userInfo.sub.startsWith('auth0|')) {
+        } else if (userInfo.sub && userInfo.sub.startsWith("auth0|")) {
           // Usuario de Auth0 database - extraer username del sub
-          const username = userInfo.sub.replace('auth0|', '');
+          const username = userInfo.sub.replace("auth0|", "");
           requestBody = { user: username };
         } else {
           // Fallback - usar lo que tengamos
-          requestBody = { user: userInfo.email || userInfo.name || userInfo.sub };
+          requestBody = {
+            user: userInfo.email || userInfo.name || userInfo.sub,
+          };
         }
 
-
-        const response = await fetch("/api/verify-user-extern", {
+        const response = await fetch("/api/verify-user", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -62,7 +63,7 @@ export default function Page() {
 
           router.push("/home");
         } else {
-          console.error('Error de autorización:', data);
+          console.error("Error de autorización:", data);
           setAccessDenied(true);
           setIsCheckingAuth(false);
           setHasChecked(true);
@@ -212,7 +213,8 @@ export default function Page() {
         ) : (
           <>
             <p className="text-white mb-2">
-              Bienvenido, {user?.name || user?.nickname || user?.username || user?.email}
+              Bienvenido,{" "}
+              {user?.name || user?.nickname || user?.username || user?.email}
             </p>
             <button
               className="bg-red-500 text-white p-2 rounded"
