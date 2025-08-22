@@ -1,3 +1,5 @@
+// OPCIÓN 1: Usar el sub (ID único) de Auth0
+// Frontend modificado
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
@@ -14,14 +16,35 @@ export default function Page() {
   const [hasChecked, setHasChecked] = useState(false);
 
   const verifyUserAuthorization = useCallback(
-    async (email: string) => {
+    async (userInfo: any) => {
       try {
+
+        let requestBody;
+        
+        // Detectar el tipo de login basado en la estructura del user
+        if (userInfo.email && userInfo.email.includes('@')) {
+          // Login con Google - tiene email válido
+          requestBody = { email: userInfo.email };
+        } else if (userInfo.nickname || userInfo.username) {
+          // Login con username/password - usar nickname o username
+          const username = userInfo.nickname || userInfo.username || userInfo.name;
+          requestBody = { user: username };
+        } else if (userInfo.sub && userInfo.sub.startsWith('auth0|')) {
+          // Usuario de Auth0 database - extraer username del sub
+          const username = userInfo.sub.replace('auth0|', '');
+          requestBody = { user: username };
+        } else {
+          // Fallback - usar lo que tengamos
+          requestBody = { user: userInfo.email || userInfo.name || userInfo.sub };
+        }
+
+
         const response = await fetch("/api/verify-user-extern", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify(requestBody),
         });
 
         const data = await response.json();
@@ -33,12 +56,13 @@ export default function Page() {
               numero_cliente: data.numero_cliente,
               rol: data.Rol,
               compresores: data.compresores,
-              email: email,
+              email: userInfo.email || requestBody.user,
             })
           );
 
           router.push("/home");
         } else {
+          console.error('Error de autorización:', data);
           setAccessDenied(true);
           setIsCheckingAuth(false);
           setHasChecked(true);
@@ -63,13 +87,13 @@ export default function Page() {
 
     if (
       isAuthenticated &&
-      user?.email &&
+      user &&
       !isCheckingAuth &&
       !hasChecked &&
       !sessionStorage.getItem("userData")
     ) {
       setIsCheckingAuth(true);
-      verifyUserAuthorization(user.email);
+      verifyUserAuthorization(user);
     }
   }, [
     isAuthenticated,
@@ -81,6 +105,7 @@ export default function Page() {
     router,
   ]);
 
+  // ... resto del componente igual
   if (isLoading || isCheckingAuth) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black">
@@ -100,8 +125,8 @@ export default function Page() {
   }
 
   if (error || accessDenied) {
-    const errorDetails = `Hola Hector,%0D%0A%0D%0AEstoy intentando acceder al Dashboard de Ventologix pero no tengo autorización.%0D%0A%0D%0AMi correo electrónico es: ${
-      user?.email || "No disponible"
+    const errorDetails = `Hola Hector,%0D%0A%0D%0AEstoy intentando acceder al Dashboard de Ventologix pero no tengo autorización.%0D%0A%0D%0AMi información de usuario es: ${
+      user?.email || user?.username || user?.nickname || "No disponible"
     }%0D%0A%0D%0APor favor, podrías autorizar mi acceso al sistema.%0D%0A%0D%0AGracias,%0D%0A[Tu nombre]`;
 
     const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&to=hector.tovar@ventologix.com&su=${encodeURIComponent(
@@ -139,7 +164,6 @@ export default function Page() {
                   setAccessDenied(false);
                   setIsCheckingAuth(false);
                   setHasChecked(false);
-                  // Limpiar datos almacenados
                   sessionStorage.removeItem("userData");
                   logout({
                     logoutParams: { returnTo: window.location.origin },
@@ -187,7 +211,9 @@ export default function Page() {
           </button>
         ) : (
           <>
-            <p className="text-white mb-2">Bienvenido, {user?.name}</p>
+            <p className="text-white mb-2">
+              Bienvenido, {user?.name || user?.nickname || user?.username || user?.email}
+            </p>
             <button
               className="bg-red-500 text-white p-2 rounded"
               onClick={() => {

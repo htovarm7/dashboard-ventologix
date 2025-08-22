@@ -233,11 +233,6 @@ function MainContent() {
       summaryData?.detalle_semana_actual?.map((d) => d.horas_trabajadas) ?? [],
   };
 
-  // Debug logs para diagnosticar los datos
-  console.log("summaryData actual:", summaryData);
-  console.log("detalle_semana_actual:", summaryData?.detalle_semana_actual);
-  console.log("kwhData:", kwhHorasPorDia.kwhData);
-  console.log("horasData:", kwhHorasPorDia.horasData);
 
   const ciclosPorDia = {
     categorias: diasSemana,
