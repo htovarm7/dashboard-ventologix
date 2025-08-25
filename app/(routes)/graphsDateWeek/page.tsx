@@ -1049,13 +1049,13 @@ function MainContent() {
                 <div className="flex flex-wrap gap-8 items-center text-left">
                   <div>
                     <p className="text-xl text-center">
-                      {compressorData?.numero_serie || "(En blanco)"}
+                      {compressorData?.numero_serie}
                     </p>
                     <p className="text-sm text-center">Número de serie</p>
                   </div>
                   <div>
                     <p className="text-xl text-center">
-                      {compressorData?.marca || "(En blanco)"}
+                      {compressorData?.marca}
                     </p>
                     <p className="text-sm text-center">Marca</p>
                   </div>
