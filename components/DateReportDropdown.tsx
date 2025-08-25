@@ -25,9 +25,18 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
   selectedCompresor = null,
 }) => {
   const router = useRouter();
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+
+  // Función para obtener fecha de ayer
+  const getYesterday = () => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    return yesterday.toISOString().split("T")[0];
+  };
+
+  // Inicializar con fecha de ayer en lugar de hoy
+  const [selectedDate, setSelectedDate] = useState(getYesterday());
+
   const currentWeek = getWeekNumber(new Date()) - 1; // Semana actual menos 1
   const [selectedWeek, setSelectedWeek] = useState<number>(
     Math.min(currentWeek, getWeekNumber(new Date()))
@@ -83,6 +92,7 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
         linea: selectedCompresor.linea,
         alias: selectedCompresor.alias,
         date: dateToUse,
+        weekNumber: tipo === "SEMANAL" ? selectedWeek : undefined,
       })
     );
     if (tipo === "DIARIO") {
@@ -129,7 +139,7 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
                     className="text-l w-2/3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
-                    max={new Date().toISOString().split("T")[0]} // No permitir fechas futuras
+                    max={getYesterday()} // Solo fechas hasta ayer
                   />
                 </div>
 

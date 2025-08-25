@@ -72,7 +72,9 @@ function MainContent() {
 
   const router = useRouter();
   const { isAuthorized, isCheckingAuth } = useAuthCheck();
-
+  const [selectedWeekNumber, setSelectedWeekNumber] = useState<number | null>(
+    null
+  );
   const [chartData, setChartData] = useState<chartData>([0, 0, 0]);
   const [consumoData, setConsumoData] = useState<consumoData>({
     turno1: new Array(7).fill(0),
@@ -261,28 +263,44 @@ function MainContent() {
   useEffect(() => {
     if (isAuthorized) {
       const savedCompresor = sessionStorage.getItem("selectedCompresor");
-      let id_cliente, linea, date;
+      let id_cliente, linea, date, weekNumber;
 
       if (savedCompresor) {
         const compresorData = JSON.parse(savedCompresor);
         id_cliente = compresorData.id_cliente.toString();
         linea = compresorData.linea;
         date = compresorData.date;
+        weekNumber = compresorData.weekNumber; // Obtener el número de semana guardado
         setCompresorAlias(
           compresorData.alias || `Compresor ${id_cliente}-${linea}`
         );
         setSelectedDate(date || "");
+
+        // Si tenemos el número de semana guardado, úsalo directamente
+        if (weekNumber) {
+          setSelectedWeekNumber(weekNumber);
+        }
       } else {
         id_cliente = searchParams.get("id_cliente");
         linea = searchParams.get("linea") || "A";
         date =
           searchParams.get("date") || new Date().toISOString().split("T")[0];
+        weekNumber = searchParams.get("weekNumber");
         setCompresorAlias(`Compresor ${id_cliente}-${linea}`);
         setSelectedDate(date);
+
+        if (weekNumber) {
+          setSelectedWeekNumber(parseInt(weekNumber));
+        }
       }
 
       if (id_cliente && date) {
-        console.log("Obteniendo datos para:", { id_cliente, linea, date });
+        console.log("Obteniendo datos para:", {
+          id_cliente,
+          linea,
+          date,
+          weekNumber,
+        });
         fetchData(id_cliente, linea, date);
       } else {
         console.error("No se encontró información del compresor o fecha");
@@ -918,13 +936,12 @@ function MainContent() {
     }
   }, [summaryData]);
 
-  // Usar la fecha seleccionada para calcular la semana
+  // Modificar el cálculo del número de semana
   const currentDate = new Date(selectedDate || new Date());
-  const dayOfWeek = currentDate.getDay(); // Domingo = 0, Lunes = 1, ..., Sábado = 6
-  const daysSinceMonday = (dayOfWeek + 6) % 7; // Convierte Domingo=6, Lunes=0, ..., Sábado=5
+  const dayOfWeek = currentDate.getDay();
+  const daysSinceMonday = (dayOfWeek + 6) % 7;
   const lastMonday = new Date(currentDate);
-  lastMonday.setDate(currentDate.getDate() - daysSinceMonday); // lunes de la semana actual
-
+  lastMonday.setDate(currentDate.getDate() - daysSinceMonday);
   const lastSunday = new Date(lastMonday);
   lastSunday.setDate(lastMonday.getDate() + 6);
 
@@ -949,7 +966,8 @@ function MainContent() {
     return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   };
 
-  const semanaNumero = getISOWeekNumber(lastMonday);
+  // Usar el número de semana seleccionado si está disponible, si no, calcularlo
+  const semanaNumero = selectedWeekNumber || getISOWeekNumber(lastMonday);
 
   return (
     <main className="relative">

@@ -214,14 +214,6 @@ const Home = () => {
                   hover: "hover:bg-cyan-50 hover:text-cyan-600",
                 }}
               />
-              {/* <div className="px-4 py-3 border-b border-gray-100 flex flex-col items-center">
-                <button
-                  onClick={() => router.push("/prediction")}
-                  className={`w-full px-4 py-2 text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors font-medium text-m`}
-                >
-                  Ver Predicción (BETA)
-                </button>
-              </div> */}
             </div>
           ) : (
             <div className="text-center py-8">
