@@ -68,6 +68,7 @@ def get_usuario_by_email(email: str):
         rol = usuario[0]['rol'] if usuario else None
         name = usuario[0]['name'] if usuario else None 
 
+        # 0 = Administrador, 1 = Director, 2 = Gerente, 3 = Ingeniero
         if(rol == 2 or rol == 1):
             cursor.execute("SELECT c.linea, c.proyecto as id_cliente, c.Alias as alias FROM compresores c JOIN clientes c2 ON c2.id_cliente = c.id_cliente WHERE c2.numero_cliente  = %s;", (numeroCliente,))
             compresores = cursor.fetchall()
