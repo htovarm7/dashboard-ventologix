@@ -119,17 +119,15 @@ def get_ingenieros(cliente: int = Query(..., description="Número de cliente")):
                 e.email_daily,
                 e.email_weekly,
                 e.email_monthly,
-                GROUP_CONCAT(DISTINCT 
-                    COALESCE(c.Alias, CONCAT(c.marca, ' - ', c.numero_serie))
-                ) as compressor_names
+                GROUP_CONCAT(DISTINCT c.Alias) as compressor_names
             FROM ingenieros e
-            LEFT JOIN ingeniero_compresor ec ON e.id = ec.ingeniero_id
-            LEFT JOIN compresores c ON ec.compresor_id = c.id AND c.id_cliente = %s
+            LEFT JOIN clientes cl ON e.numeroCliente = cl.numero_cliente
+            LEFT JOIN compresores c ON cl.id_cliente = c.id_cliente
             WHERE e.numeroCliente = %s
             GROUP BY e.id, e.name, e.email, e.numeroCliente, e.email_daily, e.email_weekly, e.email_monthly
-            ORDER BY e.name
+            ORDER BY e.name;
         """
-        cursor.execute(query, (cliente, cliente))
+        cursor.execute(query, (cliente,))
         ingenieros = cursor.fetchall()
 
         # Formatear los datos para el frontend
@@ -237,19 +235,19 @@ def create_ingeniero(
 
         # Asignar compresores si se proporcionaron
         if compressors and len(compressors) > 0:
-            # Obtener IDs de compresores que pertenecen al mismo cliente
-            placeholders = ','.join(['%s'] * len(compressors))
+            # Buscar compresores por ID y verificar que pertenecen al cliente
             cursor.execute(
-                f"""SELECT id, COALESCE(Alias, CONCAT(marca, ' - ', numero_serie)) as name 
-                    FROM compresores 
-                    WHERE COALESCE(Alias, CONCAT(marca, ' - ', numero_serie)) IN ({placeholders}) 
-                    AND id_cliente = %s""",
+                """SELECT c.id, c.id_cliente, c.linea, c.Alias 
+                   FROM compresores c 
+                   JOIN clientes cl ON c.id_cliente = cl.id_cliente 
+                   WHERE c.id IN (%s) AND cl.numero_cliente = %s""" % 
+                (','.join(['%s'] * len(compressors)), '%s'),
                 compressors + [numeroCliente]
             )
-            compressor_data = cursor.fetchall()
+            valid_compressors = cursor.fetchall()
             
-            if compressor_data:
-                values = [(ingeniero_id, comp['id']) for comp in compressor_data]
+            if valid_compressors:
+                values = [(ingeniero_id, comp['id']) for comp in valid_compressors]
                 cursor.executemany(
                     "INSERT INTO ingeniero_compresor (ingeniero_id, compresor_id) VALUES (%s, %s)",
                     values
@@ -339,18 +337,19 @@ def update_ingeniero(
 
         # Asignar nuevos compresores
         if compressors and len(compressors) > 0:
-            placeholders = ','.join(['%s'] * len(compressors))
+            # Buscar compresores por ID y verificar que pertenecen al cliente
             cursor.execute(
-                f"""SELECT id, COALESCE(Alias, CONCAT(marca, ' - ', numero_serie)) as name 
-                    FROM compresores 
-                    WHERE COALESCE(Alias, CONCAT(marca, ' - ', numero_serie)) IN ({placeholders}) 
-                    AND id_cliente = %s""",
+                """SELECT c.id, c.id_cliente, c.linea, c.Alias 
+                   FROM compresores c 
+                   JOIN clientes cl ON c.id_cliente = cl.id_cliente 
+                   WHERE c.id IN (%s) AND cl.numero_cliente = %s""" % 
+                (','.join(['%s'] * len(compressors)), '%s'),
                 compressors + [numeroCliente]
             )
-            compressor_data = cursor.fetchall()
+            valid_compressors = cursor.fetchall()
             
-            if compressor_data:
-                values = [(ingeniero_id, comp['id']) for comp in compressor_data]
+            if valid_compressors:
+                values = [(ingeniero_id, comp['id']) for comp in valid_compressors]
                 cursor.executemany(
                     "INSERT INTO ingeniero_compresor (ingeniero_id, compresor_id) VALUES (%s, %s)",
                     values
@@ -434,7 +433,6 @@ def delete_ingeniero(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting ingeniero: {str(e)}")
 
-
 # PUT - Actualizar preferencias de email
 @web.put("/ingenieros/{ingeniero_id}/email-preferences", tags=["CRUD Admin"])
 def update_email_preferences(
@@ -483,7 +481,6 @@ def update_email_preferences(
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating email preferences: {str(e)}")
-
 
 # GET - Obtener compresores asignados a un ingeniero (para vista de ingeniero)
 @web.get("/ingenieros/{email}/compresores", tags=["Engineer View"])

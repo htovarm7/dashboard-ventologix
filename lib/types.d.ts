@@ -19,12 +19,36 @@ export type compressorData = {
     date: string;
   };
 
-export type Engineer = {
+export interface Engineer {
   id: string;
   name: string;
   email: string;
-  compressors: string[];
-};
+  numero_cliente: number;
+  compressors: Array<{ id: string; alias: string }> | string[];
+  emailPreferences: {
+    daily: boolean;
+    weekly: boolean;
+    monthly: boolean;
+  };
+}
+
+
+export interface Compressor {
+  id: string;
+  id_cliente: number;
+  linea: string;
+  alias: string;
+}
+
+export interface UserData {
+  id_cliente?: number;
+  numero_cliente: number;
+  rol: number;
+  compresores: { linea: string; proyecto: number; Alias: string }[];
+  email: string;
+  name: string;
+  timestamp: number;
+}
 
 export type EngineerFormData = {
   name: string;

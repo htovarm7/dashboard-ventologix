@@ -3,37 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth0 } from "@auth0/auth0-react";
-import { EngineerFormData } from "@/lib/types";
-
-interface Compressor {
-  id: string;
-  id_cliente: number;
-  linea: string;
-  alias: string;
-}
-
-interface Engineer {
-  id: string;
-  name: string;
-  email: string;
-  numero_cliente: number;
-  compressors: Array<{ id: string; alias: string }> | string[]; // Support both formats
-  emailPreferences: {
-    daily: boolean;
-    weekly: boolean;
-    monthly: boolean;
-  };
-}
-
-interface UserData {
-  id_cliente?: number;
-  numero_cliente: number;
-  rol: number;
-  compresores: { linea: string; proyecto: number; Alias: string }[];
-  email: string;
-  name: string;
-  timestamp: number;
-}
+import { EngineerFormData, Engineer, Compressor, UserData } from "@/lib/types";
 
 const AdminView = () => {
   const router = useRouter();
@@ -143,7 +113,6 @@ const AdminView = () => {
       .join(", ");
   };
 
-  // Función para obtener los nombres de compresores de un ingeniero
   const getCompressorNamesForEngineer = (
     engineerCompressors: string[] | Array<{ id: string; alias: string }>
   ) => {
@@ -151,28 +120,22 @@ const AdminView = () => {
       return "Sin compresores asignados";
     }
 
-    // Handle new format with objects
     if (typeof engineerCompressors[0] === "object") {
       return (engineerCompressors as Array<{ id: string; alias: string }>)
         .map((comp) => {
           const fullComp = compressors.find((c) => c.id === comp.id);
-          return fullComp
-            ? `${comp.alias} (Línea ${fullComp.linea})`
-            : comp.alias;
+          return fullComp ? `${comp.alias}` : comp.alias;
         })
         .join(", ");
     }
 
-    // Handle legacy format with strings (aliases)
     const stringCompressors = engineerCompressors as string[];
     const matchedCompressors = compressors.filter((comp) =>
       stringCompressors.includes(comp.alias)
     );
 
     if (matchedCompressors.length > 0) {
-      return matchedCompressors
-        .map((comp) => `${comp.alias} (Línea ${comp.linea})`)
-        .join(", ");
+      return matchedCompressors.map((comp) => `${comp.alias}`).join(", ");
     }
 
     return stringCompressors.join(", ");
@@ -187,14 +150,10 @@ const AdminView = () => {
     }
 
     try {
-      const selectedCompressorNames = compressors
-        .filter((comp) => formData.compressors.includes(comp.id))
-        .map((comp) => comp.alias);
-
       const engineerData = {
         name: formData.name,
         email: formData.email,
-        compressors: selectedCompressorNames,
+        compressors: formData.compressors,
         numeroCliente: data.numero_cliente,
       };
 
@@ -250,7 +209,6 @@ const AdminView = () => {
 
     let compressorIds: string[] = [];
 
-    // Handle new format with objects
     if (
       engineer.compressors.length > 0 &&
       typeof engineer.compressors[0] === "object"
@@ -259,7 +217,6 @@ const AdminView = () => {
         engineer.compressors as Array<{ id: string; alias: string }>
       ).map((comp) => comp.id);
     } else {
-      // Handle legacy format with strings (aliases)
       const stringCompressors = engineer.compressors as string[];
       stringCompressors.forEach((compressorName) => {
         const compressorByAlias = compressors.find(
@@ -284,7 +241,6 @@ const AdminView = () => {
   ) => {
     if (confirm("¿Está seguro de que desea eliminar este ingeniero?")) {
       try {
-        // Usar el numero_cliente del contexto actual, no del ingeniero
         const clientNumber = data?.numero_cliente || engineerNumeroCliente;
 
         console.log(
@@ -303,7 +259,6 @@ const AdminView = () => {
 
         if (response.ok) {
           console.log("Engineer deleted successfully");
-          // Recargar la lista de ingenieros
           fetchEngineers(clientNumber);
           alert("Ingeniero eliminado exitosamente");
         } else {
