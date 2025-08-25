@@ -1,10 +1,44 @@
 export interface Compresor {
+  id: number;
   id_cliente: number;
   linea: string;
   alias: string;
   nombre_cliente?: string;
 }
 
+export interface Engineer {
+  id: string;
+  name: string;
+  email: string;
+  compressors: string[];
+  emailPreferences: {
+    daily: boolean;
+    weekly: boolean;
+    monthly: boolean;
+  };
+}
+
+export interface UserData {
+  id_cliente?: number;
+  numero_cliente: number;
+  rol: number;
+  compresores: { linea: string; proyecto: number; Alias: string }[];
+  email: string;
+  name: string;
+  timestamp: number;
+}
+
+export interface Engineer {
+  id: string;
+  name: string;
+  email: string;
+  compressors: string[];
+  emailPreferences: {
+    daily: boolean;
+    weekly: boolean;
+    monthly: boolean;
+  };
+}
 export interface CompresorWithDate extends Compresor {
   date?: string;
 }
@@ -15,8 +49,11 @@ export interface ClientData {
 }
 
 export interface UserData {
+  id_cliente?: number;
   numero_cliente: number;
   rol: number;
-  compresores: Compresor[];
-  authorized: boolean;
+  compresores: { linea: string; proyecto: number; Alias: string }[];
+  email: string;
+  name: string;
+  timestamp: number;
 }

@@ -14,63 +14,97 @@ export default function Page() {
   const [accessDenied, setAccessDenied] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
+  const URL_API = process.env.NEXT_PUBLIC_API_URL;
 
   const verifyUserAuthorization = useCallback(
     async (userInfo: any) => {
-      try {
-        let requestBody;
+      console.log("=== INICIO VERIFICACIÓN DE USUARIO ===");
+      console.log("UserInfo completo:", userInfo);
 
-        // Detectar el tipo de login basado en la estructura del user
+      try {
+        setIsCheckingAuth(true);
+        let userIdentifier: string;
+
         if (userInfo.email && userInfo.email.includes("@")) {
-          // Login con Google - tiene email válido
-          requestBody = { email: userInfo.email };
+          console.log("Detectado: Login con Google/Email");
+          userIdentifier = userInfo.email;
         } else if (userInfo.nickname || userInfo.username) {
-          // Login con username/password - usar nickname o username
-          const username =
+          console.log("Detectado: Login con username/password");
+          userIdentifier =
             userInfo.nickname || userInfo.username || userInfo.name;
-          requestBody = { user: username };
         } else if (userInfo.sub && userInfo.sub.startsWith("auth0|")) {
-          // Usuario de Auth0 database - extraer username del sub
-          const username = userInfo.sub.replace("auth0|", "");
-          requestBody = { user: username };
+          console.log("Detectado: Usuario de Auth0 database");
+          userIdentifier = userInfo.sub.replace("auth0|", "");
         } else {
-          // Fallback - usar lo que tengamos
-          requestBody = {
-            user: userInfo.email || userInfo.name || userInfo.sub,
-          };
+          console.log("Detectado: Fallback");
+          userIdentifier = userInfo.email || userInfo.name || userInfo.sub;
         }
 
-        const response = await fetch("/api/verify-user", {
-          method: "POST",
+        console.log("Identificador final:", userIdentifier);
+
+        if (!userIdentifier) {
+          throw new Error("No se pudo identificar el usuario");
+        }
+
+        const url = `${URL_API}/web/usuarios/${encodeURIComponent(
+          userIdentifier
+        )}`;
+        console.log("URL de request:", url);
+
+        const response = await fetch(url, {
+          method: "GET",
           headers: {
             "Content-Type": "application/json",
+            ...(userInfo.accessToken && {
+              Authorization: `Bearer ${userInfo.accessToken}`,
+            }),
           },
-          body: JSON.stringify(requestBody),
         });
 
-        const data = await response.json();
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Error response:", errorText);
 
-        if (response.ok && data.authorized) {
-          sessionStorage.setItem(
-            "userData",
-            JSON.stringify({
-              numero_cliente: data.numero_cliente,
-              rol: data.Rol,
-              compresores: data.compresores,
-              email: userInfo.email || requestBody.user,
-            })
+          if (response.status === 404) {
+            throw new Error(`Usuario no encontrado: ${userIdentifier}`);
+          }
+          throw new Error(
+            `HTTP error! status: ${response.status} - ${errorText}`
           );
+        }
 
+        const data = await response.json();
+        console.log("Data recibida:", data);
+
+        if (data && data.id) {
+          console.log("Usuario autorizado, creando userData...");
+
+          const userData = {
+            numero_cliente: data.numeroCliente,
+            rol: data.rol,
+            compresores: data.compresores || [],
+            email: data.email,
+            name: data.name,
+            timestamp: Date.now(),
+          };
+
+          if (userData.rol == 2) {
+          }
+          console.log("UserData creado:", userData);
+          sessionStorage.setItem("userData", JSON.stringify(userData));
           router.push("/home");
         } else {
-          console.error("Error de autorización:", data);
+          console.error("Datos incompletos o usuario no autorizado");
+          console.error("Data:", data);
           setAccessDenied(true);
-          setIsCheckingAuth(false);
-          setHasChecked(true);
         }
-      } catch (error) {
-        console.error("Error verificando autorización:", error);
+      } catch (error: any) {
+        console.error("=== ERROR EN VERIFICACIÓN ===");
+        console.error("Error completo:", error);
+        console.error("Error message:", error.message);
         setAccessDenied(true);
+      } finally {
+        console.log("=== FIN VERIFICACIÓN ===");
         setIsCheckingAuth(false);
         setHasChecked(true);
       }

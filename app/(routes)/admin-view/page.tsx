@@ -7,7 +7,9 @@ import { EngineerFormData } from "@/lib/types";
 
 interface Compressor {
   id: string;
-  name: string;
+  id_cliente: number;
+  linea: string;
+  alias: string;
 }
 
 interface Engineer {
@@ -22,11 +24,20 @@ interface Engineer {
   };
 }
 
+interface UserData {
+  id_cliente?: number;
+  numero_cliente: number;
+  rol: number;
+  compresores: { linea: string; proyecto: number; Alias: string }[];
+  email: string;
+  name: string;
+  timestamp: number;
+}
+
 const AdminView = () => {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuth0();
   const [userRole, setUserRole] = useState<number | null>(null);
-  const [adminName, setAdminName] = useState<string>("");
   const [engineers, setEngineers] = useState<Engineer[]>([]);
   const [compressors, setCompressors] = useState<Compressor[]>([]);
   const [editingEngineer, setEditingEngineer] = useState<Engineer | null>(null);
@@ -35,22 +46,36 @@ const AdminView = () => {
     email: "",
     compressors: [],
   });
-
-  const user = useAuth0();
+  const [data, setData] = useState<UserData | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading) {
       const userData = sessionStorage.getItem("userData");
       if (userData) {
         const parsedData = JSON.parse(userData);
+        setData(parsedData);
         setUserRole(parsedData.rol);
-        setAdminName(parsedData.name || "Administrador");
 
-        if (parsedData.rol !== 1) {
+        if (parsedData.rol !== 2) {
           router.push("/");
         } else {
-          fetchEngineers();
-          fetchCompressors();
+          console.log("User data:", parsedData);
+          console.log(
+            "Client number:",
+            parsedData.numero_cliente,
+            "Type:",
+            typeof parsedData.numero_cliente
+          );
+
+          // Asegurar que numero_cliente es un número
+          const clientNumber =
+            typeof parsedData.numero_cliente === "string"
+              ? parseInt(parsedData.numero_cliente, 10)
+              : parsedData.numero_cliente;
+
+          fetchEngineers(clientNumber);
+          fetchCompressors(clientNumber);
         }
       } else {
         router.push("/");
@@ -58,36 +83,92 @@ const AdminView = () => {
     }
   }, [isLoading, router]);
 
-  const fetchEngineers = async () => {
+  const fetchEngineers = async (numero_cliente: number) => {
     try {
-      const response = await fetch("/api/engineers");
+      console.log("Fetching engineers for client:", numero_cliente);
+      const url = `http://127.0.0.1:8000/web/ingenieros?cliente=${numero_cliente}`;
+      console.log("Engineers URL:", url);
+
+      const response = await fetch(url);
       if (response.ok) {
-        const data = await response.json();
-        setEngineers(data);
+        const engineersData = await response.json();
+        setEngineers(engineersData);
+      } else {
+        console.error(
+          "Failed to fetch engineers:",
+          response.status,
+          response.statusText
+        );
       }
     } catch (error) {
       console.error("Error fetching engineers:", error);
     }
   };
 
-  const fetchCompressors = async () => {
+  const fetchCompressors = async (numero_cliente: number) => {
     try {
-      const response = await fetch("/api/compressors");
+      console.log("Fetching compressors for client:", numero_cliente);
+      const url = `http://127.0.0.1:8000/web/compresores?cliente=${numero_cliente}`;
+      console.log("Compressors URL:", url);
+
+      const response = await fetch(url);
       if (response.ok) {
-        const data = await response.json();
-        setCompressors(data);
+        const compressorsData = await response.json();
+        setCompressors(compressorsData);
+      } else {
+        console.error(
+          "Failed to fetch compressors:",
+          response.status,
+          response.statusText
+        );
       }
     } catch (error) {
       console.error("Error fetching compressors:", error);
     }
   };
 
+  const handleCompressorToggle = (compressorId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      compressors: prev.compressors.includes(compressorId)
+        ? prev.compressors.filter((id) => id !== compressorId)
+        : [...prev.compressors, compressorId],
+    }));
+  };
+
+  const getSelectedCompressorNames = () => {
+    return compressors
+      .filter((comp) => formData.compressors.includes(comp.id))
+      .map((comp) => `${comp.alias} (Línea ${comp.linea})`)
+      .join(", ");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!data?.numero_cliente) {
+      console.error("No se encontró el número de cliente");
+      return;
+    }
+
     try {
+      // Convertir IDs de compresores a nombres/alias para el backend
+      const selectedCompressorNames = compressors
+        .filter((comp) => formData.compressors.includes(comp.id))
+        .map((comp) => comp.alias);
+
+      const engineerData = {
+        name: formData.name,
+        email: formData.email,
+        compressors: selectedCompressorNames, // Enviar alias en lugar de IDs
+        numeroCliente: data.numero_cliente, // Cambiar a camelCase
+      };
+
+      console.log("Sending engineer data:", engineerData);
+
       const endpoint = editingEngineer
-        ? `/api/engineers/${editingEngineer.id}`
-        : "/api/engineers";
+        ? `http://127.0.0.1:8000/web/ingenieros/${editingEngineer.id}`
+        : `http://127.0.0.1:8000/web/ingenieros`;
 
       const method = editingEngineer ? "PUT" : "POST";
 
@@ -96,16 +177,38 @@ const AdminView = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(engineerData),
       });
 
       if (response.ok) {
+        const result = await response.json();
+        console.log("Engineer created/updated successfully:", result);
+
         setFormData({ name: "", email: "", compressors: [] });
         setEditingEngineer(null);
-        fetchEngineers();
+        setIsDropdownOpen(false); // Cerrar dropdown
+
+        // Asegurar que numero_cliente es un número
+        const clientNumber =
+          typeof data.numero_cliente === "string"
+            ? parseInt(data.numero_cliente, 10)
+            : data.numero_cliente;
+
+        fetchEngineers(clientNumber);
+
+        console.log(
+          `Ingeniero ${
+            editingEngineer ? "actualizado" : "creado"
+          } exitosamente con cliente: ${data.numero_cliente}`
+        );
+      } else {
+        const errorData = await response.json();
+        console.error("Error del servidor:", errorData);
+        alert(`Error: ${errorData.detail || "Error desconocido"}`);
       }
     } catch (error) {
       console.error("Error saving engineer:", error);
+      alert("Error al guardar el ingeniero. Por favor intenta de nuevo.");
     }
   };
 
@@ -121,12 +224,15 @@ const AdminView = () => {
   const handleDelete = async (id: string) => {
     if (confirm("¿Está seguro de que desea eliminar este ingeniero?")) {
       try {
-        const response = await fetch(`/api/engineers/${id}`, {
-          method: "DELETE",
-        });
+        const response = await fetch(
+          `http://127.0.0.1:8000/web/ingenieros/${id}`,
+          {
+            method: "DELETE",
+          }
+        );
 
         if (response.ok) {
-          fetchEngineers();
+          fetchEngineers(data!.numero_cliente);
         }
       } catch (error) {
         console.error("Error deleting engineer:", error);
@@ -134,7 +240,46 @@ const AdminView = () => {
     }
   };
 
-  if (isLoading || userRole !== 1) {
+  const handleEmailPreferenceChange = async (
+    engineerId: string,
+    preference: string,
+    value: boolean
+  ) => {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/web/ingenieros/${engineerId}/preferences`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            [preference]: value,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        setEngineers(
+          engineers.map((engineer) =>
+            engineer.id === engineerId
+              ? {
+                  ...engineer,
+                  emailPreferences: {
+                    ...engineer.emailPreferences,
+                    [preference]: value,
+                  },
+                }
+              : engineer
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error updating email preferences:", error);
+    }
+  };
+
+  if (isLoading || userRole !== 2) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
@@ -147,7 +292,7 @@ const AdminView = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Panel de Administración</h1>
-          <p className="text-blue-600 mt-2">Administrador: {user?.name}</p>
+          <p className="text-blue-600 mt-2">Administrador: Ing. {data?.name}</p>
         </div>
         <button
           onClick={() => router.push("/")}
@@ -188,6 +333,7 @@ const AdminView = () => {
                   setFormData({ ...formData, name: e.target.value })
                 }
                 className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
               />
             </div>
             <div className="flex-1 min-w-[200px]">
@@ -202,32 +348,74 @@ const AdminView = () => {
                   setFormData({ ...formData, email: e.target.value })
                 }
                 className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
               />
             </div>
-            <div className="flex-1 min-w-[200px]">
+            <div className="flex-1 min-w-[250px] relative">
               <label className="block text-sm font-medium text-blue-700 mb-1">
                 Compresores
               </label>
-              <select
-                multiple
-                value={formData.compressors}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    compressors: Array.from(
-                      e.target.selectedOptions,
-                      (option) => option.value
-                    ),
-                  })
-                }
-                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                {compressors.map((compressor) => (
-                  <option key={compressor.id} value={compressor.id}>
-                    {compressor.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-left flex justify-between items-center"
+                >
+                  <span className="truncate">
+                    {formData.compressors.length === 0
+                      ? "Seleccionar compresores"
+                      : `${formData.compressors.length} seleccionado${
+                          formData.compressors.length > 1 ? "s" : ""
+                        }`}
+                  </span>
+                  <svg
+                    className={`h-5 w-5 transition-transform ${
+                      isDropdownOpen ? "rotate-180" : ""
+                    }`}
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+
+                {isDropdownOpen && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {compressors.length === 0 ? (
+                      <div className="px-4 py-2 text-gray-500">
+                        No hay compresores disponibles
+                      </div>
+                    ) : (
+                      compressors.map((comp) => (
+                        <label
+                          key={comp.id}
+                          className="flex items-center px-4 py-2 hover:bg-blue-50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={formData.compressors.includes(comp.id)}
+                            onChange={() => handleCompressorToggle(comp.id)}
+                            className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <span className="text-sm text-gray-900">
+                            {comp.alias} (Línea {comp.linea})
+                          </span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+              {formData.compressors.length > 0 && (
+                <p className="text-xs text-gray-600 mt-1">
+                  Seleccionados: {getSelectedCompressorNames()}
+                </p>
+              )}
             </div>
             <button
               type="submit"
@@ -261,31 +449,31 @@ const AdminView = () => {
                 <tr>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-l font-medium text-blue-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium text-blue-500 uppercase tracking-wider"
                   >
                     Nombre
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-l font-medium text-blue-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium text-blue-500 uppercase tracking-wider"
                   >
                     Correo
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-l font-medium text-blue-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium text-blue-500 uppercase tracking-wider"
                   >
                     Compresores
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-center text-l font-medium text-blue-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-center text-xs font-medium text-blue-500 uppercase tracking-wider"
                   >
                     Envío de Correo
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-right text-l font-medium text-blue-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-right text-xs font-medium text-blue-500 uppercase tracking-wider"
                   >
                     Acciones
                   </th>
@@ -315,10 +503,14 @@ const AdminView = () => {
                           <input
                             type="checkbox"
                             className="form-checkbox h-4 w-4 text-blue-600"
-                            checked={engineer.emailPreferences?.daily}
-                            onChange={() => {
-                              /* Implementar cambio */
-                            }}
+                            checked={engineer.emailPreferences?.daily || false}
+                            onChange={(e) =>
+                              handleEmailPreferenceChange(
+                                engineer.id,
+                                "daily",
+                                e.target.checked
+                              )
+                            }
                           />
                           <span className="ml-2 text-sm text-blue-600">
                             Diario
@@ -328,10 +520,14 @@ const AdminView = () => {
                           <input
                             type="checkbox"
                             className="form-checkbox h-4 w-4 text-blue-600"
-                            checked={engineer.emailPreferences?.weekly}
-                            onChange={() => {
-                              /* Implementar cambio */
-                            }}
+                            checked={engineer.emailPreferences?.weekly || false}
+                            onChange={(e) =>
+                              handleEmailPreferenceChange(
+                                engineer.id,
+                                "weekly",
+                                e.target.checked
+                              )
+                            }
                           />
                           <span className="ml-2 text-sm text-blue-600">
                             Semanal
@@ -341,10 +537,16 @@ const AdminView = () => {
                           <input
                             type="checkbox"
                             className="form-checkbox h-4 w-4 text-blue-600"
-                            checked={engineer.emailPreferences?.monthly}
-                            onChange={() => {
-                              /* Implementar cambio */
-                            }}
+                            checked={
+                              engineer.emailPreferences?.monthly || false
+                            }
+                            onChange={(e) =>
+                              handleEmailPreferenceChange(
+                                engineer.id,
+                                "monthly",
+                                e.target.checked
+                              )
+                            }
                           />
                           <span className="ml-2 text-sm text-blue-600">
                             Mensual
@@ -395,6 +597,13 @@ const AdminView = () => {
           </div>
         </div>
       </div>
+
+      {isDropdownOpen && (
+        <div
+          className="fixed inset-0 z-0"
+          onClick={() => setIsDropdownOpen(false)}
+        />
+      )}
     </div>
   );
 };

@@ -120,7 +120,7 @@ const Home = () => {
         </button>
       </div>
 
-      <AdminSettings isVisible={rol === 1} />
+      <AdminSettings isVisible={rol === 2} />
       <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="bg-white rounded-3xl p-5 shadow-md w-full max-w-4xl">
           <h1 className="text-center text-5xl mb-8">
@@ -188,11 +188,8 @@ const Home = () => {
             Aquí podrá revisar sus reportes diarios, por fecha específica y
             semanales
           </p>
-
-          {/* Menús dropdown con hover - Solo Reporte por Fecha y Semanal */}
           {selectedCompresor ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center">
-              {/* Reporte Diario por Fecha */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 justify-items-center">
               <DateReportDropdown
                 title="Reporte por Fecha"
                 compresores={compresores}
@@ -205,32 +202,6 @@ const Home = () => {
                   hover: "hover:bg-purple-50 hover:text-purple-600",
                 }}
               />
-              {/* Reporte Semanal 
-              <ReportDropdown
-                title="Reporte Semanal"
-                compresores={compresores}
-                Rol={rol !== null ? rol : undefined}
-                selectedCompresor={selectedCompresor}
-                staticMode={true}
-                colorScheme={{
-                  text: "text-[rgb(0,32,91)]",
-                  icon: "text-[rgb(4,48,130)]",
-                  hover: "hover:bg-green-50 hover:text-green-600",
-                }}
-                onCompressorSelect={(compresor) => {
-                  sessionStorage.setItem(
-                    "selectedCompresor",
-                    JSON.stringify({
-                      id_cliente:
-                        selectedCompresor?.id_cliente || compresor.id_cliente,
-                      linea: selectedCompresor?.linea || compresor.linea,
-                      alias: selectedCompresor?.alias || compresor.alias,
-                    })
-                  );
-                  router.push("/graphsW");
-                }}
-              />
-              */}
               <DateReportDropdown
                 title="Reporte por Semana"
                 compresores={compresores}
@@ -243,14 +214,14 @@ const Home = () => {
                   hover: "hover:bg-cyan-50 hover:text-cyan-600",
                 }}
               />
-              <div className="px-4 py-3 border-b border-gray-100 flex flex-col items-center">
+              {/* <div className="px-4 py-3 border-b border-gray-100 flex flex-col items-center">
                 <button
                   onClick={() => router.push("/prediction")}
                   className={`w-full px-4 py-2 text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors font-medium text-m`}
                 >
                   Ver Predicción (BETA)
                 </button>
-              </div>
+              </div> */}
             </div>
           ) : (
             <div className="text-center py-8">
@@ -260,7 +231,6 @@ const Home = () => {
             </div>
           )}
 
-          {/* Mensaje si no hay compresores */}
           {compresores.length === 0 && isAuthorized && (
             <div className="mt-8 text-center">
               <p className="text-gray-600">
