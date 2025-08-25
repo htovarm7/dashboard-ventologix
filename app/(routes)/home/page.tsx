@@ -22,6 +22,7 @@ const Home = () => {
   const [selectedCompresor, setSelectedCompresor] = useState<Compresor | null>(
     null
   );
+  const [nombreCliente, setNombreCliente] = useState<string | null>(null);
 
   useEffect(() => {
     const verifyAndLoadUser = async () => {
@@ -40,6 +41,7 @@ const Home = () => {
           const parsedData = JSON.parse(userData);
           setIsAuthorized(true);
           setCompresores(parsedData.compresores || []);
+          console.log("Compresores raw:", parsedData.compresores);
           setNumeroCliente(parsedData.numero_cliente);
           setRol(parsedData.rol);
           setIsCheckingAuth(false);
@@ -142,8 +144,6 @@ const Home = () => {
                 <h2 className="text-2xl font-semibold text-blue-700 mb-4">
                   Seleccione el Compresor a mostrar
                 </h2>
-
-                {/* Dropdown para seleccionar compresor */}
                 <div>
                   <select
                     value={
@@ -174,8 +174,9 @@ const Home = () => {
                         key={`${compresor.id_cliente}-${compresor.linea}`}
                         value={`${compresor.id_cliente}-${compresor.linea}`}
                       >
-                        {compresor.alias}{" "}
-                        {compresor.nombre_cliente || clientData.nombre_cliente}{" "}
+                        {rol === 0
+                          ? `${compresor.nombre_cliente} : ${compresor.alias}`
+                          : compresor.alias}
                       </option>
                     ))}
                   </select>

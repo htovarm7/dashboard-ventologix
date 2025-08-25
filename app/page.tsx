@@ -82,7 +82,13 @@ export default function Page() {
           const userData = {
             numero_cliente: data.numeroCliente,
             rol: data.rol,
-            compresores: data.compresores || [],
+            compresores: (data.compresores || []).map((c: any) => {
+              return {
+                ...c,
+                nombreCompleto:
+                  c.alias + (c.id_cliente !== 0 ? ` ${c.nombre_cliente}` : ""),
+              };
+            }),
             email: data.email,
             name: data.name,
             timestamp: Date.now(),

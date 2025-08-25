@@ -73,7 +73,7 @@ def get_usuario_by_email(email: str):
             compresores = cursor.fetchall()
 
         if(rol == 0):
-            cursor.execute("SELECT * FROM compresores", (numeroCliente,))
+            cursor.execute("SELECT  c.linea, c.proyecto as id_cliente, c.Alias as alias , c2.nombre_cliente FROM compresores c JOIN clientes c2 ON c.id_cliente = c2.id_cliente")
             compresores = cursor.fetchall()
 
         cursor.close()
