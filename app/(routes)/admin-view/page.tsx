@@ -327,7 +327,9 @@ const AdminView = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Panel de Administración</h1>
-          <p className="text-blue-600 mt-2">Administrador: Ing. {data?.name}</p>
+          <p className="text-xl text-blue-800 mt-2">
+            Administrador: Ing. {data?.name}
+          </p>
         </div>
         <button
           onClick={() => router.push("/")}
@@ -351,13 +353,13 @@ const AdminView = () => {
 
       <div className="bg-white rounded-lg shadow-md">
         <div className="p-6 border-b border-blue-200">
-          <h2 className="text-xl font-semibold mb-4">Gestión de Ingenieros</h2>
+          <h2 className="text-2xl font-semibold mb-4">Gestión de Ingenieros</h2>
           <form
             onSubmit={handleSubmit}
             className="flex flex-wrap items-end gap-4"
           >
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-blue-700 mb-1">
+              <label className="text-lg block font-medium text-blue-700 mb-1">
                 Nombre
               </label>
               <input
@@ -372,7 +374,7 @@ const AdminView = () => {
               />
             </div>
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-blue-700 mb-1">
+              <label className="block text-lg font-medium text-blue-700 mb-1">
                 Email
               </label>
               <input
@@ -387,7 +389,7 @@ const AdminView = () => {
               />
             </div>
             <div className="flex-1 min-w-[250px] relative">
-              <label className="block text-sm font-medium text-blue-700 mb-1">
+              <label className="block text-lg font-medium text-blue-700 mb-1">
                 Compresores
               </label>
               <div className="relative">
@@ -437,7 +439,7 @@ const AdminView = () => {
                             onChange={() => handleCompressorToggle(comp.id)}
                             className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                           />
-                          <span className="text-sm text-gray-900">
+                          <span className="text-lg text-gray-900">
                             {comp.alias} (Línea {comp.linea})
                           </span>
                         </label>
@@ -484,31 +486,31 @@ const AdminView = () => {
                 <tr>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-blue-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xl font-medium text-blue-500 uppercase tracking-wider"
                   >
                     Nombre
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-blue-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xl font-medium text-blue-500 uppercase tracking-wider"
                   >
                     Correo
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-blue-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xl font-medium text-blue-500 uppercase tracking-wider"
                   >
                     Compresores
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-center text-xs font-medium text-blue-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-center text-xl font-medium text-blue-500 uppercase tracking-wider"
                   >
                     Envío de Correo
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-right text-xs font-medium text-blue-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-right text-xl font-medium text-blue-500 uppercase tracking-wider"
                   >
                     Acciones
                   </th>
@@ -518,17 +520,17 @@ const AdminView = () => {
                 {engineers.map((engineer) => (
                   <tr key={engineer.id} className="hover:bg-blue-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-blue-900">
+                      <div className="text-lg font-medium text-blue-900">
                         {engineer.name}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-blue-500">
+                      <div className="text-lg text-blue-500">
                         {engineer.email}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-blue-500">
+                      <div className="text-lg text-blue-500">
                         {getCompressorNamesForEngineer(engineer.compressors)}
                       </div>
                     </td>
@@ -547,7 +549,7 @@ const AdminView = () => {
                               )
                             }
                           />
-                          <span className="ml-2 text-sm text-blue-600">
+                          <span className="ml-2 text-lg text-blue-600">
                             Diario
                           </span>
                         </label>
@@ -564,7 +566,7 @@ const AdminView = () => {
                               )
                             }
                           />
-                          <span className="ml-2 text-sm text-blue-600">
+                          <span className="ml-2 text-lg text-blue-600">
                             Semanal
                           </span>
                         </label>
@@ -583,13 +585,13 @@ const AdminView = () => {
                               )
                             }
                           />
-                          <span className="ml-2 text-sm text-blue-600">
+                          <span className="ml-2 text-lg text-blue-600">
                             Mensual
                           </span>
                         </label>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-lg font-medium">
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => handleEdit(engineer)}
