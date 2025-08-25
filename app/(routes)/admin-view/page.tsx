@@ -17,7 +17,7 @@ interface Engineer {
   name: string;
   email: string;
   numero_cliente: number;
-  compressors: string[];
+  compressors: Array<{ id: string; alias: string }> | string[]; // Support both formats
   emailPreferences: {
     daily: boolean;
     weekly: boolean;
@@ -144,20 +144,30 @@ const AdminView = () => {
   };
 
   // Función para obtener los nombres de compresores de un ingeniero
-  const getCompressorNamesForEngineer = (engineerCompressors: string[]) => {
-    // Si engineerCompressors contiene IDs, buscar por ID
-    const compressorsByIds = compressors.filter((comp) =>
-      engineerCompressors.includes(comp.id)
-    );
+  const getCompressorNamesForEngineer = (
+    engineerCompressors: string[] | Array<{ id: string; alias: string }>
+  ) => {
+    if (!engineerCompressors || engineerCompressors.length === 0) {
+      return "Sin compresores asignados";
+    }
 
-    // Si engineerCompressors contiene aliases, buscar por alias
-    const compressorsByAlias = compressors.filter((comp) =>
-      engineerCompressors.includes(comp.alias)
-    );
+    // Handle new format with objects
+    if (typeof engineerCompressors[0] === "object") {
+      return (engineerCompressors as Array<{ id: string; alias: string }>)
+        .map((comp) => {
+          const fullComp = compressors.find((c) => c.id === comp.id);
+          return fullComp
+            ? `${comp.alias} (Línea ${fullComp.linea})`
+            : comp.alias;
+        })
+        .join(", ");
+    }
 
-    // Usar el resultado que tenga más coincidencias
-    const matchedCompressors =
-      compressorsByIds.length > 0 ? compressorsByIds : compressorsByAlias;
+    // Handle legacy format with strings (aliases)
+    const stringCompressors = engineerCompressors as string[];
+    const matchedCompressors = compressors.filter((comp) =>
+      stringCompressors.includes(comp.alias)
+    );
 
     if (matchedCompressors.length > 0) {
       return matchedCompressors
@@ -165,8 +175,7 @@ const AdminView = () => {
         .join(", ");
     }
 
-    // Si no se encuentran coincidencias, mostrar los valores originales
-    return engineerCompressors.join(", ");
+    return stringCompressors.join(", ");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -239,23 +248,28 @@ const AdminView = () => {
   const handleEdit = (engineer: Engineer) => {
     setEditingEngineer(engineer);
 
-    // Convertir compressors del ingeniero a IDs para el formulario
-    const compressorIds: string[] = [];
+    let compressorIds: string[] = [];
 
-    engineer.compressors.forEach((compressorName) => {
-      // Buscar por alias
-      const compressorByAlias = compressors.find(
-        (comp) => comp.alias === compressorName
-      );
-      if (compressorByAlias) {
-        compressorIds.push(compressorByAlias.id);
-      } else {
-        // Si no se encuentra por alias, asumir que ya es un ID
-        if (compressors.some((comp) => comp.id === compressorName)) {
-          compressorIds.push(compressorName);
+    // Handle new format with objects
+    if (
+      engineer.compressors.length > 0 &&
+      typeof engineer.compressors[0] === "object"
+    ) {
+      compressorIds = (
+        engineer.compressors as Array<{ id: string; alias: string }>
+      ).map((comp) => comp.id);
+    } else {
+      // Handle legacy format with strings (aliases)
+      const stringCompressors = engineer.compressors as string[];
+      stringCompressors.forEach((compressorName) => {
+        const compressorByAlias = compressors.find(
+          (comp) => comp.alias === compressorName
+        );
+        if (compressorByAlias) {
+          compressorIds.push(compressorByAlias.id);
         }
-      }
-    });
+      });
+    }
 
     setFormData({
       name: engineer.name,
