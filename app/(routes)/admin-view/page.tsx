@@ -16,6 +16,7 @@ interface Engineer {
   id: string;
   name: string;
   email: string;
+  numero_cliente: number;
   compressors: string[];
   emailPreferences: {
     daily: boolean;
@@ -68,7 +69,6 @@ const AdminView = () => {
             typeof parsedData.numero_cliente
           );
 
-          // Asegurar que numero_cliente es un número
           const clientNumber =
             typeof parsedData.numero_cliente === "string"
               ? parseInt(parsedData.numero_cliente, 10)
@@ -143,6 +143,32 @@ const AdminView = () => {
       .join(", ");
   };
 
+  // Función para obtener los nombres de compresores de un ingeniero
+  const getCompressorNamesForEngineer = (engineerCompressors: string[]) => {
+    // Si engineerCompressors contiene IDs, buscar por ID
+    const compressorsByIds = compressors.filter((comp) =>
+      engineerCompressors.includes(comp.id)
+    );
+
+    // Si engineerCompressors contiene aliases, buscar por alias
+    const compressorsByAlias = compressors.filter((comp) =>
+      engineerCompressors.includes(comp.alias)
+    );
+
+    // Usar el resultado que tenga más coincidencias
+    const matchedCompressors =
+      compressorsByIds.length > 0 ? compressorsByIds : compressorsByAlias;
+
+    if (matchedCompressors.length > 0) {
+      return matchedCompressors
+        .map((comp) => `${comp.alias} (Línea ${comp.linea})`)
+        .join(", ");
+    }
+
+    // Si no se encuentran coincidencias, mostrar los valores originales
+    return engineerCompressors.join(", ");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -152,7 +178,6 @@ const AdminView = () => {
     }
 
     try {
-      // Convertir IDs de compresores a nombres/alias para el backend
       const selectedCompressorNames = compressors
         .filter((comp) => formData.compressors.includes(comp.id))
         .map((comp) => comp.alias);
@@ -160,8 +185,8 @@ const AdminView = () => {
       const engineerData = {
         name: formData.name,
         email: formData.email,
-        compressors: selectedCompressorNames, // Enviar alias en lugar de IDs
-        numeroCliente: data.numero_cliente, // Cambiar a camelCase
+        compressors: selectedCompressorNames,
+        numeroCliente: data.numero_cliente,
       };
 
       console.log("Sending engineer data:", engineerData);
@@ -186,9 +211,8 @@ const AdminView = () => {
 
         setFormData({ name: "", email: "", compressors: [] });
         setEditingEngineer(null);
-        setIsDropdownOpen(false); // Cerrar dropdown
+        setIsDropdownOpen(false);
 
-        // Asegurar que numero_cliente es un número
         const clientNumber =
           typeof data.numero_cliente === "string"
             ? parseInt(data.numero_cliente, 10)
@@ -214,28 +238,70 @@ const AdminView = () => {
 
   const handleEdit = (engineer: Engineer) => {
     setEditingEngineer(engineer);
+
+    // Convertir compressors del ingeniero a IDs para el formulario
+    const compressorIds: string[] = [];
+
+    engineer.compressors.forEach((compressorName) => {
+      // Buscar por alias
+      const compressorByAlias = compressors.find(
+        (comp) => comp.alias === compressorName
+      );
+      if (compressorByAlias) {
+        compressorIds.push(compressorByAlias.id);
+      } else {
+        // Si no se encuentra por alias, asumir que ya es un ID
+        if (compressors.some((comp) => comp.id === compressorName)) {
+          compressorIds.push(compressorName);
+        }
+      }
+    });
+
     setFormData({
       name: engineer.name,
       email: engineer.email,
-      compressors: engineer.compressors,
+      compressors: compressorIds,
     });
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (
+    engineerId: string,
+    engineerNumeroCliente: number
+  ) => {
     if (confirm("¿Está seguro de que desea eliminar este ingeniero?")) {
       try {
+        // Usar el numero_cliente del contexto actual, no del ingeniero
+        const clientNumber = data?.numero_cliente || engineerNumeroCliente;
+
+        console.log(
+          "Deleting engineer:",
+          engineerId,
+          "for client:",
+          clientNumber
+        );
+
         const response = await fetch(
-          `http://127.0.0.1:8000/web/ingenieros/${id}`,
+          `http://127.0.0.1:8000/web/ingenieros/${engineerId}?cliente=${clientNumber}`,
           {
             method: "DELETE",
           }
         );
 
         if (response.ok) {
-          fetchEngineers(data!.numero_cliente);
+          console.log("Engineer deleted successfully");
+          // Recargar la lista de ingenieros
+          fetchEngineers(clientNumber);
+          alert("Ingeniero eliminado exitosamente");
+        } else {
+          const errorData = await response.text();
+          console.error("Error deleting engineer:", response.status, errorData);
+          alert(
+            `Error al eliminar ingeniero: ${response.status} - ${errorData}`
+          );
         }
       } catch (error) {
         console.error("Error deleting engineer:", error);
+        alert("Error al eliminar el ingeniero. Por favor intenta de nuevo.");
       }
     }
   };
@@ -494,7 +560,7 @@ const AdminView = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-blue-500">
-                        {engineer.compressors.join(", ")}
+                        {getCompressorNamesForEngineer(engineer.compressors)}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -571,7 +637,9 @@ const AdminView = () => {
                           Editar
                         </button>
                         <button
-                          onClick={() => handleDelete(engineer.id)}
+                          onClick={() =>
+                            handleDelete(engineer.id, engineer.numero_cliente)
+                          }
                           className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition-colors flex items-center gap-1"
                         >
                           <svg
