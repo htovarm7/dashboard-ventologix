@@ -2,27 +2,22 @@
 import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
-import ReportDropdown from "@/components/ReportDropdown";
 import DateReportDropdown from "@/components/DateReportDropdown";
-import { Compresor, ClientData } from "@/types/common";
+import { Compresor } from "@/types/common";
 import AdminSettings from "@/components/AdminSettings";
-import { Router } from "next/router";
 
 const Home = () => {
-  const { user, getIdTokenClaims, isAuthenticated, isLoading, logout } =
-    useAuth0();
+  const { user, isAuthenticated, isLoading, logout } = useAuth0();
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
   const [compresores, setCompresores] = useState<Compresor[]>([]);
-  const [clientData, setClientData] = useState<ClientData>({});
   const [numeroCliente, setNumeroCliente] = useState<number | null>(null);
   const [rol, setRol] = useState<number | null>(null);
   const [selectedCompresor, setSelectedCompresor] = useState<Compresor | null>(
     null
   );
-  const [nombreCliente, setNombreCliente] = useState<string | null>(null);
 
   useEffect(() => {
     const verifyAndLoadUser = async () => {

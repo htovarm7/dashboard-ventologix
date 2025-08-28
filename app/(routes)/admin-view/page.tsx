@@ -7,7 +7,7 @@ import { EngineerFormData, Engineer, Compressor, UserData } from "@/lib/types";
 
 const AdminView = () => {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuth0();
+  const { isLoading } = useAuth0();
   const [userRole, setUserRole] = useState<number | null>(null);
   const [engineers, setEngineers] = useState<Engineer[]>([]);
   const [compressors, setCompressors] = useState<Compressor[]>([]);

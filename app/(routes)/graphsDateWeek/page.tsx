@@ -71,7 +71,7 @@ function MainContent() {
   // Constant Declarations
 
   const router = useRouter();
-  const { isAuthorized, isCheckingAuth } = useAuthCheck();
+  const { isAuthorized } = useAuthCheck();
   const [selectedWeekNumber, setSelectedWeekNumber] = useState<number | null>(
     null
   );
@@ -89,7 +89,6 @@ function MainContent() {
   );
 
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
-  const [compresorAlias, setCompresorAlias] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<string>("");
 
   const fetchData = useCallback(
@@ -270,13 +269,9 @@ function MainContent() {
         id_cliente = compresorData.id_cliente.toString();
         linea = compresorData.linea;
         date = compresorData.date;
-        weekNumber = compresorData.weekNumber; // Obtener el número de semana guardado
-        setCompresorAlias(
-          compresorData.alias || `Compresor ${id_cliente}-${linea}`
-        );
+        weekNumber = compresorData.weekNumber;
         setSelectedDate(date || "");
 
-        // Si tenemos el número de semana guardado, úsalo directamente
         if (weekNumber) {
           setSelectedWeekNumber(weekNumber);
         }
@@ -286,7 +281,6 @@ function MainContent() {
         date =
           searchParams.get("date") || new Date().toISOString().split("T")[0];
         weekNumber = searchParams.get("weekNumber");
-        setCompresorAlias(`Compresor ${id_cliente}-${linea}`);
         setSelectedDate(date);
 
         if (weekNumber) {

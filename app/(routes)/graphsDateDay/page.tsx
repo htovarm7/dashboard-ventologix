@@ -16,7 +16,6 @@ import React, { useCallback, useEffect, useState, Suspense } from "react";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useAuth0 } from "@auth0/auth0-react";
 import annotationPlugin from "chartjs-plugin-annotation";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
 

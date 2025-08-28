@@ -18,15 +18,12 @@ interface DateReportDropdownProps {
 
 const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
   title,
-  compresores,
   colorScheme,
   tipo,
-  Rol = 2,
   selectedCompresor = null,
 }) => {
   const router = useRouter();
 
-  // Función para obtener fecha de ayer
   const getYesterday = () => {
     const today = new Date();
     const yesterday = new Date(today);
@@ -34,10 +31,9 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
     return yesterday.toISOString().split("T")[0];
   };
 
-  // Inicializar con fecha de ayer en lugar de hoy
   const [selectedDate, setSelectedDate] = useState(getYesterday());
 
-  const currentWeek = getWeekNumber(new Date()) - 1; // Semana actual menos 1
+  const currentWeek = getWeekNumber(new Date()) - 1;
   const [selectedWeek, setSelectedWeek] = useState<number>(
     Math.min(currentWeek, getWeekNumber(new Date()))
   );
@@ -55,7 +51,7 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
   function getWeekRange(weekNumber: number): { start: Date; end: Date } {
     const currentYear = new Date().getFullYear();
     const firstDayOfYear = new Date(currentYear, 0, 1);
-    const firstWeekDay = firstDayOfYear.getDay(); // 0 = domingo, 1 = lunes, ...
+    const firstWeekDay = firstDayOfYear.getDay();
 
     const daysToAdd = (weekNumber - 1) * 7 - firstWeekDay + 1;
     const startDate = new Date(currentYear, 0, 1 + daysToAdd);
@@ -129,7 +125,6 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
           <div className="py-2">
             {tipo === "DIARIO" && (
               <>
-                {/* Selector de fecha */}
                 <div className="px-4 py-3 border-b border-gray-100 flex flex-col items-center">
                   <label className="block text-xl font-medium text-gray-700 mb-2 text-center">
                     📅 Seleccionar Fecha:
@@ -139,11 +134,10 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
                     className="text-l w-2/3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
-                    max={getYesterday()} // Solo fechas hasta ayer
+                    max={getYesterday()}
                   />
                 </div>
 
-                {/* Botón para ir al reporte diario */}
                 <div className="px-4 py-3">
                   <button
                     onClick={handleDateSelect}
@@ -157,7 +151,6 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
 
             {tipo === "SEMANAL" && (
               <>
-                {/* Selector de semana */}
                 <div className="px-4 py-3 border-b border-gray-100 flex flex-col items-center">
                   <label className="block text-xl font-medium text-gray-700 mb-2 text-center">
                     📅 Seleccionar Semana:
@@ -190,7 +183,6 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
                   )}
                 </div>
 
-                {/* Botón para ir al reporte semanal */}
                 <div className="px-4 py-3">
                   <button
                     onClick={handleDateSelect}

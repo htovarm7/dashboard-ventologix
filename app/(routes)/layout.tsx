@@ -1,11 +1,11 @@
-import { Outfit } from "next/font/google";
 import type { Metadata } from "next";
+// import { Outfit } from "next/font/google";
 
-const outfit = Outfit({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-outfit",
-});
+// const outfit = Outfit({
+//   subsets: ["latin"],
+//   display: "swap",
+//   variable: "--font-outfit",
+// });
 
 export const metadata: Metadata = {
   title: "Dashboard de Ventologix",

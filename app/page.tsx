@@ -6,6 +6,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Compressor, UserInfo } from "@/lib/types";
 
 export default function Page() {
   const { loginWithRedirect, logout, isAuthenticated, user, isLoading, error } =
@@ -17,7 +18,7 @@ export default function Page() {
   const URL_API = process.env.NEXT_PUBLIC_API_URL;
 
   const verifyUserAuthorization = useCallback(
-    async (userInfo: any) => {
+    async (userInfo: UserInfo) => {
       console.log("=== INICIO VERIFICACIÓN DE USUARIO ===");
       console.log("UserInfo completo:", userInfo);
 
@@ -31,13 +32,14 @@ export default function Page() {
         } else if (userInfo.nickname || userInfo.username) {
           console.log("Detectado: Login con username/password");
           userIdentifier =
-            userInfo.nickname || userInfo.username || userInfo.name;
+            userInfo.nickname || userInfo.username || userInfo.name || "";
         } else if (userInfo.sub && userInfo.sub.startsWith("auth0|")) {
           console.log("Detectado: Usuario de Auth0 database");
           userIdentifier = userInfo.sub.replace("auth0|", "");
         } else {
           console.log("Detectado: Fallback");
-          userIdentifier = userInfo.email || userInfo.name || userInfo.sub;
+          userIdentifier =
+            userInfo.email || userInfo.name || userInfo.sub || "";
         }
 
         console.log("Identificador final:", userIdentifier);
@@ -82,7 +84,7 @@ export default function Page() {
           const userData = {
             numero_cliente: data.numeroCliente,
             rol: data.rol,
-            compresores: (data.compresores || []).map((c: any) => {
+            compresores: (data.compresores || []).map((c: Compressor) => {
               return {
                 ...c,
                 nombreCompleto:
@@ -104,10 +106,14 @@ export default function Page() {
           console.error("Data:", data);
           setAccessDenied(true);
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error("=== ERROR EN VERIFICACIÓN ===");
         console.error("Error completo:", error);
-        console.error("Error message:", error.message);
+        if (error instanceof Error) {
+          console.error("Error message:", error.message);
+        } else {
+          console.error("Error message:", String(error));
+        }
         setAccessDenied(true);
       } finally {
         console.log("=== FIN VERIFICACIÓN ===");
@@ -115,7 +121,7 @@ export default function Page() {
         setHasChecked(true);
       }
     },
-    [router]
+    [router, URL_API]
   );
 
   useEffect(() => {

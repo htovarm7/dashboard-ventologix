@@ -35,9 +35,11 @@ export interface Engineer {
 
 export interface Compressor {
   id: string;
-  id_cliente: number;
   linea: string;
+  id_cliente: number;
   alias: string;
+  nombre_cliente?: string;
+  nombreCompleto?: string;
 }
 
 export interface UserData {
@@ -48,6 +50,25 @@ export interface UserData {
   email: string;
   name: string;
   timestamp: number;
+}
+
+export interface UserResponse {
+  id: number;
+  numeroCliente: number;
+  rol: number;
+  compresores: Compressor[];
+  email: string;
+  name: string;
+}
+
+
+export interface UserInfo {
+  email?: string;
+  nickname?: string;
+  username?: string;
+  name?: string;
+  sub?: string;
+  accessToken?: string;
 }
 
 export type EngineerFormData = {

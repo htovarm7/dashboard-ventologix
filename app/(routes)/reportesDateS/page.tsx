@@ -83,145 +83,135 @@ function MainContent() {
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const searchParams = useSearchParams();
 
-  const fetchData = useCallback(
-    async (id: string, linea: string, fecha: string) => {
-      try {
-        const [pieRes, shiftRes, clientRes, compressorRes, summaryRes] =
-          await Promise.all([
-            (async () => {
-              const res = await fetch(
-                `http://127.0.0.1:8000/report/week/pie-data-proc?id_cliente=${id}&linea=${linea}`
-              );
-              return res.json();
-            })(),
-            (async () => {
-              const res = await fetch(
-                `http://127.0.0.1:8000/report/week/shifts?id_cliente=${id}&linea=${linea}`
-              );
-              return res.json();
-            })(),
-            (async () => {
-              const res = await fetch(
-                `http://127.0.0.1:8000/report/client-data?id_cliente=${id}`
-              );
-              return res.json();
-            })(),
-            (async () => {
-              const res = await fetch(
-                `http://127.0.0.1:8000/report/compressor-data?id_cliente=${id}&linea=${linea}`
-              );
-              return res.json();
-            })(),
-            (async () => {
-              const res = await fetch(
-                `http://127.0.0.1:8000/report/week/summary-general?id_cliente=${id}&linea=${linea}`
-              );
-              return res.json();
-            })(),
-          ]);
+  const fetchData = useCallback(async (id: string, linea: string) => {
+    try {
+      const [pieRes, shiftRes, clientRes, compressorRes, summaryRes] =
+        await Promise.all([
+          (async () => {
+            const res = await fetch(
+              `http://127.0.0.1:8000/report/week/pie-data-proc?id_cliente=${id}&linea=${linea}`
+            );
+            return res.json();
+          })(),
+          (async () => {
+            const res = await fetch(
+              `http://127.0.0.1:8000/report/week/shifts?id_cliente=${id}&linea=${linea}`
+            );
+            return res.json();
+          })(),
+          (async () => {
+            const res = await fetch(
+              `http://127.0.0.1:8000/report/client-data?id_cliente=${id}`
+            );
+            return res.json();
+          })(),
+          (async () => {
+            const res = await fetch(
+              `http://127.0.0.1:8000/report/compressor-data?id_cliente=${id}&linea=${linea}`
+            );
+            return res.json();
+          })(),
+          (async () => {
+            const res = await fetch(
+              `http://127.0.0.1:8000/report/week/summary-general?id_cliente=${id}&linea=${linea}`
+            );
+            return res.json();
+          })(),
+        ]);
 
-        if (!clientRes || !clientRes.data || !Array.isArray(clientRes.data)) {
-          console.error("Error: Datos de cliente inválidos o inexistentes");
-          window.status = "data-error";
-          return;
-        }
-
-        if (
-          !compressorRes ||
-          !compressorRes.data ||
-          !Array.isArray(compressorRes.data)
-        ) {
-          console.error("Error: Datos de compresor inválidos o inexistentes");
-          window.status = "data-error";
-          return;
-        }
-
-        if (!pieRes || !pieRes.data) {
-          console.error(
-            "Error: Datos de gráfica circular inválidos o inexistentes"
-          );
-          window.status = "data-error";
-          return;
-        }
-
-        if (!shiftRes || !shiftRes.data || !Array.isArray(shiftRes.data)) {
-          console.error("Error: Datos de turnos inválidos o inexistentes");
-          window.status = "data-error";
-          return;
-        }
-
-        if (!summaryRes) {
-          console.error("Error: Datos de resumen inválidos o inexistentes");
-          window.status = "data-error";
-          return;
-        }
-
-        const turno1 = new Array(7).fill(0);
-        const turno2 = new Array(7).fill(0);
-        const turno3 = new Array(7).fill(0);
-
-        shiftRes.data.forEach(
-          (item: { fecha: string; Turno: number; kwhTurno: number }) => {
-            const fecha = new Date(item.fecha);
-            const dia = fecha.getDay();
-            const diaSemana = 6 - dia;
-
-            switch (item.Turno) {
-              case 1:
-                turno1[diaSemana] += item.kwhTurno;
-                break;
-              case 2:
-                turno2[diaSemana] += item.kwhTurno;
-                break;
-              case 3:
-                turno3[diaSemana] += item.kwhTurno;
-                break;
-            }
-          }
-        );
-
-        setConsumoData({ turno1, turno2, turno3 });
-
-        if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
-        if (compressorRes.data.length > 0)
-          setCompresorData(compressorRes.data[0]);
-        console.log("summaryRes:", summaryRes);
-        console.log(
-          "summaryRes structure:",
-          JSON.stringify(summaryRes, null, 2)
-        );
-
-        if (summaryRes) {
-          console.log("semana_actual:", summaryRes.semana_actual);
-          console.log(
-            "detalle_semana_actual:",
-            summaryRes.detalle_semana_actual
-          );
-          console.log("comparacion:", summaryRes.comparacion);
-          console.log("comentarios:", summaryRes.comentarios);
-          console.log(
-            "promedio_semanas_anteriores:",
-            summaryRes.promedio_semanas_anteriores
-          );
-          setSummaryData(summaryRes);
-        }
-
-        const { LOAD, NOLOAD, OFF } = pieRes.data;
-        setChartData([LOAD, NOLOAD, OFF]);
-      } catch (error) {
-        console.error("Error fetching data:", error);
+      if (!clientRes || !clientRes.data || !Array.isArray(clientRes.data)) {
+        console.error("Error: Datos de cliente inválidos o inexistentes");
         window.status = "data-error";
+        return;
       }
-    },
-    []
-  );
+
+      if (
+        !compressorRes ||
+        !compressorRes.data ||
+        !Array.isArray(compressorRes.data)
+      ) {
+        console.error("Error: Datos de compresor inválidos o inexistentes");
+        window.status = "data-error";
+        return;
+      }
+
+      if (!pieRes || !pieRes.data) {
+        console.error(
+          "Error: Datos de gráfica circular inválidos o inexistentes"
+        );
+        window.status = "data-error";
+        return;
+      }
+
+      if (!shiftRes || !shiftRes.data || !Array.isArray(shiftRes.data)) {
+        console.error("Error: Datos de turnos inválidos o inexistentes");
+        window.status = "data-error";
+        return;
+      }
+
+      if (!summaryRes) {
+        console.error("Error: Datos de resumen inválidos o inexistentes");
+        window.status = "data-error";
+        return;
+      }
+
+      const turno1 = new Array(7).fill(0);
+      const turno2 = new Array(7).fill(0);
+      const turno3 = new Array(7).fill(0);
+
+      shiftRes.data.forEach(
+        (item: { fecha: string; Turno: number; kwhTurno: number }) => {
+          const fecha = new Date(item.fecha);
+          const dia = fecha.getDay();
+          const diaSemana = 6 - dia;
+
+          switch (item.Turno) {
+            case 1:
+              turno1[diaSemana] += item.kwhTurno;
+              break;
+            case 2:
+              turno2[diaSemana] += item.kwhTurno;
+              break;
+            case 3:
+              turno3[diaSemana] += item.kwhTurno;
+              break;
+          }
+        }
+      );
+
+      setConsumoData({ turno1, turno2, turno3 });
+
+      if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
+      if (compressorRes.data.length > 0)
+        setCompresorData(compressorRes.data[0]);
+      console.log("summaryRes:", summaryRes);
+      console.log("summaryRes structure:", JSON.stringify(summaryRes, null, 2));
+
+      if (summaryRes) {
+        console.log("semana_actual:", summaryRes.semana_actual);
+        console.log("detalle_semana_actual:", summaryRes.detalle_semana_actual);
+        console.log("comparacion:", summaryRes.comparacion);
+        console.log("comentarios:", summaryRes.comentarios);
+        console.log(
+          "promedio_semanas_anteriores:",
+          summaryRes.promedio_semanas_anteriores
+        );
+        setSummaryData(summaryRes);
+      }
+
+      const { LOAD, NOLOAD, OFF } = pieRes.data;
+      setChartData([LOAD, NOLOAD, OFF]);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      window.status = "data-error";
+    }
+  }, []);
 
   useEffect(() => {
     const id = searchParams.get("id_cliente");
     const linea = searchParams.get("linea") || "";
-    const fecha = searchParams.get("fecha") || "";
     if (id) {
-      fetchData(id, linea, fecha);
+      fetchData(id, linea);
     }
   }, [searchParams, fetchData]);
 
