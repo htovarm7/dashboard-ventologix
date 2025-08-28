@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserData } from "@/lib/types";
+import Image from "next/image";
 
 const PredictiveModel = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -103,11 +104,11 @@ const PredictiveModel = () => {
           <h2 className="text-xl font-semibold mb-4">Predicción de Consumo</h2>
 
           <div className="flex justify-center">
-            <img
+            <Image
               src={plotUrl}
               alt="Gráfico predictivo de consumo"
               className="max-w-full h-auto border border-gray-300 rounded"
-              onError={(e) => {
+              onError={() => {
                 console.error("Error loading plot image");
                 setError("Error al cargar el gráfico predictivo");
               }}
