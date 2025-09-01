@@ -27,8 +27,9 @@
 * 4. Run the API again using:
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, status, Header
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Annotated
 
 
 import os
@@ -41,11 +42,24 @@ from scripts.api.webApi import web
 load_dotenv()
 
 app = FastAPI()
+API_SECRET_KEY = os.getenv("API_SECRET", "una-clave-por-defecto-si-no-la-encuentra")
+
+async def verify_api_key(x_internal_api_key: Annotated[str, Header()]):
+    """
+    Esta función se ejecuta en cada petición.
+    Compara la clave de la cabecera con la clave secreta del servidor.
+    """
+    if x_internal_api_key != API_SECRET_KEY:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API Key")
+
+# Aplica la protección a TODA la aplicación.
+# Cualquier endpoint que definas abajo estará protegido automáticamente.
+app = FastAPI(dependencies=[Depends(verify_api_key)])
 
 # Add CORS middleware to allow cross-origin requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://dashboard.ventologix.com/"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers

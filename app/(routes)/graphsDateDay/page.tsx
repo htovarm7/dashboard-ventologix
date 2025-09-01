@@ -85,31 +85,61 @@ function MainContent() {
           await Promise.all([
             (async () => {
               const res = await fetch(
-                `${URL_API}/report/pie-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}`
+                `${URL_API}/report/pie-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}`,
+                {
+                  headers: {
+                    "accept": "application/json",
+                    "x-internal-api-key": process.env.API_SECRET || "",
+                  },
+                }
               );
               return res.json();
             })(),
             (async () => {
               const res = await fetch(
-                `${URL_API}/report/line-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}`
+                `${URL_API}/report/line-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}`,
+                {
+                  headers: {
+                    "accept": "application/json",
+                    "x-internal-api-key": process.env.API_SECRET || "",
+                  },
+                }
               );
               return res.json();
             })(),
             (async () => {
               const res = await fetch(
-                `${URL_API}/report/day-report-data?id_cliente=${id}&linea=${linea}&date=${date}`
+                `${URL_API}/report/day-report-data?id_cliente=${id}&linea=${linea}&date=${date}`,
+                {
+                  headers: {
+                    "accept": "application/json",
+                    "x-internal-api-key": process.env.API_SECRET || "",
+                  },
+                }
               );
               return res.json();
             })(),
             (async () => {
               const res = await fetch(
-                `${URL_API}/report/client-data?id_cliente=${id}`
+                `${URL_API}/report/client-data?id_cliente=${id}`,
+                {
+                  headers: {
+                    "accept": "application/json",
+                    "x-internal-api-key": process.env.API_SECRET || "",
+                  },
+                }
               );
               return res.json();
             })(),
             (async () => {
               const res = await fetch(
-                `${URL_API}/report/compressor-data?id_cliente=${id}&linea=${linea}`
+                `${URL_API}/report/compressor-data?id_cliente=${id}&linea=${linea}`,
+                {
+                  headers: {
+                    "accept": "application/json",
+                    "x-internal-api-key": process.env.API_SECRET || "",
+                  },
+                }
               );
               return res.json();
             })(),

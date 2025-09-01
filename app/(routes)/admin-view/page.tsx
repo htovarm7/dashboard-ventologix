@@ -59,7 +59,12 @@ const AdminView = () => {
       const url = `http://127.0.0.1:8000/web/ingenieros?cliente=${numero_cliente}`;
       console.log("Engineers URL:", url);
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          "accept": "application/json",
+          "x-internal-api-key": process.env.API_SECRET || "",
+        },
+      });
       if (response.ok) {
         const engineersData = await response.json();
         setEngineers(engineersData);
@@ -81,7 +86,12 @@ const AdminView = () => {
       const url = `http://127.0.0.1:8000/web/compresores?cliente=${numero_cliente}`;
       console.log("Compressors URL:", url);
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          "accept": "application/json",
+          "x-internal-api-key": process.env.API_SECRET || "",
+        },
+      });
       if (response.ok) {
         const compressorsData = await response.json();
         setCompressors(compressorsData);
@@ -169,6 +179,8 @@ const AdminView = () => {
         method,
         headers: {
           "Content-Type": "application/json",
+          "accept": "application/json",
+          "x-internal-api-key": process.env.API_SECRET || "",
         },
         body: JSON.stringify(engineerData),
       });
@@ -254,6 +266,10 @@ const AdminView = () => {
           `http://127.0.0.1:8000/web/ingenieros/${engineerId}?cliente=${clientNumber}`,
           {
             method: "DELETE",
+            headers: {
+              "accept": "application/json",
+              "x-internal-api-key": process.env.API_SECRET || "",
+            },
           }
         );
 
@@ -287,6 +303,8 @@ const AdminView = () => {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
+            "accept": "application/json",
+            "x-internal-api-key": process.env.API_SECRET || "",
           },
           body: JSON.stringify({
             [preference]: value,

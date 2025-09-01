@@ -170,7 +170,6 @@ def get_ingenieros(cliente: int = Query(..., description="Número de cliente")):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching ingenieros: {str(e)}")
 
-
 # GET - Obtener compresores filtrados por cliente
 @web.get("/compresores", tags=["CRUD Admin"])
 def get_compresores(cliente: int = Query(..., description="Número de cliente")):
@@ -386,7 +385,6 @@ def update_ingeniero(
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating ingeniero: {str(e)}")
-
 
 # DELETE - Eliminar ingeniero
 @web.delete("/ingenieros/{ingeniero_id}", tags=["CRUD Admin"])
