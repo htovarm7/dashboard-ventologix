@@ -39,10 +39,14 @@ if ! wait_for_port 127.0.0.1 3000; then
   exit 1
 fi
 
+
+
 # Ejecutar Python (espera el frontend con Playwright internamente)
 echo "Ejecutando script Python..." >> $LOGFILE
 export RECIPIENTS_JSON="/home/hector_tovar/Ventologix/data/recipients.json"
-python $PYTHON_SCRIPT >> $LOGFILE 2>&1
+source /home/hector_tovar/Ventologix/vento/bin/activate
+python3 $PYTHON_SCRIPT >> $LOGFILE 2>&1
+deactivate
 echo "Script Python finalizado" >> $LOGFILE
 
 # Borrar logs antiguos (>10 días)
