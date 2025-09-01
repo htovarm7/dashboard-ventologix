@@ -37,7 +37,7 @@ if ! wait_for_port 127.0.0.1 8000; then
 fi
 
 # Esperar a que el frontend esté listo (puerto 3000)
-if ! wait_for_port 127.0.0.1 3002; then
+if ! wait_for_port 127.0.0.1 3000; then
   echo "No se pudo levantar web, abortando." >> $LOGFILE
   kill $WEB_PID
   kill $API_PID
@@ -54,6 +54,7 @@ echo "Script Python finalizado" >> $LOGFILE
 # Cerrar procesos
 kill $WEB_PID
 echo "Web cerrada (PID $WEB_PID)" >> $LOGFILE
+
 kill $API_PID
 echo "API cerrada (PID $API_PID)" >> $LOGFILE
 
