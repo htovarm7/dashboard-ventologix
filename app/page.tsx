@@ -7,6 +7,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Compressor, UserInfo } from "@/lib/types";
+import { URL_API } from "@/lib/global";
 
 export default function Page() {
   const { loginWithRedirect, logout, isAuthenticated, user, isLoading, error } =
@@ -15,7 +16,6 @@ export default function Page() {
   const [accessDenied, setAccessDenied] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
-  const URL_API = process.env.NEXT_PUBLIC_API_URL;
 
   const verifyUserAuthorization = useCallback(
     async (userInfo: UserInfo) => {
