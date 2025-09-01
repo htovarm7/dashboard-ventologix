@@ -31,6 +31,7 @@ import {
 import {
   Chart as ChartJS,
   ArcElement,
+  LineController,
   Tooltip,
   Legend,
   LineElement,
@@ -47,6 +48,7 @@ import { Pie } from "react-chartjs-2";
 // Register the necessary components for Chart.js
 ChartJS.register(
   ArcElement,
+  LineController,
   Tooltip,
   Legend,
   LineElement,
@@ -105,7 +107,8 @@ function MainContent() {
                 {
                   headers: {
                     accept: "application/json",
-                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                    "x-internal-api-key":
+                      process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -123,7 +126,8 @@ function MainContent() {
                 {
                   headers: {
                     accept: "application/json",
-                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                    "x-internal-api-key":
+                      process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -141,7 +145,8 @@ function MainContent() {
                 {
                   headers: {
                     accept: "application/json",
-                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                    "x-internal-api-key":
+                      process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -159,7 +164,8 @@ function MainContent() {
                 {
                   headers: {
                     accept: "application/json",
-                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                    "x-internal-api-key":
+                      process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -177,7 +183,8 @@ function MainContent() {
                 {
                   headers: {
                     accept: "application/json",
-                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                    "x-internal-api-key":
+                      process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
