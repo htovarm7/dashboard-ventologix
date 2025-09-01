@@ -88,8 +88,8 @@ function MainContent() {
                 `${URL_API}/report/pie-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}`,
                 {
                   headers: {
-                    "accept": "application/json",
-                    "x-internal-api-key": process.env.API_SECRET || "",
+                    accept: "application/json",
+                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -100,8 +100,8 @@ function MainContent() {
                 `${URL_API}/report/line-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}`,
                 {
                   headers: {
-                    "accept": "application/json",
-                    "x-internal-api-key": process.env.API_SECRET || "",
+                    accept: "application/json",
+                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -112,8 +112,8 @@ function MainContent() {
                 `${URL_API}/report/day-report-data?id_cliente=${id}&linea=${linea}&date=${date}`,
                 {
                   headers: {
-                    "accept": "application/json",
-                    "x-internal-api-key": process.env.API_SECRET || "",
+                    accept: "application/json",
+                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -124,8 +124,8 @@ function MainContent() {
                 `${URL_API}/report/client-data?id_cliente=${id}`,
                 {
                   headers: {
-                    "accept": "application/json",
-                    "x-internal-api-key": process.env.API_SECRET || "",
+                    accept: "application/json",
+                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -136,8 +136,8 @@ function MainContent() {
                 `${URL_API}/report/compressor-data?id_cliente=${id}&linea=${linea}`,
                 {
                   headers: {
-                    "accept": "application/json",
-                    "x-internal-api-key": process.env.API_SECRET || "",
+                    accept: "application/json",
+                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );

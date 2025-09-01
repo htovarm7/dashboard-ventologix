@@ -104,8 +104,8 @@ function MainContent() {
                 `${URL_API}/report/dateWeek/pie-data-proc?id_cliente=${id}&linea=${linea}&fecha=${formattedDate}`,
                 {
                   headers: {
-                    "accept": "application/json",
-                    "x-internal-api-key": process.env.API_SECRET || "",
+                    accept: "application/json",
+                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -122,8 +122,8 @@ function MainContent() {
                 `${URL_API}/report/dateWeek/shifts?id_cliente=${id}&linea=${linea}&fecha=${formattedDate}`,
                 {
                   headers: {
-                    "accept": "application/json",
-                    "x-internal-api-key": process.env.API_SECRET || "",
+                    accept: "application/json",
+                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -140,8 +140,8 @@ function MainContent() {
                 `${URL_API}/report/client-data?id_cliente=${id}`,
                 {
                   headers: {
-                    "accept": "application/json",
-                    "x-internal-api-key": process.env.API_SECRET || "",
+                    accept: "application/json",
+                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -158,8 +158,8 @@ function MainContent() {
                 `${URL_API}/report/compressor-data?id_cliente=${id}&linea=${linea}`,
                 {
                   headers: {
-                    "accept": "application/json",
-                    "x-internal-api-key": process.env.API_SECRET || "",
+                    accept: "application/json",
+                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -176,8 +176,8 @@ function MainContent() {
                 `${URL_API}/report/dateWeek/summary-general?id_cliente=${id}&linea=${linea}&fecha=${formattedDate}`,
                 {
                   headers: {
-                    "accept": "application/json",
-                    "x-internal-api-key": process.env.API_SECRET || "",
+                    accept: "application/json",
+                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );

@@ -57,8 +57,8 @@ export default function Page() {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            "accept": "application/json",
-            "x-internal-api-key": process.env.API_SECRET || "",
+            accept: "application/json",
+            "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
             ...(userInfo.accessToken && {
               Authorization: `Bearer ${userInfo.accessToken}`,
             }),

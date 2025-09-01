@@ -61,8 +61,8 @@ const AdminView = () => {
 
       const response = await fetch(url, {
         headers: {
-          "accept": "application/json",
-          "x-internal-api-key": process.env.API_SECRET || "",
+          accept: "application/json",
+          "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
         },
       });
       if (response.ok) {
@@ -88,8 +88,8 @@ const AdminView = () => {
 
       const response = await fetch(url, {
         headers: {
-          "accept": "application/json",
-          "x-internal-api-key": process.env.API_SECRET || "",
+          accept: "application/json",
+          "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
         },
       });
       if (response.ok) {
@@ -179,8 +179,8 @@ const AdminView = () => {
         method,
         headers: {
           "Content-Type": "application/json",
-          "accept": "application/json",
-          "x-internal-api-key": process.env.API_SECRET || "",
+          accept: "application/json",
+          "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
         },
         body: JSON.stringify(engineerData),
       });
@@ -267,8 +267,8 @@ const AdminView = () => {
           {
             method: "DELETE",
             headers: {
-              "accept": "application/json",
-              "x-internal-api-key": process.env.API_SECRET || "",
+              accept: "application/json",
+              "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
             },
           }
         );
@@ -303,8 +303,8 @@ const AdminView = () => {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            "accept": "application/json",
-            "x-internal-api-key": process.env.API_SECRET || "",
+            accept: "application/json",
+            "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
           },
           body: JSON.stringify({
             [preference]: value,
