@@ -45,7 +45,7 @@ app = FastAPI()
 # Add CORS middleware to allow cross-origin requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow requests from any origin
+    allow_origins=["https://dashboard.ventologix.com/"],
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
