@@ -3,7 +3,6 @@
 LOGDIR="/home/hector_tovar/Ventologix/logs"
 LOGFILE="$LOGDIR/tarea_$(date +%F).log"
 PYTHON_SCRIPT="/home/hector_tovar/Ventologix/scripts/VM/automation.py"
-VENV="/home/hector_tovar/Ventologix/vento/bin/activate"
 VENTO_DIR="/home/hector_tovar/Ventologix"
 SCRIPTS_DIR="$VENTO_DIR/scripts"
 
@@ -31,17 +30,12 @@ wait_for_port() {
 # Esperar a que la API esté lista
 if ! wait_for_port 127.0.0.1 8000; then
   echo "No se pudo levantar API, abortando." >> $LOGFILE
-  kill $API_PID
-  deactivate
   exit 1
 fi
 
 # Esperar a que el frontend esté listo (puerto 3000)
 if ! wait_for_port 127.0.0.1 3000; then
   echo "No se pudo levantar web, abortando." >> $LOGFILE
-  kill $WEB_PID
-  kill $API_PID
-  deactivate
   exit 1
 fi
 
@@ -50,16 +44,6 @@ echo "Ejecutando script Python..." >> $LOGFILE
 export RECIPIENTS_JSON="/home/hector_tovar/Ventologix/data/recipients.json"
 python $PYTHON_SCRIPT >> $LOGFILE 2>&1
 echo "Script Python finalizado" >> $LOGFILE
-
-# Cerrar procesos
-kill $WEB_PID
-echo "Web cerrada (PID $WEB_PID)" >> $LOGFILE
-
-kill $API_PID
-echo "API cerrada (PID $API_PID)" >> $LOGFILE
-
-deactivate
-echo "Entorno virtual desactivado" >> $LOGFILE
 
 # Borrar logs antiguos (>10 días)
 find $LOGDIR -type f -name "tarea_*.log" -mtime +10 -exec rm {} \;
