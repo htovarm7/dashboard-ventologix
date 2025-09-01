@@ -228,7 +228,7 @@ def generar_pdf_cliente(id_cliente: int, linea: str, nombre_cliente: str, alias:
         page.set_viewport_size({"width": 1920, "height": 1080})
 
         if tipo == "diario":
-            url = f"http://localhost:3002/reportesD?id_cliente={id_cliente}&linea={linea}"
+            url = f"http://localhost:3000/reportesD?id_cliente={id_cliente}&linea={linea}"
             page.goto(url, timeout=300000)
 
             try:
@@ -253,7 +253,7 @@ def generar_pdf_cliente(id_cliente: int, linea: str, nombre_cliente: str, alias:
                 margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
             )
         else:
-            url = f"http://localhost:3002/reportesS?id_cliente={id_cliente}&linea={linea}"
+            url = f"http://localhost:3000/reportesS?id_cliente={id_cliente}&linea={linea}"
             page.goto(url, timeout=600000)
 
             try:
