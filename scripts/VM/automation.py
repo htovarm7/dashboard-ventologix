@@ -316,7 +316,7 @@ def generar_pdf_cliente(id_cliente: int, linea: str, nombre_cliente: str, alias:
                     print(f"   ✅ Página cargada, esperando contenido...")
 
                     # Esperar que la página esté lista con timeout más corto
-                    page.wait_for_function("window.status === 'pdf-ready' || window.status === 'data-error'", timeout=120000)
+                    page.wait_for_function("window.status === 'pdf-ready' || window.status === 'data-error'", timeout=300000)
                     
                     # Verificar status
                     status = page.evaluate("() => window.status")
@@ -355,7 +355,7 @@ def generar_pdf_cliente(id_cliente: int, linea: str, nombre_cliente: str, alias:
                     print(f"   ✅ Página cargada, esperando contenido...")
 
                     # Esperar que la página esté lista
-                    page.wait_for_function("window.status === 'pdf-ready' || window.status === 'data-error'", timeout=180000)
+                    page.wait_for_function("window.status === 'pdf-ready' || window.status === 'data-error'", timeout=300000)
                     
                     # Verificar status
                     status = page.evaluate("() => window.status")
