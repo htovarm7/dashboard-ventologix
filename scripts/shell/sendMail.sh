@@ -51,7 +51,7 @@ WEB_PID=$!
 echo "Web iniciada con PID $WEB_PID" >> $LOGFILE
 
 # Esperar a que el frontend esté listo (puerto 3000)
-if ! wait_for_port 127.0.0.1 3002; then
+if ! wait_for_port 127.0.0.1 3000; then
   echo "No se pudo levantar web, abortando." >> $LOGFILE
   kill $WEB_PID
   kill $API_PID
