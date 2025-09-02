@@ -42,13 +42,19 @@ load_dotenv()
 
 app = FastAPI()
 
-# Add CORS middleware to allow cross-origin requests
+origins = [
+    "https://dashboard.ventologix.com", # Your production front-end
+    "http://localhost",               # For local development
+    "http://localhost:3000",          # If you use a specific port for local dev
+    "http://127.0.0.1:8000"           # if your frontend and backend run on the same dev server
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow requests from any origin
+    allow_origins=origins, # Use the specific list instead of ["*"]
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Incluir routers
