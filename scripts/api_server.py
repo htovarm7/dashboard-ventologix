@@ -27,8 +27,9 @@
 * 4. Run the API again using:
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, status, Header
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Annotated
 
 
 import os

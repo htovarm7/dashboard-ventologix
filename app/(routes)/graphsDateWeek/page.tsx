@@ -31,6 +31,7 @@ import {
 import {
   Chart as ChartJS,
   ArcElement,
+  LineController,
   Tooltip,
   Legend,
   LineElement,
@@ -47,6 +48,7 @@ import { Pie } from "react-chartjs-2";
 // Register the necessary components for Chart.js
 ChartJS.register(
   ArcElement,
+  LineController,
   Tooltip,
   Legend,
   LineElement,
@@ -101,7 +103,14 @@ function MainContent() {
           await Promise.all([
             (async () => {
               const res = await fetch(
-                `${URL_API}/report/dateWeek/pie-data-proc?id_cliente=${id}&linea=${linea}&fecha=${formattedDate}`
+                `${URL_API}/report/dateWeek/pie-data-proc?id_cliente=${id}&linea=${linea}&fecha=${formattedDate}`,
+                {
+                  headers: {
+                    accept: "application/json",
+                    "x-internal-api-key":
+                      process.env.NEXT_PUBLIC_API_SECRET || "",
+                  },
+                }
               );
               if (!res.ok) {
                 console.error(
@@ -113,7 +122,14 @@ function MainContent() {
             })(),
             (async () => {
               const res = await fetch(
-                `${URL_API}/report/dateWeek/shifts?id_cliente=${id}&linea=${linea}&fecha=${formattedDate}`
+                `${URL_API}/report/dateWeek/shifts?id_cliente=${id}&linea=${linea}&fecha=${formattedDate}`,
+                {
+                  headers: {
+                    accept: "application/json",
+                    "x-internal-api-key":
+                      process.env.NEXT_PUBLIC_API_SECRET || "",
+                  },
+                }
               );
               if (!res.ok) {
                 console.error(
@@ -125,7 +141,14 @@ function MainContent() {
             })(),
             (async () => {
               const res = await fetch(
-                `${URL_API}/report/client-data?id_cliente=${id}`
+                `${URL_API}/report/client-data?id_cliente=${id}`,
+                {
+                  headers: {
+                    accept: "application/json",
+                    "x-internal-api-key":
+                      process.env.NEXT_PUBLIC_API_SECRET || "",
+                  },
+                }
               );
               if (!res.ok) {
                 console.error(
@@ -137,7 +160,14 @@ function MainContent() {
             })(),
             (async () => {
               const res = await fetch(
-                `${URL_API}/report/compressor-data?id_cliente=${id}&linea=${linea}`
+                `${URL_API}/report/compressor-data?id_cliente=${id}&linea=${linea}`,
+                {
+                  headers: {
+                    accept: "application/json",
+                    "x-internal-api-key":
+                      process.env.NEXT_PUBLIC_API_SECRET || "",
+                  },
+                }
               );
               if (!res.ok) {
                 console.error(
@@ -149,7 +179,14 @@ function MainContent() {
             })(),
             (async () => {
               const res = await fetch(
-                `${URL_API}/report/dateWeek/summary-general?id_cliente=${id}&linea=${linea}&fecha=${formattedDate}`
+                `${URL_API}/report/dateWeek/summary-general?id_cliente=${id}&linea=${linea}&fecha=${formattedDate}`,
+                {
+                  headers: {
+                    accept: "application/json",
+                    "x-internal-api-key":
+                      process.env.NEXT_PUBLIC_API_SECRET || "",
+                  },
+                }
               );
               if (!res.ok) {
                 console.error(

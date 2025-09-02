@@ -107,6 +107,8 @@ const PredictiveModel = () => {
             <Image
               src={plotUrl}
               alt="Gráfico predictivo de consumo"
+              width={800}
+              height={600}
               className="max-w-full h-auto border border-gray-300 rounded"
               onError={() => {
                 console.error("Error loading plot image");

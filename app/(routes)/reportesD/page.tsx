@@ -107,31 +107,61 @@ function MainContent() {
         await Promise.all([
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/pie-data-proc?id_cliente=${id}&linea=${linea}`
+              `http://127.0.0.1:8000/report/pie-data-proc?id_cliente=${id}&linea=${linea}`,
+              {
+                headers: {
+                  accept: "application/json",
+                  "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                },
+              }
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/line-data-proc?id_cliente=${id}&linea=${linea}`
+              `http://127.0.0.1:8000/report/line-data-proc?id_cliente=${id}&linea=${linea}`,
+              {
+                headers: {
+                  accept: "application/json",
+                  "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                },
+              }
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/daily-report-data?id_cliente=${id}&linea=${linea}`
+              `http://127.0.0.1:8000/report/daily-report-data?id_cliente=${id}&linea=${linea}`,
+              {
+                headers: {
+                  accept: "application/json",
+                  "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                },
+              }
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/client-data?id_cliente=${id}`
+              `http://127.0.0.1:8000/report/client-data?id_cliente=${id}`,
+              {
+                headers: {
+                  accept: "application/json",
+                  "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                },
+              }
             );
             return res.json();
           })(),
           (async () => {
             const res = await fetch(
-              `http://127.0.0.1:8000/report/compressor-data?id_cliente=${id}&linea=${linea}`
+              `http://127.0.0.1:8000/report/compressor-data?id_cliente=${id}&linea=${linea}`,
+              {
+                headers: {
+                  accept: "application/json",
+                  "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                },
+              }
             );
             return res.json();
           })(),
