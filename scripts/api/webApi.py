@@ -683,19 +683,18 @@ def forecast_plot(
 
 @web.get("/pressure/analysis", tags=["Web"])
 def pressure_analysis_plot(
-    numero_cliente: int = Query(..., description="Número del cliente"),
-    linea: int = Query(4, description="Línea del compresor"),
-    equipo: int = Query(4, description="Número del equipo"),
-    tanque: str = Query("B", description="Tanque (A o B)"),
-    fecha: str = Query("2025-09-01", description="Fecha de análisis (YYYY-MM-DD)")
+    p_device_id: int = Query(..., description="Número del cliente"),
+    dispositivo_id: int = Query(..., description="Línea del compresor"),
+    linea: str = Query(..., description="Tanque (A o B)"),
+    fecha: str = Query(..., description="Fecha de análisis (YYYY-MM-DD)")
 ):
     """
     Generate Six Sigma pressure control chart analysis for compressor operation
     """
     try:
         # Fetch pressure data
-        df = obtener_datos_presion(numero_cliente, linea, equipo, tanque, fecha)
-        
+        df = obtener_datos_presion(p_device_id, dispositivo_id, dispositivo_id, linea, fecha)
+
         if df.empty:
             return {"error": "No se encontraron datos de presión para los parámetros especificados"}
         
@@ -778,7 +777,7 @@ def pressure_analysis_plot(
         # Set labels and title
         ax.set_xlabel('Tiempo', fontsize=12)
         ax.set_ylabel('Presión (psi)', fontsize=12)
-        ax.set_title(f'Análisis de Control Six Sigma - Cliente {numero_cliente} | Equipo {equipo} | Tanque {tanque}', 
+        ax.set_title(f'Análisis de Control Six Sigma - DeviceId {p_device_id} | Linea {linea}', 
                     fontsize=14, weight='bold')
         
         # Legend and grid
@@ -815,15 +814,15 @@ def pressure_analysis_plot(
         return {"error": f"Error interno del servidor: {str(e)}"}
 
 # Functions
-def obtener_datos_presion(numero_cliente: int, linea: int, equipo: int, tanque: str, fecha: str):
+def obtener_datos_presion(p_device_id: int, dispositivo_id: int, linea: str, fecha: str):
     """Fetch pressure data using stored procedure"""
     try:
         conn = mysql.connector.connect(
         host=DB_HOST, user=DB_USER, password=DB_PASSWORD, database=DB_DATABASE
     )
         cursor = conn.cursor(dictionary=True)
-        
-        params = (numero_cliente, linea, equipo, tanque, fecha)
+
+        params = (p_device_id, dispositivo_id, dispositivo_id, linea, fecha)
         cursor.callproc('DataFiltradaConPresion', params)
         
         data = []

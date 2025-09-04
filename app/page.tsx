@@ -19,30 +19,21 @@ export default function Page() {
 
   const verifyUserAuthorization = useCallback(
     async (userInfo: UserInfo) => {
-      console.log("=== INICIO VERIFICACIÓN DE USUARIO ===");
-      console.log("UserInfo completo:", userInfo);
-
       try {
         setIsCheckingAuth(true);
         let userIdentifier: string;
 
         if (userInfo.email && userInfo.email.includes("@")) {
-          console.log("Detectado: Login con Google/Email");
           userIdentifier = userInfo.email;
         } else if (userInfo.nickname || userInfo.username) {
-          console.log("Detectado: Login con username/password");
           userIdentifier =
             userInfo.nickname || userInfo.username || userInfo.name || "";
         } else if (userInfo.sub && userInfo.sub.startsWith("auth0|")) {
-          console.log("Detectado: Usuario de Auth0 database");
           userIdentifier = userInfo.sub.replace("auth0|", "");
         } else {
-          console.log("Detectado: Fallback");
           userIdentifier =
             userInfo.email || userInfo.name || userInfo.sub || "";
         }
-
-        console.log("Identificador final:", userIdentifier);
 
         if (!userIdentifier) {
           throw new Error("No se pudo identificar el usuario");
@@ -51,7 +42,6 @@ export default function Page() {
         const url = `${URL_API}/web/usuarios/${encodeURIComponent(
           userIdentifier
         )}`;
-        console.log("URL de request:", url);
 
         const response = await fetch(url, {
           method: "GET",
@@ -100,12 +90,9 @@ export default function Page() {
 
           if (userData.rol == 2) {
           }
-          console.log("UserData creado:", userData);
           sessionStorage.setItem("userData", JSON.stringify(userData));
           router.push("/home");
         } else {
-          console.error("Datos incompletos o usuario no autorizado");
-          console.error("Data:", data);
           setAccessDenied(true);
         }
       } catch (error) {
