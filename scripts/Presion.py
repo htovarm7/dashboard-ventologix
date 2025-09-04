@@ -12,7 +12,6 @@ DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_DATABASE = os.getenv("DB_DATABASE")
 
-# --- 1. Conexión a la base de datos ---
 conn = mysql.connector.connect(
     host=DB_HOST,
     user=DB_USER,
@@ -20,9 +19,6 @@ conn = mysql.connector.connect(
     database=DB_DATABASE
 )
 
-# -----------------------------
-# 2. Llamar al procedimiento almacenado HARDCODEADO
-# -----------------------------
 params = (1, 4, 4, 'B', '2025-09-1')
 cursor = conn.cursor(dictionary=True)
 cursor.callproc('DataFiltradaConPresion', params)

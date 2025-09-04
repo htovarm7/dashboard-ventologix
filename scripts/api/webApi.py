@@ -681,7 +681,203 @@ def forecast_plot(
         logger.error(f"Critical error in forecast_plot: {str(e)}")
         return {"error": f"Error interno del servidor: {str(e)}"}
 
+@web.get("/pressure/analysis", tags=["Web"])
+def pressure_analysis_plot(
+    numero_cliente: int = Query(..., description="Número del cliente"),
+    linea: int = Query(4, description="Línea del compresor"),
+    equipo: int = Query(4, description="Número del equipo"),
+    tanque: str = Query("B", description="Tanque (A o B)"),
+    fecha: str = Query("2025-09-01", description="Fecha de análisis (YYYY-MM-DD)")
+):
+    """
+    Generate Six Sigma pressure control chart analysis for compressor operation
+    """
+    try:
+        # Fetch pressure data
+        df = obtener_datos_presion(numero_cliente, linea, equipo, tanque, fecha)
+        
+        if df.empty:
+            return {"error": "No se encontraron datos de presión para los parámetros especificados"}
+        
+        # Convert time column to datetime if needed
+        if 'time' in df.columns:
+            df['time'] = pd.to_datetime(df['time'])
+        
+        # Filter to operational data only
+        presion_min = 90
+        presion_max = 110
+        df_operativa = filtrar_operacion_real(df, presion_min, presion_max)
+        
+        if df_operativa.empty:
+            return {"error": "No se encontraron períodos de operación válidos"}
+        
+        # Count events below minimum pressure
+        bajo_presion = df_operativa[df_operativa['presion1_psi'] < presion_min]
+        conteo_bajo = len(bajo_presion)
+        porcentaje_bajo = len(bajo_presion) / len(df_operativa) * 100 if len(df_operativa) > 0 else 0
+        
+        # Calculate Six Sigma control limits
+        media, sigma, UCL, LCL = calcular_control_limits(df_operativa, presion_min, presion_max)
+        
+        if media is None:
+            return {"error": "No se pudieron calcular los límites de control"}
+        
+        # Calculate time analysis
+        tiempo_total = len(df_operativa) * 30 / 60  # minutes (30s per record)
+        tiempo_bajo = len(bajo_presion) * 30 / 60
+        porcentaje_tiempo_bajo = tiempo_bajo / tiempo_total * 100 if tiempo_total > 0 else 0
+        
+        # Storage sufficiency indicator
+        almacenamiento_suficiente = porcentaje_tiempo_bajo <= 5
+        
+        # 🎨 CREATE CONTROL CHART
+        plt.switch_backend('Agg')  # Use non-GUI backend
+        fig, ax = plt.subplots(figsize=(15, 8))
+        
+        # Main pressure line (blue)
+        ax.plot(df_operativa['time'], df_operativa['presion1_psi'], 
+                color='blue', linewidth=1, label='Presión registrada')
+        
+        # Highlight out-of-control points in red
+        out_of_control = (df_operativa['presion1_psi'] > UCL) | (df_operativa['presion1_psi'] < LCL)
+        if out_of_control.any():
+            ax.plot(df_operativa['time'][out_of_control],
+                   df_operativa['presion1_psi'][out_of_control],
+                   color='red', linewidth=2.5, marker='o', markersize=4,
+                   linestyle='None', label='Fuera de control (±3σ)')
+        
+        # Control lines
+        ax.axhline(media, color='black', linestyle='-', linewidth=1, label=f'Media ({media:.1f})')
+        ax.axhline(UCL, color='purple', linestyle='--', linewidth=1, label=f'UCL ({UCL:.1f})')
+        ax.axhline(LCL, color='purple', linestyle='--', linewidth=1, label=f'LCL ({LCL:.1f})')
+        
+        # Operational range lines
+        ax.axhline(presion_max, color='green', linestyle=':', linewidth=1, label='Máx 110 psi')
+        ax.axhline(presion_min, color='orange', linestyle=':', linewidth=1, label='Mín 90 psi')
+        
+        # Colored areas
+        y_min = df_operativa['presion1_psi'].min() - 5
+        y_max = df_operativa['presion1_psi'].max() + 5
+        
+        # Green area: optimal range (90-110)
+        ax.fill_between(df_operativa['time'], presion_min, presion_max, 
+                       color='green', alpha=0.1, label='Rango óptimo')
+        
+        # Yellow areas: warning zones
+        ax.fill_between(df_operativa['time'], LCL, presion_min, 
+                       color='yellow', alpha=0.15, label='Zona de advertencia')
+        ax.fill_between(df_operativa['time'], presion_max, UCL, 
+                       color='yellow', alpha=0.15)
+        
+        # Red areas: out of control zones
+        ax.fill_between(df_operativa['time'], y_min, LCL, 
+                       color='red', alpha=0.1, label='Fuera de control')
+        ax.fill_between(df_operativa['time'], UCL, y_max, 
+                       color='red', alpha=0.1)
+        
+        # Set labels and title
+        ax.set_xlabel('Tiempo', fontsize=12)
+        ax.set_ylabel('Presión (psi)', fontsize=12)
+        ax.set_title(f'Análisis de Control Six Sigma - Cliente {numero_cliente} | Equipo {equipo} | Tanque {tanque}', 
+                    fontsize=14, weight='bold')
+        
+        # Legend and grid
+        ax.legend(loc='upper left', fontsize=10)
+        ax.grid(True, alpha=0.3)
+        
+        # Statistics box
+        stats_text = f"""Estadísticas de Operación:
+• Media: {media:.1f} psi
+• Desv. Estándar: {sigma:.1f} psi
+• Tiempo bajo mínimo: {tiempo_bajo:.1f} min ({porcentaje_tiempo_bajo:.1f}%)
+• Eventos bajo mínimo: {conteo_bajo} ({porcentaje_bajo:.1f}%)
+• Estado almacenamiento: {'✅ Suficiente' if almacenamiento_suficiente else '⚠ Insuficiente'}"""
+        
+        # Add statistics box
+        plt.gcf().text(0.02, 0.98, stats_text, fontsize=10, 
+                      bbox=dict(boxstyle="round,pad=0.5", facecolor='lightblue', alpha=0.8),
+                      verticalalignment='top', transform=ax.transAxes)
+        
+        # Format dates
+        fig.autofmt_xdate()
+        plt.tight_layout()
+        
+        # Save to buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=300, bbox_inches='tight')
+        plt.close(fig)
+        buf.seek(0)
+        
+        return StreamingResponse(buf, media_type="image/png")
+        
+    except Exception as e:
+        logger.error(f"Critical error in pressure_analysis_plot: {str(e)}")
+        return {"error": f"Error interno del servidor: {str(e)}"}
+
 # Functions
+def obtener_datos_presion(numero_cliente: int, linea: int, equipo: int, tanque: str, fecha: str):
+    """Fetch pressure data using stored procedure"""
+    try:
+        conn = mysql.connector.connect(
+        host=DB_HOST, user=DB_USER, password=DB_PASSWORD, database=DB_DATABASE
+    )
+        cursor = conn.cursor(dictionary=True)
+        
+        params = (numero_cliente, linea, equipo, tanque, fecha)
+        cursor.callproc('DataFiltradaConPresion', params)
+        
+        data = []
+        for result in cursor.stored_results():
+            data = result.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        return pd.DataFrame(data)
+    
+    except Exception as e:
+        logger.error(f"Error fetching pressure data: {str(e)}")
+        return pd.DataFrame()
+
+def filtrar_operacion_real(df, presion_min=90, presion_max=110):
+    """Filter data to show only real operation periods"""
+    if df.empty or 'presion1_psi' not in df.columns or 'estado' not in df.columns:
+        return df
+    
+    inicio_operacion = False
+    indices_operacion = []
+    
+    for i in range(len(df)):
+        presion = df['presion1_psi'].iloc[i]
+        estado = df['estado'].iloc[i]
+        
+        if not inicio_operacion and presion <= presion_max:
+            inicio_operacion = True
+        
+        if inicio_operacion:
+            indices_operacion.append(i)
+            if estado == 0:
+                if i+1 == len(df) or all(df['estado'].iloc[i+1:] == 0):
+                    break
+    
+    return df.iloc[indices_operacion].copy() if indices_operacion else df
+
+def calcular_control_limits(df, presion_min=90, presion_max=110):
+    """Calculate Six Sigma control limits"""
+    if df.empty or 'presion1_psi' not in df.columns:
+        return None, None, None, None
+    
+    # Smooth pressure data
+    df['presion_suavizada'] = df['presion1_psi'].rolling(window=3, min_periods=1).mean()
+    
+    media = df['presion_suavizada'].mean()
+    sigma = df['presion_suavizada'].std()
+    
+    UCL = min(media + 3*sigma, presion_max)  # Don't exceed 110
+    LCL = max(media - 3*sigma, presion_min)  # Don't go below 90
+    
+    return media, sigma, UCL, LCL
+
 def obtener_compresores(numero_cliente):
     """Consulta todos los compresores del cliente"""
     conn = mysql.connector.connect(
