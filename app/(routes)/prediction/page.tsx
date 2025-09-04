@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserData } from "@/lib/types";
-import Image from "next/image";
 
 const PredictiveModel = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(true);
   const router = useRouter();
 
   const API_BASE_URL =
@@ -104,18 +104,27 @@ const PredictiveModel = () => {
           <h2 className="text-xl font-semibold mb-4">Predicción de Consumo</h2>
 
           <div className="flex justify-center">
-            <Image
+            {imageLoading && (
+              <div className="flex items-center justify-center w-[800px] h-[600px] border border-gray-300 rounded bg-gray-50">
+                <div className="text-gray-500">Cargando gráfico...</div>
+              </div>
+            )}
+            <img
               src={plotUrl}
               alt="Gráfico predictivo de consumo"
-              width={800}
-              height={600}
-              className="max-w-full h-auto border border-gray-300 rounded"
+              width={1600}
+              height={1000}
+              className={`max-w-full h-auto border border-gray-300 rounded ${
+                imageLoading ? "hidden" : "block"
+              }`}
               onError={() => {
                 console.error("Error loading plot image");
                 setError("Error al cargar el gráfico predictivo");
+                setImageLoading(false);
               }}
               onLoad={() => {
                 console.log("Plot image loaded successfully");
+                setImageLoading(false);
               }}
             />
           </div>
