@@ -683,9 +683,9 @@ def forecast_plot(
 
 @web.get("/pressure/analysis", tags=["Web"])
 def pressure_analysis_plot(
-    p_device_id: int = Query(..., description="Número del cliente"),
-    dispositivo_id: int = Query(..., description="Línea del compresor"),
-    linea: str = Query(..., description="Tanque (A o B)"),
+    p_device_id: int = Query(..., description="ID de presión"),
+    dispositivo_id: int = Query(..., description="ID dispositivo"),
+    linea: str = Query(..., description="Linea del compresor"),
     fecha: str = Query(..., description="Fecha de análisis (YYYY-MM-DD)")
 ):
     """
@@ -693,7 +693,7 @@ def pressure_analysis_plot(
     """
     try:
         # Fetch pressure data
-        df = obtener_datos_presion(p_device_id, dispositivo_id, dispositivo_id, linea, fecha)
+        df = obtener_datos_presion(p_device_id, dispositivo_id, linea, fecha)
 
         if df.empty:
             return {"error": "No se encontraron datos de presión para los parámetros especificados"}
