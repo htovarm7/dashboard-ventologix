@@ -527,29 +527,8 @@ function MainContent() {
 
   return (
     <main className="relative">
-      <div className="absolute top-4 left-4 z-10">
-        <button
-          onClick={() => router.push("/home")}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          Volver
-        </button>
-      </div>
+      <div className="absolute top-4 left-4 z-10"></div>
 
-      {/* Here its the top section*/}
       <div className="flex flex-col items-center mb-2">
         <h1 className="text-4xl font-bold text-center">
           Reporte Diario por Fecha

@@ -39,6 +39,19 @@ const Home = () => {
           console.log("Compresores raw:", parsedData.compresores);
           setNumeroCliente(parsedData.numero_cliente);
           setRol(parsedData.rol);
+
+          // Load selected compresor from session storage
+          const selectedCompresorData =
+            sessionStorage.getItem("selectedCompresor");
+          if (selectedCompresorData) {
+            try {
+              const selected = JSON.parse(selectedCompresorData);
+              setSelectedCompresor(selected);
+            } catch (error) {
+              console.error("Error parsing selectedCompresor:", error);
+            }
+          }
+
           setIsCheckingAuth(false);
           setHasCheckedAuth(true);
           return;
@@ -117,7 +130,6 @@ const Home = () => {
         </button>
       </div>
 
-      <AdminSettings isVisible={rol === 2} />
       <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="bg-white rounded-3xl p-5 shadow-md w-full max-w-4xl">
           <h1 className="text-center text-5xl mb-8">
@@ -156,9 +168,17 @@ const Home = () => {
                         );
                         if (compresor) {
                           setSelectedCompresor(compresor);
+                          // Save to session storage and trigger event
+                          sessionStorage.setItem(
+                            "selectedCompresor",
+                            JSON.stringify(compresor)
+                          );
+                          window.dispatchEvent(new Event("compresorChanged"));
                         }
                       } else {
                         setSelectedCompresor(null);
+                        sessionStorage.removeItem("selectedCompresor");
+                        window.dispatchEvent(new Event("compresorChanged"));
                       }
                     }}
                     className="w-full text-center text-xl max-w-md px-4 py-2 border border-black"
@@ -182,7 +202,12 @@ const Home = () => {
 
           <p className="text-center mt-3 mb-6 text-xl">
             Aquí podrá revisar sus reportes diarios, por fecha específica y
-            semanales
+            semanales.
+            <br />
+            <span className="text-lg text-blue-900 font-medium">
+              💡 Pase el cursor por el lado izquierdo para acceder al menú de
+              navegación
+            </span>
           </p>
           {selectedCompresor ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center">

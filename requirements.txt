@@ -20,6 +20,6 @@ google-auth
 google-auth-oauthlib
 twilio
 pydantic[email]
-# statsmodels
-# pmdarima
-# matplotlib
+statsmodels
+pmdarima
+matplotlib

@@ -75,27 +75,6 @@ const PredictiveModel = () => {
   return (
     <main className="min-h-screen bg-blue-100 p-4">
       <div className="container mx-auto p-4">
-        <div className="absolute top-4 left-4 z-20">
-          <button
-            onClick={() => router.push("/home")}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            Volver
-          </button>
-        </div>
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Modelo Predictivo</h1>
         </div>

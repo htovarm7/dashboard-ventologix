@@ -141,15 +141,14 @@ export default function Page() {
     router,
   ]);
 
-  // ... resto del componente igual
   if (isLoading || isCheckingAuth) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black">
         <Image
           src="/Ventologix_01.png"
           alt="Ventologix Logo"
-          width={720}
-          height={720}
+          width={500}
+          height={500}
           className="animate-bounce mb-4"
           priority
         />
@@ -221,7 +220,7 @@ export default function Page() {
         src="/Ventologix_05.png"
         alt="Ventologix Logo"
         fill
-        className="absolute inset-0 object-cover z-0 opacity-40"
+        className="absolute inset-0 object-cover z-0 opacity-100"
         priority
       />
       <div className="relative z-10 flex flex-col items-center bg-[rgb(0,32,91)] rounded-3xl p-8 shadow-lg">

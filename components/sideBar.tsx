@@ -1,0 +1,482 @@
+"use client";
+import React, { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { Compresor } from "@/types/common";
+
+interface SideBarProps {
+  compresores?: Compresor[];
+  selectedCompresor?: Compresor | null;
+  rol?: number | null;
+}
+
+interface NavigationChild {
+  id: string;
+  title: string;
+  route: string;
+  icon: React.ReactElement;
+  badge?: string;
+  disabled?: boolean;
+}
+
+interface NavigationItem {
+  id: string;
+  title: string;
+  icon: React.ReactElement;
+  route?: string;
+  requiresCompresor: boolean;
+  isExpandable?: boolean;
+  isExpanded?: boolean;
+  setExpanded?: (expanded: boolean) => void;
+  badge?: string;
+  children?: NavigationChild[];
+}
+
+const SideBar: React.FC<SideBarProps> = ({
+  compresores = [],
+  selectedCompresor,
+  rol,
+}) => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isBetaExpanded, setIsBetaExpanded] = useState(false);
+  const [isReportsExpanded, setIsReportsExpanded] = useState(false);
+  const [isGraphsExpanded, setIsGraphsExpanded] = useState(false);
+
+  const navigationItems: NavigationItem[] = [
+    {
+      id: "home",
+      title: "Inicio",
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+          />
+        </svg>
+      ),
+      route: "/home",
+      requiresCompresor: false,
+    },
+    // Solo mostrar Administrador si el rol es 2
+    ...(rol === 2
+      ? [
+          {
+            id: "admin view",
+            title: "Administrador",
+            icon: (
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-3.31 0-6 2.69-6 6h12c0-3.31-2.69-6-6-6z"
+                />
+              </svg>
+            ),
+            requiresCompresor: false,
+            route: "/admin-view",
+          },
+        ]
+      : []),
+    {
+      id: "reports",
+      title: "Reportes",
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
+        </svg>
+      ),
+      isExpandable: true,
+      isExpanded: isReportsExpanded,
+      setExpanded: setIsReportsExpanded,
+      requiresCompresor: true,
+      children: [
+        {
+          id: "reports-daily",
+          title: "Reporte Diario",
+          route: "/reportesD",
+          icon: (
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          ),
+        },
+        {
+          id: "reports-weekly",
+          title: "Reporte Semanal",
+          route: "/reportesS",
+          icon: (
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          ),
+        },
+        {
+          id: "reports-date",
+          title: "Reporte por Semana",
+          route: "/graphsDateWeek",
+          icon: (
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          ),
+        },
+      ],
+    },
+    {
+      id: "beta",
+      title: "BETA",
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M13 10V3L4 14h7v7l9-11h-7z"
+          />
+        </svg>
+      ),
+      isExpandable: true,
+      isExpanded: isBetaExpanded,
+      setExpanded: setIsBetaExpanded,
+      requiresCompresor: true,
+      badge: "BETA",
+      children: [
+        {
+          id: "prediction",
+          title: "Consumo Predictivo",
+          route: "/prediction",
+          icon: (
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+              />
+            </svg>
+          ),
+          badge: "NUEVO",
+        },
+        {
+          id: "pressure-prediction",
+          title: "Presión Predictiva",
+          route: "/prediction",
+          icon: (
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+              />
+            </svg>
+          ),
+          badge: "PRÓXIMAMENTE",
+          disabled: true,
+        },
+      ],
+    },
+  ];
+
+  const handleNavigation = (route: string, disabled = false) => {
+    if (disabled) return;
+    router.push(route);
+  };
+
+  const isActiveRoute = (route: string) => {
+    return pathname === route;
+  };
+
+  const canAccessRoute = (item: any) => {
+    if (!item.requiresCompresor) return true;
+    return selectedCompresor !== null;
+  };
+
+  return (
+    <>
+      <button
+        className="fixed top-4 left-4 z-50 md:hidden bg-slate-900 text-white p-2 rounded-lg shadow-lg"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 6h16M4 12h16M4 18h16"
+          />
+        </svg>
+      </button>
+
+      <div
+        className="fixed left-0 top-0 w-4 h-full z-40 bg-transparent hidden md:block"
+        onMouseEnter={() => setIsExpanded(true)}
+      />
+
+      <div
+        className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 to-slate-800 text-white z-50 transition-all duration-300 ease-in-out ${
+          isExpanded ? "w-80 shadow-2xl" : "w-0 md:w-0"
+        } overflow-hidden`}
+        onMouseLeave={() => {
+          if (window.innerWidth >= 768) {
+            setIsExpanded(false);
+          }
+        }}
+      >
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="p-6 border-b border-slate-700">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Ventologix</h2>
+                <p className="text-sm text-slate-400">Dashboard</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Compresor Info */}
+          {selectedCompresor && (
+            <div className="p-4 bg-slate-800/50 border-b border-slate-700">
+              <div className="text-sm text-slate-400 mb-1">
+                Compresor Activo:
+              </div>
+              <div className="text-white font-medium truncate">
+                {rol === 0
+                  ? `${selectedCompresor.nombre_cliente} : ${selectedCompresor.alias}`
+                  : selectedCompresor.alias}
+              </div>
+            </div>
+          )}
+
+          <nav className="flex-1 overflow-y-auto py-4">
+            <div className="px-4 space-y-2">
+              {navigationItems.map((item) => (
+                <div key={item.id}>
+                  <div
+                    className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                      item.route && isActiveRoute(item.route)
+                        ? "bg-blue-600 text-white shadow-lg"
+                        : canAccessRoute(item)
+                        ? "hover:bg-slate-700 text-slate-200"
+                        : "text-slate-500 cursor-not-allowed"
+                    } ${
+                      !canAccessRoute(item) && item.requiresCompresor
+                        ? "opacity-50"
+                        : ""
+                    }`}
+                    onClick={() => {
+                      if (item.isExpandable) {
+                        item.setExpanded?.(!item.isExpanded);
+                      } else if (item.route && canAccessRoute(item)) {
+                        handleNavigation(item.route);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      {item.icon}
+                      <span className="font-medium">{item.title}</span>
+                      {item.badge && (
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full font-semibold ${
+                            item.badge === "BETA"
+                              ? "bg-purple-600 text-white"
+                              : item.badge === "NUEVO"
+                              ? "bg-green-600 text-white"
+                              : "bg-yellow-600 text-white"
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                    {item.isExpandable && (
+                      <div className="transition-transform duration-200">
+                        {item.isExpanded ? (
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 9l-7 7-7-7"
+                            />
+                          </svg>
+                        ) : (
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {item.isExpandable && item.children && (
+                    <div
+                      className={`overflow-hidden transition-all duration-300 ${
+                        item.isExpanded
+                          ? "max-h-96 opacity-100"
+                          : "max-h-0 opacity-0"
+                      }`}
+                    >
+                      <div className="ml-4 mt-2 space-y-1">
+                        {item.children.map((child) => (
+                          <div
+                            key={child.id}
+                            className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all duration-200 ${
+                              isActiveRoute(child.route)
+                                ? "bg-blue-500 text-white"
+                                : child.disabled
+                                ? "text-slate-500 cursor-not-allowed"
+                                : canAccessRoute(item)
+                                ? "hover:bg-slate-600 text-slate-300"
+                                : "text-slate-500 cursor-not-allowed opacity-50"
+                            }`}
+                            onClick={() => {
+                              if (!child.disabled && canAccessRoute(item)) {
+                                handleNavigation(child.route);
+                              }
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              {child.icon}
+                              <span className="text-sm">{child.title}</span>
+                              {child.badge && (
+                                <span
+                                  className={`px-1.5 py-0.5 text-xs rounded font-semibold ${
+                                    child.badge === "NUEVO"
+                                      ? "bg-green-600 text-white"
+                                      : "bg-yellow-600 text-white"
+                                  }`}
+                                >
+                                  {child.badge}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </nav>
+
+          {!selectedCompresor && (
+            <div className="p-4 border-t border-slate-700">
+              <div className="text-xs text-slate-400 text-center">
+                Seleccione un compresor en el inicio para acceder a todas las
+                funciones
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default SideBar;

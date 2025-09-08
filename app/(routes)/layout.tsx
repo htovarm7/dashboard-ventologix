@@ -1,21 +1,85 @@
-import type { Metadata } from "next";
-// import { Outfit } from "next/font/google";
-
-// const outfit = Outfit({
-//   subsets: ["latin"],
-//   display: "swap",
-//   variable: "--font-outfit",
-// });
-
-export const metadata: Metadata = {
-  title: "Dashboard de Ventologix",
-  icons: { icon: "/favicon.ico" },
-};
+"use client";
+import { useEffect, useState } from "react";
+import SideBar from "@/components/sideBar";
+import { Compresor } from "@/types/common";
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  const [compresores, setCompresores] = useState<Compresor[]>([]);
+  const [selectedCompresor, setSelectedCompresor] = useState<Compresor | null>(
+    null
+  );
+  const [rol, setRol] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Get user data from session storage
+    const loadUserData = () => {
+      const userData = sessionStorage.getItem("userData");
+      if (userData) {
+        try {
+          const parsedData = JSON.parse(userData);
+          setCompresores(parsedData.compresores || []);
+          setRol(parsedData.rol);
+        } catch (error) {
+          console.error("Error parsing userData from sessionStorage:", error);
+        }
+      }
+    };
+
+    // Get selected compresor from session storage
+    const loadSelectedCompresor = () => {
+      const selectedCompresorData = sessionStorage.getItem("selectedCompresor");
+      if (selectedCompresorData) {
+        try {
+          const selected = JSON.parse(selectedCompresorData);
+          setSelectedCompresor(selected);
+        } catch (error) {
+          console.error(
+            "Error parsing selectedCompresor from sessionStorage:",
+            error
+          );
+        }
+      }
+    };
+
+    loadUserData();
+    loadSelectedCompresor();
+
+    // Listen for storage changes to update when compresor selection changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "selectedCompresor") {
+        loadSelectedCompresor();
+      } else if (e.key === "userData") {
+        loadUserData();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    // Also listen for custom events for same-window updates
+    const handleCompresorChange = () => {
+      loadSelectedCompresor();
+    };
+
+    window.addEventListener("compresorChanged", handleCompresorChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("compresorChanged", handleCompresorChange);
+    };
+  }, []);
+
+  return (
+    <>
+      <SideBar
+        compresores={compresores}
+        selectedCompresor={selectedCompresor}
+        rol={rol}
+      />
+      {children}
+    </>
+  );
 }
