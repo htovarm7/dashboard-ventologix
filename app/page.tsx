@@ -116,11 +116,13 @@ export default function Page() {
   useEffect(() => {
     if (isLoading) return;
 
+    // Si el usuario está autenticado y tiene datos válidos, redirigir inmediatamente a home
     if (isAuthenticated && sessionStorage.getItem("userData")) {
       router.push("/home");
       return;
     }
 
+    // Si el usuario está autenticado pero no tiene datos, verificar autorización
     if (
       isAuthenticated &&
       user &&
@@ -245,21 +247,13 @@ export default function Page() {
             Log In
           </button>
         ) : (
-          <>
-            <p className="text-white mb-2">
+          <div className="text-white text-center">
+            <p className="mb-4">
               Bienvenido,{" "}
               {user?.name || user?.nickname || user?.username || user?.email}
             </p>
-            <button
-              className="bg-red-500 text-white p-2 rounded"
-              onClick={() => {
-                sessionStorage.removeItem("userData");
-                logout();
-              }}
-            >
-              Log Out
-            </button>
-          </>
+            <p className="text-lg animate-pulse">Redirigiendo...</p>
+          </div>
         )}
       </div>
     </div>
