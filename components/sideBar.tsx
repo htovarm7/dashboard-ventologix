@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Compresor } from "@/types/common";
+import Image from "next/image";
 
 interface SideBarProps {
   compresores?: Compresor[];
@@ -65,7 +66,6 @@ const SideBar: React.FC<SideBarProps> = ({
       route: "/home",
       requiresCompresor: false,
     },
-    // Solo mostrar Administrador si el rol es 2
     ...(rol === 2
       ? [
           {
@@ -301,20 +301,13 @@ const SideBar: React.FC<SideBarProps> = ({
           {/* Header */}
           <div className="p-6 border-b border-slate-700">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
+              <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+                <Image
+                  src={"/Ventologix_05.png"}
+                  alt="Logo"
+                  width={24}
+                  height={24}
+                />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">Ventologix</h2>
