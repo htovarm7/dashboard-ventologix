@@ -234,46 +234,89 @@
       ]
     },
     {
-      "email": ["juan.zamora@daltile.com.mx","adrian.ostos@daltile.com.mx"],
-      "cc": ["octavio.murillo@ventologix.com","andres.mirazo@ventologix.com"],
+      "email": ["juan.zamora@daltile.com.mx", "adrian.ostos@daltile.com.mx"],
+      "cc": ["octavio.murillo@ventologix.com", "andres.mirazo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
       "emailBody": "<p>Estimado Ing. Juan :</p><p>Soy <strong>VTO 0017</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>'ACM-0002'</strong> instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
       "files": [
-      {
-        "fileName": "Reporte Diario Daltile ACM-0002 {fecha}",
-        "dateOffset": -1
-      }
+        {
+          "fileName": "Reporte Diario Daltile ACM-0002 {fecha}",
+          "dateOffset": -1
+        }
       ]
     },
     {
-      "email": ["juan.zamora@daltile.com.mx","adrian.ostos@daltile.com.mx"],
-      "cc": ["octavio.murillo@ventologix.com","andres.mirazo@ventologix.com"],
+      "email": ["juan.zamora@daltile.com.mx", "adrian.ostos@daltile.com.mx"],
+      "cc": ["octavio.murillo@ventologix.com", "andres.mirazo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
       "emailBody": "<p>Estimado Ing. Juan :</p><p>Soy <strong>VTO 0018</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor <strong>'ACM-0004'</strong> instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
       "files": [
-      {
-        "fileName": "Reporte Diario Daltile ACM-0004 {fecha}",
-        "dateOffset": -1
-      }
+        {
+          "fileName": "Reporte Diario Daltile ACM-0004 {fecha}",
+          "dateOffset": -1
+        }
       ]
     },
     {
-      "email": ["juan.zamora@daltile.com.mx","adrian.ostos@daltile.com.mx"],
-      "cc": ["octavio.murillo@ventologix.com","andres.mirazo@ventologix.com"],
+      "email": ["khernandezg@bertran.com.mx", "asantanan@bertran.com.mx"],
+      "cc": ["octavio.murillo@ventologix.com", "andres.mirazo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
       "emailBody": "<p>Estimado Ing. Juan :</p><p>Soy <strong>VTO 0019</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de sus compresores <strong>'ACM-0005 y ACM-0006'</strong> instalados en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
       "files": [
-      {
-        "fileName": "Reporte Diario Daltile ACM-0005 {fecha}",
-        "dateOffset": -1
-      },
-      {
-        "fileName": "Reporte Diario Daltile ACM-0006 {fecha}",
-        "dateOffset": -1
-      }
+        {
+          "fileName": "Reporte Diario Daltile ACM-0005 {fecha}",
+          "dateOffset": -1
+        },
+        {
+          "fileName": "Reporte Diario Daltile ACM-0006 {fecha}",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["khernandezg@bertran.com.mx", "asantanan@bertran.com.mx"],
+      "cc": ["octavio.murillo@ventologix.com", "andres.mirazo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>Estimado Ingeniero, </p><p>Soy <strong>VTO 0020</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong>, donde serán analizados por <strong>IA</strong>. Su IQgineer asignado atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario Caleras Bertran Quincy {fecha}",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["khernandezg@bertran.com.mx", "asantanan@bertran.com.mx"],
+      "cc": ["octavio.murillo@ventologix.com", "andres.mirazo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>Estimado Ingeniero, </p><p>Soy <strong>VTO 0021</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de sus compresores instalados en su planta, del cual anexo los <strong>reportes DIARIOS</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong>. Su IQgineer asignado atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario Caleras Bertran Atlas 2 {fecha}",
+          "dateOffset": -1
+        },
+        {
+          "fileName": "Reporte Diario Caleras Bertran Atlas 1 {fecha}",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["khernandezg@bertran.com.mx", "asantanan@bertran.com.mx"],
+      "cc": ["octavio.murillo@ventologix.com", "andres.mirazo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>Estimado Ingeniero, </p><p>Soy <strong>VTO 0022</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong>. Su IQgineer asignado atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario Caleras Bertran Kaiser {fecha}",
+          "dateOffset": -1
+        }
       ]
     }
   ],

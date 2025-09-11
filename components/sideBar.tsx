@@ -1,7 +1,9 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { useAuth0 } from "@auth0/auth0-react";
 import { Compresor } from "@/types/common";
+import Image from "next/image";
 
 interface SideBarProps {
   compresores?: Compresor[];
@@ -31,17 +33,21 @@ interface NavigationItem {
   children?: NavigationChild[];
 }
 
-const SideBar: React.FC<SideBarProps> = ({
-  compresores = [],
-  selectedCompresor,
-  rol,
-}) => {
+const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
   const router = useRouter();
   const pathname = usePathname();
+  const { logout } = useAuth0();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isBetaExpanded, setIsBetaExpanded] = useState(false);
   const [isReportsExpanded, setIsReportsExpanded] = useState(false);
-  const [isGraphsExpanded, setIsGraphsExpanded] = useState(false);
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("userData");
+    sessionStorage.removeItem("selectedCompresor");
+    logout({
+      logoutParams: { returnTo: window.location.origin },
+    });
+  };
 
   const navigationItems: NavigationItem[] = [
     {
@@ -65,7 +71,6 @@ const SideBar: React.FC<SideBarProps> = ({
       route: "/home",
       requiresCompresor: false,
     },
-    // Solo mostrar Administrador si el rol es 2
     ...(rol === 2
       ? [
           {
@@ -256,7 +261,7 @@ const SideBar: React.FC<SideBarProps> = ({
     return pathname === route;
   };
 
-  const canAccessRoute = (item: any) => {
+  const canAccessRoute = (item: NavigationItem) => {
     if (!item.requiresCompresor) return true;
     return selectedCompresor !== null;
   };
@@ -282,14 +287,60 @@ const SideBar: React.FC<SideBarProps> = ({
         </svg>
       </button>
 
+      {!isExpanded && (
+        <div className="fixed left-0 top-1/2 transform -translate-y-1/2 z-40 hidden md:block">
+          <div
+            className="bg-gradient-to-r from-slate-800 to-slate-700 text-white px-4 py-10 rounded-r-xl shadow-xl border-r-2 border-slate-600 hover:from-slate-700 hover:to-slate-600 transition-all duration-300 cursor-pointer group"
+            onMouseEnter={() => setIsExpanded(true)}
+          >
+            <div className="flex flex-col items-center gap-4">
+              {/* Icono de menú */}
+              <svg
+                className="w-7 h-7 text-slate-300 group-hover:text-white transition-colors"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+
+              {/* Texto vertical "MENÚ" */}
+              <div className="transform rotate-90 text-base font-semibold text-slate-400 group-hover:text-slate-200 transition-colors whitespace-nowrap tracking-widest">
+                MENÚ
+              </div>
+
+              {/* Flecha indicativa */}
+              <svg
+                className="w-6 h-6 text-slate-400 group-hover:text-slate-200 transition-all group-hover:translate-x-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div
-        className="fixed left-0 top-0 w-4 h-full z-40 bg-transparent hidden md:block"
+        className="fixed left-0 top-0 w-6 h-full z-40 bg-transparent hidden md:block"
         onMouseEnter={() => setIsExpanded(true)}
       />
 
       <div
         className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 to-slate-800 text-white z-50 transition-all duration-300 ease-in-out ${
-          isExpanded ? "w-80 shadow-2xl" : "w-0 md:w-0"
+          isExpanded ? "w-80 shadow-xl" : "w-0 md:w-0"
         } overflow-hidden`}
         onMouseLeave={() => {
           if (window.innerWidth >= 768) {
@@ -301,20 +352,13 @@ const SideBar: React.FC<SideBarProps> = ({
           {/* Header */}
           <div className="p-6 border-b border-slate-700">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
+              <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+                <Image
+                  src={"/Ventologix_05.png"}
+                  alt="Logo"
+                  width={24}
+                  height={24}
+                />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">Ventologix</h2>
@@ -322,20 +366,6 @@ const SideBar: React.FC<SideBarProps> = ({
               </div>
             </div>
           </div>
-
-          {/* Compresor Info */}
-          {selectedCompresor && (
-            <div className="p-4 bg-slate-800/50 border-b border-slate-700">
-              <div className="text-sm text-slate-400 mb-1">
-                Compresor Activo:
-              </div>
-              <div className="text-white font-medium truncate">
-                {rol === 0
-                  ? `${selectedCompresor.nombre_cliente} : ${selectedCompresor.alias}`
-                  : selectedCompresor.alias}
-              </div>
-            </div>
-          )}
 
           <nav className="flex-1 overflow-y-auto py-4">
             <div className="px-4 space-y-2">
@@ -473,6 +503,29 @@ const SideBar: React.FC<SideBarProps> = ({
               </div>
             </div>
           )}
+
+          {/* Botón de Logout */}
+          <div className="p-4 border-t border-slate-700">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 p-3 rounded-md bg-red-600 hover:bg-red-700 text-white transition-all duration-200"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
+              </svg>
+              <span>Cerrar Sesión</span>
+            </button>
+          </div>
         </div>
       </div>
     </>
