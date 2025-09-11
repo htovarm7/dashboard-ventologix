@@ -49,14 +49,6 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
     });
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("userData");
-    sessionStorage.removeItem("selectedCompresor");
-    logout({
-      logoutParams: { returnTo: window.location.origin },
-    });
-  };
-
   const navigationItems: NavigationItem[] = [
     {
       id: "home",

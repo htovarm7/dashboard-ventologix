@@ -118,7 +118,7 @@ def get_ingenieros(cliente: int = Query(..., description="Número de cliente")):
         )
         cursor = conn.cursor(dictionary=True)
 
-        # Query que filtra por número de cliente
+        # Query que filtra por número de cliente y solo obtiene compresores asignados específicamente
         query = """
             SELECT 
                 e.id, 
@@ -130,8 +130,8 @@ def get_ingenieros(cliente: int = Query(..., description="Número de cliente")):
                 e.email_monthly,
                 GROUP_CONCAT(DISTINCT c.Alias) as compressor_names
             FROM ingenieros e
-            LEFT JOIN clientes cl ON e.numeroCliente = cl.numero_cliente
-            LEFT JOIN compresores c ON cl.id_cliente = c.id_cliente
+            LEFT JOIN ingeniero_compresor ic ON e.id = ic.ingeniero_id
+            LEFT JOIN compresores c ON ic.compresor_id = c.id
             WHERE e.numeroCliente = %s
             GROUP BY e.id, e.name, e.email, e.numeroCliente, e.email_daily, e.email_weekly, e.email_monthly
             ORDER BY e.name;
@@ -481,6 +481,61 @@ def update_email_preferences(
                 "daily": daily,
                 "weekly": weekly,
                 "monthly": monthly
+            }
+        }
+
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating email preferences: {str(e)}")
+
+# PATCH - Actualizar preferencias de email (endpoint alternativo para PATCH requests)
+@web.patch("/ingenieros/{ingeniero_id}/preferences", tags=["CRUD Admin"])
+def patch_email_preferences(
+    ingeniero_id: int,
+    daily: Optional[bool] = Body(None),
+    weekly: Optional[bool] = Body(None),
+    monthly: Optional[bool] = Body(None)
+):
+    """Actualiza las preferencias de email de un ingeniero (PATCH method)"""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        # Verificar si el ingeniero existe
+        cursor.execute("SELECT email_daily, email_weekly, email_monthly FROM ingenieros WHERE id = %s", (ingeniero_id,))
+        current_prefs = cursor.fetchone()
+        if not current_prefs:
+            raise HTTPException(status_code=404, detail="Ingeniero no encontrado")
+
+        # Usar valores actuales si no se proporcionan nuevos
+        new_daily = daily if daily is not None else current_prefs['email_daily']
+        new_weekly = weekly if weekly is not None else current_prefs['email_weekly']
+        new_monthly = monthly if monthly is not None else current_prefs['email_monthly']
+
+        # Actualizar preferencias
+        cursor.execute(
+            """UPDATE ingenieros 
+               SET email_daily = %s, email_weekly = %s, email_monthly = %s 
+               WHERE id = %s""",
+            (new_daily, new_weekly, new_monthly, ingeniero_id)
+        )
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return {
+            "id": str(ingeniero_id),
+            "emailPreferences": {
+                "daily": new_daily,
+                "weekly": new_weekly,
+                "monthly": new_monthly
             }
         }
 

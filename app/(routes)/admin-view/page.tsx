@@ -67,6 +67,20 @@ const AdminView = () => {
       });
       if (response.ok) {
         const engineersData = await response.json();
+        console.log("Engineers data received from backend:", engineersData);
+        engineersData.forEach((engineer: any, index: number) => {
+          console.log(`Engineer ${index + 1}:`, engineer);
+          console.log(`  - Name: ${engineer.name}`);
+          console.log(`  - Email: ${engineer.email}`);
+          console.log(`  - Compressors:`, engineer.compressors);
+          console.log(`  - Compressors type:`, typeof engineer.compressors);
+          if (Array.isArray(engineer.compressors)) {
+            console.log(`  - Compressors length:`, engineer.compressors.length);
+            engineer.compressors.forEach((comp: any, compIndex: number) => {
+              console.log(`    - Compressor ${compIndex}:`, comp, typeof comp);
+            });
+          }
+        });
         setEngineers(engineersData);
       } else {
         console.error(
@@ -108,12 +122,26 @@ const AdminView = () => {
   };
 
   const handleCompressorToggle = (compressorId: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      compressors: prev.compressors.includes(compressorId)
+    console.log("Toggling compressor:", compressorId);
+    console.log("Current selected compressors:", formData.compressors);
+
+    setFormData((prev) => {
+      const newCompressors = prev.compressors.includes(compressorId)
         ? prev.compressors.filter((id) => id !== compressorId)
-        : [...prev.compressors, compressorId],
-    }));
+        : [...prev.compressors, compressorId];
+
+      console.log("New selected compressors:", newCompressors);
+      return {
+        ...prev,
+        compressors: newCompressors,
+      };
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEngineer(null);
+    setFormData({ name: "", email: "", compressors: [] });
+    setIsDropdownOpen(false);
   };
 
   const getSelectedCompressorNames = () => {
@@ -167,7 +195,15 @@ const AdminView = () => {
         numeroCliente: data.numero_cliente,
       };
 
-      console.log("Sending engineer data:", engineerData);
+      console.log("=== SENDING ENGINEER DATA ===");
+      console.log("Form data compressors:", formData.compressors);
+      console.log("Form data compressors length:", formData.compressors.length);
+      console.log("Form data compressors type:", typeof formData.compressors);
+      console.log("Complete engineer data:", engineerData);
+      console.log("Is editing?", !!editingEngineer);
+      if (editingEngineer) {
+        console.log("Editing engineer:", editingEngineer);
+      }
 
       const endpoint = editingEngineer
         ? `http://127.0.0.1:8000/web/ingenieros/${editingEngineer.id}`
@@ -187,7 +223,12 @@ const AdminView = () => {
 
       if (response.ok) {
         const result = await response.json();
+        console.log("=== RESPONSE FROM BACKEND ===");
         console.log("Engineer created/updated successfully:", result);
+        console.log(
+          "Backend returned compressors:",
+          result.compressors || "No compressors in response"
+        );
 
         setFormData({ name: "", email: "", compressors: [] });
         setEditingEngineer(null);
@@ -217,28 +258,40 @@ const AdminView = () => {
   };
 
   const handleEdit = (engineer: Engineer) => {
+    console.log("Editing engineer:", engineer);
+    console.log("Engineer compressors:", engineer.compressors);
+
     setEditingEngineer(engineer);
 
     let compressorIds: string[] = [];
 
-    if (
-      engineer.compressors.length > 0 &&
-      typeof engineer.compressors[0] === "object"
-    ) {
+    // Verificar si hay compresores asignados
+    if (!engineer.compressors || engineer.compressors.length === 0) {
+      console.log("No compressors assigned to this engineer");
+      compressorIds = [];
+    } else if (typeof engineer.compressors[0] === "object") {
+      // Si los compresores vienen como objetos con id y alias
       compressorIds = (
         engineer.compressors as Array<{ id: string; alias: string }>
       ).map((comp) => comp.id);
+      console.log("Compressor IDs from objects:", compressorIds);
     } else {
+      // Si los compresores vienen como strings (nombres/alias)
       const stringCompressors = engineer.compressors as string[];
+      console.log("String compressors:", stringCompressors);
+
       stringCompressors.forEach((compressorName) => {
         const compressorByAlias = compressors.find(
-          (comp) => comp.alias === compressorName
+          (comp) => comp.alias === compressorName || comp.id === compressorName
         );
         if (compressorByAlias) {
           compressorIds.push(compressorByAlias.id);
         }
       });
+      console.log("Mapped compressor IDs:", compressorIds);
     }
+
+    console.log("Final compressor IDs to set:", compressorIds);
 
     setFormData({
       name: engineer.name,
@@ -353,7 +406,15 @@ const AdminView = () => {
 
       <div className="bg-white rounded-lg shadow-md">
         <div className="p-6 border-b border-blue-200">
-          <h2 className="text-2xl font-semibold mb-4">Gestión de Ingenieros</h2>
+          <h2 className="text-2xl font-semibold mb-4">
+            {editingEngineer ? (
+              <span className="text-orange-600">
+                Editando Ingeniero: {editingEngineer.name}
+              </span>
+            ) : (
+              "Gestión de Ingenieros"
+            )}
+          </h2>
           <form
             onSubmit={handleSubmit}
             className="flex flex-wrap items-end gap-4"
@@ -454,28 +515,52 @@ const AdminView = () => {
                 </p>
               )}
             </div>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex items-center gap-2"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex items-center gap-2"
               >
-                {editingEngineer ? (
-                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                ) : (
-                  <path
-                    fillRule="evenodd"
-                    d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                    clipRule="evenodd"
-                  />
-                )}
-              </svg>
-              {editingEngineer ? "Actualizar" : "Agregar"} Ingeniero
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  {editingEngineer ? (
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  ) : (
+                    <path
+                      fillRule="evenodd"
+                      d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                      clipRule="evenodd"
+                    />
+                  )}
+                </svg>
+                {editingEngineer ? "Actualizar" : "Agregar"} Ingeniero
+              </button>
+
+              {editingEngineer && (
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors flex items-center gap-2"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Cancelar
+                </button>
+              )}
+            </div>
           </form>
         </div>
 
