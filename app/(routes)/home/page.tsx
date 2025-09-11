@@ -17,7 +17,6 @@ const Home = () => {
   const [selectedCompresor, setSelectedCompresor] = useState<Compresor | null>(
     null
   );
-  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   useEffect(() => {
     const verifyAndLoadUser = async () => {
@@ -46,7 +45,6 @@ const Home = () => {
             try {
               const selected = JSON.parse(selectedCompresorData);
               setSelectedCompresor(selected);
-              setIsPanelOpen(true); // Abrir el panel si hay un compresor seleccionado
             } catch (error) {
               console.error("Error parsing selectedCompresor:", error);
             }
@@ -169,8 +167,6 @@ const Home = () => {
                         );
                         if (compresor) {
                           setSelectedCompresor(compresor);
-                          setIsPanelOpen(true); // Abrir el panel automáticamente
-                          // Save to session storage and trigger event
                           sessionStorage.setItem(
                             "selectedCompresor",
                             JSON.stringify(compresor)
@@ -179,7 +175,6 @@ const Home = () => {
                         }
                       } else {
                         setSelectedCompresor(null);
-                        setIsPanelOpen(false); // Cerrar el panel
                         sessionStorage.removeItem("selectedCompresor");
                         window.dispatchEvent(new Event("compresorChanged"));
                       }

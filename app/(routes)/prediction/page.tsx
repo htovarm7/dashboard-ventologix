@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserData } from "@/lib/types";
+import Image from "next/image";
 
 const PredictiveModel = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -88,7 +89,7 @@ const PredictiveModel = () => {
                 <div className="text-gray-500">Cargando gráfico...</div>
               </div>
             )}
-            <img
+            <Image
               src={plotUrl}
               alt="Gráfico predictivo de consumo"
               width={1600}

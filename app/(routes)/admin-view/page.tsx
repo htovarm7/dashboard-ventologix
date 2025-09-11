@@ -67,8 +67,7 @@ const AdminView = () => {
       });
       if (response.ok) {
         const engineersData = await response.json();
-        console.log("Engineers data received from backend:", engineersData);
-        engineersData.forEach((engineer: any, index: number) => {
+        engineersData.forEach((engineer: Engineer, index: number) => {
           console.log(`Engineer ${index + 1}:`, engineer);
           console.log(`  - Name: ${engineer.name}`);
           console.log(`  - Email: ${engineer.email}`);
@@ -76,9 +75,18 @@ const AdminView = () => {
           console.log(`  - Compressors type:`, typeof engineer.compressors);
           if (Array.isArray(engineer.compressors)) {
             console.log(`  - Compressors length:`, engineer.compressors.length);
-            engineer.compressors.forEach((comp: any, compIndex: number) => {
-              console.log(`    - Compressor ${compIndex}:`, comp, typeof comp);
-            });
+            engineer.compressors.forEach(
+              (
+                comp: string | { id: string; alias: string },
+                compIndex: number
+              ) => {
+                console.log(
+                  `    - Compressor ${compIndex}:`,
+                  comp,
+                  typeof comp
+                );
+              }
+            );
           }
         });
         setEngineers(engineersData);
