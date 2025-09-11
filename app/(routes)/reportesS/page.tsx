@@ -93,7 +93,8 @@ function MainContent() {
               {
                 headers: {
                   accept: "application/json",
-                  "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                  "x-internal-api-key":
+                    process.env.NEXT_PUBLIC_API_SECRET || "",
                 },
               }
             );
@@ -105,7 +106,8 @@ function MainContent() {
               {
                 headers: {
                   accept: "application/json",
-                  "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                  "x-internal-api-key":
+                    process.env.NEXT_PUBLIC_API_SECRET || "",
                 },
               }
             );
@@ -117,7 +119,8 @@ function MainContent() {
               {
                 headers: {
                   accept: "application/json",
-                  "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                  "x-internal-api-key":
+                    process.env.NEXT_PUBLIC_API_SECRET || "",
                 },
               }
             );
@@ -129,7 +132,8 @@ function MainContent() {
               {
                 headers: {
                   accept: "application/json",
-                  "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                  "x-internal-api-key":
+                    process.env.NEXT_PUBLIC_API_SECRET || "",
                 },
               }
             );
@@ -141,7 +145,8 @@ function MainContent() {
               {
                 headers: {
                   accept: "application/json",
-                  "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                  "x-internal-api-key":
+                    process.env.NEXT_PUBLIC_API_SECRET || "",
                 },
               }
             );
@@ -236,6 +241,11 @@ function MainContent() {
       window.status = "data-error";
     }
   }, []);
+
+  const hpEquivalente =
+    ((summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) /
+      (compressorData?.hp ?? 1)) *
+      100 || 0;
 
   useEffect(() => {
     const id = searchParams.get("id_cliente");
@@ -391,29 +401,23 @@ function MainContent() {
         pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
           formatter: () =>
-            `${
-              summaryData?.semana_actual?.promedio_hp_equivalente !== undefined
-                ? summaryData?.semana_actual?.promedio_hp_equivalente
-                : 0
-            }%`,
+            `${hpEquivalente !== undefined ? hpEquivalente.toFixed(2) : 0}`,
           fontSize: 18,
           offsetCenter: [0, "30%"],
           color:
-            (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) > 110
+            (hpEquivalente ?? 0) > 110
               ? "red"
-              : (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) > 99
+              : (hpEquivalente ?? 0) > 99
               ? "black"
-              : (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) > 92
+              : (hpEquivalente ?? 0) > 92
               ? "#418FDE"
-              : (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) > 79
+              : (hpEquivalente ?? 0) > 79
               ? "green"
-              : (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) > 64
+              : (hpEquivalente ?? 0) > 64
               ? "yellow"
               : "red",
         },
-        data: [
-          { value: summaryData?.semana_actual?.promedio_hp_equivalente ?? 0 },
-        ],
+        data: [{ value: hpEquivalente.toFixed(2) ?? 0 }],
       },
     ],
   };
