@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import SideBar from "@/components/sideBar";
 import { Compresor } from "@/types/common";
 
@@ -8,11 +9,15 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const [compresores, setCompresores] = useState<Compresor[]>([]);
   const [selectedCompresor, setSelectedCompresor] = useState<Compresor | null>(
     null
   );
   const [rol, setRol] = useState<number | null>(null);
+
+  // Check if current route should hide sidebar
+  const hideSidebar = pathname === "/reportesD" || pathname === "/reportesS";
 
   useEffect(() => {
     // Get user data from session storage
@@ -74,11 +79,13 @@ export default function RootLayout({
 
   return (
     <>
-      <SideBar
-        compresores={compresores}
-        selectedCompresor={selectedCompresor}
-        rol={rol}
-      />
+      {!hideSidebar && (
+        <SideBar
+          compresores={compresores}
+          selectedCompresor={selectedCompresor}
+          rol={rol}
+        />
+      )}
       {children}
     </>
   );

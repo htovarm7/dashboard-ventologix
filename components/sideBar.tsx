@@ -269,11 +269,11 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
   return (
     <>
       <button
-        className="fixed top-4 left-4 z-50 md:hidden bg-slate-900 text-white p-2 rounded-lg shadow-lg"
+        className="fixed top-4 left-4 z-50 md:hidden bg-slate-900 text-white p-1.5 rounded-lg shadow-lg"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <svg
-          className="w-6 h-6"
+          className="w-5 h-5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -294,7 +294,6 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
             onMouseEnter={() => setIsExpanded(true)}
           >
             <div className="flex flex-col items-center gap-4">
-              {/* Icono de menú */}
               <svg
                 className="w-7 h-7 text-slate-300 group-hover:text-white transition-colors"
                 fill="none"
@@ -309,12 +308,10 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
                 />
               </svg>
 
-              {/* Texto vertical "MENÚ" */}
               <div className="transform rotate-90 text-base font-semibold text-slate-400 group-hover:text-slate-200 transition-colors whitespace-nowrap tracking-widest">
                 MENÚ
               </div>
 
-              {/* Flecha indicativa */}
               <svg
                 className="w-6 h-6 text-slate-400 group-hover:text-slate-200 transition-all group-hover:translate-x-2"
                 fill="none"
@@ -349,7 +346,6 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
         }}
       >
         <div className="flex flex-col h-full">
-          {/* Header */}
           <div className="p-6 border-b border-slate-700">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">

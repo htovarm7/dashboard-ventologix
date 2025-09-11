@@ -4,7 +4,6 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
 import DateReportDropdown from "@/components/DateReportDropdown";
 import { Compresor } from "@/types/common";
-import AdminSettings from "@/components/AdminSettings";
 
 const Home = () => {
   const { user, isAuthenticated, isLoading, logout } = useAuth0();
@@ -18,6 +17,7 @@ const Home = () => {
   const [selectedCompresor, setSelectedCompresor] = useState<Compresor | null>(
     null
   );
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   useEffect(() => {
     const verifyAndLoadUser = async () => {
@@ -40,13 +40,13 @@ const Home = () => {
           setNumeroCliente(parsedData.numero_cliente);
           setRol(parsedData.rol);
 
-          // Load selected compresor from session storage
           const selectedCompresorData =
             sessionStorage.getItem("selectedCompresor");
           if (selectedCompresorData) {
             try {
               const selected = JSON.parse(selectedCompresorData);
               setSelectedCompresor(selected);
+              setIsPanelOpen(true); // Abrir el panel si hay un compresor seleccionado
             } catch (error) {
               console.error("Error parsing selectedCompresor:", error);
             }
@@ -93,8 +93,8 @@ const Home = () => {
     return null;
   }
   return (
-    <main className="bg-[rgb(65,143,222)] min-h-screen relative">
-      <div className="absolute top-4 right-4 z-10">
+    <main className="bg-[rgb(65,143,222)] min-h-screen relative overflow-x-hidden">
+      <div className="absolute top-4 right-4 z-10 max-w-[calc(100vw-2rem)]">
         <button
           onClick={async () => {
             if (confirm("¿Estás seguro que deseas cerrar sesión?")) {
@@ -111,7 +111,7 @@ const Home = () => {
               }
             }
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg"
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg text-sm sm:text-base"
         >
           <svg
             className="w-4 h-4"
@@ -126,17 +126,18 @@ const Home = () => {
               d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
             />
           </svg>
-          Cerrar Sesión
+          <span className="hidden sm:inline">Cerrar Sesión</span>
+          <span className="sm:hidden">Salir</span>
         </button>
       </div>
 
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="bg-white rounded-3xl p-5 shadow-md w-full max-w-4xl">
-          <h1 className="text-center text-5xl mb-8">
+      <div className="flex flex-col items-center justify-center min-h-screen px-4 py-8">
+        <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-md w-full max-w-4xl mx-auto">
+          <h1 className="text-center text-2xl sm:text-3xl mb-6 sm:mb-8 font-bold">
             Bienvenido al Dashboard de Ventologix
           </h1>
           {user && (
-            <div className="text-3xl text-center mb-6">
+            <div className="text-xl text-center mb-6">
               <p className="text-black">Bienvenido Ing. {user.name}</p>
               <p className="text-black">
                 Número Cliente: {numeroCliente || "Cargando..."}
@@ -148,7 +149,7 @@ const Home = () => {
           {compresores.length > 0 && (
             <div className="p-4 mb-6">
               <div className="text-center">
-                <h2 className="text-2xl font-semibold text-blue-700 mb-4">
+                <h2 className="text-xl font-semibold text-blue-700 mb-4">
                   Seleccione el Compresor a mostrar
                 </h2>
                 <div>
@@ -168,6 +169,7 @@ const Home = () => {
                         );
                         if (compresor) {
                           setSelectedCompresor(compresor);
+                          setIsPanelOpen(true); // Abrir el panel automáticamente
                           // Save to session storage and trigger event
                           sessionStorage.setItem(
                             "selectedCompresor",
@@ -177,11 +179,12 @@ const Home = () => {
                         }
                       } else {
                         setSelectedCompresor(null);
+                        setIsPanelOpen(false); // Cerrar el panel
                         sessionStorage.removeItem("selectedCompresor");
                         window.dispatchEvent(new Event("compresorChanged"));
                       }
                     }}
-                    className="w-full text-center text-xl max-w-md px-4 py-2 border border-black"
+                    className="w-full text-center text-sm sm:text-lg max-w-md mx-auto px-3 sm:px-4 py-2 border border-black rounded-md"
                   >
                     <option value="">-- Seleccione un compresor --</option>
                     {compresores.map((compresor) => (
@@ -210,7 +213,7 @@ const Home = () => {
             </span>
           </p>
           {selectedCompresor ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 justify-items-center px-2">
               <DateReportDropdown
                 title="Reporte por Fecha"
                 compresores={compresores}

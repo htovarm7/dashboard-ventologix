@@ -121,7 +121,7 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
       </h2>
 
       {selectedCompresor && (
-        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-10">
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-72 sm:w-80 max-w-[90vw] bg-white border border-gray-200 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-10">
           <div className="py-2">
             {tipo === "DIARIO" && (
               <>
@@ -133,7 +133,7 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
                     type="date"
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    className="text-l w-2/3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                    className="text-l w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
                     max={getYesterday()}
                   />
                 </div>

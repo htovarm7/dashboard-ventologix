@@ -260,7 +260,7 @@
       ]
     },
     {
-      "email": ["khernandezg@bertran.com.mx", "asantanan@bertran.com.mx"],
+      "email": ["juan.zamora@daltile.com.mx", "adrian.ostos@daltile.com.mx"],
       "cc": ["octavio.murillo@ventologix.com", "andres.mirazo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
@@ -314,7 +314,7 @@
       "emailBody": "<p>Estimado Ingeniero, </p><p>Soy <strong>VTO 0022</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong>. Su IQgineer asignado atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
       "files": [
         {
-          "fileName": "Reporte Diario Caleras Bertran Kaiser {fecha}",
+          "fileName": "Reporte Diario Caleras Bertran Kaeser {fecha}",
           "dateOffset": -1
         }
       ]
