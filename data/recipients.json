@@ -169,13 +169,14 @@
     },
     {
       "email": [
-        "andres.mirazo@ventologix.com",
-        "octavio.murillo@ventologix.com"
+        "jbatiz@bci.mx",
+        "mantenimiento@bci.mx"
       ],
-      "cc": [""],
+      "cc": ["andres.mirazo@ventologix.com",
+        "octavio.murillo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
-      "emailBody": "<p>EEste es el reporte de BCI</p>",
+      "emailBody":"<p>Estimado Ingeniero, </p><p>Soy <strong>VTO 0015</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong>, donde serán analizados por <strong>IA</strong>. Su IQgineer asignado atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
       "files": [
         {
           "fileName": "Reporte Diario BCI BCI kaiser {fecha}",
@@ -185,13 +186,14 @@
     },
     {
       "email": [
-        "andres.mirazo@ventologix.com",
-        "octavio.murillo@ventologix.com"
+        "jbatiz@bci.mx",
+        "mantenimiento@bci.mx"
       ],
-      "cc": [""],
+      "cc": ["andres.mirazo@ventologix.com",
+        "octavio.murillo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Diario VENTOLOGIX",
-      "emailBody": "<p>EEste es el reporte de BCI</p>",
+      "emailBody": "<p>Estimado Ingeniero, </p><p>Soy <strong>VTO 0015</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong>, donde serán analizados por <strong>IA</strong>. Su IQgineer asignado atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
       "files": [
         {
           "fileName": "Reporte Diario BCI BCI sullair {fecha}",
