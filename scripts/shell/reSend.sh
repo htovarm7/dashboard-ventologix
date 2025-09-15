@@ -28,14 +28,6 @@ wait_for_port() {
   return 1
 }
 
-# Levantar API
-cd $SCRIPTS_DIR
-source $VENV
-export PYTHONPATH=/home/hector_tovar/Ventologix
-uvicorn scripts.api_server:app >> $LOGFILE 2>&1 & 
-API_PID=$!
-echo "API iniciada con PID $API_PID" >> $LOGFILE
-
 # Esperar a que la API esté lista
 if ! wait_for_port 127.0.0.1 8000; then
   echo "No se pudo levantar API, abortando." >> $LOGFILE
