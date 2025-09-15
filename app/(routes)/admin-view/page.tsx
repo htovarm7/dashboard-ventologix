@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth0 } from "@auth0/auth0-react";
 import { EngineerFormData, Engineer, Compressor, UserData } from "@/lib/types";
+import { URL_API } from "@/lib/global";
 
 const AdminView = () => {
   const router = useRouter();
@@ -56,7 +57,7 @@ const AdminView = () => {
   const fetchEngineers = async (numero_cliente: number) => {
     try {
       console.log("Fetching engineers for client:", numero_cliente);
-      const url = `http://127.0.0.1:8000/web/ingenieros?cliente=${numero_cliente}`;
+      const url = `${URL_API}/web/ingenieros?cliente=${numero_cliente}`;
       console.log("Engineers URL:", url);
 
       const response = await fetch(url, {
@@ -105,7 +106,7 @@ const AdminView = () => {
   const fetchCompressors = async (numero_cliente: number) => {
     try {
       console.log("Fetching compressors for client:", numero_cliente);
-      const url = `http://127.0.0.1:8000/web/compresores?cliente=${numero_cliente}`;
+      const url = `${URL_API}/web/compresores?cliente=${numero_cliente}`;
       console.log("Compressors URL:", url);
 
       const response = await fetch(url, {
@@ -214,8 +215,8 @@ const AdminView = () => {
       }
 
       const endpoint = editingEngineer
-        ? `http://127.0.0.1:8000/web/ingenieros/${editingEngineer.id}`
-        : `http://127.0.0.1:8000/web/ingenieros`;
+        ? `${URL_API}/web/ingenieros/${editingEngineer.id}`
+        : `${URL_API}/web/ingenieros`;
 
       const method = editingEngineer ? "PUT" : "POST";
 
@@ -324,7 +325,7 @@ const AdminView = () => {
         );
 
         const response = await fetch(
-          `http://127.0.0.1:8000/web/ingenieros/${engineerId}?cliente=${clientNumber}`,
+          `${URL_API}/web/ingenieros/${engineerId}?cliente=${clientNumber}`,
           {
             method: "DELETE",
             headers: {
@@ -359,7 +360,7 @@ const AdminView = () => {
   ) => {
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/web/ingenieros/${engineerId}/preferences`,
+        `${URL_API}/web/ingenieros/${engineerId}/preferences`,
         {
           method: "PATCH",
           headers: {
