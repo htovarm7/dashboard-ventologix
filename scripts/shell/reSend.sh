@@ -11,6 +11,10 @@ mkdir -p $LOGDIR
 
 echo "==== Tarea iniciada: $(date) ====" >> $LOGFILE
 
+# Activar entorno virtual
+source $VENV
+echo "Entorno virtual activado" >> $LOGFILE
+
 wait_for_port() {
   local host=$1
   local port=$2
@@ -28,10 +32,18 @@ wait_for_port() {
   return 1
 }
 
+# Levantar API (backend)
+cd $SCRIPTS_DIR
+python api_server.py >> $LOGFILE 2>&1 &
+API_PID=$!
+echo "API iniciada con PID $API_PID" >> $LOGFILE
+
 # Esperar a que la API esté lista
 if ! wait_for_port 127.0.0.1 8000; then
   echo "No se pudo levantar API, abortando." >> $LOGFILE
-  kill $API_PID
+  if [ ! -z "$API_PID" ]; then
+    kill $API_PID 2>/dev/null
+  fi
   deactivate
   exit 1
 fi
@@ -45,8 +57,12 @@ echo "Web iniciada con PID $WEB_PID" >> $LOGFILE
 # Esperar a que el frontend esté listo (puerto 3002)
 if ! wait_for_port 127.0.0.1 3002; then
   echo "No se pudo levantar web, abortando." >> $LOGFILE
-  kill $WEB_PID
-  kill $API_PID
+  if [ ! -z "$WEB_PID" ]; then
+    kill $WEB_PID 2>/dev/null
+  fi
+  if [ ! -z "$API_PID" ]; then
+    kill $API_PID 2>/dev/null
+  fi
   deactivate
   exit 1
 fi
@@ -57,10 +73,15 @@ python $PYTHON_SCRIPT
 echo "Script Python finalizado" >> $LOGFILE
 
 # Cerrar procesos
-kill $WEB_PID
-echo "Web cerrada (PID $WEB_PID)" >> $LOGFILE
-kill $API_PID
-echo "API cerrada (PID $API_PID)" >> $LOGFILE
+if [ ! -z "$WEB_PID" ]; then
+  kill $WEB_PID 2>/dev/null
+  echo "Web cerrada (PID $WEB_PID)" >> $LOGFILE
+fi
+
+if [ ! -z "$API_PID" ]; then
+  kill $API_PID 2>/dev/null
+  echo "API cerrada (PID $API_PID)" >> $LOGFILE
+fi
 
 deactivate
 echo "Entorno virtual desactivado" >> $LOGFILE
