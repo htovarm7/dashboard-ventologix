@@ -426,6 +426,31 @@
           "dateOffset": -1
         }
       ]
+    },
+    {
+      "email": ["andres.mirazo@ventologix.com"],
+      "cc": ["octavio.murillo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Semanal VENTOLOGIX",
+      "emailBody": "<p> Reportes semanales de Caleras Bertran </p>",
+      "files": [
+        {
+          "fileName": "Reporte Semanal Caleras Bertran Quincy {fecha_str} ({rango})",
+          "dateOffset": -1
+        },
+        {
+          "fileName": "Reporte Semanal Caleras Bertran Atlas 2 {fecha_str} ({rango})",
+          "dateOffset": -1
+        },
+        {
+          "fileName": "Reporte Semanal Caleras Bertran Atlas 1 {fecha_str} ({rango})",
+          "dateOffset": -1
+        },
+        {
+          "fileName": "Reporte Semanal Caleras Bertran Kaeser {fecha_str} ({rango})",
+          "dateOffset": -1
+        }
+      ]
     }
   ]
 }
