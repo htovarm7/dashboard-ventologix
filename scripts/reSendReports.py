@@ -48,8 +48,8 @@ SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
 # Rutas de logos (ajusta si es necesario)
-LOGO_PATH = os.path.join(os.path.dirname(BASE_DIR), "public", "Logo vento firma.jpg")
-VENTOLOGIX_LOGO_PATH = os.path.join(os.path.dirname(BASE_DIR), "public", "ventologix firma.jpg")
+LOGO_PATH = os.path.join(BASE_DIR, "public", "Logo vento firma.jpg")
+VENTOLOGIX_LOGO_PATH = os.path.join(BASE_DIR, "public", "ventologix firma.jpg")
 
 # Google Drive Configuration
 GOOGLE_DRIVE_FOLDER_ID = "19YM9co-kyogK7iXeJ-Wwq1VnrICr50Xk"  # ID de la carpeta de Google Drive
@@ -64,14 +64,14 @@ ADMIN_CORREOS = [
 ]
 
 recipients_path = os.getenv("RECIPIENTS_JSON",
-                            os.path.join(os.path.dirname(BASE_DIR), "data", "recipients.json"))
+                            "/home/hector_tovar/Ventologix/data/recipients.json")
 
 # Fecha base de hoy
 FECHA_HOY = datetime.now()
 
 
 # ------------- Utilidades de fecha -------------
-def get_fecha(tipo: str = "diario", fecha_base: datetime = None) -> str:
+def get_fecha_reporte(tipo: str = "diario", fecha_base: datetime = None) -> str:
     """Genera formato de fecha según el tipo de reporte."""
     fecha_base = fecha_base or datetime.now()
     
@@ -179,18 +179,107 @@ def upload_to_google_drive(file_path: str, folder_id: str = GOOGLE_DRIVE_FOLDER_
         print(f"Error al subir {os.path.basename(file_path)} a Google Drive: {e}")
         return False
 
+# ------------- Verificaciones previas -------------
+def verificar_conectividad():
+    """Verifica que los servicios necesarios estén disponibles."""
+    print(f"\n🔍 === VERIFICACIONES PREVIAS ===")
+    
+    # Verificar API FastAPI
+    print(f"🌐 Verificando API FastAPI...")
+    try:
+        response = requests.get("http://127.0.0.1:8000/", timeout=10)
+        if response.status_code == 200:
+            print(f"✅ API FastAPI disponible en puerto 8000")
+        else:
+            print(f"⚠️ API FastAPI responde pero con código: {response.status_code}")
+    except Exception as e:
+        print(f"❌ API FastAPI no disponible: {e}")
+        print(f"   💡 Asegúrate de ejecutar: uvicorn scripts.api_server:app --reload")
+    
+    # Verificar Next.js
+    print(f"🌐 Verificando servidor Next.js...")
+    try:
+        response = requests.get("http://localhost:3000/", timeout=10)
+        if response.status_code == 200:
+            print(f"✅ Servidor Next.js disponible en puerto 3000")
+        else:
+            print(f"⚠️ Next.js responde pero con código: {response.status_code}")
+    except Exception as e:
+        print(f"❌ Servidor Next.js no disponible: {e}")
+        print(f"   💡 Asegúrate de ejecutar: npm run dev")
+    
+    # Verificar Playwright
+    print(f"🎭 Verificando Playwright...")
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            browser.close()
+        print(f"✅ Playwright funcional")
+    except Exception as e:
+        print(f"❌ Error con Playwright: {e}")
+        print(f"   💡 Asegúrate de ejecutar: playwright install")
+
+
 # --- Función para obtener clientes desde API ---
 def obtener_clientes_desde_api():
-    response = requests.get("http://127.0.0.1:8000/report/clients-data")
-    if response.status_code == 200:
-        data = response.json()
-        return {
-            "diarios": data.get("diarios", []),
-            "semanales": data.get("semanales", [])
-        }
-    else:
-        print("Error al obtener datos de clientes")
-        return {"diarios": [], "semanales": []}
+    """
+    Espera un payload:
+    {
+      "diarios": [ {id_cliente, linea, nombre_cliente, alias}, ... ],
+      "semanales": [ {id_cliente, linea, nombre_cliente, alias}, ... ]
+    }
+    """
+    api_url = "http://127.0.0.1:8000/report/clients-data"
+    print(f"🌐 Conectando a API: {api_url}")
+    
+    try:
+        print(f"⏳ Realizando petición HTTP...")
+        response = requests.get(api_url, timeout=60)
+        
+        print(f"📡 Código de respuesta: {response.status_code}")
+        
+        if response.status_code == 200:
+            print(f"✅ Respuesta exitosa de la API")
+            data = response.json()
+            diarios = data.get("diarios", [])
+            semanales = data.get("semanales", [])
+            
+            print(f"📊 Datos obtenidos:")
+            print(f"   📅 Clientes diarios: {len(diarios)}")
+            print(f"   📊 Clientes semanales: {len(semanales)}")
+            
+            # Mostrar detalles de clientes diarios
+            if diarios:
+                print(f"📋 Lista de clientes diarios:")
+                for i, cliente in enumerate(diarios, 1):
+                    print(f"   {i:2d}. {cliente.get('nombre_cliente', 'N/A')} - {cliente.get('alias', 'N/A')} (ID: {cliente.get('id_cliente', 'N/A')})")
+            
+            # Mostrar detalles de clientes semanales
+            if semanales:
+                print(f"📋 Lista de clientes semanales:")
+                for i, cliente in enumerate(semanales, 1):
+                    print(f"   {i:2d}. {cliente.get('nombre_cliente', 'N/A')} - {cliente.get('alias', 'N/A')} (ID: {cliente.get('id_cliente', 'N/A')})")
+            
+            return {
+                "diarios": diarios,
+                "semanales": semanales
+            }
+        else:
+            print(f"❌ Error de la API - Código: {response.status_code}")
+            print(f"📄 Contenido de respuesta: {response.text[:500]}...")
+            
+    except requests.exceptions.Timeout:
+        print(f"❌ Timeout conectando a la API después de 60 segundos")
+    except requests.exceptions.ConnectionError:
+        print(f"❌ Error de conexión - Verifica que la API esté corriendo en {api_url}")
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error de petición HTTP: {e}")
+    except Exception as e:
+        print(f"❌ Error inesperado obteniendo clientes: {e}")
+    
+    print(f"⚠️ Retornando lista vacía debido a errores")
+    return {"diarios": [], "semanales": []}
 
 # --- Función para generar PDF con Playwright ---
 def generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo, etiqueta_fecha):
@@ -202,82 +291,116 @@ def generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo, etiqueta
     alias_limpio = (alias or "").strip()
     nombre_archivo = f"Reporte {'Diario' if tipo=='diario' else 'Semanal'} {nombre_cliente} {alias_limpio} {etiqueta_fecha}.pdf"
     pdf_path = os.path.join(DOWNLOADS_FOLDER, nombre_archivo)
+    
+    print(f"\n🔍 DEBUG - Iniciando generación PDF:")
+    print(f"   📋 Cliente: {nombre_cliente} - {alias_limpio}")
+    print(f"   🆔 ID: {id_cliente}, Línea: {linea}")
+    print(f"   📄 Archivo: {nombre_archivo}")
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
-        page.set_viewport_size({"width": 1920, "height": 1080})
+    try:
+        with sync_playwright() as p:
+            print(f"   🌐 Iniciando navegador...")
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.set_viewport_size({"width": 1920, "height": 1080})
 
-        if tipo == "diario":
-            url = f"http://localhost:3000/reportesD?id_cliente={id_cliente}&linea={linea}"
-            print(f"Abriendo URL: {url}")
-            page.goto(url, timeout=300000)
-
-            print("Esperando que frontend avise que terminó de renderizar...")
-            try:
-                page.wait_for_function("window.status === 'pdf-ready' || window.status === 'data-error'", timeout=300000)
+            if tipo == "diario":
+                url = f"http://localhost:3000/reportesD?id_cliente={id_cliente}&linea={linea}"
+                print(f"   🔗 URL Diario: {url}")
                 
-                # Verificar si hay error de datos
-                status = page.evaluate("() => window.status")
-                if status == "data-error":
-                    print(f"ERROR: Datos inválidos para cliente {id_cliente}, línea {linea}. Cancelando generación de PDF.")
+                try:
+                    print(f"   ⏳ Navegando a la página...")
+                    page.goto(url, timeout=300000) 
+                    print(f"   ✅ Página cargada, esperando contenido...")
+
+                    page.wait_for_function("window.status === 'pdf-ready' || window.status === 'data-error'", timeout=300000)
+                    
+                    # Verificar status
+                    status = page.evaluate("() => window.status")
+                    print(f"   📊 Status de la página: {status}")
+                    
+                    if status == "data-error":
+                        print(f"   ❌ Error de datos reportado por la página")
+                        browser.close()
+                        return None
+
+                    print(f"   📏 Calculando altura de la página...")
+                    page_height = page.evaluate("() => document.body.scrollHeight")
+                    print(f"   📐 Altura calculada: {page_height}px")
+                    
+                    print(f"   🖨️ Generando PDF...")
+                    page.pdf(
+                        path=pdf_path,
+                        width="1920px",
+                        height=f"{page_height}px",
+                        print_background=True,
+                        margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
+                    )
+
+                except Exception as e:
+                    print(f"   ❌ Error en proceso diario: {str(e)}")
                     browser.close()
                     return None
-                    
-                print("Frontend listo, generando PDF...")
-            except Exception as e:
-                print(f"Error esperando estado del frontend: {e}")
-                browser.close()
-                return None
 
-            page_height = page.evaluate("() => document.body.scrollHeight")
-            page.pdf(
-                path=pdf_path,
-                width="1920px",
-                height=f"{page_height}px",
-                print_background=True,
-                margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
-            )
-        else:
-            url = f"http://localhost:3000/reportesS?id_cliente={id_cliente}&linea={linea}"
-            print(f"Abriendo URL: {url}")
-            page.goto(url, timeout=600000)
-
-            try:
-                page.wait_for_function("window.status === 'pdf-ready' || window.status === 'data-error'", timeout=600000)
+            else:  # semanal
+                url = f"http://localhost:3000/reportesS?id_cliente={id_cliente}&linea={linea}"
+                print(f"   🔗 URL Semanal: {url}")
                 
-                # Verificar si hay error de datos
-                status = page.evaluate("() => window.status")
-                if status == "data-error":
-                    print(f"ERROR: Datos inválidos para cliente {id_cliente}, línea {linea}. Cancelando generación de PDF.")
+                try:
+                    print(f"   ⏳ Navegando a la página...")
+                    page.goto(url, timeout=300000)
+                    print(f"   ✅ Página cargada, esperando contenido...")
+
+                    # Esperar que la página esté lista
+                    page.wait_for_function("window.status === 'pdf-ready' || window.status === 'data-error'", timeout=300000)
+                    
+                    # Verificar status
+                    status = page.evaluate("() => window.status")
+                    print(f"   📊 Status de la página: {status}")
+                    
+                    if status == "data-error":
+                        print(f"   ❌ Error de datos reportado por la página")
+                        browser.close()
+                        return None
+
+                    print(f"   📏 Calculando altura de la página...")
+                    full_height = page.evaluate("""
+                    () => Math.max(
+                        document.body.scrollHeight,
+                        document.documentElement.scrollHeight
+                    )
+                    """)
+                    safe_height = max(int(full_height) - 2, 1)
+                    print(f"   📐 Altura calculada: {full_height}px, ajustada: {safe_height}px")
+
+                    print(f"   🖨️ Generando PDF...")
+                    page.pdf(
+                        path=pdf_path,
+                        width="1920px",
+                        height=f"{safe_height}px",
+                        print_background=True,
+                        margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
+                    )
+
+                except Exception as e:
+                    print(f"   ❌ Error en proceso semanal: {str(e)}")
                     browser.close()
                     return None
-                    
-                print("Frontend listo, generando PDF semanal...")
-            except Exception as e:
-                print(f"Error esperando estado del frontend: {e}")
-                browser.close()
+
+            browser.close()
+            
+            # Verificar que el archivo se creó correctamente
+            if os.path.exists(pdf_path):
+                file_size = os.path.getsize(pdf_path)
+                print(f"   ✅ PDF generado exitosamente - Tamaño: {file_size} bytes")
+                return pdf_path
+            else:
+                print(f"   ❌ El archivo PDF no se encontró después de la generación")
                 return None
-
-            full_height = page.evaluate("""
-            () => Math.max(
-                document.body.scrollHeight,
-                document.documentElement.scrollHeight
-            )
-            """)
-            safe_height = max(int(full_height) - 2, 1)
-
-            page.pdf(
-                path=pdf_path,
-                width="1920px",
-                height=f"{safe_height}px",
-                print_background=True,
-                margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
-            )
-
-        browser.close()
-        print(f"PDF generado: {os.path.basename(pdf_path)}")
-        return pdf_path
+                
+    except Exception as e:
+        print(f"   ❌ Error general en generación PDF: {str(e)}")
+        return None
 
 # --- Función para enviar correo ---
 def send_mail(recipientConfig, pdf_file_path):
@@ -340,6 +463,57 @@ def send_mail(recipientConfig, pdf_file_path):
     except Exception as e:
         print(f"Error al enviar correo: {e}")
 
+def send_error_mail(missing_files: list = None, failed_pdfs: list = None, admin_emails: list = None):
+    """
+    Envía correo de error a los administradores con información sobre:
+    - missing_files: Archivos PDF que se esperaban pero no se encontraron
+    - failed_pdfs: PDFs que fallaron durante la generación
+    """
+    if not missing_files and not failed_pdfs:
+        return
+    
+    if admin_emails is None:
+        admin_emails = ADMIN_CORREOS
+
+    msg = EmailMessage()
+    msg['From'] = f"{ALIAS_NAME} <{FROM_ADDRESS}>"
+    msg['To'] = ", ".join(admin_emails)
+    msg['Subject'] = "⚠️ Reporte - Errores en generación/envío de PDFs"
+
+    body = "<h3>Reporte de Errores - Ventologix</h3>"
+    
+    if failed_pdfs:
+        body += "<h4>PDFs que fallaron en la generación:</h4><ul>"
+        for pdf in failed_pdfs:
+            body += f"<li><strong>{pdf['nombre_cliente']} - {pdf['alias']}</strong> (Tipo: {pdf['tipo']})"
+            if 'error' in pdf:
+                body += f" - Error: {pdf['error']}"
+            body += "</li>"
+        body += "</ul>"
+    
+    if missing_files:
+        body += "<h4>Archivos PDF esperados pero no encontrados:</h4><ul>"
+        for f in missing_files:
+            body += f"<li>{f}</li>"
+        body += "</ul>"
+    
+    body += f"<br><p><strong>Fecha/Hora:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>"
+    body += "<br>VTO logix<br>"
+    body += "<a href='mailto:vto@ventologix.com'>vto@ventologix.com</a><br>"
+    body += "<a href='https://www.ventologix.com'>www.ventologix.com</a>"
+
+    msg.set_content("Este mensaje requiere un cliente con soporte HTML.")
+    msg.add_alternative(body, subtype='html')
+
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as smtp:
+            smtp.starttls()
+            smtp.login(SMTP_FROM, SMTP_PASSWORD)
+            smtp.send_message(msg)
+        print(f"✅ Correo de error enviado a {', '.join(admin_emails)}")
+    except Exception as e:
+        print(f"❌ Error al enviar correo de advertencia: {e}")
+
 def clean_pdfs_folder():
     """Elimina todos los archivos PDF generados en la carpeta pdfs."""
     for filename in os.listdir(DOWNLOADS_FOLDER):
@@ -352,34 +526,67 @@ def clean_pdfs_folder():
 
 # --- Función principal que junta todo ---
 def main():
+    print(f"🚀 === INICIO PROCESO RESEND REPORTS ===")
+    print(f"📅 Fecha de ejecución: {FECHA_HOY.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"🏠 Directorio base: {BASE_DIR}")
+    print(f"📁 Carpeta PDFs: {DOWNLOADS_FOLDER}")
+    print(f"📧 SMTP desde: {SMTP_FROM}")
+    print(f"📝 Archivo recipients: {recipients_path}")
+    
+    # Verificar conectividad
+    verificar_conectividad()
+    
+    # Verificar archivos y carpetas esenciales
+    print(f"\n🔍 Verificando archivos esenciales...")
+    if not os.path.exists(recipients_path):
+        print(f"❌ ERROR: No se encontró recipients.json en {recipients_path}")
+        return
+    else:
+        print(f"✅ Recipients.json encontrado")
+    
     os.makedirs(DOWNLOADS_FOLDER, exist_ok=True)
+    print(f"✅ Carpeta PDFs preparada")
 
+    # Limpiar PDFs antiguos antes de generar nuevos
+    print(f"\n🧹 Limpiando PDFs antiguos...")
+    clean_pdfs_folder()
+
+    inicio_total = time.time()
     pdfs_generados = []
+    failed_pdfs = []
 
     while True:
+        print(f"\n{'='*60}")
         tipo = input("¿Qué tipo de reporte deseas generar? (diario/semanal): ").strip().lower()
         if tipo not in ["diario", "semanal"]:
-            print("Tipo inválido. Debe ser 'diario' o 'semanal'.")
+            print("❌ Tipo inválido. Debe ser 'diario' o 'semanal'.")
             continue
 
-        clientes = obtener_clientes_desde_api()["diarios" if tipo == "diario" else "semanales"]
-
-        if not clientes:
-            print(f"No se encontraron clientes para el tipo {tipo}.")
+        print(f"\n🌐 Obteniendo clientes desde API...")
+        try:
+            clientes_data = obtener_clientes_desde_api()
+            clientes = clientes_data["diarios" if tipo == "diario" else "semanales"]
+            
+            if not clientes:
+                print(f"❌ No se encontraron clientes para el tipo {tipo}.")
+                continue
+                
+        except Exception as e:
+            print(f"❌ Error obteniendo clientes de la API: {e}")
             continue
 
-        print("Clientes disponibles:")
+        print(f"\n📋 Clientes disponibles para {tipo}:")
         for idx, cliente in enumerate(clientes):
-            print(f"{idx + 1}. {cliente['nombre_cliente']} (Alias: {cliente['alias']}, Línea: {cliente['linea']})")
+            print(f"{idx + 1:2d}. {cliente['nombre_cliente']} (Alias: {cliente['alias']}, Línea: {cliente['linea']})")
 
         try:
-            seleccion = int(input("Selecciona el número del cliente a generar PDF: ")) - 1
+            seleccion = int(input(f"\nSelecciona el número del cliente a generar PDF (1-{len(clientes)}): ")) - 1
         except ValueError:
-            print("Selección inválida.")
+            print("❌ Selección inválida.")
             continue
 
         if seleccion < 0 or seleccion >= len(clientes):
-            print("Selección inválida.")
+            print("❌ Selección inválida.")
             continue
 
         cliente = clientes[seleccion]
@@ -390,16 +597,28 @@ def main():
 
         try:
             print(f"\n🕒 Generando PDF para {nombre_cliente}...")
+            print(f"{'='*60}")
             inicio = time.time()
 
             # Generar etiqueta de fecha según el tipo
-            etiqueta = get_fecha(tipo, FECHA_HOY)
+            etiqueta = get_fecha_reporte(tipo, FECHA_HOY)
+            print(f"📅 Etiqueta fecha: {etiqueta}")
 
             pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo, etiqueta)
+            
+            fin = time.time()
+            duracion = fin - inicio
             
             # Verificar si el PDF se generó exitosamente
             if pdf_path is None:
                 print(f"❌ No se pudo generar PDF para {nombre_cliente} debido a datos inválidos")
+                failed_pdfs.append({
+                    'nombre_cliente': nombre_cliente,
+                    'alias': alias,
+                    'tipo': tipo,
+                    'error': 'Datos inválidos',
+                    'tiempo_procesamiento': duracion
+                })
                 continue
                 
             pdfs_generados.append(pdf_path)
@@ -413,31 +632,62 @@ def main():
                 else:
                     print(f"❌ Error al subir {os.path.basename(pdf_path)} a Google Drive")
 
-            fin = time.time()
-            duracion = fin - inicio
             print(f"✅ PDF generado correctamente en {duracion:.2f} segundos.\n")
 
         except Exception as e:
+            fin = time.time()
+            duracion = fin - inicio
             print(f"❌ Error durante generación: {e}")
+            failed_pdfs.append({
+                'nombre_cliente': nombre_cliente,
+                'alias': alias,
+                'tipo': tipo,
+                'error': str(e),
+                'tiempo_procesamiento': duracion
+            })
 
         continuar = input("¿Deseas generar otro reporte? (s/n): ").strip().lower()
         if continuar != "s":
             break
 
+    # Resumen final y envío de correos
+    fin_total = time.time()
+    tiempo_total = fin_total - inicio_total
+    
+    print(f"\n{'='*60}")
+    print(f"📈 === RESUMEN FINAL ===")
+    print(f"✅ PDFs generados exitosamente: {len(pdfs_generados)}")
+    print(f"❌ PDFs fallidos: {len(failed_pdfs)}")
+    print(f"⏱️ Tiempo total del proceso: {tiempo_total:.2f}s")
+    
     if pdfs_generados:
-        print("\nPDFs generados:")
+        print(f"\n📄 PDFs generados:")
         for idx, pdf in enumerate(pdfs_generados):
-            print(f"{idx + 1}. {os.path.basename(pdf)}")
+            print(f"{idx + 1:2d}. {os.path.basename(pdf)}")
+        
+        if failed_pdfs:
+            print(f"\n🚨 PDFs fallidos:")
+            for falla in failed_pdfs:
+                print(f"   ❌ {falla['nombre_cliente']} - {falla['alias']}")
+                print(f"      Error: {falla.get('error', 'N/A')}")
+                print(f"      Tiempo: {falla.get('tiempo_procesamiento', 0):.2f}s")
 
-        enviar = input("¿Deseas enviar todos los PDFs generados por correo? (s/n): ").strip().lower()
+        enviar = input("\n¿Deseas enviar todos los PDFs generados por correo? (s/n): ").strip().lower()
         if enviar == "s":
             print(f"\n📧 Enviando {len(pdfs_generados)} PDFs por correo...")
 
             # Cargar configuración de destinatarios desde recipients.json
-            with open(recipients_path, "r", encoding="utf-8") as f:
-                config = json.load(f)
+            try:
+                with open(recipients_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+            except Exception as e:
+                print(f"❌ Error cargando recipients.json: {e}")
+                return
 
             # Enviar cada PDF al destinatario correspondiente
+            archivos_enviados = 0
+            archivos_no_enviados = []
+            
             for pdf_path in pdfs_generados:
                 pdf_name = os.path.basename(pdf_path)
                 enviado = False
@@ -451,9 +701,8 @@ def main():
                 # Buscar en la sección correcta de recipients
                 for idx, recipient in enumerate(config.get(tipo_reporte, [])):
                     for fileConfig in recipient.get('files', []):
-                        # Para diarios, usar fecha de ayer
                         # Obtener fecha según el tipo de reporte
-                        fecha = get_fecha(tipo_reporte.rstrip('s'), FECHA_HOY)  # quita la 's' de 'diarios'/'semanales'
+                        fecha = get_fecha_reporte(tipo_reporte.rstrip('s'), FECHA_HOY)  # quita la 's' de 'diarios'/'semanales'
                         
                         if tipo_reporte == "diarios":
                             expected_name = fileConfig['fileName'].replace("{fecha}", fecha) + ".pdf"
@@ -470,11 +719,17 @@ def main():
                         if archivo_coincide(pdf_name, expected_name, tipo_reporte):
                             print(f"   ✅ Match encontrado en recipient #{idx + 1}!")
                             print(f"📧 Enviando {pdf_name} a {recipient.get('email', 'N/A')}...")
-                            send_mail(recipient, pdf_path)
-                            enviado = True
+                            try:
+                                send_mail(recipient, pdf_path)
+                                archivos_enviados += 1
+                                enviado = True
+                                print(f"✅ Correo enviado exitosamente")
+                            except Exception as e:
+                                print(f"❌ Error enviando correo: {e}")
                             break
                     if enviado:
                         break
+                        
                 if enviado:
                     try:
                         os.remove(pdf_path)
@@ -482,13 +737,33 @@ def main():
                     except Exception as e:
                         print(f"❌ Error al eliminar {pdf_name}: {e}")
                 else:
-                    print(f"❌ No se encontró destinatario para {pdf_name}, no se envió ni eliminó.")
+                    print(f"❌ No se encontró destinatario para {pdf_name}")
+                    archivos_no_enviados.append(pdf_name)
 
+            print(f"\n📈 === RESUMEN DE ENVÍO ===")
+            print(f"✅ Archivos enviados: {archivos_enviados}")
+            print(f"❌ Archivos no enviados: {len(archivos_no_enviados)}")
+            
+            # Enviar correo de error si hay archivos fallidos o no enviados
+            if failed_pdfs or archivos_no_enviados:
+                print(f"📧 Enviando reporte de errores a administradores...")
+                send_error_mail(missing_files=archivos_no_enviados, failed_pdfs=failed_pdfs)
+            
             print(f"✅ Proceso de envío finalizado.")
         else:
             print("Los PDFs generados no se enviaron por correo.")
     else:
         print("No se generaron PDFs.")
+        
+        # Enviar correo de error si hubo fallos
+        if failed_pdfs:
+            print(f"📧 Enviando reporte de errores a administradores...")
+            send_error_mail(failed_pdfs=failed_pdfs)
+    
+    print(f"\n🏁 === PROCESO COMPLETADO ===")
+    print(f"⏱️ Tiempo total de ejecución: {tiempo_total:.2f} segundos")
+    print(f"📅 Finalizado el: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("="*60)
 
 def archivo_coincide(archivo_generado: str, expected_name: str, tipo_reporte: str) -> bool:
     """Función simplificada para verificar coincidencia de nombres de archivos."""
@@ -522,5 +797,24 @@ if __name__ == "__main__":
         clean_pdfs_folder()
         print("Carpeta de PDFs limpiada. Terminando proceso.")
     except Exception as e:
-        print(f"\n❌ Error inesperado: {e}. Limpiando PDFs generados...")
-        clean_pdfs_folder()
+        print(f"\n❌ Error inesperado: {e}")
+        
+        # Enviar correo de error crítico a los administradores
+        try:
+            error_info = [{
+                'nombre_cliente': 'Sistema',
+                'alias': 'Error General',
+                'tipo': 'crítico',
+                'error': str(e)
+            }]
+            send_error_mail(failed_pdfs=error_info)
+        except Exception as email_error:
+            print(f"❌ No se pudo enviar correo de error: {email_error}")
+        
+        # Solo limpiar PDFs si el error no está relacionado con envío de correos
+        if "No such file or directory" not in str(e) and "FileNotFoundError" not in str(e):
+            print("Limpiando PDFs generados...")
+            clean_pdfs_folder()
+        else:
+            print("Error relacionado con archivos. No se limpiarán PDFs automáticamente.")
+            print("Revise los logs para identificar el problema específico.")
