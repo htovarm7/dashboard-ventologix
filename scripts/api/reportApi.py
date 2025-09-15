@@ -1283,3 +1283,137 @@ def costo_energia_usd(kwh_total, usd_por_kwh):
     except (TypeError, ValueError) as e:
         print(f"Error en costo_energia_usd: {e}, kwh_total={kwh_total}")
         return 0.0
+
+
+# PDF Generation endpoint
+class PDFRequest(BaseModel):
+    id_cliente: int
+    linea: str
+    nombre_cliente: str
+    alias: str
+    tipo: str  # "diario" or "semanal"
+
+@report.post("/generate-pdf")
+async def generate_pdf(request: PDFRequest):
+    """
+    Generate PDF report using the same logic as automation.py
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+        import tempfile
+        import locale
+        from datetime import datetime, timedelta
+        
+        # Set locale for Spanish dates
+        try:
+            locale.setlocale(locale.LC_TIME, "es_MX.UTF-8")
+        except Exception:
+            pass
+        
+        # Generate date label using same logic as automation.py
+        fecha_base = datetime.now()
+        if request.tipo == "diario":
+            etiqueta_fecha = (fecha_base - timedelta(days=1)).strftime("%Y-%m-%d")
+        else:  # semanal
+            lunes = fecha_base - timedelta(days=fecha_base.weekday() + 7)
+            domingo = lunes + timedelta(days=6)
+            fecha = fecha_base.strftime("%Y-%m-%d")
+            try:
+                mes = domingo.strftime("%B")
+            except Exception:
+                mes = domingo.strftime("%m")
+            etiqueta_fecha = f"{fecha} (Semana del {lunes.day} al {domingo.day} {mes})"
+        
+        # Generate filename using same logic as automation.py
+        alias_limpio = (request.alias or "").strip()
+        nombre_archivo = f"Reporte {'Diario' if request.tipo=='diario' else 'Semanal'} {request.nombre_cliente} {alias_limpio} {etiqueta_fecha}.pdf"
+        
+        # Create temporary file for PDF
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
+            pdf_path = temp_file.name
+        
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                page = browser.new_page()
+                page.set_viewport_size({"width": 1920, "height": 1080})
+                
+                if request.tipo == "diario":
+                    url = f"http://localhost:3000/reportesD?id_cliente={request.id_cliente}&linea={request.linea}"
+                    
+                    page.goto(url, timeout=300000)
+                    page.wait_for_function("window.status === 'pdf-ready' || window.status === 'data-error'", timeout=300000)
+                    
+                    # Check status
+                    status = page.evaluate("() => window.status")
+                    if status == "data-error":
+                        raise HTTPException(status_code=400, detail="Error de datos reportado por la página")
+                    
+                    # Calculate page height
+                    page_height = page.evaluate("() => document.body.scrollHeight")
+                    
+                    # Generate PDF
+                    page.pdf(
+                        path=pdf_path,
+                        width="1920px",
+                        height=f"{page_height}px",
+                        print_background=True,
+                        margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
+                    )
+                
+                else:  # semanal
+                    url = f"http://localhost:3000/reportesS?id_cliente={request.id_cliente}&linea={request.linea}"
+                    
+                    page.goto(url, timeout=300000)
+                    page.wait_for_function("window.status === 'pdf-ready' || window.status === 'data-error'", timeout=300000)
+                    
+                    # Check status
+                    status = page.evaluate("() => window.status")
+                    if status == "data-error":
+                        raise HTTPException(status_code=400, detail="Error de datos reportado por la página")
+                    
+                    # Calculate page height
+                    full_height = page.evaluate("""
+                    () => Math.max(
+                        document.body.scrollHeight,
+                        document.documentElement.scrollHeight
+                    )
+                    """)
+                    safe_height = max(int(full_height) - 2, 1)
+                    
+                    # Generate PDF
+                    page.pdf(
+                        path=pdf_path,
+                        width="1920px",
+                        height=f"{safe_height}px",
+                        print_background=True,
+                        margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
+                    )
+                
+                browser.close()
+        
+        except Exception as e:
+            # Clean up temp file on error
+            if os.path.exists(pdf_path):
+                os.unlink(pdf_path)
+            raise HTTPException(status_code=500, detail=f"Error generando PDF: {str(e)}")
+        
+        # Verify PDF was created
+        if not os.path.exists(pdf_path):
+            raise HTTPException(status_code=500, detail="El archivo PDF no se encontró después de la generación")
+        
+        # Read PDF file and return as response
+        def iterfile():
+            with open(pdf_path, mode="rb") as file_like:
+                yield from file_like
+            # Clean up temp file after sending
+            os.unlink(pdf_path)
+        
+        return StreamingResponse(
+            iterfile(),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={nombre_archivo}"}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

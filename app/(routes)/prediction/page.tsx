@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserData } from "@/lib/types";
 import Image from "next/image";
+import { URL_API } from "@/lib/global";
 
 const PredictiveModel = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [selectedCompresor, setSelectedCompresor] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(true);
@@ -19,6 +21,7 @@ const PredictiveModel = () => {
     const loadUserData = () => {
       try {
         const storedUserData = sessionStorage.getItem("userData");
+        const storedCompresorData = sessionStorage.getItem("selectedCompresor");
 
         if (!storedUserData) {
           setError("No se encontraron datos de usuario");
@@ -27,13 +30,25 @@ const PredictiveModel = () => {
         }
 
         const parsedUserData: UserData = JSON.parse(storedUserData);
+        setUserData(parsedUserData);
 
-        if (!parsedUserData.numero_cliente) {
-          setError("Número de cliente no disponible");
+        if (!storedCompresorData) {
+          setError(
+            "No hay compresor seleccionado. Por favor selecciona un compresor desde la página principal."
+          );
           return;
         }
 
-        setUserData(parsedUserData);
+        const parsedCompresorData = JSON.parse(storedCompresorData);
+
+        if (!parsedCompresorData.numero_cliente) {
+          setError(
+            "Número de cliente no disponible en el compresor seleccionado"
+          );
+          return;
+        }
+
+        setSelectedCompresor(parsedCompresorData);
       } catch (err) {
         console.error("Error loading user data:", err);
         setError("Error al cargar los datos de usuario");
@@ -53,7 +68,7 @@ const PredictiveModel = () => {
     );
   }
 
-  if (error || !userData) {
+  if (error || !userData || !selectedCompresor) {
     return (
       <div className="flex flex-col justify-center items-center h-64">
         <div className="text-red-500 text-lg mb-4">
@@ -69,8 +84,8 @@ const PredictiveModel = () => {
     );
   }
 
-  const plotUrl = `${API_BASE_URL}/web/forecast/plot?numero_cliente=${encodeURIComponent(
-    userData.numero_cliente
+  const plotUrl = `${URL_API}/web/forecast/plot?numero_cliente=${encodeURIComponent(
+    selectedCompresor.numero_cliente
   )}`;
 
   return (

@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   webpack: (config) => {
-    // Configurar aliases para resolver imports
     config.resolve.alias = {
       ...config.resolve.alias,
       '@': '.',
@@ -13,8 +12,23 @@ const nextConfig: NextConfig = {
     };
     return config;
   },
-  // Asegurarse de que no hay basePath configurado
   basePath: '',
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '8000',
+        pathname: '/web/forecast/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.ventologix.com',
+        port: '',
+        pathname: '/web/forecast/**',
+      }
+    ],
+  },
 };
 
 export default nextConfig;

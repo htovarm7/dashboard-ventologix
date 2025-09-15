@@ -20,6 +20,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import annotationPlugin from "chartjs-plugin-annotation";
 import Image from "next/image";
 import VentoCom from "@/components/vento_com";
+import DownloadReportButton from "@/components/DownloadReportButton";
 import {
   getColorCiclos,
   getColorClass,
@@ -92,6 +93,8 @@ function MainContent() {
 
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [currentClientId, setCurrentClientId] = useState<string>("");
+  const [currentLinea, setCurrentLinea] = useState<string>("");
   const hpEquivalente =
     ((summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) /
       (compressorData?.hp ?? 1)) *
@@ -312,6 +315,8 @@ function MainContent() {
         date = compresorData.date;
         weekNumber = compresorData.weekNumber;
         setSelectedDate(date || "");
+        setCurrentClientId(id_cliente);
+        setCurrentLinea(linea);
 
         if (weekNumber) {
           setSelectedWeekNumber(weekNumber);
@@ -323,6 +328,8 @@ function MainContent() {
           searchParams.get("date") || new Date().toISOString().split("T")[0];
         weekNumber = searchParams.get("weekNumber");
         setSelectedDate(date);
+        setCurrentClientId(id_cliente || "");
+        setCurrentLinea(linea);
 
         if (weekNumber) {
           setSelectedWeekNumber(parseInt(weekNumber));
@@ -965,14 +972,55 @@ function MainContent() {
     }
   }, [summaryData]);
 
-  // Modificar el cálculo del número de semana
-  const currentDate = new Date(selectedDate || new Date());
-  const dayOfWeek = currentDate.getDay();
-  const daysSinceMonday = (dayOfWeek + 6) % 7;
-  const lastMonday = new Date(currentDate);
-  lastMonday.setDate(currentDate.getDate() - daysSinceMonday);
-  const lastSunday = new Date(lastMonday);
-  lastSunday.setDate(lastMonday.getDate() + 6);
+  const getISOWeekNumber = (date: Date): number => {
+    const d = new Date(
+      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+    );
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  };
+
+  // Función para obtener las fechas de una semana específica por número de semana
+  const getWeekDates = (weekNumber: number, year: number) => {
+    // Crear fecha del 4 de enero del año (siempre está en la primera semana ISO)
+    const jan4 = new Date(year, 0, 4);
+
+    // Encontrar el lunes de la primera semana ISO
+    const daysToMonday = (jan4.getDay() + 6) % 7;
+    const firstMonday = new Date(jan4);
+    firstMonday.setDate(jan4.getDate() - daysToMonday);
+
+    // Calcular el lunes de la semana deseada
+    const mondayOfWeek = new Date(firstMonday);
+    mondayOfWeek.setDate(firstMonday.getDate() + (weekNumber - 1) * 7);
+
+    // Calcular el domingo de la semana
+    const sundayOfWeek = new Date(mondayOfWeek);
+    sundayOfWeek.setDate(mondayOfWeek.getDate() + 6);
+
+    return { monday: mondayOfWeek, sunday: sundayOfWeek };
+  };
+
+  let lastMonday: Date, lastSunday: Date, semanaNumero: number;
+
+  if (selectedWeekNumber) {
+    const currentYear = new Date().getFullYear();
+    const weekDates = getWeekDates(selectedWeekNumber, currentYear);
+    lastMonday = weekDates.monday;
+    lastSunday = weekDates.sunday;
+    semanaNumero = selectedWeekNumber;
+  } else {
+    const currentDate = new Date(selectedDate || new Date());
+    const dayOfWeek = currentDate.getDay();
+    const daysSinceMonday = (dayOfWeek + 6) % 7;
+    lastMonday = new Date(currentDate);
+    lastMonday.setDate(currentDate.getDate() - daysSinceMonday);
+    lastSunday = new Date(lastMonday);
+    lastSunday.setDate(lastMonday.getDate() + 6);
+    semanaNumero = getISOWeekNumber(lastMonday);
+  }
 
   const dateOptions: Intl.DateTimeFormatOptions = {
     day: "2-digit",
@@ -984,19 +1032,6 @@ function MainContent() {
     month: "long",
     year: "numeric",
   });
-
-  const getISOWeekNumber = (date: Date): number => {
-    const d = new Date(
-      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
-    );
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  };
-
-  // Usar el número de semana seleccionado si está disponible, si no, calcularlo
-  const semanaNumero = selectedWeekNumber || getISOWeekNumber(lastMonday);
 
   return (
     <main className="relative">
@@ -1013,6 +1048,20 @@ function MainContent() {
               <span className="font-bold">Semana {semanaNumero}:</span>{" "}
               {fechaInicio} al {fechaFin}
             </p>
+
+            {/* Download Report Button */}
+            {currentClientId && currentLinea && clientData && (
+              <div className="mt-6 flex justify-center">
+                <DownloadReportButton
+                  clientId={currentClientId}
+                  linea={currentLinea}
+                  clientName={clientData.nombre_cliente}
+                  alias={compressorData?.alias || ""}
+                  reportType="semanal"
+                  className=""
+                />
+              </div>
+            )}
           </div>
 
           {/* Right Column: Logo and data */}

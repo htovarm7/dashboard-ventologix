@@ -33,6 +33,7 @@ import {
 } from "chart.js";
 import { Pie, Chart } from "react-chartjs-2";
 import { putBlur } from "@/lib/reportsFunctions";
+import DownloadReportButton from "@/components/DownloadReportButton";
 
 // ECharts for the gauge chart
 import ReactECharts from "echarts-for-react";
@@ -79,6 +80,8 @@ function MainContent() {
   const [dayData, setDayData] = useState<dayData | null>(null);
   const [compresorAlias, setCompresorAlias] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [currentClientId, setCurrentClientId] = useState<string>("");
+  const [currentLinea, setCurrentLinea] = useState<string>("");
 
   const fetchData = useCallback(
     async (id: string, linea: string, date: string) => {
@@ -250,6 +253,8 @@ function MainContent() {
           compresorData.alias || `Compresor ${id_cliente}-${linea}`
         );
         setSelectedDate(date || "");
+        setCurrentClientId(id_cliente);
+        setCurrentLinea(linea);
       } else {
         // Fallback a URL parameters
         id_cliente = searchParams.get("id_cliente");
@@ -258,6 +263,8 @@ function MainContent() {
           searchParams.get("date") || new Date().toISOString().split("T")[0]; // Fecha actual como fallback
         setCompresorAlias(`Compresor ${id_cliente}-${linea}`);
         setSelectedDate(date);
+        setCurrentClientId(id_cliente || "");
+        setCurrentLinea(linea);
       }
 
       if (id_cliente && date) {
@@ -563,6 +570,20 @@ function MainContent() {
           width={300}
           height={100}
         />
+
+        {/* Download Report Button */}
+        {currentClientId && currentLinea && clientData && (
+          <div className="mt-4 mb-6">
+            <DownloadReportButton
+              clientId={currentClientId}
+              linea={currentLinea}
+              clientName={clientData.nombre_cliente}
+              alias={compresorAlias}
+              reportType="diario"
+              className="mx-auto"
+            />
+          </div>
+        )}
       </div>
 
       <div className="mt-2 p-4">

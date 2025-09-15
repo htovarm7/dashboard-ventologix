@@ -46,7 +46,7 @@ export interface UserData {
   id_cliente?: number;
   numero_cliente: number;
   rol: number;
-  compresores: { linea: string; proyecto: number; Alias: string }[];
+  compresores: { linea: string; proyecto: number; Alias: string, numero_cliente: string }[];
   email: string;
   name: string;
   timestamp: number;
