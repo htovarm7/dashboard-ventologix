@@ -868,10 +868,9 @@ function MainContent() {
       summaryData &&
       summaryData?.promedio_semanas_anteriores?.total_kWh_anteriores > 0
     ) {
-      // Espera unos segundos por seguridad (opcional)
       setTimeout(() => {
         window.status = "pdf-ready";
-      }, 2000); // 2 segundos
+      }, 2000);
     }
   }, [summaryData]);
 

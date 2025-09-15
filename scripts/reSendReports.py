@@ -27,11 +27,9 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.http import MediaFileUpload
 import glob
 
-# ---- Config regional (meses en español) ----
 try:
     locale.setlocale(locale.LC_TIME, "es_MX.UTF-8")
 except Exception:
-    # Fallback si el locale no está instalado
     pass
 
 load_dotenv()
@@ -39,7 +37,6 @@ load_dotenv()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DOWNLOADS_FOLDER = os.path.join(BASE_DIR, "pdfs")
 
-# Identidad y correo
 ALIAS_NAME = "VTO LOGIX"
 SMTP_FROM = "andres.mirazo@ventologix.com"   # para login SMTP
 FROM_ADDRESS = "vto@ventologix.com"          # remitente visible
@@ -47,17 +44,14 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
-# Rutas de logos (ajusta si es necesario)
 LOGO_PATH = os.path.join(BASE_DIR, "public", "Logo vento firma.jpg")
 VENTOLOGIX_LOGO_PATH = os.path.join(BASE_DIR, "public", "ventologix firma.jpg")
 
-# Google Drive Configuration
-GOOGLE_DRIVE_FOLDER_ID = "19YM9co-kyogK7iXeJ-Wwq1VnrICr50Xk"  # ID de la carpeta de Google Drive
+GOOGLE_DRIVE_FOLDER_ID = "19YM9co-kyogK7iXeJ-Wwq1VnrICr50Xk"
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 CREDENTIALS_FILE = os.path.join(BASE_DIR, "VM", "credentials.json")
 TOKEN_FILE = os.path.join(BASE_DIR, "VM", "token.json")
 
-# Admins para alertas
 ADMIN_CORREOS = [
     "hector.tovar@ventologix.com",
     "andres.mirazo@ventologix.com"
@@ -66,11 +60,8 @@ ADMIN_CORREOS = [
 recipients_path = os.getenv("RECIPIENTS_JSON",
                             "/home/hector_tovar/Ventologix/data/recipients.json")
 
-# Fecha base de hoy
 FECHA_HOY = datetime.now()
 
-
-# ------------- Utilidades de fecha -------------
 def get_fecha_reporte(tipo: str = "diario", fecha_base: datetime = None) -> str:
     """Genera formato de fecha según el tipo de reporte."""
     fecha_base = fecha_base or datetime.now()
@@ -89,7 +80,6 @@ def get_fecha_reporte(tipo: str = "diario", fecha_base: datetime = None) -> str:
     return f"{fecha} (Semana del {lunes.day} al {domingo.day} {mes})"
 
 
-# ------------- Google Drive Functions -------------
 def authenticate_google_drive():
     """Autentica con Google Drive usando OAuth2."""
     creds = None
@@ -179,46 +169,6 @@ def upload_to_google_drive(file_path: str, folder_id: str = GOOGLE_DRIVE_FOLDER_
         print(f"Error al subir {os.path.basename(file_path)} a Google Drive: {e}")
         return False
 
-# ------------- Verificaciones previas -------------
-def verificar_conectividad():
-    """Verifica que los servicios necesarios estén disponibles."""
-    print(f"\n🔍 === VERIFICACIONES PREVIAS ===")
-    
-    # Verificar API FastAPI
-    print(f"🌐 Verificando API FastAPI...")
-    try:
-        response = requests.get("http://127.0.0.1:8000/", timeout=10)
-        if response.status_code == 200:
-            print(f"✅ API FastAPI disponible en puerto 8000")
-        else:
-            print(f"⚠️ API FastAPI responde pero con código: {response.status_code}")
-    except Exception as e:
-        print(f"❌ API FastAPI no disponible: {e}")
-        print(f"   💡 Asegúrate de ejecutar: uvicorn scripts.api_server:app --reload")
-    
-    # Verificar Next.js
-    print(f"🌐 Verificando servidor Next.js...")
-    try:
-        response = requests.get("http://localhost:3000/", timeout=10)
-        if response.status_code == 200:
-            print(f"✅ Servidor Next.js disponible en puerto 3000")
-        else:
-            print(f"⚠️ Next.js responde pero con código: {response.status_code}")
-    except Exception as e:
-        print(f"❌ Servidor Next.js no disponible: {e}")
-        print(f"   💡 Asegúrate de ejecutar: npm run dev")
-    
-    # Verificar Playwright
-    print(f"🎭 Verificando Playwright...")
-    try:
-        from playwright.sync_api import sync_playwright
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            browser.close()
-        print(f"✅ Playwright funcional")
-    except Exception as e:
-        print(f"❌ Error con Playwright: {e}")
-        print(f"   💡 Asegúrate de ejecutar: playwright install")
 
 
 # --- Función para obtener clientes desde API ---
@@ -248,18 +198,6 @@ def obtener_clientes_desde_api():
             print(f"📊 Datos obtenidos:")
             print(f"   📅 Clientes diarios: {len(diarios)}")
             print(f"   📊 Clientes semanales: {len(semanales)}")
-            
-            # Mostrar detalles de clientes diarios
-            if diarios:
-                print(f"📋 Lista de clientes diarios:")
-                for i, cliente in enumerate(diarios, 1):
-                    print(f"   {i:2d}. {cliente.get('nombre_cliente', 'N/A')} - {cliente.get('alias', 'N/A')} (ID: {cliente.get('id_cliente', 'N/A')})")
-            
-            # Mostrar detalles de clientes semanales
-            if semanales:
-                print(f"📋 Lista de clientes semanales:")
-                for i, cliente in enumerate(semanales, 1):
-                    print(f"   {i:2d}. {cliente.get('nombre_cliente', 'N/A')} - {cliente.get('alias', 'N/A')} (ID: {cliente.get('id_cliente', 'N/A')})")
             
             return {
                 "diarios": diarios,
@@ -527,17 +465,7 @@ def clean_pdfs_folder():
 # --- Función principal que junta todo ---
 def main():
     print(f"🚀 === INICIO PROCESO RESEND REPORTS ===")
-    print(f"📅 Fecha de ejecución: {FECHA_HOY.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"🏠 Directorio base: {BASE_DIR}")
-    print(f"📁 Carpeta PDFs: {DOWNLOADS_FOLDER}")
-    print(f"📧 SMTP desde: {SMTP_FROM}")
-    print(f"📝 Archivo recipients: {recipients_path}")
     
-    # Verificar conectividad
-    verificar_conectividad()
-    
-    # Verificar archivos y carpetas esenciales
-    print(f"\n🔍 Verificando archivos esenciales...")
     if not os.path.exists(recipients_path):
         print(f"❌ ERROR: No se encontró recipients.json en {recipients_path}")
         return
@@ -547,7 +475,6 @@ def main():
     os.makedirs(DOWNLOADS_FOLDER, exist_ok=True)
     print(f"✅ Carpeta PDFs preparada")
 
-    # Limpiar PDFs antiguos antes de generar nuevos
     print(f"\n🧹 Limpiando PDFs antiguos...")
     clean_pdfs_folder()
 

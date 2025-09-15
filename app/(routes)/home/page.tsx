@@ -143,7 +143,6 @@ const Home = () => {
             </div>
           )}
 
-          {/* Selector de compresor */}
           {compresores.length > 0 && (
             <div className="p-4 mb-6">
               <div className="text-center">
@@ -201,11 +200,6 @@ const Home = () => {
           <p className="text-center mt-3 mb-6 text-xl">
             Aquí podrá revisar sus reportes diarios, por fecha específica y
             semanales.
-            <br />
-            <span className="text-lg text-blue-900 font-medium">
-              💡 Pase el cursor por el lado izquierdo para acceder al menú de
-              navegación
-            </span>
           </p>
           {selectedCompresor ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 justify-items-center px-2">
