@@ -2,20 +2,27 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { UserData } from "@/lib/types";
 import Image from "next/image";
+import { UserData } from "@/lib/types";
 import { URL_API } from "@/lib/global";
+
+interface SelectedCompresor {
+  numero_cliente: string;
+  id_cliente: number;
+  linea: string;
+  alias?: string;
+  date?: string;
+  [key: string]: string | number | undefined;
+}
 
 const PredictiveModel = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [selectedCompresor, setSelectedCompresor] = useState<any>(null);
+  const [selectedCompresor, setSelectedCompresor] =
+    useState<SelectedCompresor | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(true);
   const router = useRouter();
-
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
   useEffect(() => {
     const loadUserData = () => {
