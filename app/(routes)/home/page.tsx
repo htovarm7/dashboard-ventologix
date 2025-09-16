@@ -138,7 +138,7 @@ const Home = () => {
             <div className="text-xl text-center mb-6">
               <p className="text-black">Bienvenido Ing. {user.name}</p>
               <p className="text-black">
-                Número Cliente: {numeroCliente || "Cargando..."}
+                Número Cliente: {numeroCliente}
               </p>
             </div>
           )}
