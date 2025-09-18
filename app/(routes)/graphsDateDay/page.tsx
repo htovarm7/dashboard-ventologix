@@ -540,7 +540,6 @@ function MainContent() {
 
   return (
     <main className="relative">
-      {/* Botón de regresar */}
       <BackButton
         position="fixed"
         size="md"
@@ -578,7 +577,7 @@ function MainContent() {
         <Image
           src="/Ventologix_04.png"
           alt="logo"
-          className="h-28 w-auto mt-3 absolute top-0 left-0 m-3"
+          className="h-28 w-auto mt-3 absolute top-0 right-0 m-3"
           width={300}
           height={100}
         />
