@@ -18,6 +18,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams, useRouter } from "next/navigation";
 import annotationPlugin from "chartjs-plugin-annotation";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
+import PrintPageButton from "@/components/printPageButton";
 
 // Libraries for charts
 import {
@@ -539,7 +540,7 @@ function MainContent() {
         variant="primary"
         className="top-4 left-4"
       />
-
+      <PrintPageButton />
       <div className="flex flex-col items-center mb-2">
         <h1 className="text-4xl font-bold text-center">
           Reporte Diario por Fecha
