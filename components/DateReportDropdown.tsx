@@ -122,33 +122,6 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
     }, 300);
   };
 
-  const handleWeekChange = (newWeek: number) => {
-    const validWeek = Math.min(Math.max(1, newWeek), currentWeek);
-    setSelectedWeek(validWeek);
-
-    if (!selectedCompresor) {
-      alert("No hay compresor seleccionado");
-      return;
-    }
-
-    const dateToUse = getWeekRange(validWeek).start.toISOString().split("T")[0];
-
-    sessionStorage.setItem(
-      "selectedCompresor",
-      JSON.stringify({
-        id_cliente: selectedCompresor.id_cliente,
-        linea: selectedCompresor.linea,
-        alias: selectedCompresor.alias,
-        date: dateToUse,
-        weekNumber: validWeek,
-      })
-    );
-
-    setTimeout(() => {
-      router.push("/graphsDateWeek");
-    }, 300);
-  };
-
   return (
     <div className="relative text-center group">
       <h2

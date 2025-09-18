@@ -33,7 +33,7 @@ import {
 } from "chart.js";
 import { Pie, Chart } from "react-chartjs-2";
 import { putBlur } from "@/lib/reportsFunctions";
-import DownloadReportButton from "@/components/DownloadReportButton";
+import PrintReportButton from "@/components/PrintReportButton";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import BackButton from "@/components/BackButton";
 
@@ -583,14 +583,11 @@ function MainContent() {
           height={100}
         />
 
-        {/* Download Report Button */}
         {currentClientId && currentLinea && clientData && (
           <div className="mt-4 mb-6">
-            <DownloadReportButton
-              clientId={currentClientId}
-              linea={currentLinea}
-              clientName={clientData.nombre_cliente}
-              alias={compresorAlias}
+            <PrintReportButton
+              clientData={clientData}
+              compressorData={compressorData || undefined}
               reportType="diario"
               className="mx-auto"
             />

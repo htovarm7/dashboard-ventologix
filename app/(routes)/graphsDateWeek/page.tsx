@@ -20,7 +20,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import annotationPlugin from "chartjs-plugin-annotation";
 import Image from "next/image";
 import VentoCom from "@/components/vento_com";
-import DownloadReportButton from "@/components/DownloadReportButton";
+import PrintReportButton from "@/components/PrintReportButton";
 import {
   getColorCiclos,
   getColorClass,
@@ -1068,11 +1068,9 @@ function MainContent() {
             {/* Download Report Button */}
             {currentClientId && currentLinea && clientData && (
               <div className="mt-6 flex justify-center">
-                <DownloadReportButton
-                  clientId={currentClientId}
-                  linea={currentLinea}
-                  clientName={clientData.nombre_cliente}
-                  alias={compressorData?.alias || ""}
+                <PrintReportButton
+                  clientData={clientData}
+                  compressorData={compressorData || undefined}
                   reportType="semanal"
                   className=""
                 />
