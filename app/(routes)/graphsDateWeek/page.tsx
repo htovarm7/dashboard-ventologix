@@ -498,7 +498,7 @@ function MainContent() {
         pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
           formatter: () =>
-            `${hpEquivalente !== undefined ? hpEquivalente.toFixed(2) : 0}`,
+            `${hpEquivalente !== undefined ? hpEquivalente.toFixed(0) : 0}%`,
           fontSize: 18,
           offsetCenter: [0, "30%"],
           color:
@@ -514,7 +514,7 @@ function MainContent() {
               ? "yellow"
               : "red",
         },
-        data: [{ value: hpEquivalente.toFixed(2) ?? 0 }],
+        data: [{ value: hpEquivalente.toFixed(0) ?? 0 }],
       },
     ],
   };
