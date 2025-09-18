@@ -20,7 +20,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 import annotationPlugin from "chartjs-plugin-annotation";
 import Image from "next/image";
 import VentoCom from "@/components/vento_com";
-import PrintReportButton from "@/components/PrintReportButton";
 import {
   getColorCiclos,
   getColorClass,
@@ -28,8 +27,8 @@ import {
   getAnualValue,
 } from "@/lib/reportsFunctions";
 
-import LoadingOverlay from "@/components/LoadingOverlay";
-import BackButton from "@/components/BackButton";
+import LoadingOverlay from "@/components/loadingOverlay";
+import BackButton from "@/components/backButton";
 
 // Libraries for charts
 import {
@@ -96,8 +95,6 @@ function MainContent() {
 
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>("");
-  const [currentClientId, setCurrentClientId] = useState<string>("");
-  const [currentLinea, setCurrentLinea] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const hpEquivalente =
     ((summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) /
@@ -323,8 +320,6 @@ function MainContent() {
         date = compresorData.date;
         weekNumber = compresorData.weekNumber;
         setSelectedDate(date || "");
-        setCurrentClientId(id_cliente);
-        setCurrentLinea(linea);
 
         if (weekNumber) {
           setSelectedWeekNumber(weekNumber);
@@ -336,9 +331,6 @@ function MainContent() {
           searchParams.get("date") || new Date().toISOString().split("T")[0];
         weekNumber = searchParams.get("weekNumber");
         setSelectedDate(date);
-        setCurrentClientId(id_cliente || "");
-        setCurrentLinea(linea);
-
         if (weekNumber) {
           setSelectedWeekNumber(parseInt(weekNumber));
         }
@@ -1064,18 +1056,6 @@ function MainContent() {
               <span className="font-bold">Semana {semanaNumero}:</span>{" "}
               {fechaInicio} al {fechaFin}
             </p>
-
-            {/* Download Report Button */}
-            {currentClientId && currentLinea && clientData && (
-              <div className="mt-6 flex justify-center">
-                <PrintReportButton
-                  clientData={clientData}
-                  compressorData={compressorData || undefined}
-                  reportType="semanal"
-                  className=""
-                />
-              </div>
-            )}
           </div>
 
           {/* Right Column: Logo and data */}

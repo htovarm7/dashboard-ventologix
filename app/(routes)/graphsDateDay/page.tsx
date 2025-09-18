@@ -33,9 +33,8 @@ import {
 } from "chart.js";
 import { Pie, Chart } from "react-chartjs-2";
 import { putBlur } from "@/lib/reportsFunctions";
-import PrintReportButton from "@/components/PrintReportButton";
-import LoadingOverlay from "@/components/LoadingOverlay";
-import BackButton from "@/components/BackButton";
+import LoadingOverlay from "@/components/loadingOverlay";
+import BackButton from "@/components/backButton";
 
 // ECharts for the gauge chart
 import ReactECharts from "echarts-for-react";
@@ -82,8 +81,6 @@ function MainContent() {
   const [dayData, setDayData] = useState<dayData | null>(null);
   const [compresorAlias, setCompresorAlias] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<string>("");
-  const [currentClientId, setCurrentClientId] = useState<string>("");
-  const [currentLinea, setCurrentLinea] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const fetchData = useCallback(
@@ -259,8 +256,6 @@ function MainContent() {
           compresorData.alias || `Compresor ${id_cliente}-${linea}`
         );
         setSelectedDate(date || "");
-        setCurrentClientId(id_cliente);
-        setCurrentLinea(linea);
       } else {
         // Fallback a URL parameters
         id_cliente = searchParams.get("id_cliente");
@@ -269,8 +264,6 @@ function MainContent() {
           searchParams.get("date") || new Date().toISOString().split("T")[0]; // Fecha actual como fallback
         setCompresorAlias(`Compresor ${id_cliente}-${linea}`);
         setSelectedDate(date);
-        setCurrentClientId(id_cliente || "");
-        setCurrentLinea(linea);
       }
 
       if (id_cliente && date) {
@@ -581,17 +574,6 @@ function MainContent() {
           width={300}
           height={100}
         />
-
-        {currentClientId && currentLinea && clientData && (
-          <div className="mt-4 mb-6">
-            <PrintReportButton
-              clientData={clientData}
-              compressorData={compressorData || undefined}
-              reportType="diario"
-              className="mx-auto"
-            />
-          </div>
-        )}
       </div>
 
       <div className="mt-2 p-4">

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
-import DateReportDropdown from "@/components/DateReportDropdown";
+import DateReportDropdown from "@/components/dateReportDropdown";
 import { Compresor } from "@/types/common";
 
 const Home = () => {
@@ -137,9 +137,7 @@ const Home = () => {
           {user && (
             <div className="text-xl text-center mb-6">
               <p className="text-black">Bienvenido Ing. {user.name}</p>
-              <p className="text-black">
-                Número Cliente: {numeroCliente}
-              </p>
+              <p className="text-black">Número Cliente: {numeroCliente}</p>
             </div>
           )}
 
