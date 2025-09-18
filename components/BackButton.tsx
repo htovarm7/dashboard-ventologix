@@ -1,15 +1,3 @@
-/*
- * @file BackButton.tsx
- * @date 18/09/2025
- * @author GitHub Copilot
- *
- * @description
- * Componente reutilizable de botón para regresar al menú principal.
- * Incluye animaciones y efectos hover para una mejor experiencia de usuario.
- *
- * @version 1.0
- */
-
 "use client";
 
 import React from "react";

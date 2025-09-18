@@ -1,15 +1,3 @@
-/*
- * @file LoadingOverlay.tsx
- * @date 18/09/2025
- * @author GitHub Copilot
- *
- * @description
- * Componente de overlay de carga que aplica un efecto de blur al fondo
- * manteniendo la visibilidad del contenido con un spinner centrado.
- *
- * @version 1.0
- */
-
 import React from "react";
 
 interface LoadingOverlayProps {

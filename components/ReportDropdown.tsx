@@ -1,4 +1,5 @@
 "use client";
+
 import React from "react";
 import { Compresor } from "../types/common";
 
