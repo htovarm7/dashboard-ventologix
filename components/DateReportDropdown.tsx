@@ -99,6 +99,56 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
     }
   };
 
+  const handleDateChange = (newDate: string) => {
+    setSelectedDate(newDate);
+
+    if (!selectedCompresor) {
+      alert("No hay compresor seleccionado");
+      return;
+    }
+
+    sessionStorage.setItem(
+      "selectedCompresor",
+      JSON.stringify({
+        id_cliente: selectedCompresor.id_cliente,
+        linea: selectedCompresor.linea,
+        alias: selectedCompresor.alias,
+        date: newDate,
+      })
+    );
+
+    setTimeout(() => {
+      router.push("/graphsDateDay");
+    }, 300);
+  };
+
+  const handleWeekChange = (newWeek: number) => {
+    const validWeek = Math.min(Math.max(1, newWeek), currentWeek);
+    setSelectedWeek(validWeek);
+
+    if (!selectedCompresor) {
+      alert("No hay compresor seleccionado");
+      return;
+    }
+
+    const dateToUse = getWeekRange(validWeek).start.toISOString().split("T")[0];
+
+    sessionStorage.setItem(
+      "selectedCompresor",
+      JSON.stringify({
+        id_cliente: selectedCompresor.id_cliente,
+        linea: selectedCompresor.linea,
+        alias: selectedCompresor.alias,
+        date: dateToUse,
+        weekNumber: validWeek,
+      })
+    );
+
+    setTimeout(() => {
+      router.push("/graphsDateWeek");
+    }, 300);
+  };
+
   return (
     <div className="relative text-center group">
       <h2
@@ -132,18 +182,20 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
                   <input
                     type="date"
                     value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="text-l w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                    onChange={(e) => handleDateChange(e.target.value)}
+                    className="text-l w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center cursor-pointer hover:bg-blue-50 transition-colors"
                     max={getYesterday()}
+                    title="Haz click para seleccionar fecha y navegar automáticamente"
                   />
                 </div>
 
                 <div className="px-4 py-3">
                   <button
                     onClick={handleDateSelect}
-                    className={`w-full px-4 py-2 text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors font-medium text-m`}
+                    className={`w-full px-4 py-2 text-white bg-gray-500 hover:bg-gray-600 rounded-md transition-colors font-medium text-m opacity-75`}
                   >
-                    Ver Reporte Diario <br /> {selectedDate}
+                    Navegar Manualmente <br />
+                    <span className="text-sm">({selectedDate})</span>
                   </button>
                 </div>
               </>
@@ -167,7 +219,7 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
                           )
                         )
                       }
-                      className="text-xl w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center font-semibold"
+                      className="text-xl w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center font-semibold cursor-pointer hover:bg-blue-50 transition-colors"
                       min="1"
                       max={currentWeek}
                     />

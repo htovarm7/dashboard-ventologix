@@ -28,6 +28,9 @@ import {
   getAnualValue,
 } from "@/lib/reportsFunctions";
 
+import LoadingOverlay from "@/components/LoadingOverlay";
+import BackButton from "@/components/BackButton";
+
 // Libraries for charts
 import {
   Chart as ChartJS,
@@ -95,6 +98,7 @@ function MainContent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [currentClientId, setCurrentClientId] = useState<string>("");
   const [currentLinea, setCurrentLinea] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const hpEquivalente =
     ((summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) /
       (compressorData?.hp ?? 1)) *
@@ -102,6 +106,7 @@ function MainContent() {
 
   const fetchData = useCallback(
     async (id: string, linea: string, date: string) => {
+      setIsLoading(true);
       try {
         const formattedDate = new Date(date).toISOString().split("T")[0];
         console.log("Fecha formateada:", formattedDate);
@@ -292,10 +297,13 @@ function MainContent() {
         }
 
         const { LOAD, NOLOAD, OFF } = pieRes.data;
+
         setChartData([LOAD, NOLOAD, OFF]);
+        setIsLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
         window.status = "data-error";
+        setIsLoading(false);
       }
     },
     []
@@ -1035,6 +1043,14 @@ function MainContent() {
 
   return (
     <main className="relative">
+      {/* Botón de regresar */}
+      <BackButton
+        position="fixed"
+        size="md"
+        variant="outline"
+        className="top-4 left-4 bg-white/10 backdrop-blur-sm border-white/50 text-white hover:bg-white hover:text-blue-600"
+      />
+
       <div className="w-full min-w-full bg-gradient-to-r from-indigo-950 to-blue-400 text-white p-6">
         {/* Main docker on rows */}
         <div className="flex justify-between items-start">
@@ -1507,6 +1523,14 @@ function MainContent() {
           </div>
         </div>
       </div>
+
+      {/* Loading Overlay */}
+      <LoadingOverlay
+        isVisible={isLoading}
+        message="Cargando datos del reporte semanal..."
+        spinnerSize="lg"
+        blurIntensity="medium"
+      />
     </main>
   );
 }

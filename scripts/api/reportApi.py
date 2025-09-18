@@ -1299,7 +1299,7 @@ async def generate_pdf(request: PDFRequest):
     Generate PDF report using the same logic as automation.py
     """
     try:
-        from playwright.sync_api import sync_playwright
+        from playwright.async_api import async_playwright
         import tempfile
         import locale
         from datetime import datetime, timedelta
@@ -1333,27 +1333,27 @@ async def generate_pdf(request: PDFRequest):
             pdf_path = temp_file.name
         
         try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
-                page = browser.new_page()
-                page.set_viewport_size({"width": 1920, "height": 1080})
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                page = await browser.new_page()
+                await page.set_viewport_size({"width": 1920, "height": 1080})
                 
                 if request.tipo == "diario":
                     url = f"http://localhost:3000/reportesD?id_cliente={request.id_cliente}&linea={request.linea}"
                     
-                    page.goto(url, timeout=300000)
-                    page.wait_for_function("window.status === 'pdf-ready' || window.status === 'data-error'", timeout=300000)
+                    await page.goto(url, timeout=300000)
+                    await page.wait_for_function("window.status === 'pdf-ready' || window.status === 'data-error'", timeout=300000)
                     
                     # Check status
-                    status = page.evaluate("() => window.status")
+                    status = await page.evaluate("() => window.status")
                     if status == "data-error":
                         raise HTTPException(status_code=400, detail="Error de datos reportado por la página")
                     
                     # Calculate page height
-                    page_height = page.evaluate("() => document.body.scrollHeight")
+                    page_height = await page.evaluate("() => document.body.scrollHeight")
                     
                     # Generate PDF
-                    page.pdf(
+                    await page.pdf(
                         path=pdf_path,
                         width="1920px",
                         height=f"{page_height}px",
@@ -1364,16 +1364,16 @@ async def generate_pdf(request: PDFRequest):
                 else:  # semanal
                     url = f"http://localhost:3000/reportesS?id_cliente={request.id_cliente}&linea={request.linea}"
                     
-                    page.goto(url, timeout=300000)
-                    page.wait_for_function("window.status === 'pdf-ready' || window.status === 'data-error'", timeout=300000)
+                    await page.goto(url, timeout=300000)
+                    await page.wait_for_function("window.status === 'pdf-ready' || window.status === 'data-error'", timeout=300000)
                     
                     # Check status
-                    status = page.evaluate("() => window.status")
+                    status = await page.evaluate("() => window.status")
                     if status == "data-error":
                         raise HTTPException(status_code=400, detail="Error de datos reportado por la página")
                     
                     # Calculate page height
-                    full_height = page.evaluate("""
+                    full_height = await page.evaluate("""
                     () => Math.max(
                         document.body.scrollHeight,
                         document.documentElement.scrollHeight
@@ -1382,7 +1382,7 @@ async def generate_pdf(request: PDFRequest):
                     safe_height = max(int(full_height) - 2, 1)
                     
                     # Generate PDF
-                    page.pdf(
+                    await page.pdf(
                         path=pdf_path,
                         width="1920px",
                         height=f"{safe_height}px",
@@ -1390,7 +1390,7 @@ async def generate_pdf(request: PDFRequest):
                         margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
                     )
                 
-                browser.close()
+                await browser.close()
         
         except Exception as e:
             # Clean up temp file on error

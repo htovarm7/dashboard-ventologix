@@ -34,6 +34,8 @@ import {
 import { Pie, Chart } from "react-chartjs-2";
 import { putBlur } from "@/lib/reportsFunctions";
 import DownloadReportButton from "@/components/DownloadReportButton";
+import LoadingOverlay from "@/components/LoadingOverlay";
+import BackButton from "@/components/BackButton";
 
 // ECharts for the gauge chart
 import ReactECharts from "echarts-for-react";
@@ -82,9 +84,11 @@ function MainContent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [currentClientId, setCurrentClientId] = useState<string>("");
   const [currentLinea, setCurrentLinea] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const fetchData = useCallback(
     async (id: string, linea: string, date: string) => {
+      setIsLoading(true);
       try {
         const [pieRes, lineRes, dayRes, clientRes, compressorRes] =
           await Promise.all([
@@ -222,6 +226,7 @@ function MainContent() {
           setLineChartData([]);
           setMaxData(0);
         }
+        setIsLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
         // Establecer valores por defecto en caso de error
@@ -232,6 +237,7 @@ function MainContent() {
         setLineChartLabels([]);
         setLineChartData([]);
         setMaxData(0);
+        setIsLoading(false);
       }
     },
     []
@@ -534,7 +540,13 @@ function MainContent() {
 
   return (
     <main className="relative">
-      <div className="absolute top-4 left-4 z-10"></div>
+      {/* Botón de regresar */}
+      <BackButton
+        position="fixed"
+        size="md"
+        variant="primary"
+        className="top-4 left-4"
+      />
 
       <div className="flex flex-col items-center mb-2">
         <h1 className="text-4xl font-bold text-center">
@@ -823,6 +835,14 @@ function MainContent() {
           </div>
         )}
       </div>
+
+      {/* Loading Overlay */}
+      <LoadingOverlay
+        isVisible={isLoading}
+        message="Cargando datos del reporte..."
+        spinnerSize="lg"
+        blurIntensity="medium"
+      />
     </main>
   );
 }
