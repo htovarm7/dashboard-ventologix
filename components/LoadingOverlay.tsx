@@ -44,6 +44,7 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
       bg-white/30 ${getBlurClasses()}
       transition-all duration-300 ease-in-out
     `}
+      data-exclude-pdf="true"
     >
       <div
         className="

@@ -185,6 +185,7 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
       <button
         className="fixed top-4 left-4 z-50 md:hidden bg-slate-900 text-white p-1.5 rounded-lg shadow-lg"
         onClick={() => setIsExpanded(!isExpanded)}
+        data-exclude-pdf="true"
       >
         <svg
           className="w-5 h-5"
@@ -202,7 +203,10 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
       </button>
 
       {!isExpanded && (
-        <div className="fixed left-0 top-1/2 transform -translate-y-1/2 z-40 hidden md:block">
+        <div
+          className="fixed left-0 top-1/2 transform -translate-y-1/2 z-40 hidden md:block"
+          data-exclude-pdf="true"
+        >
           <div
             className="bg-gradient-to-r from-slate-800 to-slate-700 text-white px-4 py-10 rounded-r-xl shadow-xl border-r-2 border-slate-600 hover:from-slate-700 hover:to-slate-600 transition-all duration-300 cursor-pointer group"
             onMouseEnter={() => setIsExpanded(true)}
@@ -247,6 +251,7 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
       <div
         className="fixed left-0 top-0 w-6 h-full z-40 bg-transparent hidden md:block"
         onMouseEnter={() => setIsExpanded(true)}
+        data-exclude-pdf="true"
       />
 
       <div
@@ -258,6 +263,7 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
             setIsExpanded(false);
           }
         }}
+        data-exclude-pdf="true"
       >
         <div className="flex flex-col h-full">
           <div className="p-6 border-b border-slate-700">

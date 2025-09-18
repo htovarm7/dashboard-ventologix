@@ -6,11 +6,65 @@ import jsPDF from "jspdf";
 
 const PrintPageButton: React.FC = () => {
   const downloadAsPDF = async () => {
-    const element = document.body;
     try {
-      const dataUrl = await toPng(element, { cacheBust: true });
-      const pdf = new jsPDF("p", "mm", "a4");
+      const elementsToHide = [
+        'button[title="Descargar página como PDF"]',
+        ".fixed",
+        '[class*="BackButton"]',
+        "nav",
+        ".sidebar",
+        "[data-exclude-pdf]",
+      ];
 
+      const hiddenElements: HTMLElement[] = [];
+      elementsToHide.forEach((selector) => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach((el) => {
+          if (el instanceof HTMLElement && el.style.display !== "none") {
+            hiddenElements.push(el);
+            el.style.display = "none";
+          }
+        });
+      });
+
+      let elementToCapture = document.querySelector("main") as HTMLElement;
+
+      if (!elementToCapture) {
+        elementToCapture =
+          (document.querySelector('[class*="content"]') as HTMLElement) ||
+          (document.querySelector(".container") as HTMLElement) ||
+          (document.querySelector(
+            "#__next > div > div:last-child"
+          ) as HTMLElement) ||
+          (document.querySelector('div[class*="relative"]') as HTMLElement) ||
+          document.body;
+      }
+
+      const originalStyle = elementToCapture.style.cssText;
+      elementToCapture.style.background = "#ffffff";
+      elementToCapture.style.minHeight = "auto";
+
+      const options = {
+        cacheBust: true,
+        height: elementToCapture.scrollHeight,
+        width: elementToCapture.scrollWidth,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        style: {
+          transform: "scale(1)",
+          transformOrigin: "top left",
+        },
+      };
+
+      const dataUrl = await toPng(elementToCapture, options);
+
+      hiddenElements.forEach((el) => {
+        el.style.display = "";
+      });
+      elementToCapture.style.cssText = originalStyle;
+
+      const pdf = new jsPDF("p", "mm", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
 
@@ -33,10 +87,14 @@ const PrintPageButton: React.FC = () => {
           heightLeft -= pageHeight;
         }
 
-        pdf.save(`Reporte_${new Date().toISOString().split("T")[0]}.pdf`);
+        const fileName = `Reporte_${
+          new Date().toISOString().split("T")[0]
+        }.pdf`;
+        pdf.save(fileName);
       };
     } catch (error) {
       console.error("Error al generar PDF:", error);
+      alert("Error al generar el PDF. Por favor, inténtalo de nuevo.");
     }
   };
 
@@ -45,6 +103,7 @@ const PrintPageButton: React.FC = () => {
       onClick={downloadAsPDF}
       className="fixed bottom-6 right-6 z-50 group bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-xl shadow-2xl hover:shadow-blue-500/25 transform hover:scale-105 transition-all duration-300 ease-in-out border-2 border-white/20 backdrop-blur-sm"
       title="Descargar página como PDF"
+      data-exclude-pdf="true"
     >
       <div className="flex items-center space-x-2">
         <svg
@@ -63,10 +122,8 @@ const PrintPageButton: React.FC = () => {
         <span className="hidden sm:inline">PDF</span>
       </div>
 
-      {/* Efecto de ondas al hacer hover */}
       <div className="absolute inset-0 rounded-full bg-white/20 opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300"></div>
 
-      {/* Indicador de acción */}
       <div className="absolute -top-2 -right-2 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
     </button>
   );

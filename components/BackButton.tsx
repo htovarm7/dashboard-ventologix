@@ -77,6 +77,7 @@ const BackButton: React.FC<BackButtonProps> = ({
         ${className}
       `}
       aria-label="Regresar al menú principal"
+      data-exclude-pdf="true"
     >
       {/* Icono de flecha hacia atrás */}
       <svg
