@@ -34,8 +34,8 @@ import {
 } from "chart.js";
 import { Pie, Chart } from "react-chartjs-2";
 import { putBlur } from "@/lib/reportsFunctions";
-import LoadingOverlay from "@/components/loadingOverlay";
-import BackButton from "@/components/backButton";
+import LoadingOverlay from "@/components/LoadingOverlay";
+import BackButton from "@/components/BackButton";
 
 // ECharts for the gauge chart
 import ReactECharts from "echarts-for-react";

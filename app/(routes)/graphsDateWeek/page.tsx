@@ -27,8 +27,8 @@ import {
   getAnualValue,
 } from "@/lib/reportsFunctions";
 
-import LoadingOverlay from "@/components/loadingOverlay";
-import BackButton from "@/components/backButton";
+import LoadingOverlay from "@/components/LoadingOverlay";
+import BackButton from "@/components/BackButton";
 
 // Libraries for charts
 import {

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
-import DateReportDropdown from "@/components/dateReportDropdown";
+import DateReportDropdown from "@/components/DateReportDropdown";
 import { Compresor } from "@/types/common";
 
 const Home = () => {
