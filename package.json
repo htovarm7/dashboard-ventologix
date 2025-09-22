@@ -33,7 +33,8 @@
     "react-day-picker": "^9.7.0",
     "react-dom": "^18.3.1",
     "react-gauge-component": "^1.2.21",
-    "react-router-dom": "^7.6.0"
+    "react-router-dom": "^7.6.0",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.11",

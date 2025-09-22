@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { useAuth0 } from "@auth0/auth0-react";
 import { EngineerFormData, Engineer, Compressor, UserData } from "@/lib/types";
 import { URL_API } from "@/lib/global";
+import { useDialog } from "@/hooks/useDialog";
 
 const AdminView = () => {
   const router = useRouter();
+  const { showSuccess, showError, showConfirmation } = useDialog();
   const { isLoading } = useAuth0();
   const [userRole, setUserRole] = useState<number | null>(null);
   const [engineers, setEngineers] = useState<Engineer[]>([]);
@@ -195,17 +197,8 @@ const AdminView = () => {
         email: formData.email,
         compressors: formData.compressors,
         numeroCliente: data.numero_cliente,
+        rol: 1,
       };
-
-      console.log("=== SENDING ENGINEER DATA ===");
-      console.log("Form data compressors:", formData.compressors);
-      console.log("Form data compressors length:", formData.compressors.length);
-      console.log("Form data compressors type:", typeof formData.compressors);
-      console.log("Complete engineer data:", engineerData);
-      console.log("Is editing?", !!editingEngineer);
-      if (editingEngineer) {
-        console.log("Editing engineer:", editingEngineer);
-      }
 
       const endpoint = editingEngineer
         ? `${URL_API}/web/ingenieros/${editingEngineer.id}`
@@ -251,11 +244,17 @@ const AdminView = () => {
       } else {
         const errorData = await response.json();
         console.error("Error del servidor:", errorData);
-        alert(`Error: ${errorData.detail || "Error desconocido"}`);
+        showError(
+          "Error al guardar ingeniero",
+          errorData.detail || "Error desconocido"
+        );
       }
     } catch (error) {
       console.error("Error saving engineer:", error);
-      alert("Error al guardar el ingeniero. Por favor intenta de nuevo.");
+      showError(
+        "Error al guardar ingeniero",
+        "Error al guardar el ingeniero. Por favor intenta de nuevo."
+      );
     }
   };
 
@@ -306,10 +305,10 @@ const AdminView = () => {
     engineerId: string,
     engineerNumeroCliente: number
   ) => {
-    if (confirm("¿Está seguro de que desea eliminar este ingeniero?")) {
-      try {
-        const clientNumber = data?.numero_cliente || engineerNumeroCliente;
+    const clientNumber = data?.numero_cliente || engineerNumeroCliente;
 
+    const executeDelete = async () => {
+      try {
         console.log(
           "Deleting engineer:",
           engineerId,
@@ -331,19 +330,35 @@ const AdminView = () => {
         if (response.ok) {
           console.log("Engineer deleted successfully");
           fetchEngineers(clientNumber);
-          alert("Ingeniero eliminado exitosamente");
+          showSuccess(
+            "Ingeniero eliminado",
+            "El ingeniero ha sido eliminado exitosamente"
+          );
         } else {
           const errorData = await response.text();
           console.error("Error deleting engineer:", response.status, errorData);
-          alert(
-            `Error al eliminar ingeniero: ${response.status} - ${errorData}`
+          showError(
+            "Error al eliminar ingeniero",
+            `Error: ${response.status} - ${errorData}`
           );
         }
       } catch (error) {
         console.error("Error deleting engineer:", error);
-        alert("Error al eliminar el ingeniero. Por favor intenta de nuevo.");
+        showError(
+          "Error al eliminar ingeniero",
+          "Error al eliminar el ingeniero. Por favor intenta de nuevo."
+        );
       }
-    }
+    };
+
+    showConfirmation(
+      "Confirmar eliminación",
+      "¿Está seguro de que desea eliminar este ingeniero? Esta acción no se puede deshacer.",
+      executeDelete,
+      undefined,
+      "Eliminar",
+      "Cancelar"
+    );
   };
 
   const handleEmailPreferenceChange = async (

@@ -269,7 +269,7 @@ def create_ingeniero(
                numeroCliente = VALUES(numeroCliente),
                rol = VALUES(rol),
                name = VALUES(name)""",
-            (email, numeroCliente, 2, name)
+            (email, numeroCliente, 1, name)
         )
 
         conn.commit()

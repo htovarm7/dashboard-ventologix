@@ -1,7 +1,8 @@
 import { Outfit } from "next/font/google";
 import type { Metadata } from "next";
 import "./globals.css";
-import AuthProvider from "../components/auth-provider";
+import AuthProvider from "@/components/auth-provider";
+import DialogProvider from "@/components/DialogProvider";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -21,7 +22,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={outfit.className}>
       <body className="antialiased overflow-x-hidden">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <DialogProvider>{children}</DialogProvider>
+        </AuthProvider>
       </body>
     </html>
   );
