@@ -421,7 +421,7 @@ const AdminView = () => {
                 Editando Ingeniero: {editingEngineer.name}
               </span>
             ) : (
-              "Gestión de Ingenieros"
+              "Gestión de Usuarios"
             )}
           </h2>
           <form
@@ -518,11 +518,6 @@ const AdminView = () => {
                   </div>
                 )}
               </div>
-              {formData.compressors.length > 0 && (
-                <p className="text-xs text-gray-600 mt-1">
-                  Seleccionados: {getSelectedCompressorNames()}
-                </p>
-              )}
             </div>
             <div className="flex gap-3">
               <button
