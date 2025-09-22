@@ -87,9 +87,49 @@ const PrintPageButton: React.FC = () => {
           heightLeft -= pageHeight;
         }
 
-        const fileName = `Reporte_${
-          new Date().toISOString().split("T")[0]
-        }.pdf`;
+        // Generar nombre del archivo basado en el tipo de reporte
+        const generateFileName = () => {
+          const currentPath = window.location.pathname;
+          const currentDate = new Date().toISOString().split("T")[0];
+
+          // Obtener información del compresor del sessionStorage
+          const savedCompresor = sessionStorage.getItem("selectedCompresor");
+          let compresorName = "Compresor";
+          let date = currentDate;
+          let weekNumber = null;
+
+          if (savedCompresor) {
+            const compresorData = JSON.parse(savedCompresor);
+            compresorName =
+              compresorData.alias ||
+              `Compresor_${compresorData.id_cliente}-${compresorData.linea}`;
+            date = compresorData.date || currentDate;
+            weekNumber = compresorData.weekNumber;
+          }
+
+          // Limpiar nombre del compresor para el archivo (remover caracteres especiales)
+          const cleanCompresorName = compresorName.replace(
+            /[^a-zA-Z0-9]/g,
+            "_"
+          );
+
+          if (currentPath.includes("graphsDateDay")) {
+            // Formato: Reporte_Diario_[CompresorAlias]_[YYYY-MM-DD].pdf
+            return `Reporte_Diario_${cleanCompresorName}_${date}.pdf`;
+          } else if (currentPath.includes("graphsDateWeek")) {
+            // Formato: Reporte_Semanal_[CompresorAlias]_Semana[Número]_[Año].pdf
+            const year = new Date(date).getFullYear();
+            const weekText = weekNumber
+              ? `Semana${weekNumber}`
+              : "SemanaActual";
+            return `Reporte_Semanal_${cleanCompresorName}_${weekText}_${year}.pdf`;
+          } else {
+            // Formato genérico
+            return `Reporte_${cleanCompresorName}_${currentDate}.pdf`;
+          }
+        };
+
+        const fileName = generateFileName();
         pdf.save(fileName);
       };
     } catch (error) {
