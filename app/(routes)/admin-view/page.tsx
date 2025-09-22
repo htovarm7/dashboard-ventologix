@@ -153,13 +153,6 @@ const AdminView = () => {
     setIsDropdownOpen(false);
   };
 
-  const getSelectedCompressorNames = () => {
-    return compressors
-      .filter((comp) => formData.compressors.includes(comp.id))
-      .map((comp) => `${comp.alias} (Línea ${comp.linea})`)
-      .join(", ");
-  };
-
   const getCompressorNamesForEngineer = (
     engineerCompressors: string[] | Array<{ id: string; alias: string }>
   ) => {

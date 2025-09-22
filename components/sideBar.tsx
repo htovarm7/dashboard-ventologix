@@ -116,7 +116,7 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
       isExpandable: true,
       isExpanded: isBetaExpanded,
       setExpanded: setIsBetaExpanded,
-      requiresCompresor: true,
+      requiresCompresor: false,
       badge: "BETA",
       children: [
         {
