@@ -408,7 +408,7 @@ const AdminView = () => {
         <div>
           <h1 className="text-3xl font-bold">Panel de Administración</h1>
           <p className="text-xl text-blue-800 mt-2">
-            Administrador: Ing. {data?.name}
+            Administrador: {data?.name}
           </p>
         </div>
       </div>
@@ -434,7 +434,7 @@ const AdminView = () => {
               </label>
               <input
                 type="text"
-                placeholder="Nombre del ingeniero"
+                placeholder="Nombre del Usuario"
                 value={formData.name}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
