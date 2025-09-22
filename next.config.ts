@@ -19,13 +19,13 @@ const nextConfig: NextConfig = {
         protocol: 'http',
         hostname: '127.0.0.1',
         port: '8000',
-        pathname: '/web/forecast/**',
+        pathname: '/web/**',
       },
       {
         protocol: 'https',
         hostname: 'api.ventologix.com',
         port: '',
-        pathname: '/web/forecast/**',
+        pathname: '/web/**',
       }
     ],
   },

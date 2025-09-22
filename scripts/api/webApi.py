@@ -49,7 +49,6 @@ COLORES = ['purple', 'orange', 'blue', 'green', 'red', 'cyan', 'brown']
 FP = 0.9
 HORAS = 24
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # GET - Obtener usuario por email (para autenticación)
 @web.get("/usuarios/{email}", tags=["Auth"])
@@ -593,8 +592,8 @@ def get_engineer_compressors(email: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching engineer compressors: {str(e)}")
     
-@web.get("/forecast/plot", tags=["Web"])
-def forecast_plot(
+@web.get("/beta/consumption_prediction", tags=["Web"])
+def consumption_prediction_plot(
     numero_cliente: int = Query(..., description="Número del cliente")
 ):
     try:
@@ -607,29 +606,20 @@ def forecast_plot(
         voltaje_ref = 440
         costoKwh = 0.1
 
-        # Para cada compresor, cargar datos
+        # Para cada compresor, cargar datos (optimizado)
         for (id_cliente, linea, alias, segundosPR, voltaje, costo), color in zip(compresores, COLORES):
             try:
                 df = obtener_kwh_fp(id_cliente, linea, segundosPR, voltaje)
                 if df.empty:
-                    logger.warning(f"No data for compressor {alias}")
                     continue
                     
                 df['Fecha'] = pd.to_datetime(df['Fecha'])
                 df['kWh'] = pd.to_numeric(df['kWh'], errors='coerce')
-                df['HorasTrabajadas'] = pd.to_numeric(df['HorasTrabajadas'], errors='coerce')
                 
-                # Agrupar por fecha y sumar
-                df_grouped = df.groupby('Fecha').agg({
-                    'kWh': 'sum',
-                    'HorasTrabajadas': 'sum'
-                }).asfreq('D')
-                
-                # Crear columnas separadas para gráfico y modelo
+                # Simplificado: solo agrupar por fecha y sumar
+                df_grouped = df.groupby('Fecha')['kWh'].sum().asfreq('D')
+                df_grouped = pd.DataFrame({'kWh': df_grouped})
                 df_grouped[f'kWh_{id_cliente}_{linea}'] = df_grouped['kWh']
-                df_grouped[f'kWh_modelo_{id_cliente}_{linea}'] = df_grouped['kWh'].where(
-                    df_grouped['HorasTrabajadas'] >= 14, 0
-                )
                 
                 nombres_compresores[f'kWh_{id_cliente}_{linea}'] = alias
                 voltaje_ref = voltaje
@@ -638,44 +628,37 @@ def forecast_plot(
                 if df_total.empty:
                     df_total = df_grouped
                 else:
-                    df_total = df_total.join(df_grouped, how='outer', rsuffix='_temp')
-                    # Manejar columnas duplicadas
-                    for col in ['kWh', 'HorasTrabajadas']:
-                        if f'{col}_temp' in df_total.columns:
-                            df_total[col] = df_total[col].fillna(0) + df_total[f'{col}_temp'].fillna(0)
-                            df_total.drop(f'{col}_temp', axis=1, inplace=True)
+                    df_total = df_total.join(df_grouped[f'kWh_{id_cliente}_{linea}'], how='outer')
                     
             except Exception as e:
-                logger.error(f"Error processing compressor {alias}: {str(e)}")
                 continue
 
         if df_total.empty:
             return {"error": "No se pudieron cargar datos de ningún compresor"}
 
-        # Identificar columnas para gráfico y modelo
-        kwh_cols = [col for col in df_total.columns if col.startswith('kWh_') and not col.startswith('kWh_modelo_')]
-        kwh_modelo_cols = [col for col in df_total.columns if col.startswith('kWh_modelo_')]
+        # Identificar columnas para gráfico (simplificado)
+        kwh_cols = [col for col in df_total.columns if col.startswith('kWh_') and '_' in col]
         
-        # Total diario para gráfico (todos los datos)
+        # Total diario (simplificado)
         df_total['kWh'] = df_total[kwh_cols].sum(axis=1, skipna=True)
         
-        # Total diario para modelo (solo días con >= 14 horas)
-        df_total['kWh_modelo'] = df_total[kwh_modelo_cols].sum(axis=1, skipna=True)
+        # Limpieza simple usando quantiles (como pythonDaltile.py)
+        mask_no_zeros = df_total['kWh'].notna() & (df_total['kWh'] > 0)
+        if mask_no_zeros.sum() > 3:
+            q_low = df_total.loc[mask_no_zeros, 'kWh'].quantile(0.05)
+            q_high = df_total.loc[mask_no_zeros, 'kWh'].quantile(0.95)
+            df_total.loc[mask_no_zeros, 'kWh'] = df_total.loc[mask_no_zeros, 'kWh'].clip(q_low, q_high)
         
-        # Clean data usando desviación estándar
-        df_total['kWh'] = clean_outliers_with_std(df_total['kWh'], std_threshold=2.0)
-        df_total['kWh_modelo'] = clean_outliers_with_std(df_total['kWh_modelo'], std_threshold=2.0)
-        
-        # Generate predictions usando solo datos del modelo (>= 14 horas)
+        # Generate predictions usando función optimizada
         dias_prediccion = 3
         ultima_fecha = df_total.index[-1]
         fechas_prediccion = pd.date_range(ultima_fecha + timedelta(days=1), periods=dias_prediccion, freq='D')
         
-        predicciones, metodo_usado = generate_predictions(df_total['kWh_modelo'], dias_prediccion)
+        predicciones, metodo_usado = generate_predictions_fast(df_total['kWh'], dias_prediccion)
 
-        # Estimación anual basada en datos del modelo
-        hist_kwh_modelo = df_total['kWh_modelo'].dropna()[-6:].tolist()
-        kwh_validos = [x for x in hist_kwh_modelo if x > 0] + [x for x in predicciones if x > 0]
+        # Estimación anual simplificada
+        hist_kwh = df_total['kWh'].dropna()[-6:].tolist()
+        kwh_validos = [x for x in hist_kwh if x > 0] + [x for x in predicciones if x > 0]
         
         if kwh_validos:
             promedio_diario = np.mean(kwh_validos)
@@ -711,11 +694,10 @@ def forecast_plot(
                 ax.text(x, y + max(y * 0.05, 5), f"{y:.0f}", ha="center", va="bottom", fontsize=9, color="black", weight='bold')
 
         # Recuadro con estimación
-        recuadro = f"Método: {metodo_usado}\n"
         recuadro += f"Estimación Anual: {kwh_anual:,.0f} kWh\nCosto Estimado: ${costo_anual:,.0f} USD"
         plt.gcf().text(0.72, 0.82, recuadro, fontsize=11, bbox=dict(facecolor='white', edgecolor='black', alpha=0.9))
 
-        ax.set_title(f"Consumo Energético Diario - Cliente {numero_cliente}", fontsize=14, weight='bold')
+        ax.set_title(f"Consumo Energético Diario", fontsize=14, weight='bold')
         ax.set_xlabel("Fecha")
         ax.set_ylabel("Consumo (kWh)")
         ax.legend(loc='upper left')
@@ -733,10 +715,9 @@ def forecast_plot(
         return StreamingResponse(buf, media_type="image/png")
         
     except Exception as e:
-        logger.error(f"Critical error in forecast_plot: {str(e)}")
         return {"error": f"Error interno del servidor: {str(e)}"}
 
-@web.get("/pressure/analysis", tags=["Web"])
+@web.get("/beta/pressure", tags=["Web"])
 def pressure_analysis_plot(
     p_device_id: int = Query(..., description="ID de presión"),
     dispositivo_id: int = Query(..., description="ID dispositivo"),
@@ -865,7 +846,6 @@ def pressure_analysis_plot(
         return StreamingResponse(buf, media_type="image/png")
         
     except Exception as e:
-        logger.error(f"Critical error in pressure_analysis_plot: {str(e)}")
         return {"error": f"Error interno del servidor: {str(e)}"}
 
 # Functions
@@ -890,7 +870,6 @@ def obtener_datos_presion(p_device_id: int, dispositivo_id: int, linea: str, fec
         return pd.DataFrame(data)
     
     except Exception as e:
-        logger.error(f"Error fetching pressure data: {str(e)}")
         return pd.DataFrame()
 
 def filtrar_operacion_real(df, presion_min=90, presion_max=110):
@@ -950,13 +929,13 @@ def obtener_compresores(numero_cliente):
     return result
 
 def obtener_kwh_fp(id_cliente, linea, segundosPR, voltaje):
-    """Consulta kWh para un compresor en fechas recientes"""
+    """Consulta kWh para un compresor en fechas recientes (optimizado)"""
     conn = mysql.connector.connect(
         host=DB_HOST, user=DB_USER, password=DB_PASSWORD, database=DB_DATABASE
     )
     cursor = conn.cursor()
-    fecha_fin = date.today() - timedelta(days=2)
-    fecha_inicio = fecha_fin - timedelta(days=17)
+    fecha_fin = date.today() - timedelta(days=1)
+    fecha_inicio = fecha_fin - timedelta(days=10)  # Reducido de 17 a 10 días
     cursor.callproc('CalcularKHWSemanalesPorEstadoConCiclosFP', [
         id_cliente, id_cliente, linea,
         fecha_inicio, fecha_fin,
@@ -967,168 +946,83 @@ def obtener_kwh_fp(id_cliente, linea, segundosPR, voltaje):
         datos = result.fetchall()
     cursor.close()
     conn.close()
-    return pd.DataFrame([(fila[0], fila[1], fila[2]) for fila in datos], columns=['Fecha', 'kWh', 'HorasTrabajadas'])
+    return pd.DataFrame([(fila[0], fila[1]) for fila in datos], columns=['Fecha', 'kWh'])
 
 def calc_kwh_max(voltaje, amperes, fp=FP, horas=HORAS):
     return np.sqrt(3) * voltaje * amperes * fp * horas / 1000
 
-def validate_time_series(series: pd.Series, min_length: int = 3) -> bool:
-    """Validate if time series is suitable for modeling"""
-    if len(series) < min_length:
-        logger.warning(f"Series too short: {len(series)} < {min_length}")
-        return False
-    
-    if series.isna().all():
-        logger.warning("Series contains only NaN values")
-        return False
-    
-    if (series == 0).all():
-        logger.warning("Series contains only zero values")
-        return False
-    
-    if series.var() == 0:
-        logger.warning("Series has zero variance")
-        return False
-    
-    return True
+# Las siguientes funciones se han simplificado en generate_predictions_fast()
+# para mejorar el rendimiento de 4 minutos a segundos
 
-def clean_outliers_with_std(series: pd.Series, std_threshold=2.0) -> pd.Series:
-    """Clean outliers using standard deviation method"""
-    if series.empty or series.isna().all():
-        return series
+def generate_predictions_fast(series: pd.Series, days: int = 3) -> Tuple[List[float], str]:
+    """Generate predictions using optimized approach (like pythonDaltile.py)"""
     
-    valid_data = series[series > 0]
-    if len(valid_data) < 3:
-        return series
+    # Obtener datos válidos
+    hist_valores = series.dropna().values[-7:]
     
-    mean_val = valid_data.mean()
-    std_val = valid_data.std()
+    if len(hist_valores) < 3:
+        return [0] * days, "Sin datos suficientes"
     
-    if std_val == 0:
-        return series
+    # Verificar variación para decidir entre modelo o promedio
+    variacion = max(hist_valores) - min(hist_valores)
     
-    lower_limit = max(0, mean_val - std_threshold * std_val)
-    upper_limit = mean_val + std_threshold * std_val
+    if variacion < 500:  # Usar promedio simple si poca variación
+        promedio = np.mean(hist_valores)
+        predictions = [promedio] * days
+        return predictions, "Promedio (poca variación)"
     
-    series_clean = series.copy()
-    mask = series_clean > 0
-    series_clean[mask] = series_clean[mask].clip(lower_limit, upper_limit)
-    
-    return series_clean
-
-def safe_auto_arima(series: pd.Series, seasonal: bool = True, m: int = 7) -> Optional[object]:
-    """Safely run auto_arima with proper error handling"""
+    # Usar SARIMAX solo si hay suficiente variación
     try:
-        if not validate_time_series(series, min_length=14):
-            logger.warning("Series validation failed for auto_arima")
-            return None
+        # Limpiar datos para modelo
+        series_clean = series[series > 0].copy()
+        if len(series_clean) < 7:
+            # Fallback a promedio
+            promedio = np.mean(hist_valores)
+            return [promedio] * days, "Promedio (datos insuficientes)"
         
-        if seasonal and len(series) < 2 * m:
-            logger.warning(f"Insufficient data for seasonal modeling: {len(series)} < {2 * m}")
-            seasonal = False
-            m = 1
+        # Log transform
+        series_log = np.log1p(series_clean)
         
-        series_clean = series.copy()
-        series_clean = series_clean.replace([np.inf, -np.inf], np.nan)
-        series_clean = series_clean.dropna()
+        # Modelo simple sin validaciones excesivas
+        if len(series_clean) < 14:
+            model = auto_arima(
+                series_log,
+                seasonal=False,
+                stepwise=True,
+                trace=False,
+                suppress_warnings=True,
+                max_p=2, max_q=2  # Límites más bajos para velocidad
+            )
+        else:
+            model = auto_arima(
+                series_log,
+                seasonal=True,
+                m=7,
+                stepwise=True,
+                trace=False,
+                suppress_warnings=True,
+                max_p=2, max_q=2, max_P=1, max_Q=1  # Límites más bajos
+            )
         
-        if len(series_clean) < 7:  # Minimum for any meaningful model
-            logger.warning("Too few valid observations after cleaning")
-            return None
+        p, d, q = model.order
+        P, D, Q, m = model.seasonal_order
         
-        model = auto_arima(
-            series_clean,
-            seasonal=seasonal,
-            m=m,
-            max_p=3,
-            max_q=3,
-            max_P=2,
-            max_Q=2,
-            max_d=2,
-            max_D=1,
-            stepwise=True,
-            suppress_warnings=True,
-            error_action='ignore',
-            trace=False,
-            random_state=42
+        sarimax_model = SARIMAX(
+            endog=series_log,
+            order=(p, d, q),
+            seasonal_order=(P, D, Q, m),
+            enforce_stationarity=False,
+            enforce_invertibility=False
         )
         
-        logger.info(f"Successfully fitted ARIMA model: {model.order} x {model.seasonal_order}")
-        return model
+        model_fit = sarimax_model.fit(disp=False, maxiter=50)  # Menos iteraciones
+        pred_result = model_fit.get_forecast(steps=days)
+        pred_log = pred_result.predicted_mean
+        predictions = np.expm1(pred_log)
+        predictions = np.maximum(predictions, 0)
+        
+        return predictions.tolist(), "Modelo SARIMAX optimizado"
         
     except Exception as e:
-        logger.error(f"Error in auto_arima: {str(e)}")
-        return None
-
-def generate_predictions(series: pd.Series, days: int = 3) -> Tuple[List[float], str]:
-    """Generate predictions using multiple fallback methods"""
-    
-    try:
-        best_model = safe_auto_arima(series, seasonal=True, m=7)
-        
-        if best_model is not None:
-            series_clean = series[series > 0].copy()
-            series_log = np.log1p(series_clean)
-            
-            if validate_time_series(series_log, min_length=7):
-                p, d, q = best_model.order
-                P, D, Q, m = best_model.seasonal_order
-                
-                model = SARIMAX(
-                    endog=series_log,
-                    order=(p, d, q),
-                    seasonal_order=(P, D, Q, m),
-                    enforce_stationarity=False,
-                    enforce_invertibility=False
-                )
-                
-                model_fit = model.fit(disp=False, maxiter=100)
-                pred_result = model_fit.get_forecast(steps=days)
-                pred_log = pred_result.predicted_mean
-                predictions = np.expm1(pred_log)
-                predictions = np.maximum(predictions, 0)
-                
-                logger.info("Using ARIMA model predictions")
-                return predictions.tolist(), "Modelo ARIMA"
-                
-    except Exception as e:
-        logger.error(f"ARIMA modeling failed: {str(e)}")
-    
-    try:
-        if len(series) >= 7:
-            recent_data = series[-7:].dropna()
-            if len(recent_data) >= 3:
-                x = np.arange(len(recent_data))
-                y = recent_data.values
-                
-                if len(x) > 1 and np.var(x) > 0:
-                    slope = np.corrcoef(x, y)[0, 1] * np.std(y) / np.std(x)
-                    intercept = np.mean(y) - slope * np.mean(x)
-                    
-                    future_x = np.arange(len(recent_data), len(recent_data) + days)
-                    predictions = intercept + slope * future_x
-                    predictions = np.maximum(predictions, 0)
-                    
-                    logger.info("Using trend-based predictions")
-                    return predictions.tolist(), "Tendencia lineal"
-    except Exception as e:
-        logger.error(f"Trend modeling failed: {str(e)}")
-    
-    try:
-        valid_data = series.dropna()
-        if len(valid_data) > 0:
-            if len(valid_data) >= 7:
-                avg = valid_data[-7:].mean()
-            elif len(valid_data) >= 3:
-                avg = valid_data[-3:].mean()
-            else:
-                avg = valid_data.mean()
-            
-            predictions = [max(avg, 0)] * days
-            logger.info("Using moving average predictions")
-            return predictions, "Promedio móvil"
-    except Exception as e:
-        logger.error(f"Moving average failed: {str(e)}")
-    
-    logger.warning("All prediction methods failed, using zero predictions")
-    return [0] * days, "Sin predicción"
+        promedio = np.mean(hist_valores)
+        return [promedio] * days, "Promedio (modelo falló)"
