@@ -200,7 +200,7 @@ const Home = () => {
             semanales.
           </p>
           {selectedCompresor ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 justify-items-center px-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 justify-items-center px-2">
               <DateReportDropdown
                 title="Reporte por Fecha"
                 compresores={compresores}
@@ -231,12 +231,12 @@ const Home = () => {
               >
                 Prediccion de Consumo (BETA)
               </h2>
-              <h2
+              {/* <h2
                 className="text-2xl text-pink-400 hover:scale-110 cursor-pointer transition-transform flex items-center text-center gap-2"
                 onClick={() => router.push("/pressure")}
               >
                 Presion (BETA)
-              </h2>
+              </h2> */}
             </div>
           ) : (
             <div className="text-center py-8">

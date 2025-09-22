@@ -718,16 +718,9 @@ def consumption_prediction_plot(
         return {"error": f"Error interno del servidor: {str(e)}"}
 
 @web.get("/beta/pressure-plot", tags=["Web"])
-def pressure_analysis_plot(
-    p_device_id: int = Query(..., description="ID de presión"),
-    dispositivo_id: int = Query(..., description="ID dispositivo"),
-    linea: str = Query(..., description="Linea del compresor"),
-    fecha: str = Query(..., description="Fecha de análisis (YYYY-MM-DD)")
-):
-    """
-    Generate comprehensive pressure analysis plot with critical events and operational indicators
-    """
+def pressure_analysis_plot( numero_cliente: int = Query(..., description="Número del cliente"), fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
+        dispositivos = obtener_medidores_presion(numero_cliente)
         # Constants
         presion_min = 90
         presion_max = 110
@@ -835,7 +828,7 @@ def pressure_analysis_plot(
         # Set labels and title
         ax.set_xlabel('Tiempo')
         ax.set_ylabel('Presión (psi)')
-        ax.set_title(f'Análisis Integral de Presión - Device {p_device_id} | Linea {linea}')
+        ax.set_title(f'Análisis Integral de Presión')
         ax.legend()
         ax.grid(True, alpha=0.3)
         
@@ -862,7 +855,8 @@ def pressure_analysis_plot(
         plt.close(fig)
         buf.seek(0)
         
-        return StreamingResponse(buf, media_type="image/png")
+        # return StreamingResponse(buf, media_type="image/png")
+        return dispositivos
 
     except Exception as e:
         return {"error": f"Error interno del servidor: {str(e)}"}
@@ -965,6 +959,35 @@ def calcular_control_limits(df, presion_min=90, presion_max=110):
     LCL = max(media - 3*sigma, presion_min)  # Don't go below 90
     
     return media, sigma, UCL, LCL
+
+def obtener_medidores_presion(numero_cliente):
+    """Consulta todos los medidores de presión del cliente y devuelve lista de diccionarios"""
+    conn = mysql.connector.connect(
+        host=DB_HOST, user=DB_USER, password=DB_PASSWORD, database=DB_DATABASE
+    )
+    cursor = conn.cursor(dictionary=True)  # cursor tipo diccionario
+    cursor.execute("""
+        SELECT p_device_id, cliente_id, voltaje_min, voltaje_max, psi_min, psi_max
+        FROM dispositivos_presion
+        WHERE cliente_id = %s
+    """, (numero_cliente,))
+    result = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    # Devolver solo las columnas que queremos
+    medidores = [
+        {
+            "p_device_id": fila["p_device_id"],
+            "cliente_id": fila["cliente_id"],
+            "voltaje_min": float(fila["voltaje_min"]),
+            "voltaje_max": float(fila["voltaje_max"]),
+            "psi_min": float(fila["psi_min"]),
+            "psi_max": float(fila["psi_max"])
+        }
+        for fila in result
+    ]
+    return medidores
 
 def obtener_compresores(numero_cliente):
     """Consulta todos los compresores del cliente"""

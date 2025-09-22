@@ -158,8 +158,8 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
               />
             </svg>
           ),
-          badge: "NUEVO",
-          disabled: false,
+          badge: "PROXIMAMENTE",
+          disabled: true,
         },
       ],
     },
