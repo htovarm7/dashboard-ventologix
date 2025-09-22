@@ -717,7 +717,7 @@ def consumption_prediction_plot(
     except Exception as e:
         return {"error": f"Error interno del servidor: {str(e)}"}
 
-@web.get("/beta/pressure", tags=["Web"])
+@web.get("/beta/pressure-plot", tags=["Web"])
 def pressure_analysis_plot(
     p_device_id: int = Query(..., description="ID de presión"),
     dispositivo_id: int = Query(..., description="ID dispositivo"),
@@ -725,118 +725,137 @@ def pressure_analysis_plot(
     fecha: str = Query(..., description="Fecha de análisis (YYYY-MM-DD)")
 ):
     """
-    Generate Six Sigma pressure control chart analysis for compressor operation
+    Generate comprehensive pressure analysis plot with critical events and operational indicators
     """
     try:
-        # Fetch pressure data
-        df = obtener_datos_presion(p_device_id, dispositivo_id, linea, fecha)
-
-        if df.empty:
-            return {"error": "No se encontraron datos de presión para los parámetros especificados"}
-        
-        # Convert time column to datetime if needed
-        if 'time' in df.columns:
-            df['time'] = pd.to_datetime(df['time'])
-        
-        # Filter to operational data only
+        # Constants
         presion_min = 90
         presion_max = 110
-        df_operativa = filtrar_operacion_real(df, presion_min, presion_max)
+        V_tanque = 700  # litros
+
+        # Fetch data
+        df = obtener_datos_presion(p_device_id, dispositivo_id, linea, fecha)
         
-        if df_operativa.empty:
-            return {"error": "No se encontraron períodos de operación válidos"}
-        
-        # Count events below minimum pressure
-        bajo_presion = df_operativa[df_operativa['presion1_psi'] < presion_min]
-        conteo_bajo = len(bajo_presion)
-        porcentaje_bajo = len(bajo_presion) / len(df_operativa) * 100 if len(df_operativa) > 0 else 0
-        
-        # Calculate Six Sigma control limits
-        media, sigma, UCL, LCL = calcular_control_limits(df_operativa, presion_min, presion_max)
-        
-        if media is None:
-            return {"error": "No se pudieron calcular los límites de control"}
-        
-        # Calculate time analysis
-        tiempo_total = len(df_operativa) * 30 / 60  # minutes (30s per record)
-        tiempo_bajo = len(bajo_presion) * 30 / 60
-        porcentaje_tiempo_bajo = tiempo_bajo / tiempo_total * 100 if tiempo_total > 0 else 0
-        
-        # Storage sufficiency indicator
-        almacenamiento_suficiente = porcentaje_tiempo_bajo <= 5
-        
-        # 🎨 CREATE CONTROL CHART
+        if df.empty:
+            return {"error": "No se encontraron datos de presión para los parámetros especificados"}
+
+        # Convert time column to datetime
+        if 'time' in df.columns:
+            df['time'] = pd.to_datetime(df['time'], errors='coerce')
+
+        df['presion1_psi'] = pd.to_numeric(df['presion1_psi'], errors='coerce')
+        df = df.dropna(subset=['presion1_psi']).reset_index(drop=True)
+
+        # Filter real operation
+        start_idx = df.index[df['presion1_psi'] >= presion_min].min()
+        df['estado_num'] = pd.to_numeric(df['estado'], errors='coerce')
+        end_idx = df.index[df['estado_num'] > 0].max() if df['estado_num'].notna().any() else df.index[-1]
+        df_operativa = df.loc[start_idx:end_idx].copy()
+
+        # Smooth average
+        df_operativa['presion_suavizada'] = df_operativa['presion1_psi'].rolling(window=3, min_periods=1).mean()
+        promedio = df_operativa['presion_suavizada'].mean()
+
+        # Detect critical events
+        fuera_bajo = df_operativa['presion1_psi'] < presion_min
+
+        eventos = []
+        i = 0
+        last_idx = len(df_operativa) - 1
+        while i < len(df_operativa):
+            if fuera_bajo.iloc[i]:
+                start = i
+                while i + 1 < len(df_operativa) and fuera_bajo.iloc[i+1]:
+                    i += 1
+                end = i
+                if end < last_idx:
+                    eventos.append((start, end))
+            i += 1
+
+        # Calculate top critical events
+        eventos_criticos = []
+        for start, end in eventos:
+            registros = df_operativa.loc[start:end]
+            delta_t_min = 30.0 / 60.0
+            volumen_faltante_L = np.sum((1 - registros['presion1_psi'] / promedio) * V_tanque * delta_t_min)
+            duracion = len(registros) * delta_t_min
+            min_presion = registros['presion1_psi'].min()
+            eventos_criticos.append({
+                'start_idx': start,
+                'end_idx': end,
+                'inicio': registros['time'].iloc[0],
+                'fin': registros['time'].iloc[-1],
+                'min_presion': min_presion,
+                'volumen_faltante_L': volumen_faltante_L,
+                'duracion_min': duracion
+            })
+
+        eventos_criticos = sorted(eventos_criticos, key=lambda x: x['volumen_faltante_L'], reverse=True)
+        top_eventos = eventos_criticos[:3]
+
+        # Create plot
         plt.switch_backend('Agg')  # Use non-GUI backend
-        fig, ax = plt.subplots(figsize=(15, 8))
+        fig, ax = plt.subplots(figsize=(15, 6))
         
-        # Main pressure line (blue)
-        ax.plot(df_operativa['time'], df_operativa['presion1_psi'], 
-                color='blue', linewidth=1, label='Presión registrada')
+        # Main pressure line
+        ax.plot(df_operativa['time'], df_operativa['presion1_psi'], color='blue', label='Presión registrada')
         
-        # Highlight out-of-control points in red
-        out_of_control = (df_operativa['presion1_psi'] > UCL) | (df_operativa['presion1_psi'] < LCL)
-        if out_of_control.any():
-            ax.plot(df_operativa['time'][out_of_control],
-                   df_operativa['presion1_psi'][out_of_control],
-                   color='red', linewidth=2.5, marker='o', markersize=4,
-                   linestyle='None', label='Fuera de control (±3σ)')
-        
-        # Control lines
-        ax.axhline(media, color='black', linestyle='-', linewidth=1, label=f'Media ({media:.1f})')
-        ax.axhline(UCL, color='purple', linestyle='--', linewidth=1, label=f'UCL ({UCL:.1f})')
-        ax.axhline(LCL, color='purple', linestyle='--', linewidth=1, label=f'LCL ({LCL:.1f})')
-        
-        # Operational range lines
-        ax.axhline(presion_max, color='green', linestyle=':', linewidth=1, label='Máx 110 psi')
-        ax.axhline(presion_min, color='orange', linestyle=':', linewidth=1, label='Mín 90 psi')
-        
-        # Colored areas
-        y_min = df_operativa['presion1_psi'].min() - 5
-        y_max = df_operativa['presion1_psi'].max() + 5
-        
-        # Green area: optimal range (90-110)
+        # Operational range
         ax.fill_between(df_operativa['time'], presion_min, presion_max, 
-                       color='green', alpha=0.1, label='Rango óptimo')
+                       color='green', alpha=0.1, label=f'Rango operativo {presion_min}-{presion_max} psi')
         
-        # Yellow areas: warning zones
-        ax.fill_between(df_operativa['time'], LCL, presion_min, 
-                       color='yellow', alpha=0.15, label='Zona de advertencia')
-        ax.fill_between(df_operativa['time'], presion_max, UCL, 
-                       color='yellow', alpha=0.15)
+        # Out of range points
+        ax.plot(df_operativa['time'][fuera_bajo], df_operativa['presion1_psi'][fuera_bajo], 
+               'o', color='red', label='Fuera de rango')
         
-        # Red areas: out of control zones
-        ax.fill_between(df_operativa['time'], y_min, LCL, 
-                       color='red', alpha=0.1, label='Fuera de control')
-        ax.fill_between(df_operativa['time'], UCL, y_max, 
-                       color='red', alpha=0.1)
+        # Average line
+        ax.axhline(promedio, color='black', linestyle='-', label='Promedio suavizado')
+
+        # Highlight critical events
+        for ev in top_eventos:
+            registros = df_operativa.loc[ev['start_idx']:ev['end_idx']]
+            ax.fill_between(registros['time'], registros['presion1_psi'], presion_max, 
+                           color='red', alpha=0.25)
+
+        # Calculate metrics for display
+        tiempo_total_min = (df_operativa['time'].iloc[-1] - df_operativa['time'].iloc[0]).total_seconds() / 60
+        tiempo_horas = int(tiempo_total_min // 60)
+        tiempo_minutos = int(tiempo_total_min % 60)
         
+        df_operativa['delta_presion'] = df_operativa['presion1_psi'].diff()
+        df_operativa['pendiente'] = df_operativa['delta_presion'] / (30/60)
+        pendiente_subida = df_operativa[df_operativa['pendiente'] > 0]['pendiente'].mean()
+        pendiente_bajada = df_operativa[df_operativa['pendiente'] < 0]['pendiente'].mean()
+        desviacion = df_operativa['presion_suavizada'].std()
+        variabilidad_relativa = desviacion / (presion_max - presion_min)
+        
+        df_operativa['dentro_estable'] = df_operativa['presion_suavizada'].between(promedio-5, promedio+5)
+        indice_estabilidad = df_operativa['dentro_estable'].sum() / len(df_operativa) * 100
+
         # Set labels and title
-        ax.set_xlabel('Tiempo', fontsize=12)
-        ax.set_ylabel('Presión (psi)', fontsize=12)
-        ax.set_title(f'Análisis de Control Six Sigma - DeviceId {p_device_id} | Linea {linea}', 
-                    fontsize=14, weight='bold')
-        
-        # Legend and grid
-        ax.legend(loc='upper left', fontsize=10)
+        ax.set_xlabel('Tiempo')
+        ax.set_ylabel('Presión (psi)')
+        ax.set_title(f'Análisis Integral de Presión - Device {p_device_id} | Linea {linea}')
+        ax.legend()
         ax.grid(True, alpha=0.3)
         
-        # Statistics box
-        stats_text = f"""Estadísticas de Operación:
-• Media: {media:.1f} psi
-• Desv. Estándar: {sigma:.1f} psi
-• Tiempo bajo mínimo: {tiempo_bajo:.1f} min ({porcentaje_tiempo_bajo:.1f}%)
-• Eventos bajo mínimo: {conteo_bajo} ({porcentaje_bajo:.1f}%)
-• Estado almacenamiento: {'✅ Suficiente' if almacenamiento_suficiente else '⚠ Insuficiente'}"""
+        # Add statistics text box
+        stats_text = f"""Métricas Operacionales:
+• Presión promedio: {promedio:.2f} psi
+• Tiempo total: {tiempo_horas}h {tiempo_minutos}min
+• Pendiente subida: {pendiente_subida:.2f} psi/min
+• Pendiente bajada: {pendiente_bajada:.2f} psi/min
+• Variabilidad relativa: {variabilidad_relativa:.3f}
+• Estabilidad ±5 psi: {indice_estabilidad:.2f}%
+• Eventos críticos: {len(eventos)}"""
         
-        # Add statistics box
-        plt.gcf().text(0.02, 0.98, stats_text, fontsize=10, 
+        plt.gcf().text(0.02, 0.98, stats_text, fontsize=9, 
                       bbox=dict(boxstyle="round,pad=0.5", facecolor='lightblue', alpha=0.8),
                       verticalalignment='top', transform=ax.transAxes)
-        
-        # Format dates
-        fig.autofmt_xdate()
+
+        plt.xticks(rotation=45)
         plt.tight_layout()
-        
+
         # Save to buffer
         buf = io.BytesIO()
         plt.savefig(buf, format="png", dpi=300, bbox_inches='tight')
@@ -844,11 +863,47 @@ def pressure_analysis_plot(
         buf.seek(0)
         
         return StreamingResponse(buf, media_type="image/png")
-        
+
     except Exception as e:
         return {"error": f"Error interno del servidor: {str(e)}"}
 
-# Functions
+# Helper functions
+def litros_to_ft3(liters):
+    """Convert liters to cubic feet"""
+    return liters / 28.3168
+
+def déficit_cfm_from_vol_liters(vol_liters, duracion_min):
+    """Calculate CFM deficit from volume in liters and duration in minutes"""
+    return litros_to_ft3(vol_liters) / duracion_min if duracion_min > 0 else float('inf')
+
+def comp_flow_at_pressure(psig, flow_ref=20.0, p_ref=100.0, sens=0.01):
+    """Calculate compressor flow at given pressure"""
+    return flow_ref * (1 + sens * (p_ref - psig))
+
+def evaluar_rangos_10psi_api(event, deficit_cfm, pres_min, pres_max, comp_flow_ref, comp_p_ref, sens, margen):
+    """Evaluate 10 psi ranges for compressor optimization"""
+    results = []
+    for cut_out in np.arange(pres_max, pres_min + 9, -1):
+        cut_in = cut_out - 10
+        if cut_in < 0:
+            continue
+        flow_out = comp_flow_at_pressure(cut_out, flow_ref=comp_flow_ref, p_ref=comp_p_ref, sens=sens)
+        flow_in = comp_flow_at_pressure(cut_in, flow_ref=comp_flow_ref, p_ref=comp_p_ref, sens=sens)
+        incremento = flow_in - flow_out
+        objetivo = deficit_cfm * (1 + margen)
+        cubre = incremento >= objetivo
+        results.append({
+            'cut_out': float(cut_out),
+            'cut_in': float(cut_in),
+            'flow_out_cfm': float(flow_out),
+            'flow_in_cfm': float(flow_in),
+            'incremento_cfm': float(incremento),
+            'deficit_cfm': float(deficit_cfm),
+            'objetivo_cfm': float(objetivo),
+            'cubre': bool(cubre)
+        })
+    return results
+
 def obtener_datos_presion(p_device_id: int, dispositivo_id: int, linea: str, fecha: str):
     """Fetch pressure data using stored procedure"""
     try:
@@ -950,9 +1005,6 @@ def obtener_kwh_fp(id_cliente, linea, segundosPR, voltaje):
 
 def calc_kwh_max(voltaje, amperes, fp=FP, horas=HORAS):
     return np.sqrt(3) * voltaje * amperes * fp * horas / 1000
-
-# Las siguientes funciones se han simplificado en generate_predictions_fast()
-# para mejorar el rendimiento de 4 minutos a segundos
 
 def generate_predictions_fast(series: pd.Series, days: int = 3) -> Tuple[List[float], str]:
     """Generate predictions using optimized approach (like pythonDaltile.py)"""

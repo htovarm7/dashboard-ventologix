@@ -117,7 +117,6 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
       isExpanded: isBetaExpanded,
       setExpanded: setIsBetaExpanded,
       requiresCompresor: false,
-      badge: "BETA",
       children: [
         {
           id: "prediction",
@@ -142,8 +141,8 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
         },
         {
           id: "pressure-prediction",
-          title: "Presión Predictiva",
-          route: "/prediction",
+          title: "Presión",
+          route: "/pressure",
           icon: (
             <svg
               className="w-4 h-4"
@@ -159,8 +158,8 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
               />
             </svg>
           ),
-          badge: "PRÓXIMAMENTE",
-          disabled: true,
+          badge: "NUEVO",
+          disabled: false,
         },
       ],
     },
