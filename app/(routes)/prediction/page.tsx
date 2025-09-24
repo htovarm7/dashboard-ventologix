@@ -17,11 +17,9 @@ const PredictiveModel = () => {
     useState<string>("Inicializando...");
   const router = useRouter();
 
-  const MAX_RETRIES = 3;
   const IMAGE_TIMEOUT = 180000;
 
   const generateImageUrl = useCallback((numeroCliente: string) => {
-    // Agregar timestamp para evitar cache problems
     const timestamp = Date.now();
     return `${URL_API}/web/beta/consumption_prediction?numero_cliente=${encodeURIComponent(
       numeroCliente
@@ -85,7 +83,7 @@ const PredictiveModel = () => {
         setImageLoading(false);
       }
     },
-    [generateImageUrl, IMAGE_TIMEOUT, MAX_RETRIES]
+    [generateImageUrl, IMAGE_TIMEOUT]
   );
 
   const retryImageLoad = useCallback(() => {
@@ -125,7 +123,7 @@ const PredictiveModel = () => {
     };
 
     loadUserData();
-  }, []);
+  }, [loadPredictionImage, router]);
 
   if (loading) {
     return (

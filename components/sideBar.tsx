@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Compresor } from "@/types/common";
@@ -39,6 +39,8 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
   const { logout } = useAuth0();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isBetaExpanded, setIsBetaExpanded] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   const handleLogout = () => {
     sessionStorage.removeItem("userData");
@@ -46,6 +48,30 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
     logout({
       logoutParams: { returnTo: window.location.origin },
     });
+  };
+
+  // Mínima distancia de deslizamiento para activar el gesto
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    
+    // Si es un deslizamiento hacia la izquierda y el sidebar está abierto en móvil
+    if (isLeftSwipe && isExpanded && window.innerWidth < 768) {
+      setIsExpanded(false);
+    }
   };
 
   const navigationItems: NavigationItem[] = [
@@ -168,6 +194,10 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
   const handleNavigation = (route: string, disabled = false) => {
     if (disabled) return;
     router.push(route);
+    // Cerrar sidebar en móvil después de navegar
+    if (window.innerWidth < 768) {
+      setIsExpanded(false);
+    }
   };
 
   const isActiveRoute = (route: string) => {
@@ -179,9 +209,44 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
     return selectedCompresor !== null;
   };
 
+  // Cerrar sidebar al hacer clic fuera en móvil
+  useEffect(() => {
+    const handleClickOutside = (event: Event) => {
+      const target = event.target as HTMLElement;
+      const sidebar = document.getElementById('mobile-sidebar');
+      const toggleButton = document.getElementById('sidebar-toggle');
+      
+      if (isExpanded && window.innerWidth < 768 && 
+          !sidebar?.contains(target) && 
+          !toggleButton?.contains(target)) {
+        setIsExpanded(false);
+      }
+    };
+
+    if (isExpanded && window.innerWidth < 768) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isExpanded]);
+
   return (
     <>
+      {/* Overlay para móvil */}
+      {isExpanded && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden transition-opacity duration-300"
+          onClick={() => setIsExpanded(false)}
+          data-exclude-pdf="true"
+        />
+      )}
+
       <button
+        id="sidebar-toggle"
         className="fixed top-4 left-4 z-50 md:hidden bg-slate-900 text-white p-1.5 rounded-lg shadow-lg"
         onClick={() => setIsExpanded(!isExpanded)}
         data-exclude-pdf="true"
@@ -254,6 +319,7 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
       />
 
       <div
+        id="mobile-sidebar"
         className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 to-slate-800 text-white z-50 transition-all duration-300 ease-in-out ${
           isExpanded ? "w-80 shadow-xl" : "w-0 md:w-0"
         } overflow-hidden`}
@@ -262,23 +328,48 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
             setIsExpanded(false);
           }
         }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
         data-exclude-pdf="true"
       >
         <div className="flex flex-col h-full">
           <div className="p-6 border-b border-slate-700">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                <Image
-                  src={"/Ventologix_05.png"}
-                  alt="Logo"
-                  width={24}
-                  height={24}
-                />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+                  <Image
+                    src={"/Ventologix_05.png"}
+                    alt="Logo"
+                    width={24}
+                    height={24}
+                  />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Ventologix</h2>
+                  <p className="text-sm text-slate-400">Dashboard</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Ventologix</h2>
-                <p className="text-sm text-slate-400">Dashboard</p>
-              </div>
+              {/* Botón de cierre para móvil */}
+              <button
+                className="md:hidden p-2 rounded-lg hover:bg-slate-700 transition-colors"
+                onClick={() => setIsExpanded(false)}
+                aria-label="Cerrar menú"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
 
