@@ -64,10 +64,10 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
 
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
-    
+
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
-    
+
     // Si es un deslizamiento hacia la izquierda y el sidebar está abierto en móvil
     if (isLeftSwipe && isExpanded && window.innerWidth < 768) {
       setIsExpanded(false);
@@ -184,8 +184,8 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
               />
             </svg>
           ),
-          badge: "PROXIMAMENTE",
-          disabled: true,
+          badge: "NUEVO",
+          disabled: false,
         },
       ],
     },
@@ -213,24 +213,27 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
   useEffect(() => {
     const handleClickOutside = (event: Event) => {
       const target = event.target as HTMLElement;
-      const sidebar = document.getElementById('mobile-sidebar');
-      const toggleButton = document.getElementById('sidebar-toggle');
-      
-      if (isExpanded && window.innerWidth < 768 && 
-          !sidebar?.contains(target) && 
-          !toggleButton?.contains(target)) {
+      const sidebar = document.getElementById("mobile-sidebar");
+      const toggleButton = document.getElementById("sidebar-toggle");
+
+      if (
+        isExpanded &&
+        window.innerWidth < 768 &&
+        !sidebar?.contains(target) &&
+        !toggleButton?.contains(target)
+      ) {
         setIsExpanded(false);
       }
     };
 
     if (isExpanded && window.innerWidth < 768) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchstart', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
     };
   }, [isExpanded]);
 

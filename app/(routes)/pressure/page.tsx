@@ -153,7 +153,7 @@ const PressureAnalysis = () => {
         setImageLoading(false);
       }
     },
-    [IMAGE_TIMEOUT, minDate, maxDate]
+    [IMAGE_TIMEOUT, minDate, maxDate, generateImageUrl]
   );
   const retryImageLoad = useCallback(() => {
     if (userData?.numero_cliente && selectedDate) {

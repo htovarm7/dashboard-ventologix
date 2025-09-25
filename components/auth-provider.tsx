@@ -31,7 +31,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
           typeof window !== "undefined" ? window.location.origin : "",
         scope: "openid profile email",
       }}
-      onRedirectCallback={(appState, user) => {
+      onRedirectCallback={(appState) => {
         const route = appState?.returnTo || "/home";
         router.push(route);
       }}
