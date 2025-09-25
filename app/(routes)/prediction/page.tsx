@@ -20,7 +20,6 @@ const PredictiveModel = () => {
   const IMAGE_TIMEOUT = 180000;
 
   const generateImageUrl = useCallback((numeroCliente: string) => {
-    // Agregar timestamp para evitar cache problems
     const timestamp = Date.now();
     return `${URL_API}/web/beta/consumption_prediction?numero_cliente=${encodeURIComponent(
       numeroCliente
@@ -124,7 +123,7 @@ const PredictiveModel = () => {
     };
 
     loadUserData();
-  }, []);
+  }, [loadPredictionImage, router]);
 
   if (loading) {
     return (
