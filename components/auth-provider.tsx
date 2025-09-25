@@ -32,10 +32,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         scope: "openid profile email",
       }}
       onRedirectCallback={(appState, user) => {
-        console.log("🔍 Auth0 Redirect Callback:", { appState, user });
-        // Asegurarnos de que la ruta sea correcta
         const route = appState?.returnTo || "/home";
-        console.log("📍 Redirigiendo a:", route);
         router.push(route);
       }}
       useRefreshTokens={true}

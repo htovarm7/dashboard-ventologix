@@ -106,7 +106,6 @@ function MainContent() {
       setIsLoading(true);
       try {
         const formattedDate = new Date(date).toISOString().split("T")[0];
-        console.log("Fecha formateada:", formattedDate);
 
         const [pieRes, shiftRes, clientRes, compressorRes, summaryRes] =
           await Promise.all([
@@ -272,24 +271,8 @@ function MainContent() {
         if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
         if (compressorRes.data.length > 0)
           setCompresorData(compressorRes.data[0]);
-        console.log("summaryRes:", summaryRes);
-        console.log(
-          "summaryRes structure:",
-          JSON.stringify(summaryRes, null, 2)
-        );
 
         if (summaryRes) {
-          console.log("semana_actual:", summaryRes.semana_actual);
-          console.log(
-            "detalle_semana_actual:",
-            summaryRes.detalle_semana_actual
-          );
-          console.log("comparacion:", summaryRes.comparacion);
-          console.log("comentarios:", summaryRes.comentarios);
-          console.log(
-            "promedio_semanas_anteriores:",
-            summaryRes.promedio_semanas_anteriores
-          );
           setSummaryData(summaryRes);
         }
 
@@ -337,12 +320,6 @@ function MainContent() {
       }
 
       if (id_cliente && date) {
-        console.log("Obteniendo datos para:", {
-          id_cliente,
-          linea,
-          date,
-          weekNumber,
-        });
         fetchData(id_cliente, linea, date);
       } else {
         console.error("No se encontró información del compresor o fecha");

@@ -35,7 +35,6 @@ const Home = () => {
           const parsedData = JSON.parse(userData);
           setIsAuthorized(true);
           setCompresores(parsedData.compresores || []);
-          console.log("Compresores raw:", parsedData.compresores);
           setNumeroCliente(parsedData.numero_cliente);
           setRol(parsedData.rol);
 
@@ -60,9 +59,6 @@ const Home = () => {
       }
 
       if (user?.email && !userData) {
-        console.log(
-          "No hay datos en sessionStorage, redirigiendo para autenticación"
-        );
         router.push("/");
         return;
       }
@@ -71,7 +67,6 @@ const Home = () => {
     };
 
     if (!isLoading && !hasCheckedAuth) {
-      console.log("Iniciando verificación de usuario...");
       verifyAndLoadUser();
     }
   }, [isAuthenticated, user, isLoading, router, hasCheckedAuth]);

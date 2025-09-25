@@ -114,7 +114,8 @@ function MainContent() {
                 {
                   headers: {
                     accept: "application/json",
-                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                    "x-internal-api-key":
+                      process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -126,7 +127,8 @@ function MainContent() {
                 {
                   headers: {
                     accept: "application/json",
-                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                    "x-internal-api-key":
+                      process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -138,7 +140,8 @@ function MainContent() {
                 {
                   headers: {
                     accept: "application/json",
-                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                    "x-internal-api-key":
+                      process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -150,7 +153,8 @@ function MainContent() {
                 {
                   headers: {
                     accept: "application/json",
-                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                    "x-internal-api-key":
+                      process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -162,7 +166,8 @@ function MainContent() {
                 {
                   headers: {
                     accept: "application/json",
-                    "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                    "x-internal-api-key":
+                      process.env.NEXT_PUBLIC_API_SECRET || "",
                   },
                 }
               );
@@ -242,8 +247,6 @@ function MainContent() {
           times.push("23:59:59");
           currents.push(null);
         }
-
-        console.log("clientRes:", clientRes);
 
         setLineChartLabels(times);
         setLineChartData(currents);

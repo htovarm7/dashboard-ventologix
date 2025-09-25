@@ -219,18 +219,8 @@ function MainContent() {
       if (clientRes.data.length > 0) setClientData(clientRes.data[0]);
       if (compressorRes.data.length > 0)
         setCompresorData(compressorRes.data[0]);
-      console.log("summaryRes:", summaryRes);
-      console.log("summaryRes structure:", JSON.stringify(summaryRes, null, 2));
 
       if (summaryRes) {
-        console.log("semana_actual:", summaryRes.semana_actual);
-        console.log("detalle_semana_actual:", summaryRes.detalle_semana_actual);
-        console.log("comparacion:", summaryRes.comparacion);
-        console.log("comentarios:", summaryRes.comentarios);
-        console.log(
-          "promedio_semanas_anteriores:",
-          summaryRes.promedio_semanas_anteriores
-        );
         setSummaryData(summaryRes);
       }
 

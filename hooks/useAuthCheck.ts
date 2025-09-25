@@ -39,19 +39,12 @@ export const useAuthCheck = (): UseAuthCheckResult => {
           setAuthData(parsedData);
           setIsAuthorized(true);
           setIsCheckingAuth(false);
-          
-          console.log("Usuario autenticado desde sessionStorage:", {
-            numero_cliente: parsedData.numero_cliente,
-            es_admin: parsedData.es_admin,
-            compresores_count: parsedData.compresores?.length || 0,
-          });
         } catch (error) {
           console.error("Error parsing userData from sessionStorage:", error);
           sessionStorage.removeItem("userData");
           router.push("/home"); // Redirigir a home para re-autenticar
         }
       } else {
-        console.log("No hay datos de usuario en sessionStorage, redirigiendo a home");
         router.push("/home"); // Redirigir a home para autenticar
       }
     };
