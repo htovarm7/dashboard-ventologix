@@ -195,7 +195,7 @@ const Home = () => {
             semanales.
           </p>
           {selectedCompresor ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 justify-items-center px-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto px-4">
               <DateReportDropdown
                 title="Reporte por Fecha"
                 compresores={compresores}
@@ -220,18 +220,22 @@ const Home = () => {
                   hover: "hover:bg-cyan-50 hover:text-cyan-600",
                 }}
               />
-              <h2
-                className="text-2xl text-violet-400 hover:scale-110 cursor-pointer transition-transform flex items-center text-center gap-2"
+              <button
+                className="w-full text-lg text-violet-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-violet-200 p-4 rounded-xl hover:bg-violet-50 hover:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
                 onClick={() => router.push("/prediction")}
+                style={{ WebkitTapHighlightColor: "transparent" }}
               >
-                Prediccion de Consumo (BETA)
-              </h2>
-              {/* <h2
-                className="text-2xl text-pink-400 hover:scale-110 cursor-pointer transition-transform flex items-center text-center gap-2"
+                <span className="font-medium">
+                  Predicción de Consumo (BETA)
+                </span>
+              </button>
+              <button
+                className="w-full text-lg text-pink-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-pink-200 p-4 rounded-xl hover:bg-pink-50 hover:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
                 onClick={() => router.push("/pressure")}
+                style={{ WebkitTapHighlightColor: "transparent" }}
               >
-                Presion (BETA)
-              </h2> */}
+                <span className="font-medium">Presión (BETA)</span>
+              </button>
             </div>
           ) : (
             <div className="text-center py-8">
