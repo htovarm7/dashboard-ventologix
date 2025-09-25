@@ -55,7 +55,6 @@ export default function Page() {
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error("Error response:", errorText);
 
           if (response.status === 404) {
             throw new Error(`Usuario no encontrado: ${userIdentifier}`);
@@ -66,11 +65,8 @@ export default function Page() {
         }
 
         const data = await response.json();
-        console.log("Data recibida:", data);
 
         if (data && data.id) {
-          console.log("Usuario autorizado, creando userData...");
-
           const userData = {
             numero_cliente: data.numeroCliente,
             rol: data.rol,
@@ -94,7 +90,6 @@ export default function Page() {
           setAccessDenied(true);
         }
       } catch (error) {
-        console.error("=== ERROR EN VERIFICACIÓN ===");
         console.error("Error completo:", error);
         if (error instanceof Error) {
           console.error("Error message:", error.message);
@@ -103,7 +98,6 @@ export default function Page() {
         }
         setAccessDenied(true);
       } finally {
-        console.log("=== FIN VERIFICACIÓN ===");
         setIsCheckingAuth(false);
         setHasChecked(true);
       }

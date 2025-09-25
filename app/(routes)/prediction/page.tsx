@@ -17,7 +17,6 @@ const PredictiveModel = () => {
     useState<string>("Inicializando...");
   const router = useRouter();
 
-  const MAX_RETRIES = 3;
   const IMAGE_TIMEOUT = 180000;
 
   const generateImageUrl = useCallback((numeroCliente: string) => {
@@ -85,7 +84,7 @@ const PredictiveModel = () => {
         setImageLoading(false);
       }
     },
-    [generateImageUrl, IMAGE_TIMEOUT, MAX_RETRIES]
+    [generateImageUrl, IMAGE_TIMEOUT]
   );
 
   const retryImageLoad = useCallback(() => {

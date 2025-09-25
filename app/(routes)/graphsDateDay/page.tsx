@@ -157,12 +157,6 @@ function MainContent() {
             })(),
           ]);
 
-        console.log("pieRes:", pieRes);
-        console.log("lineRes:", lineRes);
-        console.log("dayRes:", dayRes);
-        console.log("clientRes:", clientRes);
-        console.log("compressorRes:", compressorRes);
-
         if (clientRes.data && clientRes.data.length > 0)
           setClientData(clientRes.data[0]);
         if (compressorRes.data && compressorRes.data.length > 0)
@@ -268,10 +262,8 @@ function MainContent() {
       }
 
       if (id_cliente && date) {
-        console.log("Obteniendo datos para:", { id_cliente, linea, date });
         fetchData(id_cliente, linea, date);
       } else {
-        console.error("No se encontró información del compresor o fecha");
         router.push("/home");
       }
     }

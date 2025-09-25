@@ -34,14 +34,6 @@ const AdminView = () => {
         if (parsedData.rol !== 2) {
           router.push("/");
         } else {
-          console.log("User data:", parsedData);
-          console.log(
-            "Client number:",
-            parsedData.numero_cliente,
-            "Type:",
-            typeof parsedData.numero_cliente
-          );
-
           const clientNumber =
             typeof parsedData.numero_cliente === "string"
               ? parseInt(parsedData.numero_cliente, 10)
@@ -58,10 +50,7 @@ const AdminView = () => {
 
   const fetchEngineers = async (numero_cliente: number) => {
     try {
-      console.log("Fetching engineers for client:", numero_cliente);
       const url = `${URL_API}/web/ingenieros?cliente=${numero_cliente}`;
-      console.log("Engineers URL:", url);
-
       const response = await fetch(url, {
         headers: {
           accept: "application/json",
@@ -70,26 +59,10 @@ const AdminView = () => {
       });
       if (response.ok) {
         const engineersData = await response.json();
-        engineersData.forEach((engineer: Engineer, index: number) => {
-          console.log(`Engineer ${index + 1}:`, engineer);
-          console.log(`  - Name: ${engineer.name}`);
-          console.log(`  - Email: ${engineer.email}`);
-          console.log(`  - Compressors:`, engineer.compressors);
-          console.log(`  - Compressors type:`, typeof engineer.compressors);
+        // Process engineers data if needed
+        engineersData.forEach((engineer: Engineer) => {
           if (Array.isArray(engineer.compressors)) {
-            console.log(`  - Compressors length:`, engineer.compressors.length);
-            engineer.compressors.forEach(
-              (
-                comp: string | { id: string; alias: string },
-                compIndex: number
-              ) => {
-                console.log(
-                  `    - Compressor ${compIndex}:`,
-                  comp,
-                  typeof comp
-                );
-              }
-            );
+            // Process compressors if needed
           }
         });
         setEngineers(engineersData);
@@ -107,9 +80,7 @@ const AdminView = () => {
 
   const fetchCompressors = async (numero_cliente: number) => {
     try {
-      console.log("Fetching compressors for client:", numero_cliente);
       const url = `${URL_API}/web/compresores?cliente=${numero_cliente}`;
-      console.log("Compressors URL:", url);
 
       const response = await fetch(url, {
         headers: {
@@ -133,15 +104,10 @@ const AdminView = () => {
   };
 
   const handleCompressorToggle = (compressorId: string) => {
-    console.log("Toggling compressor:", compressorId);
-    console.log("Current selected compressors:", formData.compressors);
-
     setFormData((prev) => {
       const newCompressors = prev.compressors.includes(compressorId)
         ? prev.compressors.filter((id) => id !== compressorId)
         : [...prev.compressors, compressorId];
-
-      console.log("New selected compressors:", newCompressors);
       return {
         ...prev,
         compressors: newCompressors,
@@ -217,14 +183,6 @@ const AdminView = () => {
       });
 
       if (response.ok) {
-        const result = await response.json();
-        console.log("=== RESPONSE FROM BACKEND ===");
-        console.log("Engineer created/updated successfully:", result);
-        console.log(
-          "Backend returned compressors:",
-          result.compressors || "No compressors in response"
-        );
-
         setFormData({ name: "", email: "", compressors: [] });
         setEditingEngineer(null);
         setIsDropdownOpen(false);
@@ -235,12 +193,6 @@ const AdminView = () => {
             : data.numero_cliente;
 
         fetchEngineers(clientNumber);
-
-        console.log(
-          `Ingeniero ${
-            editingEngineer ? "actualizado" : "creado"
-          } exitosamente con cliente: ${data.numero_cliente}`
-        );
       } else {
         const errorData = await response.json();
         console.error("Error del servidor:", errorData);
@@ -259,28 +211,21 @@ const AdminView = () => {
   };
 
   const handleEdit = (engineer: Engineer) => {
-    console.log("Editing engineer:", engineer);
-    console.log("Engineer compressors:", engineer.compressors);
-
     setEditingEngineer(engineer);
 
     let compressorIds: string[] = [];
 
     // Verificar si hay compresores asignados
     if (!engineer.compressors || engineer.compressors.length === 0) {
-      console.log("No compressors assigned to this engineer");
       compressorIds = [];
     } else if (typeof engineer.compressors[0] === "object") {
       // Si los compresores vienen como objetos con id y alias
       compressorIds = (
         engineer.compressors as Array<{ id: string; alias: string }>
       ).map((comp) => comp.id);
-      console.log("Compressor IDs from objects:", compressorIds);
     } else {
       // Si los compresores vienen como strings (nombres/alias)
       const stringCompressors = engineer.compressors as string[];
-      console.log("String compressors:", stringCompressors);
-
       stringCompressors.forEach((compressorName) => {
         const compressorByAlias = compressors.find(
           (comp) => comp.alias === compressorName || comp.id === compressorName
@@ -289,10 +234,7 @@ const AdminView = () => {
           compressorIds.push(compressorByAlias.id);
         }
       });
-      console.log("Mapped compressor IDs:", compressorIds);
     }
-
-    console.log("Final compressor IDs to set:", compressorIds);
 
     setFormData({
       name: engineer.name,
@@ -309,13 +251,6 @@ const AdminView = () => {
 
     const executeDelete = async () => {
       try {
-        console.log(
-          "Deleting engineer:",
-          engineerId,
-          "for client:",
-          clientNumber
-        );
-
         const response = await fetch(
           `${URL_API}/web/ingenieros/${engineerId}?cliente=${clientNumber}`,
           {
@@ -328,7 +263,6 @@ const AdminView = () => {
         );
 
         if (response.ok) {
-          console.log("Engineer deleted successfully");
           fetchEngineers(clientNumber);
           showSuccess(
             "Ingeniero eliminado",

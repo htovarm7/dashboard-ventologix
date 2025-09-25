@@ -721,10 +721,20 @@ def consumption_prediction_plot(
 def pressure_analysis_plot( numero_cliente: int = Query(..., description="Número del cliente"), fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
         dispositivos = obtener_medidores_presion(numero_cliente)
+        
+        if not dispositivos:
+            return {"error": "No se encontraron dispositivos de presión para este cliente"}
+        
         # Constants
         presion_min = 90
         presion_max = 110
         V_tanque = 700  # litros
+        
+        # Use the first pressure device available
+        first_device = dispositivos[0]
+        p_device_id = first_device["p_device_id"]
+        dispositivo_id = first_device["dispositivo_id"]
+        linea = first_device["linea"].strip()
 
         # Fetch data
         df = obtener_datos_presion(p_device_id, dispositivo_id, linea, fecha)
@@ -855,8 +865,7 @@ def pressure_analysis_plot( numero_cliente: int = Query(..., description="Númer
         plt.close(fig)
         buf.seek(0)
         
-        # return StreamingResponse(buf, media_type="image/png")
-        return dispositivos
+        return StreamingResponse(buf, media_type="image/png")
 
     except Exception as e:
         return {"error": f"Error interno del servidor: {str(e)}"}
@@ -967,7 +976,7 @@ def obtener_medidores_presion(numero_cliente):
     )
     cursor = conn.cursor(dictionary=True)  # cursor tipo diccionario
     cursor.execute("""
-        SELECT p_device_id, cliente_id, voltaje_min, voltaje_max, psi_min, psi_max
+        SELECT p_device_id, dispositivo_id, linea
         FROM dispositivos_presion
         WHERE cliente_id = %s
     """, (numero_cliente,))
@@ -978,14 +987,11 @@ def obtener_medidores_presion(numero_cliente):
     # Devolver solo las columnas que queremos
     medidores = [
         {
-            "p_device_id": fila["p_device_id"],
-            "cliente_id": fila["cliente_id"],
-            "voltaje_min": float(fila["voltaje_min"]),
-            "voltaje_max": float(fila["voltaje_max"]),
-            "psi_min": float(fila["psi_min"]),
-            "psi_max": float(fila["psi_max"])
+            "p_device_id": col["p_device_id"],
+            "dispositivo_id": col["dispositivo_id"],
+            "linea": col["linea"]
         }
-        for fila in result
+        for col in result
     ]
     return medidores
 
