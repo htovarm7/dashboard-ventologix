@@ -275,12 +275,12 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
           data-exclude-pdf="true"
         >
           <div
-            className="bg-gradient-to-r from-slate-800 to-slate-700 text-white px-4 py-10 rounded-r-xl shadow-xl border-r-2 border-slate-600 hover:from-slate-700 hover:to-slate-600 transition-all duration-300 cursor-pointer group"
+            className="bg-transparent text-white px-4 py-10 rounded-r-xl shadow-xl border-r-2 border-slate-600 hover:bg-slate-700/20 transition-all duration-300 cursor-pointer group"
             onMouseEnter={() => setIsExpanded(true)}
           >
             <div className="flex flex-col items-center gap-4">
               <svg
-                className="w-7 h-7 text-slate-300 group-hover:text-white transition-colors"
+                className="w-7 h-7 text-black group-hover:text-white transition-colors"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -293,12 +293,12 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
                 />
               </svg>
 
-              <div className="transform rotate-90 text-base font-semibold text-slate-400 group-hover:text-slate-200 transition-colors whitespace-nowrap tracking-widest">
+              <div className="transform rotate-90 text-base font-bold text-black group-hover:text-slate-200 transition-colors whitespace-nowrap tracking-widest">
                 MENÚ
               </div>
 
               <svg
-                className="w-6 h-6 text-slate-400 group-hover:text-slate-200 transition-all group-hover:translate-x-2"
+                className="w-6 h-6 text-black font-bold group-hover:text-slate-200 transition-all group-hover:translate-x-2"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

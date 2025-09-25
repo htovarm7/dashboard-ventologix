@@ -699,7 +699,7 @@ function MainContent() {
             El compresor estuvo apagado todo el dia
           </p>
         ) : (
-          <div className="gap-10 items-left justify-left text-left">
+          <div className="gap-10 items-left justify-left text-left p-25">
             <h1 className="text-3xl font-bold">Comentarios</h1>
 
             <p className="text-xl text-left">
