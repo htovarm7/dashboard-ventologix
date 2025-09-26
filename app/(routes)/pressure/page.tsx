@@ -208,9 +208,67 @@ const PressureAnalysis = () => {
           return;
         }
 
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        setSelectedDate(yesterday);
+        // Si el cliente no es 1009, generar automáticamente un ejemplo
+        if (parsedUserData.numero_cliente.toString() !== "1009") {
+          setIsExampleMode(true);
+          setShowDateSelector(false);
+          
+          const generateRandomWeekdayDate = (): Date => {
+            let randomDate: Date;
+            do {
+              const minTime = new Date("2025-09-01").getTime();
+              const maxTime = new Date().getTime();
+              const randomTime = minTime + Math.random() * (maxTime - minTime);
+              randomDate = new Date(randomTime);
+            } while (randomDate.getDay() === 0 || randomDate.getDay() === 6);
+            return randomDate;
+          };
+          
+          const randomDate = generateRandomWeekdayDate();
+          setSelectedDate(randomDate);
+          const dateStr = formatDateForAPI(randomDate);
+          
+          // Auto-generar el reporte después de un breve delay
+          setTimeout(() => {
+            setImageLoading(true);
+            setError(null);
+            setImageUrl(null);
+            setLoadingProgress("Generando ejemplo automático...");
+            
+            const url = `${URL_API}/web/beta/pressure-plot?numero_cliente=1009&fecha=${encodeURIComponent(dateStr)}&t=${Date.now()}`;
+            
+            setLoadingProgress("Procesando datos del ejemplo...");
+            
+            fetch(url, {
+              method: "GET",
+              signal: AbortSignal.timeout(180000),
+            })
+              .then(async (response) => {
+                if (response.ok) {
+                  setLoadingProgress("Generando gráfico del ejemplo...");
+                  const imageBlob = await response.blob();
+                  const imageUrl = URL.createObjectURL(imageBlob);
+                  setImageUrl(imageUrl);
+                  setLoadingProgress("¡Ejemplo cargado correctamente!");
+                } else {
+                  throw new Error("Error al cargar el ejemplo");
+                }
+              })
+              .catch((err) => {
+                setError(err.message);
+                setShowDateSelector(true);
+                setIsExampleMode(false);
+              })
+              .finally(() => {
+                setImageLoading(false);
+              });
+          }, 1000);
+        } else {
+          // Para usuario 1009, mostrar selector normal
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          setSelectedDate(yesterday);
+        }
       } catch (err) {
         console.error("Error loading user data:", err);
         setError("Error al cargar los datos de usuario");
@@ -304,30 +362,48 @@ const PressureAnalysis = () => {
 
           {/* Loading Progress */}
           {imageLoading && (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 mb-6">
+            <div className={`bg-gradient-to-r rounded-lg p-6 mb-6 ${
+              isExampleMode 
+                ? "from-orange-50 to-yellow-50 border border-orange-200" 
+                : "from-blue-50 to-indigo-50 border border-blue-200"
+            }`}>
               <div className="flex items-center space-x-4 mb-4">
                 <div className="relative">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <div className="absolute inset-0 rounded-full h-8 w-8 border-t-2 border-blue-300 animate-pulse"></div>
+                  <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${
+                    isExampleMode ? "border-orange-600" : "border-blue-600"
+                  }`}></div>
+                  <div className={`absolute inset-0 rounded-full h-8 w-8 border-t-2 animate-pulse ${
+                    isExampleMode ? "border-orange-300" : "border-blue-300"
+                  }`}></div>
                 </div>
                 <div className="flex-1">
-                  <div className="text-blue-900 font-semibold text-lg mb-1">
-                    Procesando Análisis de Presión
+                  <div className={`font-semibold text-lg mb-1 ${
+                    isExampleMode ? "text-orange-900" : "text-blue-900"
+                  }`}>
+                    {isExampleMode ? "Cargando Ejemplo de Análisis" : "Procesando Análisis de Presión"}
                   </div>
-                  <div className="text-blue-700">{loadingProgress}</div>
+                  <div className={`${
+                    isExampleMode ? "text-orange-700" : "text-blue-700"
+                  }`}>{loadingProgress}</div>
                 </div>
               </div>
 
               {/* Progress bar */}
-              <div className="bg-blue-200 rounded-full h-3 overflow-hidden">
+              <div className={`rounded-full h-3 overflow-hidden ${
+                isExampleMode ? "bg-orange-200" : "bg-blue-200"
+              }`}>
                 <div
-                  className="bg-gradient-to-r from-blue-500 to-indigo-500 h-3 rounded-full animate-pulse transition-all duration-1000"
+                  className={`h-3 rounded-full animate-pulse transition-all duration-1000 ${
+                    isExampleMode 
+                      ? "bg-gradient-to-r from-orange-500 to-yellow-500" 
+                      : "bg-gradient-to-r from-blue-500 to-indigo-500"
+                  }`}
                   style={{
-                    width: loadingProgress.includes("Iniciando")
+                    width: loadingProgress.includes("Iniciando") || loadingProgress.includes("Generando ejemplo")
                       ? "10%"
                       : loadingProgress.includes("Verificando")
                       ? "25%"
-                      : loadingProgress.includes("Buscando")
+                      : loadingProgress.includes("Buscando") || loadingProgress.includes("Procesando datos")
                       ? "40%"
                       : loadingProgress.includes("No hay datos") ||
                         loadingProgress.includes("Error en datos")
@@ -335,7 +411,7 @@ const PressureAnalysis = () => {
                       : loadingProgress.includes("Preparando") ||
                         loadingProgress.includes("Cambiando")
                       ? "70%"
-                      : loadingProgress.includes("Cargando ejemplo")
+                      : loadingProgress.includes("Cargando ejemplo") || loadingProgress.includes("Generando gráfico")
                       ? "85%"
                       : loadingProgress.includes("Procesando")
                       ? "95%"
@@ -344,9 +420,12 @@ const PressureAnalysis = () => {
                 ></div>
               </div>
 
-              {/* Estimated time */}
-              <div className="text-xs text-blue-600 mt-2">
-                {loadingProgress.includes("ejemplo")
+              <div className={`text-xs mt-2 ${
+                isExampleMode ? "text-orange-600" : "text-blue-600"
+              }`}>
+                {isExampleMode
+                  ? "Generando ejemplo con fecha de día laborable..."
+                  : loadingProgress.includes("ejemplo")
                   ? "Tiempo estimado: 30-60 segundos"
                   : "Tiempo estimado: 1-3 minutos"}
               </div>
@@ -419,8 +498,8 @@ const PressureAnalysis = () => {
                   }`}
                 >
                   {isExampleMode && (
-                    <div className="md:col-span-2">
-                      <span className="font-medium">Nota:</span> Este es un
+                    <div className="md:col-span-2 text-xl">
+                      <span>Nota:</span> Este es un
                       ejemplo con datos reales para demostrar el análisis de
                       presión.
                     </div>
