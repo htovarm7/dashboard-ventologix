@@ -76,6 +76,7 @@ function MainContent() {
   const [NoLoad, setNoLoad] = useState<number>(0);
   const [Off, setOff] = useState<number>(0);
   const [clientData, setClientData] = useState<clientData | null>(null);
+  const [userClientNumber, setUserClientNumber] = useState<number | null>(null);
   const [compressorData, setCompresorData] = useState<compressorData | null>(
     null
   );
@@ -83,6 +84,19 @@ function MainContent() {
   const [compresorAlias, setCompresorAlias] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Obtener número de cliente del usuario logueado
+  useEffect(() => {
+    const userData = sessionStorage.getItem("userData");
+    if (userData) {
+      try {
+        const parsedData = JSON.parse(userData);
+        setUserClientNumber(parsedData.numero_cliente);
+      } catch (error) {
+        console.error("Error parsing userData:", error);
+      }
+    }
+  }, []);
 
   const fetchData = useCallback(
     async (id: string, linea: string, date: string) => {
@@ -594,26 +608,26 @@ function MainContent() {
           </div>
         </div>
 
-        {/* Informaion del clinte */}
-        <h2 className="text-3xl font-bold p-15"> Informacion del Cliente </h2>
-        <div className="flex flex-wrap gap-60 items-center justify-center text-center">
-          <div className="text-center">
-            <p className="text-2xl">{clientData?.nombre_cliente}</p>
-            <p className="text-xl font-bold">Nombre</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl">{clientData?.numero_cliente}</p>
-            <p className="text-xl font-bold">Número de Cliente</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl">{clientData?.RFC}</p>
-            <p className="text-xl font-bold">RFC</p>
-          </div>
-          {/* <div className="text-center">
-            <p className="text-2xl">{clientData?.direccion}</p>
-            <p className="text-xl font-bold">Direccion</p>
-          </div> */}
-        </div>
+        {/* Información del cliente - Solo mostrar si el usuario NO es 101010 */}
+        {userClientNumber !== 101010 && (
+          <>
+            <h2 className="text-3xl font-bold p-15"> Informacion del Cliente </h2>
+            <div className="flex flex-wrap gap-60 items-center justify-center text-center">
+              <div className="text-center">
+                <p className="text-2xl">{clientData?.nombre_cliente}</p>
+                <p className="text-xl font-bold">Nombre</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl">{clientData?.numero_cliente}</p>
+                <p className="text-xl font-bold">Número de Cliente</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl">{clientData?.RFC}</p>
+                <p className="text-xl font-bold">RFC</p>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex flex-col items-center justify-center p-4 gap-6">

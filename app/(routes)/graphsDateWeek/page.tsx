@@ -90,6 +90,7 @@ function MainContent() {
   });
 
   const [clientData, setClientData] = useState<clientData | null>(null);
+  const [userClientNumber, setUserClientNumber] = useState<number | null>(null);
 
   const [compressorData, setCompresorData] = useState<compressorData | null>(
     null
@@ -98,6 +99,20 @@ function MainContent() {
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Obtener número de cliente del usuario logueado
+  useEffect(() => {
+    const userData = sessionStorage.getItem("userData");
+    if (userData) {
+      try {
+        const parsedData = JSON.parse(userData);
+        setUserClientNumber(parsedData.numero_cliente);
+      } catch (error) {
+        console.error("Error parsing userData:", error);
+      }
+    }
+  }, []);
+
   const hpEquivalente =
     ((summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) /
       (compressorData?.hp ?? 1)) *
@@ -1050,28 +1065,30 @@ function MainContent() {
             />
 
             <div className="flex flex-wrap gap-16 items-start text-white mr-10 mt-5">
-              {/* Client Information */}
-              <div>
-                <h2 className="text-2xl font-bold">Información Cliente</h2>
-                <div className="flex flex-wrap gap-8 items-center text-left">
-                  <div>
-                    <p className="text-xl text-center">
-                      {clientData?.numero_cliente}
-                    </p>
-                    <p className="text-sm">Número Cliente</p>
-                  </div>
-                  <div>
-                    <p className="text-xl text-center">
-                      {clientData?.nombre_cliente}
-                    </p>
-                    <p className="text-sm text-center">Nombre</p>
-                  </div>
-                  <div>
-                    <p className="text-xl text-center">{clientData?.RFC}</p>
-                    <p className="text-sm text-center">RFC</p>
+              {/* Client Information - Solo mostrar si el usuario NO es 101010 */}
+              {userClientNumber !== 101010 && (
+                <div>
+                  <h2 className="text-2xl font-bold">Información Cliente</h2>
+                  <div className="flex flex-wrap gap-8 items-center text-left">
+                    <div>
+                      <p className="text-xl text-center">
+                        {clientData?.numero_cliente}
+                      </p>
+                      <p className="text-sm">Número Cliente</p>
+                    </div>
+                    <div>
+                      <p className="text-xl text-center">
+                        {clientData?.nombre_cliente}
+                      </p>
+                      <p className="text-sm text-center">Nombre</p>
+                    </div>
+                    <div>
+                      <p className="text-xl text-center">{clientData?.RFC}</p>
+                      <p className="text-sm text-center">RFC</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Compresor information */}
               <div>
