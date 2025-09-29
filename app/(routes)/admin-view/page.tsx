@@ -19,6 +19,7 @@ const AdminView = () => {
     name: "",
     email: "",
     compressors: [],
+    rol: 1, // Por defecto "Ingeniero"
   });
   const [data, setData] = useState<UserData | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -117,7 +118,7 @@ const AdminView = () => {
 
   const handleCancelEdit = () => {
     setEditingEngineer(null);
-    setFormData({ name: "", email: "", compressors: [] });
+    setFormData({ name: "", email: "", compressors: [], rol: 1 });
     setIsDropdownOpen(false);
   };
 
@@ -163,7 +164,7 @@ const AdminView = () => {
         email: formData.email,
         compressors: formData.compressors,
         numeroCliente: data.numero_cliente,
-        rol: 1,
+        rol: formData.rol || 1,
       };
 
       const endpoint = editingEngineer
@@ -183,7 +184,7 @@ const AdminView = () => {
       });
 
       if (response.ok) {
-        setFormData({ name: "", email: "", compressors: [] });
+        setFormData({ name: "", email: "", compressors: [], rol: 1 });
         setEditingEngineer(null);
         setIsDropdownOpen(false);
 
@@ -240,6 +241,7 @@ const AdminView = () => {
       name: engineer.name,
       email: engineer.email,
       compressors: compressorIds,
+      rol: engineer.rol || 1, // Por defecto "Ingeniero" si no tiene rol
     });
   };
 
@@ -400,6 +402,22 @@ const AdminView = () => {
                 required
               />
             </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-lg font-medium text-blue-700 mb-1">
+                Rol
+              </label>
+              <select
+                value={formData.rol}
+                onChange={(e) =>
+                  setFormData({ ...formData, rol: parseInt(e.target.value) })
+                }
+                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value={1}>Ingeniero</option>
+                <option value={2}>Administrador</option>
+              </select>
+            </div>
             <div className="flex-1 min-w-[250px] relative">
               <label className="block text-lg font-medium text-blue-700 mb-1">
                 Compresores
@@ -531,6 +549,12 @@ const AdminView = () => {
                     scope="col"
                     className="px-6 py-3 text-left text-xl font-medium text-blue-500 uppercase tracking-wider"
                   >
+                    Rol
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xl font-medium text-blue-500 uppercase tracking-wider"
+                  >
                     Compresores
                   </th>
                   <th
@@ -558,6 +582,15 @@ const AdminView = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-lg text-blue-500">
                         {engineer.email}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-lg text-blue-700">
+                        {engineer.rol === 1
+                          ? "Ingeniero"
+                          : engineer.rol === 2
+                          ? "Administrador"
+                          : "No asignado"}
                       </div>
                     </td>
                     <td className="px-6 py-4">

@@ -24,6 +24,7 @@ export interface Engineer {
   name: string;
   email: string;
   numero_cliente: number;
+  rol?: number; // 1 = Directo, 3 = Ingeniero
   compressors: Array<{ id: string; alias: string }> | string[];
   emailPreferences: {
     daily: boolean;
@@ -75,6 +76,7 @@ export type EngineerFormData = {
   name: string;
   email: string;
   compressors: string[];
+  rol?: number; //  1 = Ingeniero, 2 = Directo
 };
 
 export type dayData = {

@@ -4,6 +4,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
 import DateReportDropdown from "@/components/DateReportDropdown";
 import { Compresor } from "@/types/common";
+import { URL_API } from "@/lib/global";
 
 const Home = () => {
   const { user, isAuthenticated, isLoading, logout } = useAuth0();
@@ -17,6 +18,10 @@ const Home = () => {
   const [selectedCompresor, setSelectedCompresor] = useState<Compresor | null>(
     null
   );
+  const [showUpdateClientForm, setShowUpdateClientForm] = useState(false);
+  const [updateEmail, setUpdateEmail] = useState("");
+  const [newClientNumber, setNewClientNumber] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     const verifyAndLoadUser = async () => {
@@ -70,6 +75,51 @@ const Home = () => {
       verifyAndLoadUser();
     }
   }, [isAuthenticated, user, isLoading, router, hasCheckedAuth]);
+
+  const handleUpdateClientNumber = async () => {
+    if (!updateEmail || !newClientNumber) {
+      alert("Por favor complete todos los campos");
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const response = await fetch(
+        `${URL_API}/web/usuarios/update-client-number`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+          },
+          body: JSON.stringify({
+            email: updateEmail,
+            nuevo_numero_cliente: parseInt(newClientNumber),
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Número de cliente actualizado exitosamente para ${updateEmail}`);
+        setUpdateEmail("");
+        setNewClientNumber("");
+        setShowUpdateClientForm(false);
+      } else {
+        const error = await response.json();
+        alert(
+          `Error: ${
+            error.detail || "No se pudo actualizar el número de cliente"
+          }`
+        );
+      }
+    } catch (error) {
+      console.error("Error updating client number:", error);
+      alert("Error de conexión. Por favor inténtelo nuevamente.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   if (isLoading || isCheckingAuth) {
     return (
@@ -133,6 +183,74 @@ const Home = () => {
             <div className="text-xl text-center mb-6">
               <p className="text-black">Bienvenido Ing. {user.name}</p>
               <p className="text-black">Número Cliente: {numeroCliente}</p>
+              {rol === 0 && (
+                <div className="mt-4">
+                  <button
+                    onClick={() =>
+                      setShowUpdateClientForm(!showUpdateClientForm)
+                    }
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    {showUpdateClientForm
+                      ? "Cancelar"
+                      : "Actualizar Número de Cliente"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Formulario para actualizar número de cliente (solo para administradores) */}
+          {rol === 0 && showUpdateClientForm && (
+            <div className="bg-gray-50 p-6 rounded-lg mb-6 border">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Actualizar Número de Cliente
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email del usuario:
+                  </label>
+                  <input
+                    type="email"
+                    value={updateEmail}
+                    onChange={(e) => setUpdateEmail(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="ejemplo@ventologix.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nuevo número de cliente:
+                  </label>
+                  <input
+                    type="number"
+                    value={newClientNumber}
+                    onChange={(e) => setNewClientNumber(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="1001"
+                  />
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleUpdateClientNumber}
+                    disabled={isUpdating}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                  >
+                    {isUpdating ? "Actualizando..." : "Actualizar"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowUpdateClientForm(false);
+                      setUpdateEmail("");
+                      setNewClientNumber("");
+                    }}
+                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
