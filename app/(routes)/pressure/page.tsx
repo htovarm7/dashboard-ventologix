@@ -24,7 +24,6 @@ const PressureAnalysis = () => {
     useState<string>("Inicializando...");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showDateSelector, setShowDateSelector] = useState(true);
-  const [isExampleMode, setIsExampleMode] = useState(false);
   const router = useRouter();
 
   const IMAGE_TIMEOUT = 180000;
@@ -43,22 +42,10 @@ const PressureAnalysis = () => {
   );
 
   const loadPressureImage = useCallback(
-    async (numeroCliente: string, fecha: string, isRetry: boolean = false) => {
-      // Helper functions inside useCallback to avoid dependency issues
-      const formatDateForAPI = (date: Date): string => {
-        return date.toISOString().split("T")[0];
-      };
-
-      const generateRandomDate = (): Date => {
-        const minTime = minDate.getTime();
-        const maxTime = maxDate.getTime();
-        const randomTime = minTime + Math.random() * (maxTime - minTime);
-        return new Date(randomTime);
-      };
-
+    async (numeroCliente: string, fecha: string) => {
       setImageLoading(true);
       setError(null);
-      setImageUrl(null); // Limpiar imagen anterior
+      setImageUrl(null);
       setLoadingProgress("Iniciando análisis...");
 
       try {
@@ -84,37 +71,27 @@ const PressureAnalysis = () => {
           signal: AbortSignal.timeout(IMAGE_TIMEOUT),
         });
 
-        // Si la respuesta no es una imagen (es JSON con error), usar ejemplo
-        const contentType = response.headers.get("content-type");
-        if (!response.ok || !contentType?.includes("image")) {
-          const errorData = await response.json().catch(() => null);
-          if (errorData?.error && !isRetry && numeroCliente !== "1009") {
-            // Si no hay datos para este cliente, usar ejemplo con cliente 1009
-            setLoadingProgress(
-              "No hay datos de presión para este cliente. Preparando ejemplo..."
+        if (!response.ok) {
+          if (response.status === 404 || response.status === 500) {
+            throw new Error(
+              "No se encontraron datos de presión para la fecha seleccionada"
             );
-            setIsExampleMode(true);
-            const randomDate = generateRandomDate();
-            setSelectedDate(randomDate);
-            const exampleDateStr = formatDateForAPI(randomDate);
-
-            // Pequeño delay para mostrar el mensaje
-            await new Promise((resolve) => setTimeout(resolve, 1500));
-
-            setLoadingProgress(
-              `Cargando ejemplo de análisis (fecha: ${exampleDateStr})...`
-            );
-            return loadPressureImage("1009", exampleDateStr, true);
           }
-          throw new Error(
-            errorData?.error || "No se encontraron datos de presión"
-          );
+          throw new Error(`Error del servidor: ${response.status}`);
         }
 
         setLoadingProgress("Procesando datos y generando gráfico...");
 
         // Si llegamos aquí, la respuesta es una imagen válida
         const imageBlob = await response.blob();
+
+        // Verificar que realmente recibimos una imagen
+        if (!imageBlob.type.startsWith("image/")) {
+          throw new Error(
+            "No se encontraron datos de presión para la fecha seleccionada"
+          );
+        }
+
         const imageUrl = URL.createObjectURL(imageBlob);
 
         setImageUrl(imageUrl);
@@ -124,30 +101,19 @@ const PressureAnalysis = () => {
         const error = err as Error;
         console.error("Error loading pressure image:", error);
 
-        // Si hay error y no es un retry, intentar con ejemplo
-        if (
-          !isRetry &&
-          numeroCliente !== "1009" &&
-          !error.message.includes("API no disponible")
-        ) {
-          setLoadingProgress(
-            "Error en datos del cliente. Cambiando a ejemplo..."
+        if (error.message.includes("API no disponible")) {
+          setError(
+            "El servicio de análisis de presión no está disponible en este momento. Por favor, inténtelo más tarde."
           );
-          setIsExampleMode(true);
-          const randomDate = generateRandomDate();
-          setSelectedDate(randomDate);
-          const exampleDateStr = formatDateForAPI(randomDate);
-
-          // Pequeño delay para mostrar el mensaje
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-
-          setLoadingProgress(
-            `Cargando ejemplo con (fecha: ${exampleDateStr})...`
+        } else if (error.message.includes("No se encontraron datos")) {
+          setError(
+            "No tiene un dispositivo instalado. Si lo deasea contacte a su IQengineer"
           );
-          return loadPressureImage("1009", exampleDateStr, true);
+        } else {
+          setError(
+            "Error al cargar el análisis de presión. Por favor, inténtelo nuevamente."
+          );
         }
-
-        setError(error.message || "Error al cargar el análisis de presión");
         setShowDateSelector(true);
       } finally {
         setImageLoading(false);
@@ -159,7 +125,6 @@ const PressureAnalysis = () => {
     if (userData?.numero_cliente && selectedDate) {
       setError(null);
       setImageUrl(null);
-      setIsExampleMode(false); // Reset example mode on retry
       const dateStr = formatDateForAPI(selectedDate);
       loadPressureImage(userData.numero_cliente.toString(), dateStr);
     }
@@ -177,7 +142,6 @@ const PressureAnalysis = () => {
     }
 
     const dateStr = formatDateForAPI(selectedDate);
-    setIsExampleMode(false);
     loadPressureImage(userData.numero_cliente.toString(), dateStr);
   };
 
@@ -186,7 +150,6 @@ const PressureAnalysis = () => {
     setError(null);
     setShowDateSelector(true);
     setSelectedDate(null);
-    setIsExampleMode(false);
   };
 
   useEffect(() => {
@@ -208,67 +171,10 @@ const PressureAnalysis = () => {
           return;
         }
 
-        // Si el cliente no es 1009, generar automáticamente un ejemplo
-        if (parsedUserData.numero_cliente.toString() !== "1009") {
-          setIsExampleMode(true);
-          setShowDateSelector(false);
-          
-          const generateRandomWeekdayDate = (): Date => {
-            let randomDate: Date;
-            do {
-              const minTime = new Date("2025-09-01").getTime();
-              const maxTime = new Date().getTime();
-              const randomTime = minTime + Math.random() * (maxTime - minTime);
-              randomDate = new Date(randomTime);
-            } while (randomDate.getDay() === 0 || randomDate.getDay() === 6);
-            return randomDate;
-          };
-          
-          const randomDate = generateRandomWeekdayDate();
-          setSelectedDate(randomDate);
-          const dateStr = formatDateForAPI(randomDate);
-          
-          // Auto-generar el reporte después de un breve delay
-          setTimeout(() => {
-            setImageLoading(true);
-            setError(null);
-            setImageUrl(null);
-            setLoadingProgress("Generando ejemplo automático...");
-            
-            const url = `${URL_API}/web/beta/pressure-plot?numero_cliente=1009&fecha=${encodeURIComponent(dateStr)}&t=${Date.now()}`;
-            
-            setLoadingProgress("Procesando datos del ejemplo...");
-            
-            fetch(url, {
-              method: "GET",
-              signal: AbortSignal.timeout(180000),
-            })
-              .then(async (response) => {
-                if (response.ok) {
-                  setLoadingProgress("Generando gráfico del ejemplo...");
-                  const imageBlob = await response.blob();
-                  const imageUrl = URL.createObjectURL(imageBlob);
-                  setImageUrl(imageUrl);
-                  setLoadingProgress("¡Ejemplo cargado correctamente!");
-                } else {
-                  throw new Error("Error al cargar el ejemplo");
-                }
-              })
-              .catch((err) => {
-                setError(err.message);
-                setShowDateSelector(true);
-                setIsExampleMode(false);
-              })
-              .finally(() => {
-                setImageLoading(false);
-              });
-          }, 1000);
-        } else {
-          // Para usuario 1009, mostrar selector normal
-          const yesterday = new Date();
-          yesterday.setDate(yesterday.getDate() - 1);
-          setSelectedDate(yesterday);
-        }
+        // Para todos los usuarios, solo mostrar selector de fecha
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        setSelectedDate(yesterday);
       } catch (err) {
         console.error("Error loading user data:", err);
         setError("Error al cargar los datos de usuario");
@@ -313,12 +219,11 @@ const PressureAnalysis = () => {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                Análisis de Presión {isExampleMode ? "(Ejemplo)" : ""}
+                Análisis de Presión
               </h1>
               {userData && (
                 <p className="text-lg text-gray-600 mt-2">
-                  Cliente: {userData.name} (
-                  {isExampleMode ? "Ejemplo" : userData.numero_cliente})
+                  Usuario: {userData.name}
                 </p>
               )}
             </div>
@@ -362,72 +267,52 @@ const PressureAnalysis = () => {
 
           {/* Loading Progress */}
           {imageLoading && (
-            <div className={`bg-gradient-to-r rounded-lg p-6 mb-6 ${
-              isExampleMode 
-                ? "from-orange-50 to-yellow-50 border border-orange-200" 
-                : "from-blue-50 to-indigo-50 border border-blue-200"
-            }`}>
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 mb-6">
               <div className="flex items-center space-x-4 mb-4">
                 <div className="relative">
-                  <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${
-                    isExampleMode ? "border-orange-600" : "border-blue-600"
-                  }`}></div>
-                  <div className={`absolute inset-0 rounded-full h-8 w-8 border-t-2 animate-pulse ${
-                    isExampleMode ? "border-orange-300" : "border-blue-300"
-                  }`}></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <div className="absolute inset-0 rounded-full h-8 w-8 border-t-2 animate-pulse border-blue-300"></div>
                 </div>
                 <div className="flex-1">
-                  <div className={`font-semibold text-lg mb-1 ${
-                    isExampleMode ? "text-orange-900" : "text-blue-900"
-                  }`}>
-                    {isExampleMode ? "Cargando Ejemplo de Análisis" : "Procesando Análisis de Presión"}
+                  <div className="font-semibold text-lg mb-1 text-blue-900">
+                    Procesando Análisis de Presión
                   </div>
-                  <div className={`${
-                    isExampleMode ? "text-orange-700" : "text-blue-700"
-                  }`}>{loadingProgress}</div>
+                  <div className="text-blue-700">{loadingProgress}</div>
                 </div>
               </div>
 
               {/* Progress bar */}
-              <div className={`rounded-full h-3 overflow-hidden ${
-                isExampleMode ? "bg-orange-200" : "bg-blue-200"
-              }`}>
+              <div className="rounded-full h-3 overflow-hidden bg-blue-200">
                 <div
-                  className={`h-3 rounded-full animate-pulse transition-all duration-1000 ${
-                    isExampleMode 
-                      ? "bg-gradient-to-r from-orange-500 to-yellow-500" 
-                      : "bg-gradient-to-r from-blue-500 to-indigo-500"
-                  }`}
+                  className="h-3 rounded-full animate-pulse transition-all duration-1000 bg-gradient-to-r from-blue-500 to-indigo-500"
                   style={{
-                    width: loadingProgress.includes("Iniciando") || loadingProgress.includes("Generando ejemplo")
-                      ? "10%"
-                      : loadingProgress.includes("Verificando")
-                      ? "25%"
-                      : loadingProgress.includes("Buscando") || loadingProgress.includes("Procesando datos")
-                      ? "40%"
-                      : loadingProgress.includes("No hay datos") ||
-                        loadingProgress.includes("Error en datos")
-                      ? "60%"
-                      : loadingProgress.includes("Preparando") ||
-                        loadingProgress.includes("Cambiando")
-                      ? "70%"
-                      : loadingProgress.includes("Cargando ejemplo") || loadingProgress.includes("Generando gráfico")
-                      ? "85%"
-                      : loadingProgress.includes("Procesando")
-                      ? "95%"
-                      : "100%",
+                    width:
+                      loadingProgress.includes("Iniciando") ||
+                      loadingProgress.includes("Generando ejemplo")
+                        ? "10%"
+                        : loadingProgress.includes("Verificando")
+                        ? "25%"
+                        : loadingProgress.includes("Buscando") ||
+                          loadingProgress.includes("Procesando datos")
+                        ? "40%"
+                        : loadingProgress.includes("No hay datos") ||
+                          loadingProgress.includes("Error en datos")
+                        ? "60%"
+                        : loadingProgress.includes("Preparando") ||
+                          loadingProgress.includes("Cambiando")
+                        ? "70%"
+                        : loadingProgress.includes("Cargando ejemplo") ||
+                          loadingProgress.includes("Generando gráfico")
+                        ? "85%"
+                        : loadingProgress.includes("Procesando")
+                        ? "95%"
+                        : "100%",
                   }}
                 ></div>
               </div>
 
-              <div className={`text-xs mt-2 ${
-                isExampleMode ? "text-orange-600" : "text-blue-600"
-              }`}>
-                {isExampleMode
-                  ? "Generando ejemplo con fecha de día laborable..."
-                  : loadingProgress.includes("ejemplo")
-                  ? "Tiempo estimado: 30-60 segundos"
-                  : "Tiempo estimado: 1-3 minutos"}
+              <div className="text-xs mt-2 text-blue-600">
+                Tiempo estimado: 1-3 minutos
               </div>
             </div>
           )}
@@ -485,25 +370,12 @@ const PressureAnalysis = () => {
               </div>
 
               {/* Analysis Info */}
-              <div
-                className={`p-4 rounded-lg border ${
-                  isExampleMode
-                    ? "bg-orange-50 border-orange-200"
-                    : "bg-blue-50 border-blue-200"
-                }`}
-              >
-                <div
-                  className={`grid grid-cols-1 md:grid-cols-2 gap-4 text-sm ${
-                    isExampleMode ? "text-orange-800" : "text-blue-800"
-                  }`}
-                >
-                  {isExampleMode && (
-                    <div className="md:col-span-2 text-xl">
-                      <span>Nota:</span> Este es un
-                      ejemplo con datos reales para demostrar el análisis de
-                      presión.
-                    </div>
-                  )}
+              <div className="p-4 rounded-lg border bg-blue-50 border-blue-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
+                  <div className="md:col-span-2">
+                    <span>Información:</span> Análisis de presión generado con
+                    datos en tiempo real.
+                  </div>
                 </div>
               </div>
             </div>
