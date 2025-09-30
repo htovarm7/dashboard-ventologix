@@ -320,6 +320,27 @@
           "dateOffset": -1
         }
       ]
+    },
+    {
+      "email": ["josias.cadena@frisa.com", "erik.aleman@frisa.com"],
+      "cc": ["octavio.murillo@ventologix.com", "andres.mirazo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Diario VENTOLOGIX",
+      "emailBody": "<p>Estimado Ingeniero, </p><p>Soy <strong>VTO 0024</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de su compresor instalado en su planta, del cual anexo el <strong>reporte DIARIO</strong> del día de ayer.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong>. Su IQgineer asignado atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      "files": [
+        {
+          "fileName": "Reporte Diario Frisa Kaeser {fecha}",
+          "dateOffset": -1
+        },
+        {
+          "fileName": "Reporte Diario Frisa Gardner Centro {fecha}",
+          "dateOffset": -1
+        },
+        {
+          "fileName": "Reporte Diario Frisa Gardner Lateral {fecha}",
+          "dateOffset": -1
+        }
+      ]
     }
   ],
   "semanales": [
@@ -403,11 +424,12 @@
       ]
     },
     {
-      "email": ["andres.mirazo@ventologix.com"],
-      "cc": ["octavio.murillo@ventologix.com"],
+      "email": ["juan.zamora@daltile.com.mx", "adrian.ostos@daltile.com.mx"],
+      "cc": ["octavio.murillo@ventologix.com","andres.mirazo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Semanal VENTOLOGIX",
-      "emailBody": "<p> Reportes semanales de Daltile </p>",
+      "emailBody":  "<p>Estimados Ingenieros :</p><p>Soy <strong>VTO 016</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de sus compresores <strong></strong> instalado en su planta, del cual anexo el <strong>reporte Semanal</strong> de la semana pasada.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      
       "files": [
         {
           "fileName": "Reporte Semanal Daltile ACM-0006 {fecha_str} ({rango})",
@@ -428,11 +450,11 @@
       ]
     },
     {
-      "email": ["andres.mirazo@ventologix.com"],
-      "cc": ["octavio.murillo@ventologix.com"],
+      "email": ["khernandezg@bertran.com.mx", "asantanan@bertran.com.mx"],
+      "cc": ["octavio.murillo@ventologix.com","andres.mirazo@ventologix.com"],
       "bcc": [],
       "emailSubject": "Reporte Semanal VENTOLOGIX",
-      "emailBody": "<p> Reportes semanales de Caleras Bertran </p>",
+      "emailBody": "<p>Estimados Ingenieros :</p><p>Soy <strong>VTO 021</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de sus compresores <strong></strong> instalado en su planta, del cual anexo el <strong>reporte Semanal</strong> de la semana pasada.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
       "files": [
         {
           "fileName": "Reporte Semanal Caleras Bertran Quincy {fecha_str} ({rango})",
@@ -448,6 +470,27 @@
         },
         {
           "fileName": "Reporte Semanal Caleras Bertran Kaeser {fecha_str} ({rango})",
+          "dateOffset": -1
+        }
+      ]
+    },
+    {
+      "email": ["josias.cadena@frisa.com", "erik.aleman@frisa.com"],
+      "cc": ["octavio.murillo@ventologix.com","andres.mirazo@ventologix.com"],
+      "bcc": [],
+      "emailSubject": "Reporte Semanal VENTOLOGIX",
+      "emailBody": "<p>Estimados Ingenieros :</p><p>Soy <strong>VTO 024</strong> (VENTOLOGIX Telemetric Optimizer) leyendo de forma continua el pulso energético de sus compresores <strong></strong> instalado en su planta, del cual anexo el <strong>reporte Semanal</strong> de la semana pasada.</p><p>Estos datos los recolecté y retransmití en forma segura a <strong>VENTOLOGIX</strong> (nuestra <strong>BASE en la Nube</strong>), donde serán analizados por <strong>IA</strong>, desde donde se elaborarán los <strong>Reportes SEMANALES y MENSUALES</strong>.</p><p>Su <strong>IQgineer asignado</strong>, <strong>Ing. Andrés Mirazo</strong> (andres.mirazo@ventologix.com), complementará estos análisis, gestionará la entrega de reportes y atenderá cualquier consulta técnica.</p><p><strong>IQ YOUR CFMs!</strong></p>",
+      "files": [
+        {
+          "fileName": "Reporte Semanal Frisa Kaeser {fecha_str} ({rango})",
+          "dateOffset": -1
+        },
+        {
+          "fileName": "Reporte Semanal Frisa Gardner Centro {fecha_str} ({rango})",
+          "dateOffset": -1
+        },
+        {
+          "fileName": "Reporte Semanal Frisa Gardner Lateral {fecha_str} ({rango})",
           "dateOffset": -1
         }
       ]
