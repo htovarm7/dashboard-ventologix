@@ -28,7 +28,7 @@ const PressureAnalysis = () => {
 
   const IMAGE_TIMEOUT = 180000;
 
-  const minDate = new Date("2025-09-01");
+  const minDate = new Date();
   const maxDate = new Date();
 
   const generateImageUrl = useCallback(
@@ -172,9 +172,7 @@ const PressureAnalysis = () => {
         }
 
         // Para todos los usuarios, solo mostrar selector de fecha
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        setSelectedDate(yesterday);
+        setSelectedDate(new Date());
       } catch (err) {
         console.error("Error loading user data:", err);
         setError("Error al cargar los datos de usuario");
