@@ -28,7 +28,7 @@ const PressureAnalysis = () => {
 
   const IMAGE_TIMEOUT = 180000;
 
-  const minDate = new Date();
+  const minDate = new Date("2025-09-30");
   const maxDate = new Date();
 
   const generateImageUrl = useCallback(
