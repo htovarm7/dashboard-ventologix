@@ -62,7 +62,7 @@ const PressureAnalysis = () => {
         }
 
         setLoadingProgress(
-          `Buscando datos de presión para cliente ${numeroCliente}...`
+          `Analizando datos de presión...`
         );
 
         // Primero intentar hacer una petición fetch para verificar si hay datos
