@@ -174,9 +174,11 @@ const Home = () => {
                     className="w-full text-center text-sm sm:text-lg max-w-md mx-auto px-3 sm:px-4 py-2 border border-black rounded-md"
                   >
                     <option value="">-- Seleccione un compresor --</option>
-                    {compresores.map((compresor) => (
+                    {compresores.map((compresor, index) => (
                       <option
-                        key={`${compresor.id_cliente}-${compresor.linea}`}
+                        key={`compresor-${compresor.id || index}-${
+                          compresor.linea
+                        }-${compresor.alias}`}
                         value={`${compresor.id_cliente}-${compresor.linea}`}
                       >
                         {rol === 0
