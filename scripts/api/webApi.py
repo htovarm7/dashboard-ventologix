@@ -45,7 +45,7 @@ class UpdateUserRoleRequest(BaseModel):
 dotenv.load_dotenv()
 
 # Create FastAPI instance
-web = APIRouter(prefix="/web", tags=["web"])
+web = APIRouter(prefix="/web", tags=["🌐 Web API"])
 
 # Get database credentials from environment variables
 DB_HOST = os.getenv("DB_HOST")
@@ -60,7 +60,7 @@ HORAS = 24
 logging.basicConfig(level=logging.INFO)
 
 # GET - Obtener usuario por email (para autenticación)
-@web.get("/usuarios/{email}", tags=["Auth"])
+@web.get("/usuarios/{email}", tags=["🔐 Autenticación"])
 def get_usuario_by_email(email: str):
     """Obtiene los datos del usuario por email para autenticación"""
     try:
@@ -114,7 +114,7 @@ def get_usuario_by_email(email: str):
         raise HTTPException(status_code=500, detail=f"Error fetching usuario: {str(e)}")
 
 # GET - Obtener ingenieros filtrados por cliente
-@web.get("/ingenieros", tags=["CRUD Admin"])
+@web.get("/ingenieros", tags=["👥 Gestión de Usuarios"])
 def get_ingenieros(cliente: int = Query(..., description="Número de cliente")):
     """Obtiene todos los ingenieros de un cliente específico con sus compresores asignados"""
     try:
@@ -182,7 +182,7 @@ def get_ingenieros(cliente: int = Query(..., description="Número de cliente")):
         raise HTTPException(status_code=500, detail=f"Error fetching ingenieros: {str(e)}")
 
 # GET - Obtener compresores filtrados por cliente
-@web.get("/compresores", tags=["CRUD Admin"])
+@web.get("/compresores", tags=["⚙️ Gestión de Compresores"])
 def get_compresores(cliente: int = Query(..., description="Número de cliente")):
     """Obtiene todos los compresores de un cliente específico"""
     try:
@@ -222,7 +222,7 @@ def get_compresores(cliente: int = Query(..., description="Número de cliente"))
         raise HTTPException(status_code=500, detail=f"Error fetching compresores: {str(e)}")
 
 # POST - Crear nuevo ingeniero
-@web.post("/ingenieros", tags=["CRUD Admin"])
+@web.post("/ingenieros", tags=["👥 Gestión de Usuarios"])
 def create_ingeniero(
     name: str = Body(...),
     email: EmailStr = Body(...),
@@ -306,7 +306,7 @@ def create_ingeniero(
         raise HTTPException(status_code=500, detail=f"Error creating ingeniero: {str(e)}")
 
 # PUT - Actualizar ingeniero existente
-@web.put("/ingenieros/{ingeniero_id}", tags=["CRUD Admin"])
+@web.put("/ingenieros/{ingeniero_id}", tags=["👥 Gestión de Usuarios"])
 def update_ingeniero(
     ingeniero_id: int,
     name: str = Body(...),
@@ -400,7 +400,7 @@ def update_ingeniero(
         raise HTTPException(status_code=500, detail=f"Error updating ingeniero: {str(e)}")
 
 # DELETE - Eliminar ingeniero
-@web.delete("/ingenieros/{ingeniero_id}", tags=["CRUD Admin"])
+@web.delete("/ingenieros/{ingeniero_id}", tags=["👥 Gestión de Usuarios"])
 def delete_ingeniero(
     ingeniero_id: int,
     cliente: int = Query(..., description="Número de cliente para verificación")
@@ -454,7 +454,7 @@ def delete_ingeniero(
         raise HTTPException(status_code=500, detail=f"Error deleting ingeniero: {str(e)}")
 
 # PUT - Actualizar preferencias de email
-@web.put("/ingenieros/{ingeniero_id}/email-preferences", tags=["CRUD Admin"])
+@web.put("/ingenieros/{ingeniero_id}/email-preferences", tags=["⚙️ Configuración de Usuario"])
 def update_email_preferences(
     ingeniero_id: int,
     daily: bool = Body(...),
@@ -503,7 +503,7 @@ def update_email_preferences(
         raise HTTPException(status_code=500, detail=f"Error updating email preferences: {str(e)}")
 
 # PATCH - Actualizar preferencias de email (endpoint alternativo para PATCH requests)
-@web.patch("/ingenieros/{ingeniero_id}/preferences", tags=["CRUD Admin"])
+@web.patch("/ingenieros/{ingeniero_id}/preferences", tags=["⚙️ Configuración de Usuario"])
 def patch_email_preferences(
     ingeniero_id: int,
     daily: Optional[bool] = Body(None),
@@ -558,7 +558,7 @@ def patch_email_preferences(
         raise HTTPException(status_code=500, detail=f"Error updating email preferences: {str(e)}")
 
 # GET - Obtener compresores asignados a un ingeniero (para vista de ingeniero)
-@web.get("/ingenieros/{email}/compresores", tags=["Engineer View"])
+@web.get("/ingenieros/{email}/compresores", tags=["👨‍💼 Vista de Ingeniero"])
 def get_engineer_compressors(email: str):
     """Obtiene los compresores asignados a un ingeniero específico"""
     try:
@@ -606,7 +606,7 @@ def get_engineer_compressors(email: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching engineer compressors: {str(e)}")
     
-@web.get("/beta/consumption_prediction", tags=["Web"])
+@web.get("/beta/consumption_prediction", tags=["📊 Análisis y Predicciones"])
 def consumption_prediction_plot(
     numero_cliente: int = Query(..., description="Número del cliente")
 ):
@@ -731,7 +731,7 @@ def consumption_prediction_plot(
     except Exception as e:
         return {"error": f"Error interno del servidor: {str(e)}"}
 
-@web.get("/beta/pressure-plot", tags=["Web"])
+@web.get("/beta/pressure-plot", tags=["📈 Visualización de Datos"])
 def pressure_analysis_plot( numero_cliente: int = Query(..., description="Número del cliente"), fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
         dispositivos = obtener_medidores_presion(numero_cliente)
@@ -939,7 +939,7 @@ def pressure_analysis_plot( numero_cliente: int = Query(..., description="Númer
     except Exception as e:
         return {"error": f"Error interno del servidor: {str(e)}"}
 
-@web.get("/beta/pressure-stats", tags=["Web"])
+@web.get("/beta/pressure-stats", tags=["📊 Análisis y Predicciones"])
 def pressure_analysis_stats(numero_cliente: int = Query(..., description="Número del cliente"), fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     """Get detailed pressure analysis statistics for frontend display"""
     try:
@@ -1304,7 +1304,7 @@ def generate_predictions_fast(series: pd.Series, days: int = 3) -> Tuple[List[fl
         return [promedio] * days, "Promedio (modelo falló)"
 
 # PUT - Actualizar número de cliente de un usuario (solo para administradores rol 0)
-@web.put("/usuarios/update-client-number", tags=["Admin Operations"])
+@web.put("/usuarios/update-client-number", tags=["🔧 Operaciones de Administrador"])
 def update_user_client_number(request: UpdateClientNumberRequest):
     """Actualiza el número de cliente de un usuario específico (solo para administradores)"""
     try:
@@ -1365,7 +1365,7 @@ def update_user_client_number(request: UpdateClientNumberRequest):
         raise HTTPException(status_code=500, detail=f"Error updating client number: {str(e)}")
 
 # PUT - Actualizar rol de un usuario (solo para administradores rol 0)
-@web.put("/usuarios/update-role", tags=["Admin Operations"])
+@web.put("/usuarios/update-role", tags=["🔧 Operaciones de Administrador"])
 def update_user_role(request: UpdateUserRoleRequest):
     """Actualiza el rol de un usuario específico (solo para administradores)"""
     try:
