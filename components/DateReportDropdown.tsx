@@ -1,7 +1,62 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Calendar from "react-calendar";
+import "react-calendar/dist/Calendar.css";
 import { Compresor } from "@/types/common";
+
+type ValuePiece = Date | null;
+type Value = ValuePiece | [ValuePiece, ValuePiece];
+
+// Estilos personalizados para el calendario
+const calendarStyles = `
+  .react-calendar-custom {
+    border: none !important;
+    font-family: inherit;
+    width: 100% !important;
+    max-width: 280px;
+    font-size: 12px;
+  }
+  .react-calendar-custom .react-calendar__tile {
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    padding: 6px 2px;
+    font-size: 12px;
+    cursor: pointer;
+    height: 32px;
+  }
+  .react-calendar-custom .react-calendar__tile:hover {
+    background-color: #dbeafe !important;
+    color: #1d4ed8 !important;
+  }
+  .react-calendar-custom .react-calendar__tile--active {
+    background-color: #2563eb !important;
+    color: white !important;
+  }
+  .react-calendar-custom .react-calendar__tile--now {
+    background-color: #f3f4f6 !important;
+    font-weight: bold;
+  }
+  .react-calendar-custom .react-calendar__navigation button {
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    height: 36px;
+  }
+  .react-calendar-custom .react-calendar__navigation button:hover {
+    background-color: #f3f4f6;
+  }
+  .react-calendar-custom .react-calendar__month-view__days__day--neighboringMonth {
+    color: #d1d5db !important;
+  }
+  .react-calendar-custom .react-calendar__month-view__weekdays {
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .react-calendar-custom .react-calendar__month-view__weekdays__weekday {
+    padding: 4px;
+  }
+`;
 
 interface DateReportDropdownProps {
   title: string;
@@ -24,14 +79,16 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
 }) => {
   const router = useRouter();
 
-  const getYesterday = () => {
+  const getToday = () => {
     const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    return yesterday.toISOString().split("T")[0];
+    return today.toISOString().split("T")[0];
   };
 
-  const [selectedDate, setSelectedDate] = useState(getYesterday());
+  const [selectedDate, setSelectedDate] = useState(getToday());
+  const [calendarValue, setCalendarValue] = useState<Value>(
+    new Date(getToday())
+  );
+  const [showCalendar, setShowCalendar] = useState(false);
 
   const currentWeek = getWeekNumber(new Date()) - 1;
   const [selectedWeek, setSelectedWeek] = useState<number>(
@@ -76,10 +133,9 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
       return;
     }
 
-    const dateToUse =
-      tipo === "SEMANAL"
-        ? getWeekRange(selectedWeek).start.toISOString().split("T")[0]
-        : selectedDate;
+    const dateToUse = getWeekRange(selectedWeek)
+      .start.toISOString()
+      .split("T")[0];
 
     sessionStorage.setItem(
       "selectedCompresor",
@@ -88,19 +144,31 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
         linea: selectedCompresor.linea,
         alias: selectedCompresor.alias,
         date: dateToUse,
-        weekNumber: tipo === "SEMANAL" ? selectedWeek : undefined,
+        weekNumber: selectedWeek,
       })
     );
-    if (tipo === "DIARIO") {
-      router.push("/graphsDateDay");
-    }
-    if (tipo === "SEMANAL") {
-      router.push("/graphsDateWeek");
+
+    router.push("/graphsDateWeek");
+  };
+
+  const handleCalendarChange = (value: Value) => {
+    if (value instanceof Date) {
+      const dateString = value.toISOString().split("T")[0];
+      setSelectedDate(dateString);
+      setCalendarValue(value);
+      setShowCalendar(false); // Cerrar calendario al seleccionar fecha
+
+      // Immediately navigate when a date is clicked
+      navigateToReport(dateString);
     }
   };
 
-  const handleDateChange = (newDate: string) => {
-    setSelectedDate(newDate);
+  const toggleCalendar = () => {
+    setShowCalendar(!showCalendar);
+  };
+
+  const navigateToReport = (dateToUse?: string) => {
+    const finalDate = dateToUse || selectedDate;
 
     if (!selectedCompresor) {
       alert("No hay compresor seleccionado");
@@ -113,118 +181,145 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
         id_cliente: selectedCompresor.id_cliente,
         linea: selectedCompresor.linea,
         alias: selectedCompresor.alias,
-        date: newDate,
+        date: finalDate,
       })
     );
 
-    setTimeout(() => {
-      router.push("/graphsDateDay");
-    }, 300);
+    router.push("/graphsDateDay");
   };
 
   return (
-    <div className="relative text-center group">
-      <h2
-        className={`text-2xl ${colorScheme.text} hover:scale-110 cursor-pointer transition-transform flex items-center justify-center gap-2`}
-      >
-        {title}
-        <svg
-          className={`w-4 h-4 ${colorScheme.icon}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+    <>
+      <style jsx>{calendarStyles}</style>
+      <div className="relative text-center group">
+        <h2
+          className={`text-2xl ${colorScheme.text} hover:scale-110 cursor-pointer transition-transform flex items-center justify-center gap-2`}
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </h2>
+          {title}
+          <svg
+            className={`w-4 h-4 ${colorScheme.icon}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </h2>
 
-      {selectedCompresor && (
-        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-72 sm:w-80 max-w-[90vw] bg-white border border-gray-200 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-10">
-          <div className="py-2">
-            {tipo === "DIARIO" && (
-              <>
+        {selectedCompresor && (
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-72 sm:w-80 max-w-[90vw] bg-white border border-gray-200 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-10">
+            <div className="py-2">
+              {tipo === "DIARIO" && (
                 <div className="px-4 py-3 border-b border-gray-100 flex flex-col items-center">
-                  <label className="block text-xl font-medium text-gray-700 mb-2 text-center">
+                  <label className="block text-xl font-medium text-gray-700 mb-3 text-center">
                     📅 Seleccionar Fecha:
                   </label>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => handleDateChange(e.target.value)}
-                    className="text-l w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center cursor-pointer hover:bg-blue-50 transition-colors"
-                    max={getYesterday()}
-                    title="Haz click para seleccionar fecha y navegar automáticamente"
-                  />
-                </div>
 
-                <div className="px-4 py-3">
+                  {/* Botón para mostrar/ocultar calendario */}
                   <button
-                    onClick={handleDateSelect}
-                    className={`w-full px-4 py-2 text-white bg-gray-500 hover:bg-gray-600 rounded-md transition-colors font-medium text-m opacity-75`}
+                    onClick={toggleCalendar}
+                    className="w-full max-w-xs px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-center flex items-center justify-between"
                   >
-                    Navegar Manualmente <br />
-                    <span className="text-sm">({selectedDate})</span>
-                  </button>
-                </div>
-              </>
-            )}
-
-            {tipo === "SEMANAL" && (
-              <>
-                <div className="px-4 py-3 border-b border-gray-100 flex flex-col items-center">
-                  <label className="block text-xl font-medium text-gray-700 mb-2 text-center">
-                    📅 Seleccionar Semana:
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={selectedWeek}
-                      onChange={(e) =>
-                        setSelectedWeek(
-                          Math.min(
-                            Math.max(1, parseInt(e.target.value)),
-                            currentWeek
-                          )
-                        )
-                      }
-                      className="text-xl w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center font-semibold cursor-pointer hover:bg-blue-50 transition-colors"
-                      min="1"
-                      max={currentWeek}
-                    />
-                    <span className="text-gray-700 text-xl">
-                      / {currentWeek}
+                    <span className="text-blue-700 font-medium">
+                      {selectedDate}
                     </span>
-                  </div>
-                  {selectedWeek && (
-                    <div className="mt-2 text-base text-gray-600 font-medium">
-                      {formatDateSpanish(getWeekRange(selectedWeek).start)} -{" "}
-                      {formatDateSpanish(getWeekRange(selectedWeek).end)}
+                    <svg
+                      className={`w-5 h-5 text-blue-500 transform transition-transform ${
+                        showCalendar ? "rotate-180" : ""
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* Calendario de React - Solo se muestra cuando showCalendar es true */}
+                  {showCalendar && (
+                    <div className="mt-3 border rounded-md p-2 bg-white shadow-lg">
+                      <Calendar
+                        onChange={handleCalendarChange}
+                        value={calendarValue}
+                        maxDate={new Date(getToday())}
+                        className="react-calendar-custom"
+                        locale="es-ES"
+                        showNeighboringMonth={false}
+                        next2Label={null}
+                        prev2Label={null}
+                      />
                     </div>
                   )}
-                </div>
 
-                <div className="px-4 py-3">
-                  <button
-                    onClick={handleDateSelect}
-                    className={`w-full px-4 py-2 text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors font-medium text-m`}
-                  >
-                    Ver Reporte Semanal <br />
-                    <span className="text-xl font-bold">
-                      Semana {selectedWeek}
-                    </span>
-                  </button>
+                  <p className="text-sm text-gray-500 mt-3 text-center">
+                    {showCalendar
+                      ? "Haz click en una fecha para ver el reporte automáticamente"
+                      : "Haz click arriba para abrir el calendario"}
+                  </p>
                 </div>
-              </>
-            )}
+              )}{" "}
+              {tipo === "SEMANAL" && (
+                <>
+                  <div className="px-4 py-3 border-b border-gray-100 flex flex-col items-center">
+                    <label className="block text-xl font-medium text-gray-700 mb-2 text-center">
+                      📅 Seleccionar Semana:
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={selectedWeek}
+                        onChange={(e) =>
+                          setSelectedWeek(
+                            Math.min(
+                              Math.max(1, parseInt(e.target.value)),
+                              currentWeek
+                            )
+                          )
+                        }
+                        className="text-xl w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center font-semibold cursor-pointer hover:bg-blue-50 transition-colors"
+                        min="1"
+                        max={currentWeek}
+                      />
+                      <span className="text-gray-700 text-xl">
+                        / {currentWeek}
+                      </span>
+                    </div>
+                    {selectedWeek && (
+                      <div className="mt-2 text-base text-gray-600 font-medium">
+                        {formatDateSpanish(getWeekRange(selectedWeek).start)} -{" "}
+                        {formatDateSpanish(getWeekRange(selectedWeek).end)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="px-4 py-3">
+                    <button
+                      onClick={handleDateSelect}
+                      className={`w-full px-4 py-2 text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors font-medium text-m`}
+                    >
+                      Ver Reporte Semanal <br />
+                      <span className="text-xl font-bold">
+                        Semana {selectedWeek}
+                      </span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 };
 
