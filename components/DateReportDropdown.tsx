@@ -81,13 +81,21 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
 
   const getToday = () => {
     const today = new Date();
-    return today.toISOString().split("T")[0];
+    // Asegurar que usamos la fecha local, no UTC
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const getTodayDate = () => {
+    const today = new Date();
+    // Crear una fecha local sin problemas de zona horaria
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate());
   };
 
   const [selectedDate, setSelectedDate] = useState(getToday());
-  const [calendarValue, setCalendarValue] = useState<Value>(
-    new Date(getToday())
-  );
+  const [calendarValue, setCalendarValue] = useState<Value>(getTodayDate());
   const [showCalendar, setShowCalendar] = useState(false);
 
   const currentWeek = getWeekNumber(new Date()) - 1;
@@ -251,7 +259,7 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
                       <Calendar
                         onChange={handleCalendarChange}
                         value={calendarValue}
-                        maxDate={new Date(getToday())}
+                        maxDate={getTodayDate()}
                         className="react-calendar-custom"
                         locale="es-ES"
                         showNeighboringMonth={false}
