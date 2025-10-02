@@ -739,10 +739,15 @@ def pressure_analysis_plot( numero_cliente: int = Query(..., description="Númer
         if not dispositivos:
             return {"error": "No se encontraron dispositivos de presión para este cliente"}
         
-        # Constants
-        presion_min = 90
-        presion_max = 110
+        # Enhanced Constants
+        presion_min = 100
+        presion_max = 120
         V_tanque = 700  # litros
+        P_ATM = 14.7  # psia, referencia
+        COMP_FLOW_REF_CFM = 50.0
+        COMP_P_REF_PSIG = 100.0
+        COMP_SENS_PSI = 0.005
+        MARGEN_SEGURIDAD = 0.20
         
         # Use the first pressure device available
         first_device = dispositivos[0]
@@ -763,18 +768,25 @@ def pressure_analysis_plot( numero_cliente: int = Query(..., description="Númer
         df['presion1_psi'] = pd.to_numeric(df['presion1_psi'], errors='coerce')
         df = df.dropna(subset=['presion1_psi']).reset_index(drop=True)
 
-        # Filter real operation
+        # Enhanced filter for real operation
         start_idx = df.index[df['presion1_psi'] >= presion_min].min()
-        df['estado_num'] = pd.to_numeric(df['estado'], errors='coerce')
-        end_idx = df.index[df['estado_num'] > 0].max() if df['estado_num'].notna().any() else df.index[-1]
+        end_idx = df.index[df['estado'].notna()].max() if df['estado'].notna().any() else df.index[-1]
+        
+        if pd.isna(start_idx):
+            start_idx = 0
+            
         df_operativa = df.loc[start_idx:end_idx].copy()
+
+        if df_operativa.empty:
+            return {"error": "No hay datos operativos válidos con las condiciones definidas"}
 
         # Smooth average
         df_operativa['presion_suavizada'] = df_operativa['presion1_psi'].rolling(window=3, min_periods=1).mean()
         promedio = df_operativa['presion_suavizada'].mean()
 
-        # Detect critical events
+        # Enhanced critical events detection
         fuera_bajo = df_operativa['presion1_psi'] < presion_min
+        df_operativa['evento_bajo'] = fuera_bajo & (~fuera_bajo.shift(1, fill_value=False))
 
         eventos = []
         i = 0
@@ -789,14 +801,18 @@ def pressure_analysis_plot( numero_cliente: int = Query(..., description="Númer
                     eventos.append((start, end))
             i += 1
 
-        # Calculate top critical events
+        # Calculate enhanced critical events with flow modeling
         eventos_criticos = []
         for start, end in eventos:
             registros = df_operativa.loc[start:end]
+            if registros.empty:
+                continue
+                
             delta_t_min = 30.0 / 60.0
             volumen_faltante_L = np.sum((1 - registros['presion1_psi'] / promedio) * V_tanque * delta_t_min)
             duracion = len(registros) * delta_t_min
             min_presion = registros['presion1_psi'].min()
+            
             eventos_criticos.append({
                 'start_idx': start,
                 'end_idx': end,
@@ -809,6 +825,20 @@ def pressure_analysis_plot( numero_cliente: int = Query(..., description="Númer
 
         eventos_criticos = sorted(eventos_criticos, key=lambda x: x['volumen_faltante_L'], reverse=True)
         top_eventos = eventos_criticos[:3]
+
+        # Enhanced metrics calculation
+        df_operativa['delta_presion'] = df_operativa['presion1_psi'].diff()
+        df_operativa['delta_t'] = 30 / 60
+        df_operativa['pendiente'] = df_operativa['delta_presion'] / df_operativa['delta_t']
+        pendiente_subida = df_operativa[df_operativa['pendiente'] > 0]['pendiente'].mean()
+        pendiente_bajada = df_operativa[df_operativa['pendiente'] < 0]['pendiente'].mean()
+        desviacion = df_operativa['presion_suavizada'].std()
+        variabilidad_relativa = desviacion / (presion_max - presion_min)
+        df_operativa['dentro_estable'] = df_operativa['presion_suavizada'].between(promedio-5, promedio+5)
+        indice_estabilidad = df_operativa['dentro_estable'].sum() / len(df_operativa) * 100
+        tiempo_total_min = (df_operativa['time'].iloc[-1] - df_operativa['time'].iloc[0]).total_seconds() / 60
+        tiempo_horas = int(tiempo_total_min // 60)
+        tiempo_minutos = int(tiempo_total_min % 60)
 
         # Create plot
         plt.switch_backend('Agg')  # Use non-GUI backend
@@ -828,58 +858,209 @@ def pressure_analysis_plot( numero_cliente: int = Query(..., description="Númer
         # Average line
         ax.axhline(promedio, color='black', linestyle='-', label='Promedio suavizado')
 
-        # Highlight critical events
+        # Highlight critical events with enhanced visualization
         for ev in top_eventos:
             registros = df_operativa.loc[ev['start_idx']:ev['end_idx']]
-            ax.fill_between(registros['time'], registros['presion1_psi'], presion_max, 
-                           color='red', alpha=0.25)
-
-        # Calculate metrics for display
-        tiempo_total_min = (df_operativa['time'].iloc[-1] - df_operativa['time'].iloc[0]).total_seconds() / 60
-        tiempo_horas = int(tiempo_total_min // 60)
-        tiempo_minutos = int(tiempo_total_min % 60)
-        
-        df_operativa['delta_presion'] = df_operativa['presion1_psi'].diff()
-        df_operativa['pendiente'] = df_operativa['delta_presion'] / (30/60)
-        pendiente_subida = df_operativa[df_operativa['pendiente'] > 0]['pendiente'].mean()
-        pendiente_bajada = df_operativa[df_operativa['pendiente'] < 0]['pendiente'].mean()
-        desviacion = df_operativa['presion_suavizada'].std()
-        variabilidad_relativa = desviacion / (presion_max - presion_min)
-        
-        df_operativa['dentro_estable'] = df_operativa['presion_suavizada'].between(promedio-5, promedio+5)
-        indice_estabilidad = df_operativa['dentro_estable'].sum() / len(df_operativa) * 100
+            if not registros.empty:
+                ax.fill_between(registros['time'], registros['presion1_psi'], presion_max, 
+                               color='red', alpha=0.25)
 
         # Set labels and title
         ax.set_xlabel('Tiempo')
         ax.set_ylabel('Presión (psi)')
-        ax.set_title(f'Análisis Integral de Presión')
+        ax.set_title('Presión y operación real - Indicadores y evaluación de bandas 10psi')
         ax.legend()
         ax.grid(True, alpha=0.3)
-        
-        # Add statistics text box
-        stats_text = f"""Métricas Operacionales:
-• Presión promedio: {promedio:.2f} psi
-• Tiempo total: {tiempo_horas}h {tiempo_minutos}min
-• Pendiente subida: {pendiente_subida:.2f} psi/min
-• Pendiente bajada: {pendiente_bajada:.2f} psi/min
-• Variabilidad relativa: {variabilidad_relativa:.3f}
-• Estabilidad ±5 psi: {indice_estabilidad:.2f}%
-• Eventos críticos: {len(eventos)}"""
-        
-        plt.gcf().text(0.02, 0.98, stats_text, fontsize=9, 
-                      bbox=dict(boxstyle="round,pad=0.5", facecolor='lightblue', alpha=0.8),
-                      verticalalignment='top', transform=ax.transAxes)
-
         plt.xticks(rotation=45)
         plt.tight_layout()
 
-        # Save to buffer
+        # Generate detailed statistics for frontend (not displayed on image)
+        stats_data = {
+            "presion_promedio": round(promedio, 2),
+            "tiempo_total_horas": tiempo_horas,
+            "tiempo_total_minutos": tiempo_minutos,
+            "pendiente_subida": round(pendiente_subida, 2) if not pd.isna(pendiente_subida) else 0,
+            "pendiente_bajada": round(pendiente_bajada, 2) if not pd.isna(pendiente_bajada) else 0,
+            "variabilidad_relativa": round(variabilidad_relativa, 3),
+            "indice_estabilidad": round(indice_estabilidad, 2),
+            "eventos_criticos_total": len(eventos),
+            "top_eventos": []
+        }
+
+        # Add detailed analysis for top critical events
+        for idx, ev in enumerate(top_eventos, 1):
+            deficit_cfm = déficit_cfm_from_vol_liters(ev['volumen_faltante_L'], ev['duracion_min'])
+            resultados = evaluar_rangos_10psi_api(ev, deficit_cfm, presion_min, presion_max, 
+                                                 COMP_FLOW_REF_CFM, COMP_P_REF_PSIG, COMP_SENS_PSI, MARGEN_SEGURIDAD)
+            
+            cubre_lista = [r for r in resultados if r['cubre']]
+            
+            evento_info = {
+                "evento_numero": idx,
+                "inicio": ev['inicio'].strftime('%H:%M:%S'),
+                "fin": ev['fin'].strftime('%H:%M:%S'),
+                "min_presion": round(ev['min_presion'], 2),
+                "duracion_min": round(ev['duracion_min'], 1),
+                "volumen_faltante_L": round(ev['volumen_faltante_L'], 1),
+                "volumen_faltante_ft3": round(litros_to_ft3(ev['volumen_faltante_L']), 1),
+                "deficit_cfm": round(deficit_cfm, 2),
+                "tiene_solucion": len(cubre_lista) > 0
+            }
+            
+            if cubre_lista:
+                mejor = sorted(cubre_lista, key=lambda x: -x['cut_out'])[0]
+                evento_info["solucion"] = {
+                    "cut_out": mejor['cut_out'],
+                    "cut_in": mejor['cut_in'],
+                    "flow_out_cfm": round(mejor['flow_out_cfm'], 2),
+                    "flow_in_cfm": round(mejor['flow_in_cfm'], 2),
+                    "incremento_cfm": round(mejor['incremento_cfm'], 2),
+                    "objetivo_cfm": round(mejor['objetivo_cfm'], 2)
+                }
+            else:
+                max_incremento = max(resultados, key=lambda x: x['incremento_cfm'])
+                falta_cfm = max(0.0, deficit_cfm * (1 + MARGEN_SEGURIDAD) - max_incremento['incremento_cfm'])
+                evento_info["problema"] = {
+                    "max_incremento_cfm": round(max_incremento['incremento_cfm'], 2),
+                    "cfm_faltante": round(falta_cfm, 2),
+                    "recomendacion": "Considerar: 1) añadir segundo compresor; 2) aumentar almacenamiento; 3) permitir mayor banda (>10 psi)"
+                }
+            
+            stats_data["top_eventos"].append(evento_info)
+
+        # Save plot to buffer
         buf = io.BytesIO()
         plt.savefig(buf, format="png", dpi=300, bbox_inches='tight')
         plt.close(fig)
         buf.seek(0)
         
         return StreamingResponse(buf, media_type="image/png")
+
+    except Exception as e:
+        return {"error": f"Error interno del servidor: {str(e)}"}
+
+@web.get("/beta/pressure-stats", tags=["Web"])
+def pressure_analysis_stats(numero_cliente: int = Query(..., description="Número del cliente"), fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
+    """Get detailed pressure analysis statistics for frontend display"""
+    try:
+        dispositivos = obtener_medidores_presion(numero_cliente)
+        
+        if not dispositivos:
+            return {"error": "No se encontraron dispositivos de presión para este cliente"}
+        
+        # Enhanced Constants
+        presion_min = 100
+        presion_max = 120
+        V_tanque = 700  # litros
+        P_ATM = 14.7  # psia, referencia
+        COMP_FLOW_REF_CFM = 50.0
+        COMP_P_REF_PSIG = 100.0
+        COMP_SENS_PSI = 0.005
+        MARGEN_SEGURIDAD = 0.20
+        
+        # Use the first pressure device available
+        first_device = dispositivos[0]
+        p_device_id = first_device["p_device_id"]
+        dispositivo_id = first_device["dispositivo_id"]
+        linea = first_device["linea"].strip()
+
+        # Fetch data
+        df = obtener_datos_presion(p_device_id, dispositivo_id, linea, fecha)
+        
+        if df.empty:
+            return {"error": "No se encontraron datos de presión para los parámetros especificados"}
+
+        # Convert time column to datetime
+        if 'time' in df.columns:
+            df['time'] = pd.to_datetime(df['time'], errors='coerce')
+
+        df['presion1_psi'] = pd.to_numeric(df['presion1_psi'], errors='coerce')
+        df = df.dropna(subset=['presion1_psi']).reset_index(drop=True)
+
+        # Enhanced filter for real operation
+        start_idx = df.index[df['presion1_psi'] >= presion_min].min()
+        end_idx = df.index[df['estado'].notna()].max() if df['estado'].notna().any() else df.index[-1]
+        
+        if pd.isna(start_idx):
+            start_idx = 0
+            
+        df_operativa = df.loc[start_idx:end_idx].copy()
+
+        if df_operativa.empty:
+            return {"error": "No hay datos operativos válidos con las condiciones definidas"}
+
+        # Smooth average
+        df_operativa['presion_suavizada'] = df_operativa['presion1_psi'].rolling(window=3, min_periods=1).mean()
+        promedio = df_operativa['presion_suavizada'].mean()
+
+        # Enhanced critical events detection
+        fuera_bajo = df_operativa['presion1_psi'] < presion_min
+        df_operativa['evento_bajo'] = fuera_bajo & (~fuera_bajo.shift(1, fill_value=False))
+
+        eventos = []
+        i = 0
+        last_idx = len(df_operativa) - 1
+        while i < len(df_operativa):
+            if fuera_bajo.iloc[i]:
+                start = i
+                while i + 1 < len(df_operativa) and fuera_bajo.iloc[i+1]:
+                    i += 1
+                end = i
+                if end < last_idx:
+                    eventos.append((start, end))
+            i += 1
+
+        # Calculate enhanced critical events with flow modeling
+        eventos_criticos = []
+        for start, end in eventos:
+            registros = df_operativa.loc[start:end]
+            if registros.empty:
+                continue
+                
+            delta_t_min = 30.0 / 60.0
+            volumen_faltante_L = np.sum((1 - registros['presion1_psi'] / promedio) * V_tanque * delta_t_min)
+            duracion = len(registros) * delta_t_min
+            min_presion = registros['presion1_psi'].min()
+            
+            eventos_criticos.append({
+                'start_idx': start,
+                'end_idx': end,
+                'inicio': registros['time'].iloc[0],
+                'fin': registros['time'].iloc[-1],
+                'min_presion': min_presion,
+                'volumen_faltante_L': volumen_faltante_L,
+                'duracion_min': duracion
+            })
+
+        eventos_criticos = sorted(eventos_criticos, key=lambda x: x['volumen_faltante_L'], reverse=True)
+        top_eventos = eventos_criticos[:3]
+
+        # Enhanced metrics calculation
+        df_operativa['delta_presion'] = df_operativa['presion1_psi'].diff()
+        df_operativa['delta_t'] = 30 / 60
+        df_operativa['pendiente'] = df_operativa['delta_presion'] / df_operativa['delta_t']
+        pendiente_subida = df_operativa[df_operativa['pendiente'] > 0]['pendiente'].mean()
+        pendiente_bajada = df_operativa[df_operativa['pendiente'] < 0]['pendiente'].mean()
+        desviacion = df_operativa['presion_suavizada'].std()
+        variabilidad_relativa = desviacion / (presion_max - presion_min)
+        df_operativa['dentro_estable'] = df_operativa['presion_suavizada'].between(promedio-5, promedio+5)
+        indice_estabilidad = df_operativa['dentro_estable'].sum() / len(df_operativa) * 100
+        tiempo_total_min = (df_operativa['time'].iloc[-1] - df_operativa['time'].iloc[0]).total_seconds() / 60
+        tiempo_horas = int(tiempo_total_min // 60)
+        tiempo_minutos = int(tiempo_total_min % 60)
+
+        # Generate detailed statistics for frontend
+        stats_data = {
+            "presion_promedio": round(promedio, 2),
+            "tiempo_total_horas": tiempo_horas,
+            "pendiente_subida": round(pendiente_subida, 2) if not pd.isna(pendiente_subida) else 0,
+            "pendiente_bajada": round(pendiente_bajada, 2) if not pd.isna(pendiente_bajada) else 0,
+            "variabilidad_relativa": round(variabilidad_relativa, 3),
+            "indice_estabilidad": round(indice_estabilidad, 2),
+            "eventos_criticos_total": len(eventos),
+        }
+
+        return stats_data
 
     except Exception as e:
         return {"error": f"Error interno del servidor: {str(e)}"}

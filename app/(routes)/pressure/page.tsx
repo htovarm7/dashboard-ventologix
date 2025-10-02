@@ -14,6 +14,17 @@ const formatDateForAPI = (date: Date): string => {
   return date.toISOString().split("T")[0];
 };
 
+interface PressureStats {
+  presion_promedio: number;
+  tiempo_total_horas: number;
+  tiempo_total_minutos: number;
+  pendiente_subida: number;
+  pendiente_bajada: number;
+  variabilidad_relativa: number;
+  indice_estabilidad: number;
+  eventos_criticos_total: number;
+}
+
 const PressureAnalysis = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,6 +35,12 @@ const PressureAnalysis = () => {
     useState<string>("Inicializando...");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showDateSelector, setShowDateSelector] = useState(true);
+  const [pressureStats, setPressureStats] = useState<PressureStats | null>(
+    null
+  );
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [imageReady, setImageReady] = useState(false);
+  const [statsReady, setStatsReady] = useState(false);
   const router = useRouter();
 
   const IMAGE_TIMEOUT = 180000;
@@ -41,31 +58,53 @@ const PressureAnalysis = () => {
     []
   );
 
+  const generateStatsUrl = useCallback(
+    (numeroCliente: string, fecha: string) => {
+      return `${URL_API}/web/beta/pressure-stats?numero_cliente=${encodeURIComponent(
+        numeroCliente
+      )}&fecha=${encodeURIComponent(fecha)}`;
+    },
+    []
+  );
+
+  const loadPressureStats = useCallback(
+    async (numeroCliente: string, fecha: string) => {
+      try {
+        const url = generateStatsUrl(numeroCliente, fecha);
+        const response = await fetch(url, {
+          method: "GET",
+          signal: AbortSignal.timeout(30000),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error del servidor: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        setPressureStats(data);
+        setStatsReady(true);
+        return data;
+      } catch (err: unknown) {
+        const error = err as Error;
+        console.error("Error loading pressure stats:", error);
+        setPressureStats(null);
+        setStatsReady(false);
+        throw error;
+      }
+    },
+    [generateStatsUrl]
+  );
+
   const loadPressureImage = useCallback(
     async (numeroCliente: string, fecha: string) => {
-      setImageLoading(true);
-      setError(null);
-      setImageUrl(null);
-      setLoadingProgress("Iniciando análisis...");
-
       try {
         const url = generateImageUrl(numeroCliente, fecha);
 
-        setLoadingProgress("Verificando disponibilidad de la API...");
-        const healthCheck = await fetch(`${URL_API}/docs`, {
-          method: "HEAD",
-          signal: AbortSignal.timeout(5000),
-        });
-
-        if (!healthCheck.ok) {
-          throw new Error("API no disponible");
-        }
-
-        setLoadingProgress(
-          `Analizando datos de presión...`
-        );
-
-        // Primero intentar hacer una petición fetch para verificar si hay datos
         const response = await fetch(url, {
           method: "GET",
           signal: AbortSignal.timeout(IMAGE_TIMEOUT),
@@ -80,12 +119,8 @@ const PressureAnalysis = () => {
           throw new Error(`Error del servidor: ${response.status}`);
         }
 
-        setLoadingProgress("Procesando datos y generando gráfico...");
-
-        // Si llegamos aquí, la respuesta es una imagen válida
         const imageBlob = await response.blob();
 
-        // Verificar que realmente recibimos una imagen
         if (!imageBlob.type.startsWith("image/")) {
           throw new Error(
             "No se encontraron datos de presión para la fecha seleccionada"
@@ -93,13 +128,53 @@ const PressureAnalysis = () => {
         }
 
         const imageUrl = URL.createObjectURL(imageBlob);
-
         setImageUrl(imageUrl);
+        setImageReady(true);
+        return imageUrl;
+      } catch (err: unknown) {
+        setImageUrl(null);
+        setImageReady(false);
+        throw err;
+      }
+    },
+    [IMAGE_TIMEOUT, generateImageUrl]
+  );
+
+  const loadPressureAnalysis = useCallback(
+    async (numeroCliente: string, fecha: string) => {
+      setImageLoading(true);
+      setStatsLoading(true);
+      setError(null);
+      setImageUrl(null);
+      setPressureStats(null);
+      setImageReady(false);
+      setStatsReady(false);
+      setLoadingProgress("Iniciando análisis...");
+
+      try {
+        setLoadingProgress("Verificando disponibilidad de la API...");
+        const healthCheck = await fetch(`${URL_API}/docs`, {
+          method: "HEAD",
+          signal: AbortSignal.timeout(5000),
+        });
+
+        if (!healthCheck.ok) {
+          throw new Error("API no disponible");
+        }
+
+        setLoadingProgress("Cargando los datos...");
+
+        // Load both image and stats in parallel
+        const [imageResult, statsResult] = await Promise.all([
+          loadPressureImage(numeroCliente, fecha),
+          loadPressureStats(numeroCliente, fecha),
+        ]);
+
         setLoadingProgress("¡Análisis de presión completado!");
         setShowDateSelector(false);
       } catch (err: unknown) {
         const error = err as Error;
-        console.error("Error loading pressure image:", error);
+        console.error("Error loading pressure analysis:", error);
 
         if (error.message.includes("API no disponible")) {
           setError(
@@ -107,7 +182,7 @@ const PressureAnalysis = () => {
           );
         } else if (error.message.includes("No se encontraron datos")) {
           setError(
-            "No tiene un dispositivo instalado. Si lo deasea contacte a su IQengineer"
+            "No tiene un dispositivo instalado. Si lo desea contacte a su IQengineer"
           );
         } else {
           setError(
@@ -117,18 +192,18 @@ const PressureAnalysis = () => {
         setShowDateSelector(true);
       } finally {
         setImageLoading(false);
+        setStatsLoading(false);
       }
     },
-    [IMAGE_TIMEOUT, minDate, maxDate, generateImageUrl]
+    [loadPressureImage, loadPressureStats]
   );
   const retryImageLoad = useCallback(() => {
     if (userData?.numero_cliente && selectedDate) {
       setError(null);
-      setImageUrl(null);
       const dateStr = formatDateForAPI(selectedDate);
-      loadPressureImage(userData.numero_cliente.toString(), dateStr);
+      loadPressureAnalysis(userData.numero_cliente.toString(), dateStr);
     }
-  }, [userData?.numero_cliente, selectedDate, loadPressureImage]);
+  }, [userData?.numero_cliente, selectedDate, loadPressureAnalysis]);
 
   const handleDateSubmit = () => {
     if (!selectedDate) {
@@ -142,7 +217,7 @@ const PressureAnalysis = () => {
     }
 
     const dateStr = formatDateForAPI(selectedDate);
-    loadPressureImage(userData.numero_cliente.toString(), dateStr);
+    loadPressureAnalysis(userData.numero_cliente.toString(), dateStr);
   };
 
   const handleNewAnalysis = () => {
@@ -150,6 +225,9 @@ const PressureAnalysis = () => {
     setError(null);
     setShowDateSelector(true);
     setSelectedDate(null);
+    setPressureStats(null);
+    setImageReady(false);
+    setStatsReady(false);
   };
 
   useEffect(() => {
@@ -284,33 +362,23 @@ const PressureAnalysis = () => {
                 <div
                   className="h-3 rounded-full animate-pulse transition-all duration-1000 bg-gradient-to-r from-blue-500 to-indigo-500"
                   style={{
-                    width:
-                      loadingProgress.includes("Iniciando") ||
-                      loadingProgress.includes("Generando ejemplo")
-                        ? "10%"
-                        : loadingProgress.includes("Verificando")
-                        ? "25%"
-                        : loadingProgress.includes("Buscando") ||
-                          loadingProgress.includes("Procesando datos")
-                        ? "40%"
-                        : loadingProgress.includes("No hay datos") ||
-                          loadingProgress.includes("Error en datos")
-                        ? "60%"
-                        : loadingProgress.includes("Preparando") ||
-                          loadingProgress.includes("Cambiando")
-                        ? "70%"
-                        : loadingProgress.includes("Cargando ejemplo") ||
-                          loadingProgress.includes("Generando gráfico")
-                        ? "85%"
-                        : loadingProgress.includes("Procesando")
-                        ? "95%"
-                        : "100%",
+                    width: loadingProgress.includes("Iniciando")
+                      ? "10%"
+                      : loadingProgress.includes("Verificando")
+                      ? "25%"
+                      : loadingProgress.includes(
+                          "Cargando imagen y estadísticas"
+                        )
+                      ? "70%"
+                      : loadingProgress.includes("completado")
+                      ? "100%"
+                      : "50%",
                   }}
                 ></div>
               </div>
 
               <div className="text-xs mt-2 text-blue-600">
-                Tiempo estimado: 1-3 minutos
+                Tiempo estimado: 1-3 minutos • Cargando imagen
               </div>
             </div>
           )}
@@ -338,8 +406,8 @@ const PressureAnalysis = () => {
             </div>
           )}
 
-          {/* Image Display */}
-          {imageUrl && (
+          {/* Image Display - Only show when both image and stats are ready */}
+          {imageUrl && pressureStats && imageReady && statsReady && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-semibold text-gray-900">
@@ -360,8 +428,8 @@ const PressureAnalysis = () => {
                   alt={`Análisis de presión para ${
                     selectedDate ? formatDateForAPI(selectedDate) : ""
                   }`}
-                  width={1200}
-                  height={600}
+                  width={1800}
+                  height={1000}
                   className="w-full h-auto rounded shadow-lg"
                   unoptimized
                 />
@@ -369,10 +437,37 @@ const PressureAnalysis = () => {
 
               {/* Analysis Info */}
               <div className="p-4 rounded-lg border bg-blue-50 border-blue-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
-                  <div className="md:col-span-2">
-                    <span>Información:</span> Análisis de presión generado con
-                    datos en tiempo real.
+                <h3 className="text-2xl font-semibold text-blue-900 mb-3">
+                  Métricas Operacionales
+                </h3>
+
+                <div className="text-xl text-black space-y-1">
+                  <div>
+                    • Presión promedio:{" "}
+                    {pressureStats.presion_promedio.toFixed(2)} psi
+                  </div>
+                  <div>
+                    • Tiempo total: {pressureStats.tiempo_total_horas}h{" "}
+                    {pressureStats.tiempo_total_minutos}min
+                  </div>
+                  <div>
+                    • Pendiente subida:{" "}
+                    {pressureStats.pendiente_subida.toFixed(2)} psi/min
+                  </div>
+                  <div>
+                    • Pendiente bajada:{" "}
+                    {pressureStats.pendiente_bajada.toFixed(2)} psi/min
+                  </div>
+                  <div>
+                    • Variabilidad relativa:{" "}
+                    {pressureStats.variabilidad_relativa.toFixed(3)}
+                  </div>
+                  <div>
+                    • Estabilidad ±5 psi:{" "}
+                    {pressureStats.indice_estabilidad.toFixed(2)}%
+                  </div>
+                  <div>
+                    • Eventos críticos: {pressureStats.eventos_criticos_total}
                   </div>
                 </div>
               </div>
