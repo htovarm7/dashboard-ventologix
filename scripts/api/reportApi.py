@@ -35,7 +35,7 @@ from statistics import mean, pstdev
 load_dotenv()
 
 # Create FastAPI instance
-report = APIRouter(prefix="/report", tags=["report"])
+report = APIRouter(prefix="/report", tags=["📊 Reports API"])
 
 # Get database credentials from environment variables
 DB_HOST = os.getenv("DB_HOST")
@@ -44,7 +44,7 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_DATABASE = os.getenv("DB_DATABASE")
 
 # Daily endpoints
-@report.get("/pie-data-proc", tags=["daily"])
+@report.get("/pie-data-proc", tags=["📅 Reportes Diarios"])
 def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         # Connect to DB
@@ -93,7 +93,7 @@ def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente")
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/line-data-proc", tags=["daily"])
+@report.get("/line-data-proc", tags=["📅 Reportes Diarios"])
 def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         
@@ -161,7 +161,7 @@ def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), li
     except Exception as e:
         return JSONResponse(content={"error": str(e)})
   
-@report.get("/daily-report-data", tags=["daily"])
+@report.get("/daily-report-data", tags=["📅 Reportes Diarios"])
 def get_daily_report(id_cliente: int = Query(..., description="ID del cliente"),
                      linea: str = Query(..., description="Línea del cliente")):
     try:
@@ -260,7 +260,7 @@ def get_daily_report(id_cliente: int = Query(..., description="ID del cliente"),
         return {"error": f"Error inesperado: {str(e)}"}
 
 # Select Date
-@report.get("/pie-data-proc-day", tags=["selectDate"])
+@report.get("/pie-data-proc-day", tags=["🗓️ Selector de Fechas"])
 def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente"), date: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
         # Connect to DB
@@ -309,7 +309,7 @@ def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente")
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/line-data-proc-day", tags=["selectDate"])
+@report.get("/line-data-proc-day", tags=["🗓️ Selector de Fechas"])
 def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente"), date: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
         
@@ -377,7 +377,7 @@ def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), li
     except Exception as e:
         return JSONResponse(content={"error": str(e)})
 
-@report.get("/day-report-data", tags=["selectDate"])
+@report.get("/day-report-data", tags=["🗓️ Selector de Fechas"])
 def get_day_report(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente"), date: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
         conn = mysql.connector.connect(
@@ -465,7 +465,7 @@ def get_day_report(id_cliente: int = Query(..., description="ID del cliente"), l
         return {"error": f"Error inesperado: {str(e)}"}
 
 # Weekly endpoints
-@report.get("/week/pie-data-proc", tags=["weekly"])
+@report.get("/week/pie-data-proc", tags=["📆 Reportes Semanales"])
 def get_pie_data_proc_weekly(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         # Connect to DB
@@ -513,7 +513,7 @@ def get_pie_data_proc_weekly(id_cliente: int = Query(..., description="ID del cl
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/week/shifts", tags=["weekly"])
+@report.get("/week/shifts", tags=["📆 Reportes Semanales"])
 def get_shifts(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         # Connect to DB
@@ -552,7 +552,7 @@ def get_shifts(id_cliente: int = Query(..., description="ID del cliente"), linea
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/week/summary-general", tags=["weekly"])
+@report.get("/week/summary-general", tags=["📆 Reportes Semanales"])
 def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         # Conectar a base de datos
@@ -778,7 +778,7 @@ def get_weekly_summary_general(id_cliente: int = Query(..., description="ID del 
         return {"error": str(err)}
 
 # Select Week Endpoints
-@report.get("/dateWeek/pie-data-proc", tags=["selectWeek"])
+@report.get("/dateWeek/pie-data-proc", tags=["🗓️ Selector de Semanas"])
 def get_pie_data_proc_date_week(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Linea del cliente"), fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
         # Connect to DB
@@ -826,7 +826,7 @@ def get_pie_data_proc_date_week(id_cliente: int = Query(..., description="ID del
     except mysql.connector.Error as err:
         return {"error": str(err)}
     
-@report.get("/dateWeek/shifts", tags=["selectWeek"])
+@report.get("/dateWeek/shifts", tags=["🗓️ Selector de Semanas"])
 def get_shifts_by_week(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente"), fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
         # Connect to DB
@@ -865,7 +865,7 @@ def get_shifts_by_week(id_cliente: int = Query(..., description="ID del cliente"
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/dateWeek/summary-general", tags=["selectWeek"])
+@report.get("/dateWeek/summary-general", tags=["🗓️ Selector de Semanas"])
 def get_week_summary_general(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente"), fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
         # Conectar a base de datos
@@ -1095,7 +1095,7 @@ def get_week_summary_general(id_cliente: int = Query(..., description="ID del cl
         return {"error": str(err)}
 
 # Static data endpoints
-@report.get("/client-data", tags=["staticData"])
+@report.get("/client-data", tags=["📋 Datos Estáticos"])
 def get_client_data(id_cliente: int = Query(..., description="ID del cliente")):
     try:
         # Connect to the database
@@ -1128,7 +1128,7 @@ def get_client_data(id_cliente: int = Query(..., description="ID del cliente")):
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/compressor-data", tags=["staticData"])
+@report.get("/compressor-data", tags=["📋 Datos Estáticos"])
 def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente")):
     try:
         # Connect to the database
@@ -1161,7 +1161,7 @@ def get_compressor_data(id_cliente: int = Query(..., description="ID del cliente
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/clients-data", tags=["staticData"])
+@report.get("/clients-data", tags=["📋 Datos Estáticos"])
 def get_clients_data():
     try:
         # Conectar a la base de datos
@@ -1210,7 +1210,7 @@ def get_clients_data():
     except mysql.connector.Error as err:
         return {"error": str(err)}
 
-@report.get("/all-clients", tags=["staticData"])
+@report.get("/all-clients", tags=["📋 Datos Estáticos"])
 def get_all_clients_data():
     try:
         # Conectar a la base de datos
