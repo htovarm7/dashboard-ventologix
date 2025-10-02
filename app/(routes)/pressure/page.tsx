@@ -38,7 +38,6 @@ const PressureAnalysis = () => {
   const [pressureStats, setPressureStats] = useState<PressureStats | null>(
     null
   );
-  const [statsLoading, setStatsLoading] = useState(false);
   const [imageReady, setImageReady] = useState(false);
   const [statsReady, setStatsReady] = useState(false);
   const router = useRouter();
@@ -143,7 +142,6 @@ const PressureAnalysis = () => {
   const loadPressureAnalysis = useCallback(
     async (numeroCliente: string, fecha: string) => {
       setImageLoading(true);
-      setStatsLoading(true);
       setError(null);
       setImageUrl(null);
       setPressureStats(null);
@@ -162,10 +160,10 @@ const PressureAnalysis = () => {
           throw new Error("API no disponible");
         }
 
-        setLoadingProgress("Cargando los datos...");
+        setLoadingProgress("Cargando imagen y estadísticas en paralelo...");
 
         // Load both image and stats in parallel
-        const [imageResult, statsResult] = await Promise.all([
+        await Promise.all([
           loadPressureImage(numeroCliente, fecha),
           loadPressureStats(numeroCliente, fecha),
         ]);
@@ -192,7 +190,6 @@ const PressureAnalysis = () => {
         setShowDateSelector(true);
       } finally {
         setImageLoading(false);
-        setStatsLoading(false);
       }
     },
     [loadPressureImage, loadPressureStats]
