@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Compresor } from "@/types/common";
+import { URL_API } from "@/lib/global";
 import Image from "next/image";
 
 interface SideBarProps {
@@ -36,11 +37,18 @@ interface NavigationItem {
 const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const { logout } = useAuth0();
+  const { logout, user } = useAuth0();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isBetaExpanded, setIsBetaExpanded] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  // Estados para SuperAdmin
+  const [showSuperAdminModal, setShowSuperAdminModal] = useState(false);
+  const [newClientNumber, setNewClientNumber] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState("");
+  const [updateError, setUpdateError] = useState("");
 
   const handleLogout = () => {
     sessionStorage.removeItem("userData");
@@ -48,6 +56,64 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
     logout({
       logoutParams: { returnTo: window.location.origin },
     });
+  };
+
+  // Función para actualizar número de cliente
+  const updateClientNumber = async () => {
+    if (!newClientNumber || !user?.email) {
+      setUpdateError("Por favor ingrese un número de cliente válido");
+      return;
+    }
+
+    setIsUpdating(true);
+    setUpdateError("");
+    setUpdateMessage("");
+
+    try {
+      const response = await fetch(
+        `${URL_API}/web/usuarios/update-client-number`,
+        {
+          method: "PUT",
+          headers: {
+            accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: user.email,
+            nuevo_numero_cliente: parseInt(newClientNumber),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      setUpdateMessage("Número de cliente actualizado exitosamente");
+      setNewClientNumber("");
+
+      // Cerrar modal después de 2 segundos
+      setTimeout(() => {
+        setShowSuperAdminModal(false);
+        setUpdateMessage("");
+      }, 2000);
+    } catch (error) {
+      console.error("Error updating client number:", error);
+      setUpdateError(
+        "Error al actualizar el número de cliente. Inténtelo nuevamente."
+      );
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleSuperAdminClick = () => {
+    setShowSuperAdminModal(true);
+    setUpdateError("");
+    setUpdateMessage("");
+    setNewClientNumber("");
   };
 
   // Mínima distancia de deslizamiento para activar el gesto
@@ -513,6 +579,37 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
             </div>
           )}
 
+          {/* Botón SuperAdmin para rol 0 */}
+          {rol === 0 && (
+            <div className="p-4 border-t border-slate-700">
+              <button
+                onClick={handleSuperAdminClick}
+                className="w-full flex items-center justify-center gap-2 p-3 rounded-md bg-purple-600 hover:bg-purple-700 text-white transition-all duration-200"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+                <span>SuperAdmin</span>
+              </button>
+            </div>
+          )}
+
           {/* Botón de Logout */}
           <div className="p-4 border-t border-slate-700">
             <button
@@ -537,6 +634,82 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
           </div>
         </div>
       </div>
+
+      {/* Modal SuperAdmin */}
+      {showSuperAdminModal && (
+        <div className="fixed inset-0 backdrop-blur-sm bg-white/10 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Actualizar Número de Cliente
+                </h3>
+                <button
+                  onClick={() => setShowSuperAdminModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {updateMessage && (
+                <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+                  {updateMessage}
+                </div>
+              )}
+
+              {updateError && (
+                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                  {updateError}
+                </div>
+              )}
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nuevo Número de Cliente
+                </label>
+                <input
+                  type="number"
+                  value={newClientNumber}
+                  onChange={(e) => setNewClientNumber(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Ingrese el número de cliente"
+                  disabled={isUpdating}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSuperAdminModal(false)}
+                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                  disabled={isUpdating}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={updateClientNumber}
+                  disabled={isUpdating || !newClientNumber}
+                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUpdating ? "Actualizando..." : "Actualizar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

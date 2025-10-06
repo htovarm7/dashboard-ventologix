@@ -1065,6 +1065,70 @@ def pressure_analysis_stats(numero_cliente: int = Query(..., description="Númer
     except Exception as e:
         return {"error": f"Error interno del servidor: {str(e)}"}
 
+@web.put("/usuarios/update-client-number", tags=["🔧 Operaciones de Administrador"])
+def update_user_client_number(request: UpdateClientNumberRequest):
+    """Actualiza el número de cliente de un usuario específico (solo para administradores)"""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        # Verificar que el usuario existe
+        cursor.execute(
+            "SELECT id, rol FROM usuarios_auth WHERE email = %s",
+            (request.email,)
+        )
+        usuario = cursor.fetchone()
+        cursor.fetchall()  # <-- limpia resultados
+
+        if not usuario:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+        # Verificar que el nuevo número de cliente existe
+        cursor.execute(
+            "SELECT id_cliente FROM clientes WHERE numero_cliente = %s",
+            (request.nuevo_numero_cliente,)
+        )
+        cliente = cursor.fetchone()
+        cursor.fetchall()  # <-- limpia resultados
+
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Número de cliente no válido")
+
+        # Actualizar el número de cliente
+        cursor.execute(
+            "UPDATE usuarios_auth SET numeroCliente = %s WHERE email = %s",
+            (request.nuevo_numero_cliente, request.email)
+        )
+
+        # Si es un ingeniero, también actualizar en la tabla ingenieros
+        if usuario['rol'] == 1:  # rol 1 = ingeniero/directo
+            cursor.execute(
+                "UPDATE ingenieros SET numeroCliente = %s WHERE email = %s",
+                (request.nuevo_numero_cliente, request.email)
+            )
+
+        conn.commit()
+
+        return {
+            "message": "Número de cliente actualizado exitosamente",
+            "email": request.email,
+            "nuevo_numero_cliente": request.nuevo_numero_cliente
+        }
+
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating client number: {str(e)}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
 # Helper functions
 def litros_to_ft3(liters):
     """Convert liters to cubic feet"""
@@ -1302,116 +1366,3 @@ def generate_predictions_fast(series: pd.Series, days: int = 3) -> Tuple[List[fl
     except Exception as e:
         promedio = np.mean(hist_valores)
         return [promedio] * days, "Promedio (modelo falló)"
-
-# PUT - Actualizar número de cliente de un usuario (solo para administradores rol 0)
-@web.put("/usuarios/update-client-number", tags=["🔧 Operaciones de Administrador"])
-def update_user_client_number(request: UpdateClientNumberRequest):
-    """Actualiza el número de cliente de un usuario específico (solo para administradores)"""
-    try:
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_DATABASE
-        )
-        cursor = conn.cursor(dictionary=True)
-
-        # Verificar que el usuario existe
-        cursor.execute(
-            "SELECT id, rol FROM usuarios_auth WHERE email = %s",
-            (request.email,)
-        )
-        usuario = cursor.fetchone()
-
-        if not usuario:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-        # Verificar que el nuevo número de cliente existe
-        cursor.execute(
-            "SELECT id_cliente FROM clientes WHERE numero_cliente = %s",
-            (request.nuevo_numero_cliente,)
-        )
-        cliente = cursor.fetchone()
-
-        if not cliente:
-            raise HTTPException(status_code=404, detail="Número de cliente no válido")
-
-        # Actualizar el número de cliente
-        cursor.execute(
-            "UPDATE usuarios_auth SET numeroCliente = %s WHERE email = %s",
-            (request.nuevo_numero_cliente, request.email)
-        )
-
-        # Si es un ingeniero, también actualizar en la tabla ingenieros
-        if usuario['rol'] == 1:  # rol 1 = ingeniero/directo
-            cursor.execute(
-                "UPDATE ingenieros SET numeroCliente = %s WHERE email = %s",
-                (request.nuevo_numero_cliente, request.email)
-            )
-
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        return {
-            "message": "Número de cliente actualizado exitosamente",
-            "email": request.email,
-            "nuevo_numero_cliente": request.nuevo_numero_cliente
-        }
-
-    except mysql.connector.Error as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error updating client number: {str(e)}")
-
-# PUT - Actualizar rol de un usuario (solo para administradores rol 0)
-@web.put("/usuarios/update-role", tags=["🔧 Operaciones de Administrador"])
-def update_user_role(request: UpdateUserRoleRequest):
-    """Actualiza el rol de un usuario específico (solo para administradores)"""
-    try:
-        # Validar que el rol es válido
-        valid_roles = [0, 1, 2, 3]  # 0=Admin, 1=Ingeniero, 2=Director, 3=Gerente
-        if request.nuevo_rol not in valid_roles:
-            raise HTTPException(status_code=400, detail="Rol no válido. Debe ser 0 (Admin), 1 (Ingeniero), 2 (Administrador) o 3 (Gerente)")
-
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_DATABASE
-        )
-        cursor = conn.cursor(dictionary=True)
-
-        # Verificar que el usuario existe
-        cursor.execute(
-            "SELECT id, rol FROM usuarios_auth WHERE email = %s",
-            (request.email,)
-        )
-        usuario = cursor.fetchone()
-
-        if not usuario:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-        # Actualizar el rol
-        cursor.execute(
-            "UPDATE usuarios_auth SET rol = %s WHERE email = %s",
-            (request.nuevo_rol, request.email)
-        )
-
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        role_names = {0: "Administrador", 1: "Ingeniero", 2: "Director", 3: "Gerente"}
-
-        return {
-            "message": "Rol actualizado exitosamente",
-            "email": request.email,
-            "nuevo_rol": request.nuevo_rol,
-            "nombre_rol": role_names.get(request.nuevo_rol, "Desconocido")
-        }
-
-    except mysql.connector.Error as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error updating user role: {str(e)}")
