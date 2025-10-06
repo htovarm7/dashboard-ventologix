@@ -174,6 +174,10 @@ export default function Page() {
               Para solicitar acceso al Dashboard de Ventologix, por favor
               contacta al administrador.
             </p>
+            <p className="text-xl font-bold">
+              Recuerde que si se le brindo acceso debe ser mediante el correo
+              coroporativo de su empresa y no un correo personal.
+            </p>
           </div>
 
           <div className="space-y-4">
