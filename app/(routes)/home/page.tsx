@@ -174,18 +174,33 @@ const Home = () => {
                     className="w-full text-center text-sm sm:text-lg max-w-md mx-auto px-3 sm:px-4 py-2 border border-black rounded-md"
                   >
                     <option value="">-- Seleccione un compresor --</option>
-                    {compresores.map((compresor, index) => (
-                      <option
-                        key={`compresor-${compresor.id || index}-${
-                          compresor.linea
-                        }-${compresor.alias}`}
-                        value={`${compresor.id_cliente}-${compresor.linea}`}
-                      >
-                        {rol === 0
-                          ? `${compresor.nombre_cliente} : ${compresor.alias}`
-                          : compresor.alias}
-                      </option>
-                    ))}
+                    {[...compresores]
+                      .sort((a, b) => {
+                        // Si es administrador (rol 0), ordenar por nombre_cliente
+                        if (rol === 0) {
+                          const nombreA = a.nombre_cliente || "";
+                          const nombreB = b.nombre_cliente || "";
+                          return nombreA.localeCompare(nombreB, "es", {
+                            sensitivity: "base",
+                          });
+                        }
+                        // Para otros roles, ordenar por alias
+                        return a.alias.localeCompare(b.alias, "es", {
+                          sensitivity: "base",
+                        });
+                      })
+                      .map((compresor, index) => (
+                        <option
+                          key={`compresor-${compresor.id || index}-${
+                            compresor.linea
+                          }-${compresor.alias}`}
+                          value={`${compresor.id_cliente}-${compresor.linea}`}
+                        >
+                          {rol === 0
+                            ? `${compresor.nombre_cliente} : ${compresor.alias}`
+                            : compresor.alias}
+                        </option>
+                      ))}
                   </select>
                 </div>
               </div>
