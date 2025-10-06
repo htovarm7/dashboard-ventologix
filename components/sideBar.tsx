@@ -89,16 +89,24 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
         throw new Error(`Error del servidor: ${response.status}`);
       }
 
-      const data = await response.json();
-
       setUpdateMessage("Número de cliente actualizado exitosamente");
       setNewClientNumber("");
 
-      // Cerrar modal después de 2 segundos
+      // Actualizar los datos en sessionStorage inmediatamente
+      const storedUserData = sessionStorage.getItem("userData");
+      if (storedUserData) {
+        const userData = JSON.parse(storedUserData);
+        userData.numero_cliente = parseInt(newClientNumber);
+        sessionStorage.setItem("userData", JSON.stringify(userData));
+      }
+
+      // Cerrar modal después de 1.5 segundos y recargar la página
       setTimeout(() => {
         setShowSuperAdminModal(false);
         setUpdateMessage("");
-      }, 2000);
+        // Recargar la página para que los cambios tengan efecto inmediato
+        window.location.reload();
+      }, 1500);
     } catch (error) {
       console.error("Error updating client number:", error);
       setUpdateError(
