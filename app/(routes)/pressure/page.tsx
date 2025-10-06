@@ -42,8 +42,6 @@ const PressureAnalysis = () => {
   const [statsReady, setStatsReady] = useState(false);
   const router = useRouter();
 
-  const IMAGE_TIMEOUT = 180000;
-
   const minDate = new Date("2025-09-30");
   const maxDate = new Date();
 
@@ -72,7 +70,6 @@ const PressureAnalysis = () => {
         const url = generateStatsUrl(numeroCliente, fecha);
         const response = await fetch(url, {
           method: "GET",
-          signal: AbortSignal.timeout(30000),
         });
 
         if (!response.ok) {
@@ -106,7 +103,6 @@ const PressureAnalysis = () => {
 
         const response = await fetch(url, {
           method: "GET",
-          signal: AbortSignal.timeout(IMAGE_TIMEOUT),
         });
 
         if (!response.ok) {
@@ -136,7 +132,7 @@ const PressureAnalysis = () => {
         throw err;
       }
     },
-    [IMAGE_TIMEOUT, generateImageUrl]
+    [generateImageUrl]
   );
 
   const loadPressureAnalysis = useCallback(
@@ -153,7 +149,6 @@ const PressureAnalysis = () => {
         setLoadingProgress("Verificando disponibilidad de la API...");
         const healthCheck = await fetch(`${URL_API}/docs`, {
           method: "HEAD",
-          signal: AbortSignal.timeout(5000),
         });
 
         if (!healthCheck.ok) {
