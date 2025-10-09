@@ -212,7 +212,7 @@ const Home = () => {
             semanales.
           </p>
           {selectedCompresor ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto px-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8 max-w-4xl mx-auto px-4">
               <DateReportDropdown
                 title="Reporte por Fecha"
                 compresores={compresores}
@@ -252,6 +252,15 @@ const Home = () => {
                 style={{ WebkitTapHighlightColor: "transparent" }}
               >
                 <span className="font-medium">Presión (BETA)</span>
+              </button>
+              <button
+                className="w-full text-lg text-green-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-green-200 p-4 rounded-xl hover:bg-green-50 hover:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
+                onClick={() => router.push("/compressor-maintenance")}
+                style={{ WebkitTapHighlightColor: "transparent" }}
+              >
+                <span className="font-medium">
+                  Mantenimiento de Compresoresores
+                </span>
               </button>
             </div>
           ) : (

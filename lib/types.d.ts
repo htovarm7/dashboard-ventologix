@@ -162,3 +162,21 @@ export type EngineerData = {
   email: string;
   activo: boolean;
 };
+
+export interface MaintenanceRecord {
+  id: string;
+  compressorId: string;
+  compressorAlias: string;
+  type: string; // Preventivo, Correctivo, etc.
+  frequency: number; // en horas
+  lastMaintenanceDate: string;
+  nextMaintenanceDate?: string;
+  isActive: boolean;
+  description?: string;
+  createdAt: string;
+}
+
+export interface CompressorMaintenance {
+  compressor: Compressor;
+  maintenanceRecords: MaintenanceRecord[];
+}
