@@ -22,6 +22,55 @@ import MaintenanceFilters, {
   type FilterOptions,
 } from "../../../components/MaintenanceFilters";
 
+// Mock data moved to module scope so it is stable across renders and
+// does not need to be added to hook dependency arrays.
+type RawComp = {
+  linea?: string;
+  Linea?: string;
+  id?: string;
+  Alias?: string;
+  alias?: string;
+};
+
+const mockMaintenanceRecords: MaintenanceRecord[] = [
+  {
+    id: "m1",
+    compressorId: "1",
+    compressorAlias: "Compresor Principal",
+    type: "Preventivo",
+    frequency: 1000,
+    lastMaintenanceDate: "2024-09-15",
+    nextMaintenanceDate: "2025-01-15",
+    isActive: true,
+    description: "Mantenimiento general y limpieza",
+    createdAt: "2024-09-01",
+  },
+  {
+    id: "m2",
+    compressorId: "1",
+    compressorAlias: "Compresor Principal",
+    type: "Correctivo",
+    frequency: 2000,
+    lastMaintenanceDate: "2024-08-20",
+    nextMaintenanceDate: "2025-04-20",
+    isActive: true,
+    description: "Reparación de válvulas",
+    createdAt: "2024-08-15",
+  },
+  {
+    id: "m3",
+    compressorId: "2",
+    compressorAlias: "Compresor Secundario",
+    type: "Preventivo",
+    frequency: 1500,
+    lastMaintenanceDate: "2024-10-01",
+    nextMaintenanceDate: "2025-03-01",
+    isActive: true,
+    description: "Cambio de filtros y lubricantes",
+    createdAt: "2024-09-25",
+  },
+];
+
 const CompressorMaintenance = () => {
   const [compressorMaintenances, setCompressorMaintenances] = useState<
     CompressorMaintenance[]
@@ -35,49 +84,9 @@ const CompressorMaintenance = () => {
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [compresores, setCompresores] = useState<Compressor[]>([]);
-  const [numeroCliente, setNumeroCliente] = useState<number>(0);
-  const [rol, setRol] = useState<number>(0);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  
   const { showSuccess } = useDialog();
-
-  const mockMaintenanceRecords: MaintenanceRecord[] = [
-    {
-      id: "m1",
-      compressorId: "1",
-      compressorAlias: "Compresor Principal",
-      type: "Preventivo",
-      frequency: 1000,
-      lastMaintenanceDate: "2024-09-15",
-      nextMaintenanceDate: "2025-01-15",
-      isActive: true,
-      description: "Mantenimiento general y limpieza",
-      createdAt: "2024-09-01",
-    },
-    {
-      id: "m2",
-      compressorId: "1",
-      compressorAlias: "Compresor Principal",
-      type: "Correctivo",
-      frequency: 2000,
-      lastMaintenanceDate: "2024-08-20",
-      nextMaintenanceDate: "2025-04-20",
-      isActive: true,
-      description: "Reparación de válvulas",
-      createdAt: "2024-08-15",
-    },
-    {
-      id: "m3",
-      compressorId: "2",
-      compressorAlias: "Compresor Secundario",
-      type: "Preventivo",
-      frequency: 1500,
-      lastMaintenanceDate: "2024-10-01",
-      nextMaintenanceDate: "2025-03-01",
-      isActive: true,
-      description: "Cambio de filtros y lubricantes",
-      createdAt: "2024-09-25",
-    },
-  ];
 
   useEffect(() => {
     const loadUserData = () => {
@@ -87,12 +96,11 @@ const CompressorMaintenance = () => {
           const parsedData = JSON.parse(userData);
           setIsAuthorized(true);
           setCompresores(parsedData.compresores || []);
-          setNumeroCliente(parsedData.numero_cliente);
-          setRol(parsedData.rol);
+          // numero_cliente and rol are not required in this component state
 
           const userCompressors: Compressor[] = (
             parsedData.compresores || []
-          ).map((comp: any, index: number) => ({
+          ).map((comp: RawComp, index: number) => ({
             id:
               comp.linea ||
               comp.id ||
@@ -153,7 +161,7 @@ const CompressorMaintenance = () => {
   }
 
   const applyFilters = (filters: FilterOptions) => {
-    let filtered = compressorMaintenances
+    const filtered = compressorMaintenances
       .map((cm) => ({
         ...cm,
         maintenanceRecords: cm.maintenanceRecords.filter((record) => {
