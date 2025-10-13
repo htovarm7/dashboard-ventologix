@@ -98,17 +98,20 @@ const CompressorMaintenance = () => {
 
           const userCompressors: Compressor[] = (
             parsedData.compresores || []
-          ).map((comp: RawComp, index: number) => ({
-            id:
-              comp.linea ||
-              comp.id ||
-              `comp_${parsedData.numero_cliente}_${index}`,
-            linea: comp.linea || comp.Linea || "",
-            id_cliente: parsedData.numero_cliente,
-            alias:
-              comp.Alias || comp.alias || `Compresor ${comp.linea || comp.id}`,
-            nombre_cliente: parsedData.name || "Cliente",
-          }));
+          ).map((comp: RawComp, index: number) => {
+            // Generate a unique ID by combining available identifiers with index
+            const baseId = comp.id || comp.linea || `comp_${index}`;
+            const uniqueId = `${parsedData.numero_cliente}_${baseId}_${index}`;
+            
+            return {
+              id: uniqueId,
+              linea: comp.linea || comp.Linea || "",
+              id_cliente: parsedData.numero_cliente,
+              alias:
+                comp.Alias || comp.alias || `Compresor ${comp.linea || comp.id || index + 1}`,
+              nombre_cliente: parsedData.name || "Cliente",
+            };
+          });
 
           const compressorMaintenanceData = userCompressors.map(
             (compressor) => ({
