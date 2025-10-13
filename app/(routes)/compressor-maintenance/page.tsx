@@ -16,14 +16,12 @@ import {
   type CompressorMaintenance,
 } from "@/lib/types";
 import { useDialog } from "@/hooks/useDialog";
-import MaintenanceForm from "../../../components/MaintenanceForm";
-import MaintenanceStatusCard from "../../../components/MaintenanceStatusCard";
+import MaintenanceForm from "@/components/MaintenanceForm";
+import MaintenanceStatusCard from "@/components/MaintenanceStatusCard";
 import MaintenanceFilters, {
   type FilterOptions,
-} from "../../../components/MaintenanceFilters";
+} from "@/components/MaintenanceFilters";
 
-// Mock data moved to module scope so it is stable across renders and
-// does not need to be added to hook dependency arrays.
 type RawComp = {
   linea?: string;
   Linea?: string;
