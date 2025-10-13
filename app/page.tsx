@@ -70,16 +70,13 @@ export default function Page() {
           const userData = {
             numero_cliente: data.numeroCliente,
             rol: data.rol,
+            email: data.email,
+            name: data.name,
             compresores: (data.compresores || []).map((c: Compressor) => {
               return {
                 ...c,
-                nombreCompleto:
-                  c.alias + (c.id_cliente !== 0 ? ` ${c.nombre_cliente}` : ""),
               };
             }),
-            email: data.email,
-            name: data.name,
-            timestamp: Date.now(),
           };
           sessionStorage.setItem("userData", JSON.stringify(userData));
           router.push("/home");

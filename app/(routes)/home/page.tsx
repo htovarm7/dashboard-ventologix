@@ -38,6 +38,8 @@ const Home = () => {
           setNumeroCliente(parsedData.numero_cliente);
           setRol(parsedData.rol);
 
+          console.log(userData)
+
           const selectedCompresorData =
             sessionStorage.getItem("selectedCompresor");
           if (selectedCompresorData) {

@@ -84,14 +84,19 @@ def get_usuario_by_email(email: str):
         rol = usuario[0]['rol'] if usuario else None
         name = usuario[0]['name'] if usuario else None 
 
+        # Initialize compresores as empty list
+        compresores = []
+
         # 0 = Admin, 1 = Gerente VT, 2 = VAST, 3 = Gerente Cliente, 4 = Cliente
         if(rol == 3 or rol == 4):
             cursor.execute("SELECT c.linea, c.proyecto as id_cliente, c.Alias as alias, c.tipo as tipo FROM compresores c JOIN clientes c2 ON c2.id_cliente = c.id_cliente WHERE c2.numero_cliente  = %s;", (numeroCliente,))
             compresores = cursor.fetchall()
 
-        if(rol == 0 or rol == 1):
+        if(rol == 0 or rol == 1 or rol == 2):
             cursor.execute("SELECT  c.linea, c.proyecto as id_cliente, c.Alias as alias , c2.nombre_cliente, c2.numero_cliente FROM compresores c JOIN clientes c2 ON c.id_cliente = c2.id_cliente")
             compresores = cursor.fetchall()
+
+        # For rol == 2 (VAST), compresores remains as empty list
 
         cursor.close()
         conn.close()
@@ -1127,7 +1132,6 @@ def update_user_client_number(request: UpdateClientNumberRequest):
     finally:
         cursor.close()
         conn.close()
-
 
 # Helper functions
 def litros_to_ft3(liters):
