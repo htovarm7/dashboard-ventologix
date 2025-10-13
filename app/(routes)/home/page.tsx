@@ -38,6 +38,8 @@ const Home = () => {
           setNumeroCliente(parsedData.numero_cliente);
           setRol(parsedData.rol);
 
+          console.log(userData);
+
           const selectedCompresorData =
             sessionStorage.getItem("selectedCompresor");
           if (selectedCompresorData) {
@@ -136,7 +138,8 @@ const Home = () => {
             </div>
           )}
 
-          {compresores.length > 0 && (
+          {/* Solo mostrar selector de compresor para roles que NO sean 2 (VAST) */}
+          {compresores.length > 0 && rol !== 2 && (
             <div className="p-4 mb-6">
               <div className="text-center">
                 <h2 className="text-xl font-semibold text-blue-700 mb-4">
@@ -191,7 +194,7 @@ const Home = () => {
                       })
                       .map((compresor, index) => (
                         <option
-                          key={`compresor-${compresor.id || index}-${
+                          key={`compresor-${compresor.id_compresor || index}-${
                             compresor.linea
                           }-${compresor.alias}`}
                           value={`${compresor.id_cliente}-${compresor.linea}`}
@@ -207,36 +210,58 @@ const Home = () => {
             </div>
           )}
 
-          <p className="text-center mt-3 mb-6 text-xl">
-            Aquí podrá revisar sus reportes diarios, por fecha específica y
-            semanales.
-          </p>
-          {selectedCompresor ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto px-4">
-              <DateReportDropdown
-                title="Reporte por Fecha"
-                compresores={compresores}
-                Rol={rol!}
-                tipo="DIARIO"
-                selectedCompresor={selectedCompresor}
-                colorScheme={{
-                  text: "text-purple-600",
-                  icon: "text-purple-400",
-                  hover: "hover:bg-purple-50 hover:text-purple-600",
-                }}
-              />
-              <DateReportDropdown
-                title="Reporte por Semana"
-                compresores={compresores}
-                tipo="SEMANAL"
-                Rol={rol!}
-                selectedCompresor={selectedCompresor}
-                colorScheme={{
-                  text: "text-cyan-600",
-                  icon: "text-cyan-400",
-                  hover: "hover:bg-cyan-50 hover:text-cyan-600",
-                }}
-              />
+          {/* Mensaje diferente según el rol */}
+          {rol === 2 ? (
+            <p className="text-center mt-3 mb-6 text-xl">
+              Gestiona el mantenimiento de compresores de todos los clientes.
+            </p>
+          ) : (
+            <p className="text-center mt-3 mb-6 text-xl">
+              Aquí podrá revisar sus reportes diarios, por fecha específica y
+              semanales.
+            </p>
+          )}
+
+          {/* Para rol 2 (VAST): Mostrar botón directamente sin necesidad de seleccionar compresor */}
+          {rol === 2 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-1 max-w-md gap-6 md:gap-8 mx-auto px-4">
+              <button
+                className="w-full text-lg text-green-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-green-200 p-4 rounded-xl hover:bg-green-50 hover:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
+                onClick={() => router.push("/compressor-maintenance")}
+                style={{ WebkitTapHighlightColor: "transparent" }}
+              >
+                <span className="font-medium">Sistema de Mantenimiento</span>
+              </button>
+            </div>
+          ) : /* Para otros roles: Necesitan seleccionar compresor primero */
+          selectedCompresor ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 max-w-4xl gap-6 md:gap-8 mx-auto px-4">
+              <div className="w-full text-lg text-purple-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-purple-200 p-4 rounded-xl hover:bg-purple-50 hover:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50 active:scale-100 shadow-sm">
+                <DateReportDropdown
+                  title="Reporte por Fecha"
+                  compresores={compresores}
+                  selectedCompresor={selectedCompresor}
+                  colorScheme={{
+                    text: "text-purple-600",
+                    icon: "text-purple-500",
+                    hover: "hover:text-purple-700",
+                  }}
+                  tipo="DIARIO"
+                />
+              </div>
+              <div className="w-full text-lg text-cyan-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-cyan-200 p-4 rounded-xl hover:bg-cyan-50 hover:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-50 active:scale-100 shadow-sm">
+                <DateReportDropdown
+                  title="Reporte por Semana"
+                  compresores={compresores}
+                  selectedCompresor={selectedCompresor}
+                  colorScheme={{
+                    text: "text-cyan-600",
+                    icon: "text-cyan-500",
+                    hover: "hover:text-cyan-700",
+                  }}
+                  tipo="SEMANAL"
+                />
+              </div>
               <button
                 className="w-full text-lg text-violet-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-violet-200 p-4 rounded-xl hover:bg-violet-50 hover:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
                 onClick={() => router.push("/prediction")}
@@ -252,6 +277,15 @@ const Home = () => {
                 style={{ WebkitTapHighlightColor: "transparent" }}
               >
                 <span className="font-medium">Presión (BETA)</span>
+              </button>
+              <button
+                className="w-full text-lg text-green-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-green-200 p-4 rounded-xl hover:bg-green-50 hover:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
+                onClick={() => router.push("/compressor-maintenance")}
+                style={{ WebkitTapHighlightColor: "transparent" }}
+              >
+                <span className="font-medium">
+                  Mantenimiento de Compresores
+                </span>
               </button>
             </div>
           ) : (

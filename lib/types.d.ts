@@ -24,7 +24,7 @@ export interface Engineer {
   name: string;
   email: string;
   numero_cliente: number;
-  rol?: number; // 1 = Directo, 3 = Ingeniero
+  rol?: number; // 0 = SuperAdmin, 1 = Gerente VT, 2 = VAST, 3 = Gerente Cliente, 4 = Cliente
   compressors: Array<{ id: string; alias: string }> | string[];
   emailPreferences: {
     daily: boolean;
@@ -41,6 +41,7 @@ export interface Compressor {
   alias: string;
   nombre_cliente?: string;
   nombreCompleto?: string;
+  tipo_compresor?: string;
 }
 
 export interface UserData {
@@ -76,7 +77,7 @@ export type EngineerFormData = {
   name: string;
   email: string;
   compressors: string[];
-  rol?: number; //  1 = Ingeniero, 2 = Directo
+  rol?: number; // 0 = SuperAdmin, 1 = Gerente VT, 2 = VAST, 3 = Gerente Cliente, 4 = Cliente
 };
 
 export type dayData = {
@@ -162,3 +163,21 @@ export type EngineerData = {
   email: string;
   activo: boolean;
 };
+
+export interface MaintenanceRecord {
+  id: string;
+  compressorId: string;
+  compressorAlias: string;
+  type: string; // Preventivo, Correctivo, etc.
+  frequency: number; // en horas
+  lastMaintenanceDate: string;
+  nextMaintenanceDate?: string;
+  isActive: boolean;
+  description?: string;
+  createdAt: string;
+}
+
+export interface CompressorMaintenance {
+  compressor: Compressor;
+  maintenanceRecords: MaintenanceRecord[];
+}

@@ -19,7 +19,7 @@ const AdminView = () => {
     name: "",
     email: "",
     compressors: [],
-    rol: 1, // Por defecto "Ingeniero"
+    rol: 4,
   });
   const [data, setData] = useState<UserData | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -32,7 +32,7 @@ const AdminView = () => {
         setData(parsedData);
         setUserRole(parsedData.rol);
 
-        if (parsedData.rol !== 2) {
+        if (parsedData.rol !== 3) {
           router.push("/");
         } else {
           const clientNumber =
@@ -338,7 +338,7 @@ const AdminView = () => {
     }
   };
 
-  if (isLoading || userRole !== 2) {
+  if (isLoading || userRole !== 3) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
@@ -586,9 +586,9 @@ const AdminView = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-lg text-blue-700">
-                        {engineer.rol === 1
+                        {engineer.rol === 4
                           ? "Ingeniero"
-                          : engineer.rol === 2
+                          : engineer.rol === 3
                           ? "Administrador"
                           : "No asignado"}
                       </div>
