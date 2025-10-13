@@ -24,6 +24,26 @@ class UpdateUserRoleRequest(BaseModel):
     email: str
     nuevo_rol: int # 0 = SuperAdmin, 1 = Gerente VT, 2 = VAST, 3 = Gerente Cliente, 4 = Cliente
 
+class AddMaintenanceRequest(BaseModel):
+    id_compresor: int
+    tipo: int
+    frecuencia_horas: int
+    ultimo_mantenimiento: date 
+    activo: bool = True
+    observaciones: str = ""
+    costo: Optional[float] = None
+    creado_por: str 
+    fecha_creacion: date
+
+class UpdateMaintenanceRequest(BaseModel):
+    tipo: Optional[int] = None
+    frecuencia_horas: Optional[int] = None
+    ultimo_mantenimiento: Optional[date] = None
+    activo: Optional[bool] = None
+    observaciones: Optional[str] = None
+    costo: Optional[float] = None
+
+
 """
 * @Observations:
 * 1. To run the API, use the command:
@@ -89,11 +109,11 @@ def get_usuario_by_email(email: str):
 
         # 0 = Admin, 1 = Gerente VT, 2 = VAST, 3 = Gerente Cliente, 4 = Cliente
         if(rol == 3 or rol == 4):
-            cursor.execute("SELECT c.linea, c.proyecto as id_cliente, c.Alias as alias, c.tipo as tipo FROM compresores c JOIN clientes c2 ON c2.id_cliente = c.id_cliente WHERE c2.numero_cliente  = %s;", (numeroCliente,))
+            cursor.execute("SELECT c.id as id_compresor, c.linea, c.proyecto as id_cliente, c.Alias as alias, c.tipo as tipo FROM compresores c JOIN clientes c2 ON c2.id_cliente = c.id_cliente WHERE c2.numero_cliente  = %s;", (numeroCliente,))
             compresores = cursor.fetchall()
 
         if(rol == 0 or rol == 1 or rol == 2):
-            cursor.execute("SELECT  c.linea, c.proyecto as id_cliente, c.Alias as alias , c2.nombre_cliente, c2.numero_cliente FROM compresores c JOIN clientes c2 ON c.id_cliente = c2.id_cliente")
+            cursor.execute("SELECT  c.id as id_compresor, c.linea, c.proyecto as id_cliente, c.Alias as alias , c.tipo as tipo, c2.nombre_cliente, c2.numero_cliente FROM compresores c JOIN clientes c2 ON c.id_cliente = c2.id_cliente")
             compresores = cursor.fetchall()
 
         # For rol == 2 (VAST), compresores remains as empty list
@@ -1132,6 +1152,302 @@ def update_user_client_number(request: UpdateClientNumberRequest):
     finally:
         cursor.close()
         conn.close()
+
+@web.get("/maintenance/types", tags=["🛠️ Mantenimiento de Compresores"])
+def get_maintenance_types(tipo: str = Query(..., description="Tipo de compresor: piston o tornillo")):
+    """Fetch maintenance types for compressors"""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("SELECT * FROM mantenimientos_tipo WHERE tipo_compresor = %s", (tipo,))
+        maintenance_types = cursor.fetchall()
+
+        return {"maintenance_types": maintenance_types}
+
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching maintenance types: {str(e)}")
+    finally:
+        cursor.close()
+
+@web.post("/maintenance/add", tags=["🛠️ Mantenimiento de Compresores"])
+def add_maintenance(request: AddMaintenanceRequest):
+    """Agregar un nuevo registro de mantenimiento"""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        # Validar que el compresor existe
+        cursor.execute("SELECT id FROM compresores WHERE id = %s", (request.id_compresor,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Compresor no encontrado")
+
+        # Insertar el mantenimiento
+        cursor.execute(
+            """INSERT INTO mantenimientos 
+               (id_compresor, tipo, frecuencia_horas, ultimo_mantenimiento, activo, 
+                observaciones, costo, creado_por, fecha_creacion) 
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            (
+                request.id_compresor,
+                request.tipo,
+                request.frecuencia_horas,
+                request.ultimo_mantenimiento,
+                request.activo,
+                request.observaciones,
+                request.costo,
+                request.creado_por,
+                request.fecha_creacion
+            )
+        )
+        
+        maintenance_id = cursor.lastrowid
+        conn.commit()
+
+        return {
+            "message": "Mantenimiento agregado exitosamente",
+            "id": maintenance_id,
+            "id_compresor": request.id_compresor,
+            "tipo": request.tipo,
+            "frecuencia_horas": request.frecuencia_horas
+        }
+
+    except mysql.connector.Error as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error adding maintenance: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+@web.get("/maintenance/list", tags=["🛠️ Mantenimiento de Compresores"])
+def get_maintenance_records(
+    numero_cliente: Optional[int] = Query(None, description="Número de cliente para filtrar")
+):
+    """Obtener todos los registros de mantenimiento, opcionalmente filtrados por cliente"""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        if numero_cliente:
+            # Filtrar por cliente específico
+            cursor.execute("""
+                SELECT m.*, c.Alias as compressor_alias, c.linea, cl.nombre_cliente, cl.numero_cliente,
+                       mt.nombre_tipo, mt.tipo_compresor
+                FROM mantenimientos m
+                JOIN compresores c ON m.id_compresor = c.id
+                JOIN clientes cl ON c.id_cliente = cl.id_cliente
+                LEFT JOIN mantenimientos_tipo mt ON m.tipo = mt.tipo
+                WHERE cl.numero_cliente = %s
+                ORDER BY cl.nombre_cliente, c.Alias, m.fecha_creacion DESC
+            """, (numero_cliente,))
+        else:
+            # Obtener todos los registros
+            cursor.execute("""
+                SELECT m.*, c.Alias as compressor_alias, c.linea, cl.nombre_cliente, cl.numero_cliente,
+                       mt.nombre_tipo, mt.tipo_compresor
+                FROM mantenimientos m
+                JOIN compresores c ON m.id_compresor = c.id
+                JOIN clientes cl ON c.id_cliente = cl.id_cliente
+                LEFT JOIN mantenimientos_tipo mt ON m.tipo = mt.tipo
+                ORDER BY cl.nombre_cliente, c.Alias, m.fecha_creacion DESC
+            """)
+
+        maintenance_records = cursor.fetchall()
+
+        return {
+            "maintenance_records": maintenance_records,
+            "total": len(maintenance_records)
+        }
+
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching maintenance records: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+@web.get("/maintenance/{maintenance_id}", tags=["🛠️ Mantenimiento de Compresores"])
+def get_maintenance_by_id(maintenance_id: int):
+    """Obtener un registro de mantenimiento específico por ID"""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT m.*, c.Alias as compressor_alias, c.linea, cl.nombre_cliente, cl.numero_cliente,
+                   mt.nombre_tipo, mt.tipo_compresor
+            FROM mantenimientos m
+            JOIN compresores c ON m.id_compresor = c.id
+            JOIN clientes cl ON c.id_cliente = cl.id_cliente
+            LEFT JOIN mantenimientos_tipo mt ON m.tipo = mt.tipo
+            WHERE m.id = %s
+        """, (maintenance_id,))
+        
+        maintenance = cursor.fetchone()
+
+        if not maintenance:
+            raise HTTPException(status_code=404, detail="Registro de mantenimiento no encontrado")
+
+        return maintenance
+
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching maintenance record: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+@web.put("/maintenance/{maintenance_id}", tags=["🛠️ Mantenimiento de Compresores"])
+def update_maintenance(maintenance_id: int, request: UpdateMaintenanceRequest):
+    """Actualizar un registro de mantenimiento existente"""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        # Verificar que el mantenimiento existe
+        cursor.execute("SELECT id FROM mantenimientos WHERE id = %s", (maintenance_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Registro de mantenimiento no encontrado")
+
+        # Construir la query de actualización dinámicamente
+        update_fields = []
+        update_values = []
+
+        if request.tipo is not None:
+            update_fields.append("tipo = %s")
+            update_values.append(request.tipo)
+        if request.frecuencia_horas is not None:
+            update_fields.append("frecuencia_horas = %s")
+            update_values.append(request.frecuencia_horas)
+        if request.ultimo_mantenimiento is not None:
+            update_fields.append("ultimo_mantenimiento = %s")
+            update_values.append(request.ultimo_mantenimiento)
+        if request.activo is not None:
+            update_fields.append("activo = %s")
+            update_values.append(request.activo)
+        if request.observaciones is not None:
+            update_fields.append("observaciones = %s")
+            update_values.append(request.observaciones)
+        if request.costo is not None:
+            update_fields.append("costo = %s")
+            update_values.append(request.costo)
+
+        if not update_fields:
+            raise HTTPException(status_code=400, detail="No se proporcionaron campos para actualizar")
+
+        # Ejecutar la actualización
+        update_query = f"UPDATE mantenimientos SET {', '.join(update_fields)} WHERE id = %s"
+        update_values.append(maintenance_id)
+        
+        cursor.execute(update_query, update_values)
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="No se pudo actualizar el registro")
+
+        return {
+            "message": "Mantenimiento actualizado exitosamente",
+            "id": maintenance_id
+        }
+
+    except mysql.connector.Error as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating maintenance: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+@web.delete("/maintenance/{maintenance_id}", tags=["🛠️ Mantenimiento de Compresores"])
+def delete_maintenance(maintenance_id: int):
+    """Eliminar un registro de mantenimiento"""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        # Verificar que el mantenimiento existe
+        cursor.execute("SELECT id, id_compresor FROM mantenimientos WHERE id = %s", (maintenance_id,))
+        maintenance = cursor.fetchone()
+        if not maintenance:
+            raise HTTPException(status_code=404, detail="Registro de mantenimiento no encontrado")
+
+        # Eliminar el registro
+        cursor.execute("DELETE FROM mantenimientos WHERE id = %s", (maintenance_id,))
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="No se pudo eliminar el registro")
+
+        return {
+            "message": "Mantenimiento eliminado exitosamente",
+            "id": maintenance_id,
+            "id_compresor": maintenance["id_compresor"]
+        }
+
+    except mysql.connector.Error as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting maintenance: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 # Helper functions
 def litros_to_ft3(liters):

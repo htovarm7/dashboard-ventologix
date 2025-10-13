@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Calendar, Clock, Type, Tag, FileText } from "lucide-react";
 import { Compressor, MaintenanceRecord } from "@/lib/types";
+import { URL_API } from "@/lib/global";
 
 interface MaintenanceFormProps {
   compressors: Compressor[];
@@ -11,6 +12,13 @@ interface MaintenanceFormProps {
   ) => void;
   onClose: () => void;
 }
+
+type MaintenanceType = {
+  tipo: number;
+  nombre_tipo: string;
+  frecuencia: number;
+  tipo_compresor: string;
+};
 
 const MaintenanceForm = ({
   compressors,
@@ -28,26 +36,69 @@ const MaintenanceForm = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [maintenanceTypes, setMaintenanceTypes] = useState<MaintenanceType[]>(
+    []
+  );
+  const [loadingTypes, setLoadingTypes] = useState(false);
 
-  const maintenanceTypes = [
-    "Preventivo",
-    "Correctivo",
-    "Predictivo",
-    "Emergencia",
-    "Rutinario",
-  ];
+  // Función para obtener tipos de mantenimiento desde la API
+  const fetchMaintenanceTypes = async (tipoCompresor: string) => {
+    setLoadingTypes(true);
+    try {
+      const response = await fetch(
+        `${URL_API}/web/maintenance/types?tipo=${tipoCompresor}`
+      );
 
-  const handleCompressorChange = (compressorId: string) => {
+      if (!response.ok) {
+        throw new Error("Error al obtener tipos de mantenimiento");
+      }
+
+      const data = await response.json();
+      setMaintenanceTypes(data.maintenance_types || []);
+    } catch (error) {
+      console.error("Error fetching maintenance types:", error);
+      setMaintenanceTypes([]);
+    } finally {
+      setLoadingTypes(false);
+    }
+  };
+
+  const handleCompressorChange = async (compressorId: string) => {
     const selectedCompressor = compressors.find((c) => c.id === compressorId);
     setFormData((prev) => ({
       ...prev,
       compressorId,
       compressorAlias: selectedCompressor?.alias || "",
+      type: "", // Limpiar tipo seleccionado
+      frequency: "", // Limpiar frecuencia
     }));
+
+    // Obtener tipos de mantenimiento para el tipo de compresor
+    if (selectedCompressor) {
+      const tipoCompresor = selectedCompressor.tipo_compresor || "piston";
+      await fetchMaintenanceTypes(tipoCompresor);
+    }
 
     // Limpiar error del compresor si se selecciona uno
     if (errors.compressorId) {
       setErrors((prev) => ({ ...prev, compressorId: "" }));
+    }
+  };
+
+  // Función para manejar cambio de tipo de mantenimiento
+  const handleTypeChange = (typeName: string) => {
+    const selectedType = maintenanceTypes.find(
+      (type) => type.nombre_tipo === typeName
+    );
+    setFormData((prev) => ({
+      ...prev,
+      type: typeName,
+      frequency: selectedType ? selectedType.frecuencia.toString() : "",
+    }));
+
+    // Limpiar error del tipo si se selecciona uno
+    if (errors.type) {
+      setErrors((prev) => ({ ...prev, type: "" }));
     }
   };
 
@@ -76,8 +127,10 @@ const MaintenanceForm = ({
       newErrors.type = "Debe seleccionar un tipo de mantenimiento";
     }
 
+    // Validar que se haya asignado una frecuencia automáticamente
     if (!formData.frequency || parseInt(formData.frequency) <= 0) {
-      newErrors.frequency = "La frecuencia debe ser un número mayor a 0";
+      newErrors.type =
+        "Error: No se pudo obtener la frecuencia para este tipo de mantenimiento";
     }
 
     if (!formData.lastMaintenanceDate) {
@@ -181,15 +234,22 @@ const MaintenanceForm = ({
             </label>
             <select
               value={formData.type}
-              onChange={(e) => handleInputChange("type", e.target.value)}
+              onChange={(e) => handleTypeChange(e.target.value)}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.type ? "border-red-500" : "border-gray-300"
               }`}
+              disabled={loadingTypes || !formData.compressorId}
             >
-              <option value="">Seleccionar tipo...</option>
+              <option value="">
+                {loadingTypes
+                  ? "Cargando tipos..."
+                  : !formData.compressorId
+                  ? "Selecciona un compresor primero"
+                  : "Seleccionar tipo..."}
+              </option>
               {maintenanceTypes.map((type, index) => (
-                <option key={`${type}_${index}`} value={type}>
-                  {type}
+                <option key={`${type.tipo}_${index}`} value={type.nombre_tipo}>
+                  {type.nombre_tipo} ({type.frecuencia} horas)
                 </option>
               ))}
             </select>
@@ -207,18 +267,13 @@ const MaintenanceForm = ({
               type="number"
               min="1"
               value={formData.frequency}
-              onChange={(e) => handleInputChange("frequency", e.target.value)}
-              placeholder="Ej: 1000"
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.frequency ? "border-red-500" : "border-gray-300"
-              }`}
+              readOnly
+              placeholder="Se asignará automáticamente según el tipo"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
             />
-            {errors.frequency && (
-              <p className="mt-1 text-sm text-red-600">{errors.frequency}</p>
-            )}
             <p className="mt-1 text-sm text-gray-500">
-              Cada cuántas horas de operación se debe realizar este
-              mantenimiento
+              La frecuencia se asigna automáticamente según el tipo de
+              mantenimiento seleccionado
             </p>
           </div>
 

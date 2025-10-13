@@ -41,6 +41,7 @@ export interface Compressor {
   alias: string;
   nombre_cliente?: string;
   nombreCompleto?: string;
+  tipo_compresor?: string;
 }
 
 export interface UserData {

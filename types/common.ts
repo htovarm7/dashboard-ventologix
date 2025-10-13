@@ -1,8 +1,9 @@
 export interface Compresor {
-  id: number;
+  id_compresor: number;
   id_cliente: number;
   linea: string;
   alias: string;
+  tipo: string;
   nombre_cliente?: string;
 }
 
