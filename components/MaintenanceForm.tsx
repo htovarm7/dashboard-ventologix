@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { X, Calendar, Clock, Type, Tag, FileText } from "lucide-react";
 import { Compressor, MaintenanceRecord } from "@/lib/types";
 import { URL_API } from "@/lib/global";

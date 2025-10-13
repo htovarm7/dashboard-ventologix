@@ -187,12 +187,10 @@ const CompressorRegistrationModal = ({
 const EditMaintenanceModal = ({
   maintenance,
   onClose,
-  onSave,
   onRefresh,
 }: {
   maintenance: MaintenanceRecord | null;
   onClose: () => void;
-  onSave: (updatedMaintenance: MaintenanceRecord) => void;
   onRefresh: () => Promise<void>;
 }) => {
   const [editData, setEditData] = useState({
@@ -382,7 +380,25 @@ const CompressorMaintenance = () => {
   const [allCompresores, setAllCompresores] = useState<Compressor[]>([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [userRole, setUserRole] = useState<number>(0);
-  const [userData, setUserData] = useState<any>(null);
+  const [userData, setUserData] = useState<{
+    numeroCliente?: number;
+    nombre?: string;
+    name?: string;
+    compresores?: Array<{
+      id_compresor?: number;
+      id?: string | number;
+      linea?: string;
+      Linea?: string;
+      alias?: string;
+      Alias?: string;
+      numero_cliente?: number;
+      nombre_cliente?: string;
+      tipo?: string;
+      tipo_compresor?: string;
+    }>;
+    numero_cliente?: number;
+    rol?: number;
+  } | null>(null);
 
   const { showSuccess } = useDialog();
 
@@ -436,15 +452,24 @@ const CompressorMaintenance = () => {
     setShowEditMaintenanceModal(true);
   };
 
-  // Función para guardar cambios de mantenimiento (ya no se usa)
-  const handleSaveMaintenance = (updatedMaintenance: MaintenanceRecord) => {
-    // Esta función ya no se usa porque ahora actualizamos desde la API
-    // Se mantiene para compatibilidad pero el modal EditMaintenanceModal
-    // maneja la actualización directamente
-  };
-
   // Función para obtener registros de mantenimiento desde la API
-  const fetchMaintenanceRecords = async (numeroCliente?: number) => {
+  const fetchMaintenanceRecords = async (
+    numeroCliente?: number
+  ): Promise<
+    Array<{
+      id: number;
+      id_compresor: number;
+      compressor_alias?: string;
+      linea?: string;
+      nombre_tipo?: string;
+      tipo?: number;
+      frecuencia_horas?: number;
+      ultimo_mantenimiento?: string;
+      activo?: boolean;
+      observaciones?: string;
+      fecha_creacion?: string;
+    }>
+  > => {
     try {
       const url = numeroCliente
         ? `${URL_API}/web/maintenance/list?numero_cliente=${numeroCliente}`
@@ -464,7 +489,19 @@ const CompressorMaintenance = () => {
   };
 
   // Función para convertir registros de API a formato local
-  const convertApiRecordToLocal = (apiRecord: any): MaintenanceRecord => {
+  const convertApiRecordToLocal = (apiRecord: {
+    id: number;
+    id_compresor: number;
+    compressor_alias?: string;
+    linea?: string;
+    nombre_tipo?: string;
+    tipo?: number;
+    frecuencia_horas?: number;
+    ultimo_mantenimiento?: string;
+    activo?: boolean;
+    observaciones?: string;
+    fecha_creacion?: string;
+  }): MaintenanceRecord => {
     return {
       id: apiRecord.id.toString(),
       compressorId: apiRecord.id_compresor.toString(),
@@ -560,25 +597,39 @@ const CompressorMaintenance = () => {
           // Guardar todos los compresores disponibles
           const allUserCompressors: Compressor[] = (
             parsedData.compresores || []
-          ).map((comp: any, index: number) => {
-            const baseId =
-              comp.id_compresor || comp.id || comp.linea || `comp_${index}`;
-            const uniqueId = `${comp.id_compresor || index}`;
+          ).map(
+            (
+              comp: {
+                id_compresor?: number;
+                id?: string | number;
+                linea?: string;
+                Linea?: string;
+                alias?: string;
+                Alias?: string;
+                numero_cliente?: number;
+                nombre_cliente?: string;
+                tipo?: string;
+                tipo_compresor?: string;
+              },
+              index: number
+            ) => {
+              const uniqueId = `${comp.id_compresor || index}`;
 
-            return {
-              id: uniqueId,
-              linea: comp.linea || comp.Linea || "",
-              id_cliente: comp.numero_cliente || parsedData.numero_cliente,
-              alias:
-                comp.alias ||
-                comp.Alias ||
-                `Compresor ${comp.linea || comp.id || index + 1}`,
-              nombre_cliente:
-                comp.nombre_cliente ||
-                `Cliente ${comp.numero_cliente || parsedData.numero_cliente}`,
-              tipo_compresor: comp.tipo || "piston", // Usar 'tipo' del userData, no 'tipo_compresor'
-            };
-          });
+              return {
+                id: uniqueId,
+                linea: comp.linea || comp.Linea || "",
+                id_cliente: comp.numero_cliente || parsedData.numero_cliente,
+                alias:
+                  comp.alias ||
+                  comp.Alias ||
+                  `Compresor ${comp.linea || comp.id || index + 1}`,
+                nombre_cliente:
+                  comp.nombre_cliente ||
+                  `Cliente ${comp.numero_cliente || parsedData.numero_cliente}`,
+                tipo_compresor: comp.tipo || "piston", // Usar 'tipo' del userData, no 'tipo_compresor'
+              };
+            }
+          );
 
           setAllCompresores(allUserCompressors);
           setCompresores(allUserCompressors);
@@ -1269,7 +1320,6 @@ const CompressorMaintenance = () => {
             setShowEditMaintenanceModal(false);
             setEditingMaintenance(null);
           }}
-          onSave={handleSaveMaintenance}
           onRefresh={fetchMaintenanceRecordsAndUpdate}
         />
       )}
