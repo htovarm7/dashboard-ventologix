@@ -24,7 +24,7 @@ const ReportDropdown: React.FC<ReportDropdownProps> = ({
   colorScheme,
   onCompressorSelect,
   children,
-  Rol = 2,
+  Rol = 3,
   selectedCompresor = null,
   staticMode = false,
 }) => {

@@ -22,7 +22,7 @@ class UpdateClientNumberRequest(BaseModel):
 
 class UpdateUserRoleRequest(BaseModel):
     email: str
-    nuevo_rol: int  # 0 = Admin, 1 = Directo, 2 = Gerente, 3 = Ingeniero
+    nuevo_rol: int # 0 = SuperAdmin, 1 = Gerente VT, 2 = VAST, 3 = Gerente Cliente, 4 = Cliente
 
 """
 * @Observations:
@@ -84,12 +84,12 @@ def get_usuario_by_email(email: str):
         rol = usuario[0]['rol'] if usuario else None
         name = usuario[0]['name'] if usuario else None 
 
-        # 0 = Administrador, 1 = Director, 2 = Gerente, 3 = Ingeniero
-        if(rol == 2 or rol == 1):
-            cursor.execute("SELECT c.linea, c.proyecto as id_cliente, c.Alias as alias FROM compresores c JOIN clientes c2 ON c2.id_cliente = c.id_cliente WHERE c2.numero_cliente  = %s;", (numeroCliente,))
+        # 0 = Admin, 1 = Gerente VT, 2 = VAST, 3 = Gerente Cliente, 4 = Cliente
+        if(rol == 3 or rol == 4):
+            cursor.execute("SELECT c.linea, c.proyecto as id_cliente, c.Alias as alias, c.tipo as tipo FROM compresores c JOIN clientes c2 ON c2.id_cliente = c.id_cliente WHERE c2.numero_cliente  = %s;", (numeroCliente,))
             compresores = cursor.fetchall()
 
-        if(rol == 0):
+        if(rol == 0 or rol == 1):
             cursor.execute("SELECT  c.linea, c.proyecto as id_cliente, c.Alias as alias , c2.nombre_cliente, c2.numero_cliente FROM compresores c JOIN clientes c2 ON c.id_cliente = c2.id_cliente")
             compresores = cursor.fetchall()
 
@@ -156,7 +156,7 @@ def get_ingenieros(cliente: int = Query(..., description="Número de cliente")):
                 "id": str(ingeniero['id']),
                 "name": ingeniero['name'],
                 "email": ingeniero['email'],
-                "rol": ingeniero.get('rol', 1),  # Por defecto rol 1 si no existe
+                "rol": ingeniero.get('rol', 4),  # Por defecto rol 1 si no existe
                 "compressors": [],
                 "emailPreferences": {
                     "daily": bool(ingeniero.get('email_daily', False)),
@@ -228,7 +228,7 @@ def create_ingeniero(
     email: EmailStr = Body(...),
     compressors: list[str] = Body(default=[]),
     numeroCliente: int = Body(..., description="Número de cliente"),
-    rol: int = Body(default=1, description="Rol del usuario: 1=Ingeniero, 2=Administrador, 3=Gerente")
+    rol: int = Body(default=4, description="Rol del usuario: 0 = SuperAdmin, 1 = Gerente VT, 2 = VAST, 3 = Gerente Cliente, 4 = Cliente")
 ):
     """Crea un nuevo ingeniero con sus compresores asignados para un cliente específico"""
     try:
@@ -313,7 +313,7 @@ def update_ingeniero(
     email: EmailStr = Body(...),
     compressors: list[str] = Body(default=[]),
     numeroCliente: int = Body(..., description="Número de cliente"),
-    rol: int = Body(default=1, description="Rol del usuario: 1=Ingeniero, 2=Administrador, 3=Gerente")
+    rol: int = Body(default=4, description="Rol del usuario: 0 = SuperAdmin, 1 = Gerente VT, 2 = VAST, 3 = Gerente Cliente, 4 = Cliente")
 ):
     """Actualiza un ingeniero existente y sus compresores asignados"""
     try:
@@ -435,7 +435,7 @@ def delete_ingeniero(
 
         # Eliminar también de usuarios_auth
         cursor.execute(
-            "DELETE FROM usuarios_auth WHERE email = %s AND numeroCliente = %s AND rol = 2",
+            "DELETE FROM usuarios_auth WHERE email = %s AND numeroCliente = %s AND rol = 3",
             (ingeniero['email'], cliente)
         )
 
@@ -1106,7 +1106,7 @@ def update_user_client_number(request: UpdateClientNumberRequest):
         )
 
         # Si es un ingeniero, también actualizar en la tabla ingenieros
-        if usuario['rol'] == 1:  # rol 1 = ingeniero/directo
+        if usuario['rol'] == 4:  # rol 1 = ingeniero/directo
             cursor.execute(
                 "UPDATE ingenieros SET numeroCliente = %s WHERE email = %s",
                 (request.nuevo_numero_cliente, request.email)

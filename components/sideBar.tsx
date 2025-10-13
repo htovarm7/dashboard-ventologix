@@ -170,7 +170,7 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
       route: "/home",
       requiresCompresor: false,
     },
-    ...(rol === 2
+    ...(rol === 3
       ? [
           {
             id: "admin view",

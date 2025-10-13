@@ -81,9 +81,6 @@ export default function Page() {
             name: data.name,
             timestamp: Date.now(),
           };
-
-          if (userData.rol == 2) {
-          }
           sessionStorage.setItem("userData", JSON.stringify(userData));
           router.push("/home");
         } else {
