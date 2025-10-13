@@ -714,6 +714,33 @@ const CompressorMaintenance = () => {
     );
   }
 
+  // Verificar que solo el rol 2 (VAST) pueda acceder a esta página
+  if (!loading && isAuthorized && userRole !== 2) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <Settings size={64} className="mx-auto mb-4 text-red-300" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Acceso Restringido
+          </h2>
+          <p className="text-gray-600 mb-4">
+            No tienes permisos para acceder al sistema de mantenimiento.
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            Esta funcionalidad está disponible únicamente para administradores
+            de VAST.
+          </p>
+          <button
+            onClick={() => (window.location.href = "/home")}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Volver al Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const toggleCompressorExpansion = (compressorId: string) => {
     const newExpanded = new Set(expandedCompressors);
     if (newExpanded.has(compressorId)) {
@@ -935,22 +962,24 @@ const CompressorMaintenance = () => {
               compresores
             </p>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowCompressorRegistrationModal(true)}
-              className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors shadow-lg"
-            >
-              <Plus size={20} />
-              Dar de alta compresor
-            </button>
-            <button
-              onClick={() => setShowMaintenanceForm(true)}
-              className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
-            >
-              <Plus size={20} />
-              Agregar Mantenimiento
-            </button>
-          </div>
+          {userRole === 2 && (
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCompressorRegistrationModal(true)}
+                className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors shadow-lg"
+              >
+                <Plus size={20} />
+                Dar de alta compresor
+              </button>
+              <button
+                onClick={() => setShowMaintenanceForm(true)}
+                className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
+              >
+                <Plus size={20} />
+                Agregar Mantenimiento
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Compressor List */}
@@ -1123,15 +1152,17 @@ const CompressorMaintenance = () => {
                                               )}
                                             </div>
 
-                                            <button
-                                              onClick={() =>
-                                                handleEditMaintenance(record)
-                                              }
-                                              className="ml-4 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
-                                              title="Editar mantenimiento"
-                                            >
-                                              <Edit size={18} />
-                                            </button>
+                                            {userRole === 2 && (
+                                              <button
+                                                onClick={() =>
+                                                  handleEditMaintenance(record)
+                                                }
+                                                className="ml-4 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                                                title="Editar mantenimiento"
+                                              >
+                                                <Edit size={18} />
+                                              </button>
+                                            )}
                                           </div>
                                         </div>
                                       )
@@ -1274,13 +1305,17 @@ const CompressorMaintenance = () => {
                                   )}
                                 </div>
 
-                                <button
-                                  onClick={() => handleEditMaintenance(record)}
-                                  className="ml-4 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
-                                  title="Editar mantenimiento"
-                                >
-                                  <Edit size={18} />
-                                </button>
+                                {userRole === 2 && (
+                                  <button
+                                    onClick={() =>
+                                      handleEditMaintenance(record)
+                                    }
+                                    className="ml-4 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                                    title="Editar mantenimiento"
+                                  >
+                                    <Edit size={18} />
+                                  </button>
+                                )}
                               </div>
                             </div>
                           ))}

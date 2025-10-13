@@ -226,11 +226,13 @@ const Home = () => {
           {rol === 2 ? (
             <div className="grid grid-cols-1 sm:grid-cols-1 max-w-md gap-6 md:gap-8 mx-auto px-4">
               <button
-                className="w-full text-lg text-green-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-green-200 p-4 rounded-xl hover:bg-green-50 hover:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
-                onClick={() => router.push("/compressor-maintenance")}
+                className="w-full text-lg text-gray-400 cursor-not-allowed transition-transform flex items-center justify-center gap-3 bg-gray-100 border-2 border-gray-200 p-4 rounded-xl shadow-sm opacity-50"
                 style={{ WebkitTapHighlightColor: "transparent" }}
+                title="Sistema de mantenimiento temporalmente deshabilitado"
               >
-                <span className="font-medium">Sistema de Mantenimiento</span>
+                <span className="font-medium">
+                  Sistema de Mantenimiento (Deshabilitado)
+                </span>
               </button>
             </div>
           ) : /* Para otros roles: Necesitan seleccionar compresor primero */
@@ -279,12 +281,13 @@ const Home = () => {
                 <span className="font-medium">Presión (BETA)</span>
               </button>
               <button
-                className="w-full text-lg text-green-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-green-200 p-4 rounded-xl hover:bg-green-50 hover:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
-                onClick={() => router.push("/compressor-maintenance")}
+                className="w-full text-lg text-gray-400 cursor-not-allowed transition-transform flex items-center justify-center gap-3 bg-gray-100 border-2 border-gray-200 p-4 rounded-xl shadow-sm opacity-50"
+                disabled
                 style={{ WebkitTapHighlightColor: "transparent" }}
+                title="Sistema de mantenimiento temporalmente deshabilitado"
               >
                 <span className="font-medium">
-                  Mantenimiento de Compresores
+                  Mantenimiento de Compresores (Deshabilitado)
                 </span>
               </button>
             </div>
