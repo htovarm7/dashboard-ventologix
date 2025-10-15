@@ -20,6 +20,7 @@ import {
 import { useDialog } from "@/hooks/useDialog";
 import MaintenanceForm from "@/components/MaintenanceForm";
 import { URL_API } from "@/lib/global";
+import BackButton from "@/components/BackButton";
 
 type MaintenanceType = {
   tipo: number;
@@ -721,15 +722,8 @@ const CompressorMaintenance = () => {
         <div className="text-center">
           <Settings size={64} className="mx-auto mb-4 text-red-300" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Acceso Restringido
+            Pagina en desarollo
           </h2>
-          <p className="text-gray-600 mb-4">
-            No tienes permisos para acceder al sistema de mantenimiento.
-          </p>
-          <p className="text-sm text-gray-500 mb-6">
-            Esta funcionalidad está disponible únicamente para administradores
-            de VAST.
-          </p>
           <button
             onClick={() => (window.location.href = "/home")}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -952,6 +946,7 @@ const CompressorMaintenance = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
+        <BackButton/>
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-5xl font-bold text-gray-900">
