@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { X, Calendar, Clock, Type, Tag, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Calendar, Clock, Type, Tag, FileText, Users } from "lucide-react";
 import { Compressor, MaintenanceRecord } from "@/lib/types";
 import { URL_API } from "@/lib/global";
 
 interface MaintenanceFormProps {
   compressors: Compressor[];
   onSubmit: (
-    maintenanceData: Omit<MaintenanceRecord, "id" | "createdAt">
+    maintenanceData: Omit<MaintenanceRecord, "id" | "createdAt"> & {
+      customType?: number;
+    }
   ) => void;
   onClose: () => void;
 }
@@ -26,9 +28,10 @@ const MaintenanceForm = ({
   onClose,
 }: MaintenanceFormProps) => {
   const [formData, setFormData] = useState({
+    clientName: "",
     compressorId: "",
     compressorAlias: "",
-    type: "",
+    type: "Mantenimiento Personalizado",
     frequency: "",
     lastMaintenanceDate: "",
     isActive: true,
@@ -36,69 +39,57 @@ const MaintenanceForm = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [maintenanceTypes, setMaintenanceTypes] = useState<MaintenanceType[]>(
-    []
-  );
-  const [loadingTypes, setLoadingTypes] = useState(false);
+  const [availableClients, setAvailableClients] = useState<string[]>([]);
+  const [clientCompressors, setClientCompressors] = useState<Compressor[]>([]);
 
-  // Función para obtener tipos de mantenimiento desde la API
-  const fetchMaintenanceTypes = async (tipoCompresor: string) => {
-    setLoadingTypes(true);
-    try {
-      const response = await fetch(
-        `${URL_API}/web/maintenance/types?tipo=${tipoCompresor}`
-      );
+  // Obtener clientes únicos al cargar el componente
+  useEffect(() => {
+    const clients = Array.from(
+      new Set(
+        compressors
+          .map((c) => c.nombre_cliente)
+          .filter(
+            (name): name is string => name !== undefined && name.trim() !== ""
+          )
+      )
+    );
+    setAvailableClients(clients);
+  }, [compressors]);
 
-      if (!response.ok) {
-        throw new Error("Error al obtener tipos de mantenimiento");
-      }
+  // Función para manejar cambio de cliente
+  const handleClientChange = (clientName: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      clientName,
+      compressorId: "",
+      compressorAlias: "",
+    }));
 
-      const data = await response.json();
-      setMaintenanceTypes(data.maintenance_types || []);
-    } catch (error) {
-      console.error("Error fetching maintenance types:", error);
-      setMaintenanceTypes([]);
-    } finally {
-      setLoadingTypes(false);
+    // Filtrar compresores del cliente seleccionado
+    const clientComps = compressors.filter(
+      (c) => c.nombre_cliente === clientName
+    );
+    setClientCompressors(clientComps);
+
+    // Limpiar error del cliente si se selecciona uno
+    if (errors.clientName) {
+      setErrors((prev) => ({ ...prev, clientName: "" }));
     }
   };
 
-  const handleCompressorChange = async (compressorId: string) => {
-    const selectedCompressor = compressors.find((c) => c.id === compressorId);
+  const handleCompressorChange = (compressorId: string) => {
+    const selectedCompressor = clientCompressors.find(
+      (c) => c.id === compressorId
+    );
     setFormData((prev) => ({
       ...prev,
       compressorId,
       compressorAlias: selectedCompressor?.alias || "",
-      type: "", // Limpiar tipo seleccionado
-      frequency: "", // Limpiar frecuencia
     }));
-
-    // Obtener tipos de mantenimiento para el tipo de compresor
-    if (selectedCompressor) {
-      const tipoCompresor = selectedCompressor.tipo_compresor || "piston";
-      await fetchMaintenanceTypes(tipoCompresor);
-    }
 
     // Limpiar error del compresor si se selecciona uno
     if (errors.compressorId) {
       setErrors((prev) => ({ ...prev, compressorId: "" }));
-    }
-  };
-
-  // Función para manejar cambio de tipo de mantenimiento
-  const handleTypeChange = (typeName: string) => {
-    const selectedType = maintenanceTypes.find(
-      (type) => type.nombre_tipo === typeName
-    );
-    setFormData((prev) => ({
-      ...prev,
-      type: typeName,
-      frequency: selectedType ? selectedType.frecuencia.toString() : "",
-    }));
-
-    // Limpiar error del tipo si se selecciona uno
-    if (errors.type) {
-      setErrors((prev) => ({ ...prev, type: "" }));
     }
   };
 
@@ -119,18 +110,17 @@ const MaintenanceForm = ({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
+    if (!formData.clientName) {
+      newErrors.clientName = "Debe seleccionar un cliente";
+    }
+
     if (!formData.compressorId) {
       newErrors.compressorId = "Debe seleccionar un compresor";
     }
 
-    if (!formData.type) {
-      newErrors.type = "Debe seleccionar un tipo de mantenimiento";
-    }
-
-    // Validar que se haya asignado una frecuencia automáticamente
     if (!formData.frequency || parseInt(formData.frequency) <= 0) {
-      newErrors.type =
-        "Error: No se pudo obtener la frecuencia para este tipo de mantenimiento";
+      newErrors.frequency =
+        "Debe especificar una frecuencia válida (mayor a 0)";
     }
 
     if (!formData.lastMaintenanceDate) {
@@ -161,7 +151,9 @@ const MaintenanceForm = ({
       frequency
     );
 
-    const maintenanceData: Omit<MaintenanceRecord, "id" | "createdAt"> = {
+    const maintenanceData: Omit<MaintenanceRecord, "id" | "createdAt"> & {
+      customType?: number;
+    } = {
       compressorId: formData.compressorId,
       compressorAlias: formData.compressorAlias,
       type: formData.type,
@@ -170,6 +162,7 @@ const MaintenanceForm = ({
       nextMaintenanceDate,
       isActive: formData.isActive,
       description: formData.description.trim() || undefined,
+      customType: 30, // Tipo fijo 30 para mantenimientos personalizados
     };
 
     onSubmit(maintenanceData);
@@ -200,6 +193,32 @@ const MaintenanceForm = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Selección de Cliente */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <Users size={16} />
+              Cliente
+            </label>
+            <select
+              value={formData.clientName}
+              onChange={(e) => handleClientChange(e.target.value)}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.clientName ? "border-red-500" : "border-gray-300"
+              }`}
+            >
+              <option value="">Seleccionar cliente...</option>
+              {availableClients.map((client, index) => (
+                <option key={`client_${index}`} value={client}>
+                  {client}
+                </option>
+              ))}
+            </select>
+            {errors.clientName && (
+              <p className="mt-1 text-sm text-red-600">{errors.clientName}</p>
+            )}
+          </div>
+
+          {/* Selección de Compresor */}
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <Tag size={16} />
@@ -211,14 +230,19 @@ const MaintenanceForm = ({
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.compressorId ? "border-red-500" : "border-gray-300"
               }`}
+              disabled={!formData.clientName}
             >
-              <option value="">Seleccionar compresor...</option>
-              {compressors.map((compressor, index) => (
+              <option value="">
+                {!formData.clientName
+                  ? "Selecciona un cliente primero"
+                  : "Seleccionar compresor..."}
+              </option>
+              {clientCompressors.map((compressor, index) => (
                 <option
                   key={`${compressor.id}_${compressor.linea}_${index}`}
                   value={compressor.id}
                 >
-                  {compressor.alias}
+                  {compressor.alias} - Línea: {compressor.linea}
                 </option>
               ))}
             </select>
@@ -227,37 +251,24 @@ const MaintenanceForm = ({
             )}
           </div>
 
+          {/* Tipo de Mantenimiento (Fijo) */}
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <Type size={16} />
               Tipo de Mantenimiento
             </label>
-            <select
+            <input
+              type="text"
               value={formData.type}
-              onChange={(e) => handleTypeChange(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.type ? "border-red-500" : "border-gray-300"
-              }`}
-              disabled={loadingTypes || !formData.compressorId}
-            >
-              <option value="">
-                {loadingTypes
-                  ? "Cargando tipos..."
-                  : !formData.compressorId
-                  ? "Selecciona un compresor primero"
-                  : "Seleccionar tipo..."}
-              </option>
-              {maintenanceTypes.map((type, index) => (
-                <option key={`${type.tipo}_${index}`} value={type.nombre_tipo}>
-                  {type.nombre_tipo} ({type.frecuencia} horas)
-                </option>
-              ))}
-            </select>
-            {errors.type && (
-              <p className="mt-1 text-sm text-red-600">{errors.type}</p>
-            )}
+              readOnly
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+            />
+            <p className="mt-1 text-sm text-gray-500">
+              Este es un mantenimiento personalizado (Tipo 30)
+            </p>
           </div>
 
+          {/* Frecuencia (Editable) */}
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <Clock size={16} />
@@ -267,13 +278,18 @@ const MaintenanceForm = ({
               type="number"
               min="1"
               value={formData.frequency}
-              readOnly
-              placeholder="Se asignará automáticamente según el tipo"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+              onChange={(e) => handleInputChange("frequency", e.target.value)}
+              placeholder="Ingrese la frecuencia en horas"
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.frequency ? "border-red-500" : "border-gray-300"
+              }`}
             />
+            {errors.frequency && (
+              <p className="mt-1 text-sm text-red-600">{errors.frequency}</p>
+            )}
             <p className="mt-1 text-sm text-gray-500">
-              La frecuencia se asigna automáticamente según el tipo de
-              mantenimiento seleccionado
+              Especifica cada cuántas horas de operación se debe realizar este
+              mantenimiento
             </p>
           </div>
 
