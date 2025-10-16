@@ -2,14 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const Home = () => {
   const { user, isAuthenticated, isLoading } = useAuth0();
   const router = useRouter();
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
   const [rol, setRol] = useState<number | null>(null);
 
   useEffect(() => {
@@ -18,14 +15,13 @@ const Home = () => {
     if (userData) {
       try {
         const parsedData = JSON.parse(userData);
-        setIsAuthorized(true);
         setRol(parsedData.rol);
       } catch (error) {
         console.error("Error parsing userData from sessionStorage:", error);
         sessionStorage.removeItem("userData");
       }
     }
-  }, [isAuthenticated, user, isLoading, router, hasCheckedAuth]);
+  }, [isAuthenticated, user, isLoading, router]);
 
   const ClientView = () => (
     <div className="flex-1 bg-gradient-to-br from-blue-50 to-indigo-100 p-8 flex items-center justify-center min-h-screen">

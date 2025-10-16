@@ -377,7 +377,6 @@ const CompressorMaintenance = () => {
   const [editingMaintenance, setEditingMaintenance] =
     useState<MaintenanceRecord | null>(null);
   const [loading, setLoading] = useState(true);
-  const [compresores, setCompresores] = useState<Compressor[]>([]);
   const [allCompresores, setAllCompresores] = useState<Compressor[]>([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [userRole, setUserRole] = useState<number>(0);
@@ -633,7 +632,6 @@ const CompressorMaintenance = () => {
           );
 
           setAllCompresores(allUserCompressors);
-          setCompresores(allUserCompressors);
 
           // Obtener registros de mantenimiento desde la API
           const maintenanceApiRecords = await fetchMaintenanceRecords(

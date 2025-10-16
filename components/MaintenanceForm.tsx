@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { X, Calendar, Clock, Type, Tag, FileText, Users } from "lucide-react";
 import { Compressor, MaintenanceRecord } from "@/lib/types";
-import { URL_API } from "@/lib/global";
 
 interface MaintenanceFormProps {
   compressors: Compressor[];
@@ -14,13 +13,6 @@ interface MaintenanceFormProps {
   ) => void;
   onClose: () => void;
 }
-
-type MaintenanceType = {
-  tipo: number;
-  nombre_tipo: string;
-  frecuencia: number;
-  tipo_compresor: string;
-};
 
 const MaintenanceForm = ({
   compressors,
