@@ -6,21 +6,23 @@ import { useRouter } from "next/navigation";
 interface BackButtonProps {
   className?: string;
   size?: "sm" | "md" | "lg";
-  variant?: "primary" | "secondary" | "outline";
+  variant?: "primary" | "secondary" | "outline" | "ghost";
   showText?: boolean;
   customText?: string;
   position?: "fixed" | "relative";
   onClick?: () => void; // Para acciones adicionales antes de navegar
+  fallbackUrl?: string; // URL de respaldo si no hay historial
 }
 
 const BackButton: React.FC<BackButtonProps> = ({
   className = "",
   size = "md",
-  variant = "primary",
+  variant = "ghost",
   showText = true,
-  customText = "Regresar al Menú",
+  customText = "Atrás",
   position = "relative",
   onClick,
+  fallbackUrl = "/home",
 }) => {
   const router = useRouter();
 
@@ -30,8 +32,13 @@ const BackButton: React.FC<BackButtonProps> = ({
       onClick();
     }
 
-    // Navegar al home
-    router.push("/home");
+    // Intentar regresar a la página anterior
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      // Si no hay historial, ir a la URL de respaldo
+      router.push(fallbackUrl);
+    }
   };
 
   const getSizeClasses = () => {
@@ -50,7 +57,9 @@ const BackButton: React.FC<BackButtonProps> = ({
       case "secondary":
         return "bg-gray-600 hover:bg-gray-700 text-white shadow-lg hover:shadow-xl";
       case "outline":
-        return "border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white bg-transparent";
+        return "border-2 border-gray-600 text-gray-600 hover:bg-gray-600 hover:text-white bg-transparent";
+      case "ghost":
+        return "bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 shadow-sm hover:shadow-md";
       default:
         return "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl";
     }
@@ -71,12 +80,12 @@ const BackButton: React.FC<BackButtonProps> = ({
         ${getSizeClasses()}
         ${getVariantClasses()}
         flex items-center space-x-2 rounded-lg font-medium
-        transition-all duration-300 ease-in-out
+        transition-all duration-200 ease-in-out
         hover:scale-105 active:scale-95
-        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50
+        focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50
         ${className}
       `}
-      aria-label="Regresar al menú principal"
+      aria-label="Regresar a la página anterior"
       data-exclude-pdf="true"
     >
       {/* Icono de flecha hacia atrás */}

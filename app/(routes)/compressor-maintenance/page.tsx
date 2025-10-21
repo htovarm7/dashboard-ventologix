@@ -82,7 +82,7 @@ const Home = () => {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-gray-800 mb-4">
-            ¡Hola Tecnico! 👋
+            ¡Hola Air Specialist Technician! 👋
           </h1>
           <p className="text-xl text-gray-600">
             Bienvenido al panel de mantenimiento de compresores
