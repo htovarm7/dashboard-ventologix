@@ -4,7 +4,9 @@ export interface Compresor {
   linea: string;
   alias: string;
   tipo: string;
+  numero_serie: string;
   nombre_cliente?: string;
+  numero_cliente?: number;
 }
 
 export interface Engineer {

@@ -11,6 +11,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import Image from "next/image";
 
 // Tipos
 type MaintenanceTask = {
@@ -104,9 +105,7 @@ const getMockVisitsForCompressor = (compressorId: string): Visit[] => {
           comments: "Revisión completa realizada",
         },
       ],
-      photos: [
-        "https://via.placeholder.com/200x150/FBBC04/FFFFFF?text=Foto+1",
-      ],
+      photos: ["https://via.placeholder.com/200x150/FBBC04/FFFFFF?text=Foto+1"],
     },
     {
       id: `v4-${compressorId}`,
@@ -328,9 +327,15 @@ const Visitas = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             {expandedCompressors.has(compressor.id) ? (
-                              <ChevronDown className="text-gray-600" size={20} />
+                              <ChevronDown
+                                className="text-gray-600"
+                                size={20}
+                              />
                             ) : (
-                              <ChevronRight className="text-gray-600" size={20} />
+                              <ChevronRight
+                                className="text-gray-600"
+                                size={20}
+                              />
                             )}
                             <h3 className="text-lg font-semibold text-gray-900">
                               {compressor.name}
@@ -473,7 +478,10 @@ const Visitas = () => {
                         </div>
                         {task.comments && (
                           <div className="flex items-start space-x-2 text-sm text-gray-600">
-                            <MessageSquare size={14} className="mt-0.5 flex-shrink-0" />
+                            <MessageSquare
+                              size={14}
+                              className="mt-0.5 flex-shrink-0"
+                            />
                             <span className="italic">{task.comments}</span>
                           </div>
                         )}
@@ -496,7 +504,7 @@ const Visitas = () => {
                         key={index}
                         className="aspect-video bg-gray-100 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
                       >
-                        <img
+                        <Image
                           src={photo}
                           alt={`Foto ${index + 1}`}
                           className="w-full h-full object-cover"
