@@ -220,8 +220,7 @@ export default function Page() {
           Bienvenido a Ventologix Dashboard
         </h2>
         <h2 className="text-xl text-white mb-8">
-          Aquí puedes verificar tus datos, con gráficas diarias y semanales, así
-          mismo extraer tus datos en bruto.
+          Aquí puedes verificar tus datos, con gráficas diarias y semanales.
         </h2>
         {!isAuthenticated ? (
           <button
