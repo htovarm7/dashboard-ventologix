@@ -491,7 +491,7 @@ const Visitas = () => {
                 </div>
               </div>
 
-              {/* Fotos */}
+              {/* Fotos
               {selectedVisit.photos.length > 0 && (
                 <div>
                   <div className="flex items-center space-x-2 mb-4">
@@ -513,7 +513,7 @@ const Visitas = () => {
                     ))}
                   </div>
                 </div>
-              )}
+              )} */}
 
               {selectedVisit.photos.length === 0 && (
                 <div className="text-center py-8 bg-gray-50 rounded-lg">
