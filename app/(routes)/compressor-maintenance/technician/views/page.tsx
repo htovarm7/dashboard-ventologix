@@ -11,7 +11,6 @@ import {
   MessageSquare,
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
-import Image from "next/image";
 
 // Tipos
 type MaintenanceTask = {
