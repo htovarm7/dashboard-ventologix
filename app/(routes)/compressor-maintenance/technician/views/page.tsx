@@ -270,11 +270,9 @@ const Visitas = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <BackButton />
       <div className="max-w-7xl mx-auto">
         {/* Botón de regresar */}
-        <div className="mb-4">
-          <BackButton />
-        </div>
 
         <h1 className="text-3xl font-bold mb-8 text-gray-900">
           Bitácora de Visitas de Mantenimiento

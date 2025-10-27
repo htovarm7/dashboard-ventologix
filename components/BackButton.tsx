@@ -73,40 +73,44 @@ const BackButton: React.FC<BackButtonProps> = ({
     size === "sm" ? "w-4 h-4" : size === "lg" ? "w-6 h-6" : "w-5 h-5";
 
   return (
-    <button
-      onClick={handleClick}
-      className={`
-        ${getPositionClasses()}
+    <div
+      className={`w-full flex ${position === "fixed" ? "" : "justify-start"}`}
+    >
+      <button
+        onClick={handleClick}
+        className={`
         ${getSizeClasses()}
         ${getVariantClasses()}
         flex items-center space-x-2 rounded-lg font-medium
+        x-0
         transition-all duration-200 ease-in-out
         hover:scale-105 active:scale-95
         focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50
         ${className}
       `}
-      aria-label="Regresar a la página anterior"
-      data-exclude-pdf="true"
-    >
-      {/* Icono de flecha hacia atrás */}
-      <svg
-        className={iconSize}
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
+        aria-label="Regresar a la página anterior"
+        data-exclude-pdf="true"
       >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M10 19l-7-7m0 0l7-7m-7 7h18"
-        />
-      </svg>
+        {/* Icono de flecha hacia atrás */}
+        <svg
+          className={iconSize}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M10 19l-7-7m0 0l7-7m-7 7h18"
+          />
+        </svg>
 
-      {/* Texto del botón */}
-      {showText && <span className="font-medium">{customText}</span>}
-    </button>
+        {/* Texto del botón */}
+        {showText && <span className="font-medium">{customText}</span>}
+      </button>
+    </div>
   );
 };
 
