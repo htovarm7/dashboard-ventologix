@@ -33,6 +33,120 @@ type MaintenanceTypesResponse = {
   maintenance_types: MaintenanceType[];
 };
 
+// Componente que muestra un contador por horas basado en la fecha del último mantenimiento
+const MaintenanceTimer = ({
+  lastMaintenanceDate,
+  frequency,
+}: {
+  lastMaintenanceDate?: string;
+  frequency: number;
+}) => {
+  const [now, setNow] = useState<Date>(new Date());
+
+  // Actualizar cada minuto para reflejar el paso de las horas
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const parseDate = (d?: string) => {
+    if (!d) return null;
+    try {
+      // Si la fecha viene como YYYY-MM-DD, añadir hora para evitar parse inconsistentes
+      const date = d.includes("T") ? new Date(d) : new Date(`${d}T00:00:00`);
+      return isNaN(date.getTime()) ? null : date;
+    } catch {
+      return null;
+    }
+  };
+
+  const last = parseDate(lastMaintenanceDate);
+  if (!last || !frequency || frequency <= 0) {
+    return (
+      <div className="mt-3 text-sm text-gray-500">
+        Sin datos de temporizador
+      </div>
+    );
+  }
+
+  const elapsedMs = now.getTime() - last.getTime();
+  const elapsedHours = elapsedMs / (1000 * 60 * 60);
+  const remaining = frequency - elapsedHours;
+
+  const progressPercent = Math.min(
+    Math.max((elapsedHours / frequency) * 100, 0),
+    100
+  );
+
+  // Usar porcentaje restante para el semáforo:
+  // remainingPercent = % que queda de la frecuencia (100% = totalmente sin usar, 0% = justo en límite)
+  const remainingPercent = Math.max(0, 100 - progressPercent);
+
+  let status: "green" | "yellow" | "red" = "green";
+  if (remainingPercent > 30) {
+    status = "green";
+  } else if (remainingPercent > 15) {
+    status = "yellow";
+  } else {
+    status = "red";
+  }
+
+  if (frequency - elapsedHours <= 0) {
+    status = "red";
+  }
+
+  const statusClasses =
+    status === "green"
+      ? "bg-green-100 text-green-800"
+      : status === "yellow"
+      ? "bg-yellow-100 text-yellow-800"
+      : "bg-red-100 text-red-800";
+
+  const barClass =
+    status === "green"
+      ? "bg-green-600"
+      : status === "yellow"
+      ? "bg-yellow-500"
+      : "bg-red-600";
+
+  const formatRemaining = (h: number) => {
+    const abs = Math.abs(h);
+    if (abs < 1) return `${Math.round(abs * 60)} min`;
+    if (abs < 24) return `${Math.round(abs)} h`;
+    const days = Math.floor(abs / 24);
+    return `${days} d`;
+  };
+
+  return (
+    <div className="mt-3 flex items-center justify-between gap-3">
+      <div
+        className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses}`}
+      >
+        {status === "green"
+          ? "🟢 En tiempo"
+          : status === "yellow"
+          ? "🟡 Próximo"
+          : "🔴 Urgente"}
+      </div>
+
+      <div className="flex-1 mx-3">
+        <div className="w-full h-2 bg-gray-200 rounded overflow-hidden">
+          <div
+            style={{ width: `${progressPercent}%` }}
+            className={`h-2 ${barClass}`}
+          ></div>
+        </div>
+      </div>
+
+      <div className="text-sm text-gray-600 whitespace-nowrap">
+        {remaining >= 0
+          ? `Restan ${formatRemaining(remaining)}`
+          : `Vencido hace ${formatRemaining(-remaining)}`}
+      </div>
+    </div>
+  );
+};
+
 // Componente modal para dar de alta compresores
 const CompressorRegistrationModal = ({
   availableClients,
@@ -1111,6 +1225,14 @@ const CompressorMaintenance = () => {
                                                 </div>
                                               </div>
 
+                                              {/* Contador por horas y semáforo */}
+                                              <MaintenanceTimer
+                                                lastMaintenanceDate={
+                                                  record.lastMaintenanceDate
+                                                }
+                                                frequency={record.frequency}
+                                              />
+
                                               {record.description && (
                                                 <div className="mt-3 pt-3 border-t border-gray-100">
                                                   <p className="text-sm text-gray-600">
@@ -1265,6 +1387,14 @@ const CompressorMaintenance = () => {
                                       </span>
                                     </div>
                                   </div>
+
+                                  {/* Contador por horas y semáforo */}
+                                  <MaintenanceTimer
+                                    lastMaintenanceDate={
+                                      record.lastMaintenanceDate
+                                    }
+                                    frequency={record.frequency}
+                                  />
 
                                   {record.description && (
                                     <div className="mt-3 pt-3 border-t border-gray-100">

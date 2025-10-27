@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Compresor } from "../types/common";
 
 interface ReportDropdownProps {
@@ -28,17 +28,58 @@ const ReportDropdown: React.FC<ReportDropdownProps> = ({
   selectedCompresor = null,
   staticMode = false,
 }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
   const handleClick = () => {
     if (staticMode && selectedCompresor) {
       onCompressorSelect(selectedCompresor);
     }
   };
 
+  // Close when tapping/clicking outside
+  useEffect(() => {
+    function onDocClick(e: MouseEvent | TouchEvent) {
+      const target = e.target as Node | null;
+      if (
+        containerRef.current &&
+        target &&
+        !containerRef.current.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("touchstart", onDocClick);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("touchstart", onDocClick);
+    };
+  }, []);
+
   return (
-    <div className="relative text-center group">
+    <div ref={containerRef} className="relative text-center group">
       <h2
+        tabIndex={0}
+        role={staticMode ? undefined : "button"}
+        aria-expanded={!staticMode ? isOpen : undefined}
         className={`text-2xl ${colorScheme.text} hover:scale-110 cursor-pointer transition-transform flex items-center justify-center gap-2`}
-        onClick={staticMode ? handleClick : undefined}
+        onClick={() => {
+          if (staticMode) {
+            handleClick();
+            return;
+          }
+          // Toggle dropdown on click/tap for touch devices
+          setIsOpen((s) => !s);
+        }}
+        onKeyDown={(e) => {
+          if (staticMode) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsOpen((s) => !s);
+          }
+        }}
       >
         {title}
         {!staticMode && (
@@ -58,7 +99,11 @@ const ReportDropdown: React.FC<ReportDropdownProps> = ({
         )}
       </h2>
       {!staticMode && compresores.length > 0 && (
-        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-10">
+        <div
+          className={`absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-xl transition-all duration-300 z-10 ${
+            isOpen ? "opacity-100 visible" : "opacity-0 invisible"
+          } group-hover:opacity-100 group-hover:visible`}
+        >
           <div className="py-2">
             <div className="px-3 py-2 text-xs text-gray-500 font-medium uppercase tracking-wide border-b border-gray-100">
               Seleccionar Compresor
