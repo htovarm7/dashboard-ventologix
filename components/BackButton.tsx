@@ -65,10 +65,6 @@ const BackButton: React.FC<BackButtonProps> = ({
     }
   };
 
-  const getPositionClasses = () => {
-    return position === "fixed" ? "fixed top-4 left-4 z-50" : "relative";
-  };
-
   const iconSize =
     size === "sm" ? "w-4 h-4" : size === "lg" ? "w-6 h-6" : "w-5 h-5";
 
