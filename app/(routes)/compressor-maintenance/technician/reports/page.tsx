@@ -11,6 +11,10 @@ const Reportes = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCompressor, setSelectedCompressor] =
     useState<Compressor | null>(null);
+  const [filteredCompressors, setFilteredCompressors] = useState<Compressor[]>(
+    []
+  );
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     const verifyAndLoadUser = async () => {
@@ -35,23 +39,58 @@ const Reportes = () => {
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setSelectedCompressor(null);
+      setFilteredCompressors([]);
+      setShowSuggestions(false);
     } else {
       const filtered = compressors.filter((comp) => {
         const compressorName =
           comp.alias ||
           comp.alias ||
           `Compresor ${comp.linea || comp.linea || comp.id || ""}`;
-        return compressorName.toLowerCase().includes(searchQuery.toLowerCase());
+
+        const numeroSerie = comp.numero_serie || "";
+        const cliente = comp.nombre_cliente || "";
+        const linea = comp.linea || "";
+
+        const query = searchQuery.toLowerCase();
+
+        // Buscar por nombre, número de serie (si existe), cliente o línea
+        return (
+          compressorName.toLowerCase().includes(query) ||
+          (numeroSerie &&
+            numeroSerie.toString().toLowerCase().includes(query)) ||
+          cliente.toLowerCase().includes(query) ||
+          linea.toLowerCase().includes(query)
+        );
       });
+
+      setFilteredCompressors(filtered);
+      setShowSuggestions(filtered.length > 0);
 
       // Si hay exactamente un resultado, seleccionarlo automáticamente
       if (filtered.length === 1) {
         setSelectedCompressor(filtered[0]);
+        setShowSuggestions(false);
       } else {
         setSelectedCompressor(null);
       }
     }
   }, [searchQuery, compressors]);
+
+  // Cerrar sugerencias al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest(".search-container")) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleCreateReport = () => {
     if (selectedCompressor) {
@@ -62,6 +101,7 @@ const Reportes = () => {
         alias: selectedCompressor.alias || selectedCompressor.alias,
         numero_cliente: selectedCompressor.numero_cliente,
         nombre_cliente: selectedCompressor.nombre_cliente,
+        numero_serie: selectedCompressor.numero_serie,
       };
 
       // Guardar en sessionStorage para que la página de create lo pueda usar
@@ -69,13 +109,47 @@ const Reportes = () => {
         "selectedCompressorForReport",
         JSON.stringify(compressorData)
       );
+    } else {
+      // Si no hay compresor seleccionado, limpiar el storage
+      sessionStorage.removeItem("selectedCompressorForReport");
     }
 
     router.push("/compressor-maintenance/technician/reports/create");
   };
 
   const handleViewAllReports = () => {
+    if (selectedCompressor) {
+      // Enviar información del compresor seleccionado para filtrar reportes
+      const compressorData = {
+        id: selectedCompressor.id || selectedCompressor.id,
+        linea: selectedCompressor.linea || selectedCompressor.linea,
+        alias: selectedCompressor.alias || selectedCompressor.alias,
+        numero_cliente: selectedCompressor.numero_cliente,
+        nombre_cliente: selectedCompressor.nombre_cliente,
+        numero_serie: selectedCompressor.numero_serie,
+      };
+
+      // Guardar en sessionStorage para que la página de all-reports lo pueda usar
+      sessionStorage.setItem(
+        "selectedCompressorForReports",
+        JSON.stringify(compressorData)
+      );
+    } else {
+      // Si no hay compresor seleccionado, limpiar el storage
+      sessionStorage.removeItem("selectedCompressorForReports");
+    }
+
     router.push("/compressor-maintenance/technician/reports/all-reports");
+  };
+
+  const handleSelectCompressor = (compressor: Compressor) => {
+    setSelectedCompressor(compressor);
+    setSearchQuery(
+      compressor.alias ||
+        compressor.alias ||
+        `Compresor ${compressor.linea || compressor.linea}`
+    );
+    setShowSuggestions(false);
   };
 
   return (
@@ -88,7 +162,7 @@ const Reportes = () => {
 
         {/* Search Bar */}
         <div className="mb-8">
-          <div className="relative max-w-2xl mx-auto">
+          <div className="relative max-w-2xl mx-auto search-container">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg
                 className="h-5 w-5 text-gray-400"
@@ -106,11 +180,88 @@ const Reportes = () => {
             </div>
             <input
               type="text"
-              placeholder="Buscar compresor por nombre para crear reporte específico..."
+              placeholder="Buscar por nombre, número de serie, cliente o línea..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => {
+                if (filteredCompressors.length > 1) {
+                  setShowSuggestions(true);
+                }
+              }}
               className="block w-full pl-10 pr-3 py-4 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
             />
+
+            {/* Suggestions Dropdown */}
+            {showSuggestions && filteredCompressors.length > 1 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-96 overflow-y-auto">
+                {filteredCompressors.map((comp, index) => (
+                  <button
+                    key={`${comp.id}-${comp.linea}-${index}`}
+                    onClick={() => handleSelectCompressor(comp)}
+                    className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-gray-900">
+                        {comp.alias || comp.alias || `Compresor ${comp.linea}`}
+                      </span>
+                      <div className="flex gap-3 text-sm text-gray-600 mt-1">
+                        {comp.numero_serie && (
+                          <span className="flex items-center">
+                            <svg
+                              className="w-4 h-4 mr-1"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
+                              />
+                            </svg>
+                            S/N: {comp.numero_serie}
+                          </span>
+                        )}
+                        <span className="flex items-center">
+                          <svg
+                            className="w-4 h-4 mr-1"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                            />
+                          </svg>
+                          {comp.nombre_cliente ||
+                            `Cliente ${comp.numero_cliente}`}
+                        </span>
+                        <span className="flex items-center">
+                          <svg
+                            className="w-4 h-4 mr-1"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                            />
+                          </svg>
+                          Línea: {comp.linea || comp.linea}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Selected Compressor Display */}
@@ -141,10 +292,16 @@ const Reportes = () => {
                         }`}
                     </p>
                     <p className="text-blue-600 text-sm">
+                      {selectedCompressor.numero_serie && (
+                        <span className="mr-3">
+                          S/N: {selectedCompressor.numero_serie}
+                        </span>
+                      )}
                       Cliente:{" "}
                       {selectedCompressor.nombre_cliente ||
                         `Cliente ${selectedCompressor.numero_cliente}`}
-                      | Línea:{" "}
+                      {" | "}
+                      Línea:{" "}
                       {selectedCompressor.linea || selectedCompressor.linea}
                     </p>
                   </div>

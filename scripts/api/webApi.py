@@ -109,11 +109,11 @@ def get_usuario_by_email(email: str):
 
         # 0 = Admin, 1 = Gerente VT, 2 = VAST, 3 = Gerente Cliente, 4 = Cliente
         if(rol == 3 or rol == 4):
-            cursor.execute("SELECT c.id as id_compresor, c.linea, c.proyecto as id_cliente, c.Alias as alias, c.tipo as tipo FROM compresores c JOIN clientes c2 ON c2.id_cliente = c.id_cliente WHERE c2.numero_cliente  = %s;", (numeroCliente,))
+            cursor.execute("SELECT c.id as id_compresor, c.linea, c.proyecto as id_cliente, c.Alias as alias, c.tipo as tipo, c.numero_serie as numero_serie FROM compresores c JOIN clientes c2 ON c2.id_cliente = c.id_cliente WHERE c2.numero_cliente  = %s;", (numeroCliente,))
             compresores = cursor.fetchall()
 
         if(rol == 0 or rol == 1 or rol == 2):
-            cursor.execute("SELECT  c.id as id_compresor, c.linea, c.proyecto as id_cliente, c.Alias as alias , c.tipo as tipo, c2.nombre_cliente, c2.numero_cliente FROM compresores c JOIN clientes c2 ON c.id_cliente = c2.id_cliente")
+            cursor.execute("SELECT  c.id as id_compresor, c.linea, c.proyecto as id_cliente, c.Alias as alias, c.numero_serie as numero_serie, c.tipo as tipo, c2.nombre_cliente, c2.numero_cliente FROM compresores c JOIN clientes c2 ON c.id_cliente = c2.id_cliente")
             compresores = cursor.fetchall()
 
         # For rol == 2 (VAST), compresores remains as empty list
