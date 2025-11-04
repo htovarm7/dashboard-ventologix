@@ -36,12 +36,13 @@ export interface Engineer {
 
 export interface Compressor {
   id: string;
-  linea: string;
   id_cliente: number;
+  linea: string;
   alias: string;
+  tipo: string;
+  numero_serie: string;
+  numero_cliente: number;
   nombre_cliente?: string;
-  nombreCompleto?: string;
-  tipo_compresor?: string;
 }
 
 export interface UserData {

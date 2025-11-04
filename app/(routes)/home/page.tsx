@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
 import DateReportDropdown from "@/components/DateReportDropdown";
-import { Compresor } from "@/types/common";
+import { Compressor } from "@/lib/types";
 
 const Home = () => {
   const { user, isAuthenticated, isLoading, logout } = useAuth0();
@@ -11,10 +11,10 @@ const Home = () => {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
-  const [compresores, setCompresores] = useState<Compresor[]>([]);
+  const [compresores, setCompresores] = useState<Compressor[]>([]);
   const [numeroCliente, setNumeroCliente] = useState<number | null>(null);
   const [rol, setRol] = useState<number | null>(null);
-  const [selectedCompresor, setSelectedCompresor] = useState<Compresor | null>(
+  const [selectedCompresor, setSelectedCompresor] = useState<Compressor | null>(
     null
   );
 
@@ -194,7 +194,7 @@ const Home = () => {
                       })
                       .map((compresor, index) => (
                         <option
-                          key={`compresor-${compresor.id_compresor || index}-${
+                          key={`compresor-${compresor.id || index}-${
                             compresor.linea
                           }-${compresor.alias}`}
                           value={`${compresor.id_cliente}-${compresor.linea}`}
@@ -230,9 +230,7 @@ const Home = () => {
                 onClick={() => router.push("/compressor-maintenance")}
                 style={{ WebkitTapHighlightColor: "transparent" }}
               >
-                <span className="font-medium">
-                  Sistema de Mantenimiento
-                </span>
+                <span className="font-medium">Sistema de Mantenimiento</span>
               </button>
             </div>
           ) : /* Para otros roles: Necesitan seleccionar compresor primero */

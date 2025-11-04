@@ -270,7 +270,7 @@ const CompressorRegistrationModal = ({
                 <strong>Línea:</strong> {selectedCompressor.linea}
               </p>
               <p className="text-sm text-blue-700">
-                <strong>Tipo:</strong> {selectedCompressor.tipo_compresor}
+                <strong>Tipo:</strong> {selectedCompressor.tipo}
               </p>
             </div>
           )}
@@ -917,17 +917,15 @@ const CompressorMaintenance = () => {
     try {
       // Validar y limpiar el tipo de compresor
       const tipoCompresor =
-        compressor.tipo_compresor &&
-        compressor.tipo_compresor !== "0" &&
-        compressor.tipo_compresor !== null
-          ? compressor.tipo_compresor
+        compressor.tipo && compressor.tipo !== "0" && compressor.tipo !== null
+          ? compressor.tipo
           : "piston";
 
       console.log(
         "Tipo de compresor a usar:",
         tipoCompresor,
         "Original:",
-        compressor.tipo_compresor
+        compressor.tipo
       );
       console.log("Datos del compresor completo:", compressor);
 

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import SideBar from "@/components/sideBar";
-import { Compresor } from "@/types/common";
+import { Compressor } from "@/lib/types";
 
 export default function RootLayout({
   children,
@@ -10,8 +10,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [compresores, setCompresores] = useState<Compresor[]>([]);
-  const [selectedCompresor, setSelectedCompresor] = useState<Compresor | null>(
+  const [compresores, setCompresores] = useState<Compressor[]>([]);
+  const [selectedCompresor, setSelectedCompresor] = useState<Compressor | null>(
     null
   );
   const [rol, setRol] = useState<number | null>(null);

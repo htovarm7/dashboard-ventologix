@@ -1,20 +1,20 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Compresor } from "../types/common";
+import { Compressor } from "@/lib/types";
 
 interface ReportDropdownProps {
   title: string;
-  compresores: Compresor[];
+  compresores: Compressor[];
   colorScheme: {
     text: string;
     icon: string;
     hover: string;
   };
-  onCompressorSelect: (compresor: Compresor) => void;
+  onCompressorSelect: (compresor: Compressor) => void;
   children?: React.ReactNode;
   Rol?: number;
-  selectedCompresor?: Compresor | null;
+  selectedCompresor?: Compressor | null;
   staticMode?: boolean;
 }
 

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
-import { Compresor } from "@/types/common";
+import { Compressor } from "@/lib/types";
 
 type ValuePiece = Date | null;
 type Value = ValuePiece | [ValuePiece, ValuePiece];
@@ -60,14 +60,14 @@ const calendarStyles = `
 
 interface DateReportDropdownProps {
   title: string;
-  compresores: Compresor[];
+  compresores: Compressor[];
   colorScheme: {
     text: string;
     icon: string;
     hover: string;
   };
   Rol?: number;
-  selectedCompresor?: Compresor | null;
+  selectedCompresor?: Compressor | null;
   tipo?: string;
 }
 

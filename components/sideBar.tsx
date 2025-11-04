@@ -2,13 +2,13 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth0 } from "@auth0/auth0-react";
-import { Compresor } from "@/types/common";
+import { Compressor } from "@/lib/types";
 import { URL_API } from "@/lib/global";
 import Image from "next/image";
 
 interface SideBarProps {
-  compresores?: Compresor[];
-  selectedCompresor?: Compresor | null;
+  compresores?: Compressor[];
+  selectedCompresor?: Compressor | null;
   rol?: number | null;
 }
 

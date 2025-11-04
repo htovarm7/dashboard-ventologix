@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/BackButton";
-import { Compresor } from "@/types/common";
+import { Compressor } from "@/lib/types";
 
 const Reportes = () => {
   const router = useRouter();
-  const [compressors, setCompressors] = useState<Compresor[]>([]);
+  const [compressors, setCompressors] = useState<Compressor[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCompressor, setSelectedCompressor] =
-    useState<Compresor | null>(null);
+    useState<Compressor | null>(null);
 
   useEffect(() => {
     const verifyAndLoadUser = async () => {
@@ -40,7 +40,7 @@ const Reportes = () => {
         const compressorName =
           comp.alias ||
           comp.alias ||
-          `Compresor ${comp.linea || comp.linea || comp.id_compresor || ""}`;
+          `Compresor ${comp.linea || comp.linea || comp.id || ""}`;
         return compressorName.toLowerCase().includes(searchQuery.toLowerCase());
       });
 
@@ -57,7 +57,7 @@ const Reportes = () => {
     if (selectedCompressor) {
       // Enviar información del compresor seleccionado
       const compressorData = {
-        id: selectedCompressor.id_compresor || selectedCompressor.id_compresor,
+        id: selectedCompressor.id || selectedCompressor.id,
         linea: selectedCompressor.linea || selectedCompressor.linea,
         alias: selectedCompressor.alias || selectedCompressor.alias,
         numero_cliente: selectedCompressor.numero_cliente,
