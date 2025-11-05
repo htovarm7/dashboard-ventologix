@@ -287,6 +287,15 @@ const Home = () => {
                   Mantenimiento de Compresores
                 </span>
               </button>
+              <button
+                className="w-full text-lg text-red-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-violet-200 p-4 rounded-xl hover:bg-violet-50 hover:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
+                onClick={() => router.push("/consumption-kwh")}
+                style={{ WebkitTapHighlightColor: "transparent" }}
+              >
+                <span className="font-medium">
+                  Consumo KwH (BETA)
+                </span>
+              </button>
             </div>
           ) : (
             <div className="text-center py-8">
