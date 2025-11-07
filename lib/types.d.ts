@@ -182,3 +182,28 @@ export interface CompressorMaintenance {
   compressor: Compressor;
   maintenanceRecords: MaintenanceRecord[];
 }
+
+export interface SelectedCompressor {
+  id: string;
+  linea: string;
+  alias: string;
+  numero_cliente: number;
+  nombre_cliente: string;
+  numero_serie?: string;
+}
+
+export interface PressureStats {
+  presion_promedio: number;
+  tiempo_total_horas: number;
+  tiempo_total_minutos: number;
+  pendiente_subida: number;
+  pendiente_bajada: number;
+  variabilidad_relativa: number;
+  indice_estabilidad: number;
+  eventos_criticos_total: number;
+}
+
+export interface LineData {
+  time: string;
+  corriente: number;
+}

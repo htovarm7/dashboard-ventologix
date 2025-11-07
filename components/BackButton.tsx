@@ -10,8 +10,8 @@ interface BackButtonProps {
   showText?: boolean;
   customText?: string;
   position?: "fixed" | "relative";
-  onClick?: () => void; // Para acciones adicionales antes de navegar
-  fallbackUrl?: string; // URL de respaldo si no hay historial
+  onClick?: () => void;
+  fallbackUrl?: string;
 }
 
 const BackButton: React.FC<BackButtonProps> = ({

@@ -17,6 +17,7 @@ import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams } from "next/navigation";
 import annotationPlugin from "chartjs-plugin-annotation";
+import { LineData } from "@/lib/types";
 
 // Libraries for charts
 import {
@@ -95,11 +96,6 @@ function MainContent() {
     comentario_ciclos: string;
     comentario_hp_equivalente: string;
   } | null>(null);
-
-  interface LineData {
-    time: string;
-    corriente: number;
-  }
 
   const fetchData = useCallback(async (id: string, linea: string) => {
     try {

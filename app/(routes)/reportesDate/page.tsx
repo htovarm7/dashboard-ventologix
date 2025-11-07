@@ -30,6 +30,7 @@ import {
   PointElement,
 } from "chart.js";
 import { Pie, Chart } from "react-chartjs-2";
+import { LineData } from "@/lib/types";
 
 // ECharts for the gauge chart
 import ReactECharts from "echarts-for-react";
@@ -95,11 +96,6 @@ function MainContent() {
     comentario_ciclos: string;
     comentario_hp_equivalente: string;
   } | null>(null);
-
-  interface LineData {
-    time: string;
-    corriente: number;
-  }
 
   const searchParams = useSearchParams();
 

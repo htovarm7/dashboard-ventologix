@@ -2,15 +2,7 @@
 
 import { useState, useEffect } from "react";
 import BackButton from "@/components/BackButton";
-
-interface SelectedCompressor {
-  id: string;
-  linea: string;
-  alias: string;
-  numero_cliente: number;
-  nombre_cliente: string;
-  numero_serie?: string;
-}
+import { SelectedCompressor } from "@/lib/types";
 
 const CreateReport = () => {
   const [selectedCompressor, setSelectedCompressor] =

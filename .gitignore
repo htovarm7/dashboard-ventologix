@@ -53,3 +53,7 @@ pdfs
 # Google Drive API credentials
 
 scripts/api/__pycache__
+
+
+lib/credentials.json
+lib/oauth_credentials.json

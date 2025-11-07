@@ -8,22 +8,12 @@ import "react-datepicker/dist/react-datepicker.css";
 import { UserData } from "@/lib/types";
 import { URL_API } from "@/lib/global";
 import BackButton from "@/components/BackButton";
+import { PressureStats } from "@/lib/types";
 
 // Helper function outside component to avoid re-creation
 const formatDateForAPI = (date: Date): string => {
   return date.toISOString().split("T")[0];
 };
-
-interface PressureStats {
-  presion_promedio: number;
-  tiempo_total_horas: number;
-  tiempo_total_minutos: number;
-  pendiente_subida: number;
-  pendiente_bajada: number;
-  variabilidad_relativa: number;
-  indice_estabilidad: number;
-  eventos_criticos_total: number;
-}
 
 const PressureAnalysis = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
