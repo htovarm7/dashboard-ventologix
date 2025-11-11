@@ -207,3 +207,83 @@ export interface LineData {
   time: string;
   corriente: number;
 }
+
+export interface ReportData {
+  // Datos Generales del Servicio
+  folio: string;
+  fecha: string;
+  compania: string;
+  atencion: string;
+  direccion: string;
+  telefono: string;
+  email: string;
+  tecnico: string;
+  ayudantes: string[];
+
+  // Datos del Equipo
+  tipo: string;
+  modelo: string;
+  numeroSerie: string;
+  amperaje: string;
+  voltaje: string;
+  marca: string;
+
+  // Datos del Reporte
+  inicioServicio: string;
+  finServicio: string;
+  tipoServicio: string;
+  tipoOrden: string;
+
+  // Funcionamiento de Elementos
+  elementos: {
+    nombre: string;
+    estado: "correcto" | "incorrecto" | "noAplica";
+  }[];
+
+  // Lecturas después de 15 min
+  lecturas: {
+    presionSeparador: number;
+    presionAire: number;
+    temperaturaOperacion: number;
+    lcP1: number;
+    lcP2: number;
+    lcV1: number;
+    lcV2: number;
+    lcV3: number;
+    voltL1L2: number;
+    voltL2L3: number;
+  };
+
+  // Condiciones de Manguera y Montaje
+  condiciones: {
+    oralPortal: string;
+    notas: string;
+  };
+
+  // Condiciones Ambientales
+  condicionesAmbientales: {
+    notaAdicional: string;
+  };
+
+  // Refacciones
+  refacciones: {
+    refaccion: string;
+    cantidad: number;
+  }[];
+
+  // Tiempo Laborado
+  tiempoLaborado: {
+    dia: string;
+    entrada: string;
+    salida: string;
+  }[];
+
+  // Firmas
+  firmas: {
+    cliente: string;
+    tecnico: string;
+  };
+
+  // Notas finales
+  notasFinales: string;
+}
