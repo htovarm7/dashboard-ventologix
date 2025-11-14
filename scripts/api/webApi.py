@@ -44,22 +44,26 @@ class UpdateMaintenanceRequest(BaseModel):
     costo: Optional[float] = None
 
 
-"""
-* @Observations:
-* 1. To run the API, use the command:
-* uvicorn scripts.api_server:webApi --reload
-* To check the API response, you can use the following URL:
-* http://127.0.0.1:8000/docs
-* For PENOX use device_id = 7
-* If the API is not updating, check the following:
-* 1. Run in terminal:
-    tasklist | findstr python
-* 2. If the process is running, kill it using:
-    taskkill /F /PID <PID>
-* 3. Where <PID> is the process ID obtained from the previous command, which in this case is 18168.
-    python.exe                   18168 Console                    1    67,276 KB
-* 4. Run the API again using:
-"""
+# Mapeo de columnas de BD a nombres de mantenimientos legibles
+MAINTENANCE_COLUMN_MAPPING = {
+    "filtro_aire": "Filtro de Aire",
+    "filtro_aceite": "Filtro Aceite",
+    "separador_aceite": "Separador de Aceite",
+    "aceite": "Aceite Sintético",
+    "kit_admision": "Kit Válvula de Admisión",
+    "kit_minima": "Kit Válvula de mínima presión",
+    "kit_termostatica": "Kit de Válvula Termostática",
+    "cople_flexible": "Cople Flexible",
+    "valvula_solenoide": "Válvula Solenoide",
+    "sensor_temperatura": "Sensor de Temperatura",
+    "transductor_presion": "Transductor de Presión",
+    "contactores": "Contactores Eléctricos",
+    "analisis_baleros_unidad": "Análisis baleros, unidad de compresión y motor eléctrico",
+    "analisis_baleros_ventilador": "Análisis baleros ventilador enfriamiento",
+    "lubricacion_baleros": "Lubricación Baleros Motor Electrico",
+    "limpieza_radiador_interna": "Limpieza interna de Radiador",
+    "limpieza_radiador_externa": "Limpieza externa de Radiador"
+}
 
 # Load environment variables
 dotenv.load_dotenv()
@@ -1754,3 +1758,89 @@ def generate_predictions_fast(series: pd.Series, days: int = 3) -> Tuple[List[fl
     except Exception as e:
         promedio = np.mean(hist_valores)
         return [promedio] * days, "Promedio (modelo falló)"
+
+@web.get("/maintenance/report-data/{numero_serie}", tags=["🛠️ Mantenimiento de Compresores"])
+def get_maintenance_report_data(numero_serie: str):
+    """Obtener datos del reporte de mantenimiento por número de serie del día actual"""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        # Consultar registros de mantenimiento del día actual
+        query = """
+        SELECT *
+        FROM registros_mantenimiento_tornillo
+        WHERE numero_serie = %s
+          AND timestamp >= CURDATE()
+          AND timestamp < CURDATE() + INTERVAL 1 DAY
+        ORDER BY timestamp DESC
+        LIMIT 1
+        """
+        
+        cursor.execute(query, (numero_serie,))
+        registro = cursor.fetchone()
+
+        if not registro:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"No se encontró registro de mantenimiento para el número de serie {numero_serie} en el día de hoy"
+            )
+
+        # Construir lista de mantenimientos realizados
+        mantenimientos_realizados = []
+        
+        for columna_bd, nombre_mantenimiento in MAINTENANCE_COLUMN_MAPPING.items():
+            valor = registro.get(columna_bd, "No")
+            if valor and valor.lower() in ["sí", "si", "yes", "1"]:
+                mantenimientos_realizados.append({
+                    "nombre": nombre_mantenimiento,
+                    "realizado": True,
+                    "valor": valor
+                })
+            else:
+                mantenimientos_realizados.append({
+                    "nombre": nombre_mantenimiento,
+                    "realizado": False,
+                    "valor": valor if valor else "No"
+                })
+
+        # Preparar respuesta estructurada
+        reporte = {
+            "id": registro.get("id"),
+            "timestamp": registro.get("timestamp").isoformat() if registro.get("timestamp") else None,
+            "cliente": registro.get("cliente"),
+            "tecnico": registro.get("tecnico"),
+            "email": registro.get("email"),
+            "tipo": registro.get("tipo"),
+            "compresor": registro.get("compresor"),
+            "numero_serie": registro.get("numero_serie"),
+            "comentarios_generales": registro.get("comentarios_generales"),
+            "numero_cliente": registro.get("numero_cliente"),
+            "comentario_cliente": registro.get("comentario_cliente"),
+            "link_form": registro.get("link_form"),
+            "carpeta_fotos": registro.get("carpeta_fotos"),
+            "mantenimientos": mantenimientos_realizados
+        }
+
+        cursor.close()
+        conn.close()
+
+        return {
+            "success": True,
+            "reporte": reporte
+        }
+
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching maintenance report data: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()

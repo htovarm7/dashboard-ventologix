@@ -209,6 +209,35 @@ export interface LineData {
   corriente: number;
 }
 
+// Tipos para reporte de mantenimiento de compresores
+export interface MaintenanceItem {
+  nombre: string;
+  realizado: boolean;
+  valor: string;
+}
+
+export interface MaintenanceReportData {
+  id: number;
+  timestamp: string | null;
+  cliente: string;
+  tecnico: string;
+  email: string;
+  tipo: string;
+  compresor: string;
+  numero_serie: string;
+  comentarios_generales: string;
+  numero_cliente: string;
+  comentario_cliente: string;
+  link_form: string;
+  carpeta_fotos: string;
+  mantenimientos: MaintenanceItem[];
+}
+
+export interface MaintenanceReportResponse {
+  success: boolean;
+  reporte: MaintenanceReportData;
+}
+
 export interface ReportData {
   // Datos Generales del Servicio
   folio: string;
