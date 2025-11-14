@@ -23,7 +23,7 @@ import { URL_API } from "@/lib/global";
 import BackButton from "@/components/BackButton";
 
 type MaintenanceType = {
-  tipo: number;
+  id_mantenimiento: number;
   nombre_tipo: string;
   frecuencia: number;
   tipo_compresor: string;
@@ -36,9 +36,11 @@ type MaintenanceTypesResponse = {
 const MaintenanceTimer = ({
   lastMaintenanceDate,
   frequency,
+  horasTranscurridas,
 }: {
   lastMaintenanceDate?: string;
   frequency: number;
+  horasTranscurridas?: number;
 }) => {
   const [now, setNow] = useState<Date>(new Date());
 
@@ -66,12 +68,23 @@ const MaintenanceTimer = ({
     );
   }
 
-  const elapsedMs = now.getTime() - last.getTime();
-  const elapsedHours = elapsedMs / (1000 * 60 * 60);
-  const remaining = frequency - elapsedHours;
+  // Calcular horas restantes
+  // Si tenemos horasTranscurridas del procedimiento (más exactas), usarlas
+  // Sino, calcular basado en el tiempo transcurrido desde el último mantenimiento
+  let remaining: number;
+  if (horasTranscurridas !== undefined && horasTranscurridas !== null) {
+    // horasTranscurridas son las horas reales de operación desde el último mantenimiento
+    // remaining = frecuencia - horas_transcurridas
+    remaining = frequency - horasTranscurridas;
+  } else {
+    // Fallback: calcular por tiempo calendario
+    const elapsedMs = now.getTime() - last.getTime();
+    const elapsedHours = elapsedMs / (1000 * 60 * 60);
+    remaining = frequency - elapsedHours;
+  }
 
   const progressPercent = Math.min(
-    Math.max((elapsedHours / frequency) * 100, 0),
+    Math.max(((frequency - remaining) / frequency) * 100, 0),
     100
   );
 
@@ -86,7 +99,7 @@ const MaintenanceTimer = ({
     status = "red";
   }
 
-  if (frequency - elapsedHours <= 0) {
+  if (remaining <= 0) {
     status = "red";
   }
 
@@ -106,10 +119,26 @@ const MaintenanceTimer = ({
 
   const formatRemaining = (h: number) => {
     const abs = Math.abs(h);
-    if (abs < 1) return `${Math.round(abs * 60)} min`;
-    if (abs < 24) return `${Math.round(abs)} h`;
+
+    // Si son menos de 1 hora, mostrar en minutos
+    if (abs < 1) {
+      return `${Math.round(abs * 60)} min`;
+    }
+
+    // Si son menos de 24 horas, mostrar solo horas
+    if (abs < 24) {
+      return `${Math.round(abs)} h`;
+    }
+
+    // Si son 24 horas o más, mostrar días y horas
     const days = Math.floor(abs / 24);
-    return `${days} d`;
+    const hours = Math.round(abs % 24);
+
+    if (hours === 0) {
+      return `${days} d`;
+    }
+
+    return `${days} d ${hours} h`;
   };
 
   return (
@@ -480,6 +509,7 @@ const CompressorMaintenance = () => {
   const [allCompresores, setAllCompresores] = useState<Compressor[]>([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [userRole, setUserRole] = useState<number>(0);
+  const [semaforoData, setSemaforoData] = useState<Record<number, number>>({});
   const [userData, setUserData] = useState<{
     numeroCliente?: number;
     nombre?: string;
@@ -541,6 +571,9 @@ const CompressorMaintenance = () => {
 
       setCompressorMaintenances(compressorMaintenanceData);
       setFilteredMaintenances(compressorMaintenanceData);
+
+      // Actualizar datos del semáforo para todos los compresores
+      await fetchAllSemaforoData(allCompresores);
     } catch (error) {
       console.error("Error refrescando registros de mantenimiento:", error);
     }
@@ -562,7 +595,7 @@ const CompressorMaintenance = () => {
       compressor_alias?: string;
       linea?: string;
       nombre_tipo?: string;
-      tipo?: number;
+      id_mantenimiento?: number;
       frecuencia_horas?: number;
       ultimo_mantenimiento?: string;
       activo?: boolean;
@@ -588,6 +621,53 @@ const CompressorMaintenance = () => {
     }
   };
 
+  // Función para obtener datos del semáforo de mantenimientos para un compresor específico
+  const fetchSemaforoData = async (id_compresor: number) => {
+    try {
+      const response = await fetch(
+        `${URL_API}/web/maintenance/semaforo/${id_compresor}`
+      );
+      if (!response.ok) {
+        throw new Error("Error al obtener datos del semáforo");
+      }
+
+      const data = await response.json();
+
+      // El API retorna: { id_compresor, mantenimientos: [{id_mantenimiento, horas_transcurridas}] }
+      if (data.mantenimientos && Array.isArray(data.mantenimientos)) {
+        // Actualizar el estado con las horas transcurridas por cada id_mantenimiento
+        const newSemaforoData: Record<number, number> = {};
+        data.mantenimientos.forEach(
+          (mant: { id_mantenimiento: number; horas_transcurridas: number }) => {
+            newSemaforoData[mant.id_mantenimiento] = mant.horas_transcurridas;
+          }
+        );
+
+        setSemaforoData((prev) => ({
+          ...prev,
+          ...newSemaforoData,
+        }));
+      }
+    } catch (error) {
+      console.error(
+        `Error fetching semaforo data for compresor ${id_compresor}:`,
+        error
+      );
+    }
+  };
+
+  // Función para obtener datos del semáforo de todos los compresores
+  const fetchAllSemaforoData = async (compresores: Compressor[]) => {
+    try {
+      // Hacer llamadas en paralelo para todos los compresores
+      await Promise.all(
+        compresores.map((comp) => fetchSemaforoData(parseInt(comp.id)))
+      );
+    } catch (error) {
+      console.error("Error fetching all semaforo data:", error);
+    }
+  };
+
   // Función para convertir registros de API a formato local
   const convertApiRecordToLocal = (apiRecord: {
     id: number;
@@ -595,7 +675,7 @@ const CompressorMaintenance = () => {
     compressor_alias?: string;
     linea?: string;
     nombre_tipo?: string;
-    tipo?: number;
+    id_mantenimiento?: number;
     frecuencia_horas?: number;
     ultimo_mantenimiento?: string;
     activo?: boolean;
@@ -607,7 +687,7 @@ const CompressorMaintenance = () => {
       compressorId: apiRecord.id_compresor.toString(),
       compressorAlias:
         apiRecord.compressor_alias || `Compresor ${apiRecord.linea}`,
-      type: apiRecord.nombre_tipo || `Tipo ${apiRecord.tipo}`,
+      type: apiRecord.nombre_tipo || `Tipo ${apiRecord.id_mantenimiento}`,
       frequency: apiRecord.frecuencia_horas || 0,
       lastMaintenanceDate: apiRecord.ultimo_mantenimiento || "",
       nextMaintenanceDate: "", // Calcular si es necesario
@@ -615,6 +695,7 @@ const CompressorMaintenance = () => {
       description:
         apiRecord.observaciones || `Mantenimiento ${apiRecord.nombre_tipo}`,
       createdAt: apiRecord.fecha_creacion || new Date().toISOString(),
+      id_mantenimiento: apiRecord.id_mantenimiento, // Agregar el ID de mantenimiento
     };
   };
 
@@ -774,6 +855,10 @@ const CompressorMaintenance = () => {
 
           setCompressorMaintenances(compressorMaintenanceData);
           setFilteredMaintenances(compressorMaintenanceData);
+
+          // Obtener datos del semáforo de mantenimientos para todos los compresores
+          await fetchAllSemaforoData(allUserCompressors);
+
           setLoading(false);
         } catch (error) {
           console.error("Error parsing user data:", error);
@@ -790,6 +875,17 @@ const CompressorMaintenance = () => {
       loadUserData().catch(console.error);
     }, 500);
   }, []);
+
+  // Actualizar semáforo cada minuto
+  useEffect(() => {
+    if (allCompresores.length > 0) {
+      const interval = setInterval(() => {
+        fetchAllSemaforoData(allCompresores);
+      }, 60000); // 60 segundos
+
+      return () => clearInterval(interval);
+    }
+  }, [allCompresores]);
 
   if (!loading && !isAuthorized) {
     return (
@@ -855,7 +951,7 @@ const CompressorMaintenance = () => {
       // Crear el mantenimiento en la base de datos
       const maintenanceRequest = {
         id_compresor: parseInt(maintenanceData.compressorId),
-        tipo: tipoMantenimiento,
+        id_mantenimiento: tipoMantenimiento,
         frecuencia_horas: maintenanceData.frequency,
         ultimo_mantenimiento: maintenanceData.lastMaintenanceDate,
         activo: maintenanceData.isActive,
@@ -935,7 +1031,7 @@ const CompressorMaintenance = () => {
       for (const type of data.maintenance_types) {
         const maintenanceRequest = {
           id_compresor: parseInt(compressor.id),
-          tipo: type.tipo,
+          id_mantenimiento: type.id_mantenimiento,
           frecuencia_horas: type.frecuencia,
           ultimo_mantenimiento: today,
           activo: true,
@@ -1215,6 +1311,13 @@ const CompressorMaintenance = () => {
                                                   record.lastMaintenanceDate
                                                 }
                                                 frequency={record.frequency}
+                                                horasTranscurridas={
+                                                  record.id_mantenimiento
+                                                    ? semaforoData[
+                                                        record.id_mantenimiento
+                                                      ]
+                                                    : undefined
+                                                }
                                               />
 
                                               {record.description && (
@@ -1378,6 +1481,11 @@ const CompressorMaintenance = () => {
                                       record.lastMaintenanceDate
                                     }
                                     frequency={record.frequency}
+                                    horasTranscurridas={
+                                      record.id_mantenimiento
+                                        ? semaforoData[record.id_mantenimiento]
+                                        : undefined
+                                    }
                                   />
 
                                   {record.description && (

@@ -26,7 +26,7 @@ class UpdateUserRoleRequest(BaseModel):
 
 class AddMaintenanceRequest(BaseModel):
     id_compresor: int
-    tipo: int
+    id_mantenimiento: int
     frecuencia_horas: int
     ultimo_mantenimiento: date 
     activo: bool = True
@@ -36,7 +36,7 @@ class AddMaintenanceRequest(BaseModel):
     fecha_creacion: date
 
 class UpdateMaintenanceRequest(BaseModel):
-    tipo: Optional[int] = None
+    id_mantenimiento: Optional[int] = None
     frecuencia_horas: Optional[int] = None
     ultimo_mantenimiento: Optional[date] = None
     activo: Optional[bool] = None
@@ -1197,12 +1197,12 @@ def add_maintenance(request: AddMaintenanceRequest):
         # Insertar el mantenimiento
         cursor.execute(
             """INSERT INTO mantenimientos 
-               (id_compresor, tipo, frecuencia_horas, ultimo_mantenimiento, activo, 
+               (id_compresor, id_mantenimiento, frecuencia_horas, ultimo_mantenimiento, activo, 
                 observaciones, costo, creado_por, fecha_creacion) 
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (
                 request.id_compresor,
-                request.tipo,
+                request.id_mantenimiento,
                 request.frecuencia_horas,
                 request.ultimo_mantenimiento,
                 request.activo,
@@ -1220,7 +1220,7 @@ def add_maintenance(request: AddMaintenanceRequest):
             "message": "Mantenimiento agregado exitosamente",
             "id": maintenance_id,
             "id_compresor": request.id_compresor,
-            "tipo": request.tipo,
+            "id_mantenimiento": request.id_mantenimiento,
             "frecuencia_horas": request.frecuencia_horas
         }
 
@@ -1260,7 +1260,7 @@ def get_maintenance_records(
                 FROM mantenimientos m
                 JOIN compresores c ON m.id_compresor = c.id
                 JOIN clientes cl ON c.id_cliente = cl.id_cliente
-                LEFT JOIN mantenimientos_tipo mt ON m.tipo = mt.tipo
+                LEFT JOIN mantenimientos_tipo mt ON m.id_mantenimiento = mt.id_mantenimiento
                 WHERE cl.numero_cliente = %s
                 ORDER BY cl.nombre_cliente, c.Alias, m.fecha_creacion DESC
             """, (numero_cliente,))
@@ -1272,7 +1272,7 @@ def get_maintenance_records(
                 FROM mantenimientos m
                 JOIN compresores c ON m.id_compresor = c.id
                 JOIN clientes cl ON c.id_cliente = cl.id_cliente
-                LEFT JOIN mantenimientos_tipo mt ON m.tipo = mt.tipo
+                LEFT JOIN mantenimientos_tipo mt ON m.id_mantenimiento = mt.id_mantenimiento
                 ORDER BY cl.nombre_cliente, c.Alias, m.fecha_creacion DESC
             """)
 
@@ -1293,6 +1293,74 @@ def get_maintenance_records(
         if conn:
             conn.close()
 
+@web.get("/maintenance/semaforo/{id_compresor}", tags=["🛠️ Mantenimiento de Compresores"])
+def get_maintenance_semaforo(id_compresor: int):
+    """Obtener las horas transcurridas por mantenimiento usando el procedimiento SemaforoMantenimientos
+    
+    El procedimiento retorna:
+    - Primera columna: id_mantenimiento
+    - Segunda columna: horas_transcurridas desde el último mantenimiento
+    """
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor()
+
+        # Llamar al procedimiento almacenado con el id_compresor
+        cursor.callproc('SemaforoMantenimientos', [id_compresor])
+        
+        # Obtener los resultados
+        semaforo_data = []
+        for result in cursor.stored_results():
+            semaforo_data = result.fetchall()
+        
+        cursor.close()
+        conn.close()
+
+        # Formatear los datos para el frontend
+        # El procedimiento retorna: id_mantenimiento, horas_transcurridas
+        if not semaforo_data:
+            return {
+                "id_compresor": id_compresor,
+                "mantenimientos": [],
+                "message": "No hay datos disponibles"
+            }
+        
+        # Formatear cada fila
+        mantenimientos_horas = []
+        for row in semaforo_data:
+            if isinstance(row, (list, tuple)) and len(row) >= 2:
+                mantenimientos_horas.append({
+                    "id_mantenimiento": int(row[0]),
+                    "horas_transcurridas": float(row[1])
+                })
+            elif isinstance(row, dict):
+                keys = list(row.keys())
+                if len(keys) >= 2:
+                    mantenimientos_horas.append({
+                        "id_mantenimiento": int(row[keys[0]]),
+                        "horas_transcurridas": float(row[keys[1]])
+                    })
+
+        return {
+            "id_compresor": id_compresor,
+            "mantenimientos": mantenimientos_horas
+        }
+
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching semaforo data: {str(e)}")
+    finally:
+        if 'cursor' in locals() and cursor:
+            cursor.close()
+        if 'conn' in locals() and conn.is_connected():
+            conn.close()
+
 @web.get("/maintenance/{maintenance_id}", tags=["🛠️ Mantenimiento de Compresores"])
 def get_maintenance_by_id(maintenance_id: int):
     """Obtener un registro de mantenimiento específico por ID"""
@@ -1311,7 +1379,7 @@ def get_maintenance_by_id(maintenance_id: int):
             FROM mantenimientos m
             JOIN compresores c ON m.id_compresor = c.id
             JOIN clientes cl ON c.id_cliente = cl.id_cliente
-            LEFT JOIN mantenimientos_tipo mt ON m.tipo = mt.tipo
+            LEFT JOIN mantenimientos_tipo mt ON m.id_mantenimiento = mt.id_mantenimiento
             WHERE m.id = %s
         """, (maintenance_id,))
         
@@ -1353,9 +1421,9 @@ def update_maintenance(maintenance_id: int, request: UpdateMaintenanceRequest):
         update_fields = []
         update_values = []
 
-        if request.tipo is not None:
-            update_fields.append("tipo = %s")
-            update_values.append(request.tipo)
+        if request.id_mantenimiento is not None:
+            update_fields.append("id_mantenimiento = %s")
+            update_values.append(request.id_mantenimiento)
         if request.frecuencia_horas is not None:
             update_fields.append("frecuencia_horas = %s")
             update_values.append(request.frecuencia_horas)

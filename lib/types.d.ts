@@ -176,6 +176,7 @@ export interface MaintenanceRecord {
   isActive: boolean;
   description?: string;
   createdAt: string;
+  id_mantenimiento?: number; // ID del tipo de mantenimiento
 }
 
 export interface CompressorMaintenance {
