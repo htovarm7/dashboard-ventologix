@@ -33,7 +33,6 @@ type MaintenanceTypesResponse = {
   maintenance_types: MaintenanceType[];
 };
 
-// Componente que muestra un contador por horas basado en la fecha del último mantenimiento
 const MaintenanceTimer = ({
   lastMaintenanceDate,
   frequency,
@@ -43,7 +42,6 @@ const MaintenanceTimer = ({
 }) => {
   const [now, setNow] = useState<Date>(new Date());
 
-  // Actualizar cada minuto para reflejar el paso de las horas
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 60 * 1000);
     return () => clearInterval(interval);
@@ -52,7 +50,6 @@ const MaintenanceTimer = ({
   const parseDate = (d?: string) => {
     if (!d) return null;
     try {
-      // Si la fecha viene como YYYY-MM-DD, añadir hora para evitar parse inconsistentes
       const date = d.includes("T") ? new Date(d) : new Date(`${d}T00:00:00`);
       return isNaN(date.getTime()) ? null : date;
     } catch {
@@ -78,8 +75,6 @@ const MaintenanceTimer = ({
     100
   );
 
-  // Usar porcentaje restante para el semáforo:
-  // remainingPercent = % que queda de la frecuencia (100% = totalmente sin usar, 0% = justo en límite)
   const remainingPercent = Math.max(0, 100 - progressPercent);
 
   let status: "green" | "yellow" | "red" = "green";
@@ -147,7 +142,6 @@ const MaintenanceTimer = ({
   );
 };
 
-// Componente modal para dar de alta compresores
 const CompressorRegistrationModal = ({
   availableClients,
   onClientSelect,
@@ -225,7 +219,6 @@ const CompressorRegistrationModal = ({
             )}
           </div>
 
-          {/* Selección de compresor */}
           {selectedClient && (
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -257,7 +250,6 @@ const CompressorRegistrationModal = ({
             </div>
           )}
 
-          {/* Información del compresor seleccionado */}
           {selectedCompressor && (
             <div className="mb-6 p-4 bg-blue-50 rounded-lg">
               <h3 className="font-medium text-blue-900 mb-2">
@@ -275,7 +267,6 @@ const CompressorRegistrationModal = ({
             </div>
           )}
 
-          {/* Botones */}
           <div className="flex gap-3">
             <button
               onClick={onClose}
@@ -298,7 +289,6 @@ const CompressorRegistrationModal = ({
   );
 };
 
-// Modal para editar mantenimiento
 const EditMaintenanceModal = ({
   maintenance,
   onClose,
@@ -322,7 +312,6 @@ const EditMaintenanceModal = ({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Llamar a la API para actualizar el mantenimiento
       const response = await fetch(
         `${URL_API}/web/maintenance/${maintenance.id}`,
         {
@@ -340,7 +329,6 @@ const EditMaintenanceModal = ({
       );
 
       if (response.ok) {
-        // Refrescar los datos desde la API para asegurar consistencia
         await onRefresh();
         onClose();
       } else {
@@ -375,7 +363,6 @@ const EditMaintenanceModal = ({
           </div>
 
           <div className="space-y-4">
-            {/* Frecuencia */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Frecuencia (horas)
@@ -393,7 +380,6 @@ const EditMaintenanceModal = ({
               />
             </div>
 
-            {/* Último mantenimiento */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Último Mantenimiento

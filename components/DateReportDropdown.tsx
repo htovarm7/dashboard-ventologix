@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
@@ -78,6 +78,8 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
   selectedCompresor = null,
 }) => {
   const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const getToday = () => {
     const today = new Date();
@@ -97,6 +99,27 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
   const [selectedDate, setSelectedDate] = useState(getToday());
   const [calendarValue, setCalendarValue] = useState<Value>(getTodayDate());
   const [showCalendar, setShowCalendar] = useState(false);
+
+  // Close when tapping/clicking outside
+  useEffect(() => {
+    function onDocClick(e: MouseEvent | TouchEvent) {
+      const target = e.target as Node | null;
+      if (
+        containerRef.current &&
+        target &&
+        !containerRef.current.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("touchstart", onDocClick);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("touchstart", onDocClick);
+    };
+  }, []);
 
   const currentWeek = getWeekNumber(new Date()) - 1;
   const [selectedWeek, setSelectedWeek] = useState<number>(
@@ -199,9 +222,21 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
   return (
     <>
       <style jsx>{calendarStyles}</style>
-      <div className="relative text-center group">
+      <div ref={containerRef} className="relative text-center group">
         <h2
+          tabIndex={0}
+          role="button"
+          aria-expanded={isOpen}
           className={`text-2xl ${colorScheme.text} hover:scale-110 cursor-pointer transition-transform flex items-center justify-center gap-2`}
+          onClick={() => {
+            setIsOpen((s) => !s);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setIsOpen((s) => !s);
+            }
+          }}
         >
           {title}
           <svg
@@ -220,7 +255,9 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
         </h2>
 
         {selectedCompresor && (
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-72 sm:w-80 max-w-[90vw] bg-white border border-gray-200 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-10">
+          <div className={`absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-72 sm:w-80 max-w-[90vw] bg-white border border-gray-200 rounded-lg shadow-xl transition-all duration-300 z-10 ${
+            isOpen ? "opacity-100 visible" : "opacity-0 invisible"
+          } group-hover:opacity-100 group-hover:visible`}>
             <div className="py-2">
               {tipo === "DIARIO" && (
                 <div className="px-4 py-3 border-b border-gray-100 flex flex-col items-center">
