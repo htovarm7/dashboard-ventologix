@@ -65,14 +65,20 @@ const Reportes = () => {
       });
 
       setFilteredCompressors(filtered);
-      setShowSuggestions(filtered.length > 0);
+      setShowSuggestions(filtered.length > 0 && !selectedCompressor);
 
-      // Si hay exactamente un resultado, seleccionarlo automáticamente
-      if (filtered.length === 1) {
+      // Si hay exactamente un resultado y no hay compresor seleccionado aún, autoseleccionar
+      if (filtered.length === 1 && !selectedCompressor) {
         setSelectedCompressor(filtered[0]);
         setShowSuggestions(false);
-      } else {
-        setSelectedCompressor(null);
+      } else if (filtered.length !== 1 && !showSuggestions) {
+        // Si hay más de un resultado o ninguno, limpiar la selección
+        const isStillValid = filtered.some(
+          (c) => c.id === selectedCompressor?.id
+        );
+        if (!isStillValid) {
+          setSelectedCompressor(null);
+        }
       }
     }
   }, [searchQuery, compressors]);
@@ -93,26 +99,28 @@ const Reportes = () => {
   }, []);
 
   const handleCreateReport = () => {
-    if (selectedCompressor) {
-      // Enviar información del compresor seleccionado
-      const compressorData = {
-        id: selectedCompressor.id || selectedCompressor.id,
-        linea: selectedCompressor.linea || selectedCompressor.linea,
-        alias: selectedCompressor.alias || selectedCompressor.alias,
-        numero_cliente: selectedCompressor.numero_cliente,
-        nombre_cliente: selectedCompressor.nombre_cliente,
-        numero_serie: selectedCompressor.numero_serie,
-      };
-
-      // Guardar en sessionStorage para que la página de create lo pueda usar
-      sessionStorage.setItem(
-        "selectedCompressorForReport",
-        JSON.stringify(compressorData)
-      );
-    } else {
-      // Si no hay compresor seleccionado, limpiar el storage
-      sessionStorage.removeItem("selectedCompressorForReport");
+    if (!selectedCompressor) {
+      alert("Por favor selecciona un compresor primero");
+      return;
     }
+
+    // Enviar información del compresor seleccionado
+    const compressorData = {
+      id: selectedCompressor.id || selectedCompressor.id,
+      linea: selectedCompressor.linea || selectedCompressor.linea,
+      alias: selectedCompressor.alias || selectedCompressor.alias,
+      numero_cliente: selectedCompressor.numero_cliente,
+      nombre_cliente: selectedCompressor.nombre_cliente,
+      numero_serie: selectedCompressor.numero_serie,
+    };
+
+    console.log("Guardando compresor en sessionStorage:", compressorData);
+
+    // Guardar en sessionStorage para que la página de create lo pueda usar
+    sessionStorage.setItem(
+      "selectedCompressorForReport",
+      JSON.stringify(compressorData)
+    );
 
     router.push("/compressor-maintenance/technician/reports/create");
   };
@@ -152,6 +160,13 @@ const Reportes = () => {
     setShowSuggestions(false);
   };
 
+  const handleClearSelection = () => {
+    setSelectedCompressor(null);
+    setSearchQuery("");
+    setFilteredCompressors([]);
+    setShowSuggestions(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <BackButton />
@@ -188,7 +203,11 @@ const Reportes = () => {
                   setShowSuggestions(true);
                 }
               }}
-              className="block w-full pl-10 pr-3 py-4 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+              className={`block w-full pl-10 pr-3 py-4 border rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 text-lg transition-colors ${
+                selectedCompressor
+                  ? "border-blue-500 ring-2 ring-blue-200 focus:ring-blue-500 focus:border-blue-500"
+                  : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+              }`}
             />
 
             {/* Suggestions Dropdown */}
@@ -268,43 +287,64 @@ const Reportes = () => {
           {selectedCompressor && (
             <div className="mt-4 max-w-2xl mx-auto">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center">
-                  <svg
-                    className="w-5 h-5 text-blue-600 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <div>
-                    <p className="text-blue-800 font-semibold">
-                      Compresor seleccionado:{" "}
-                      {selectedCompressor.alias ||
-                        selectedCompressor.alias ||
-                        `Compresor ${
-                          selectedCompressor.linea || selectedCompressor.linea
-                        }`}
-                    </p>
-                    <p className="text-blue-600 text-sm">
-                      {selectedCompressor.numero_serie && (
-                        <span className="mr-3">
-                          S/N: {selectedCompressor.numero_serie}
-                        </span>
-                      )}
-                      Cliente:{" "}
-                      {selectedCompressor.nombre_cliente ||
-                        `Cliente ${selectedCompressor.numero_cliente}`}
-                      {" | "}
-                      Línea:{" "}
-                      {selectedCompressor.linea || selectedCompressor.linea}
-                    </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <svg
+                      className="w-5 h-5 text-blue-600 mr-2 flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    <div>
+                      <p className="text-blue-800 font-semibold">
+                        Compresor seleccionado:{" "}
+                        {selectedCompressor.alias ||
+                          selectedCompressor.alias ||
+                          `Compresor ${
+                            selectedCompressor.linea || selectedCompressor.linea
+                          }`}
+                      </p>
+                      <p className="text-blue-600 text-sm">
+                        {selectedCompressor.numero_serie && (
+                          <span className="mr-3">
+                            S/N: {selectedCompressor.numero_serie}
+                          </span>
+                        )}
+                        Cliente:{" "}
+                        {selectedCompressor.nombre_cliente ||
+                          `Cliente ${selectedCompressor.numero_cliente}`}
+                        {" | "}
+                        Línea:{" "}
+                        {selectedCompressor.linea || selectedCompressor.linea}
+                      </p>
+                    </div>
                   </div>
+                  <button
+                    onClick={handleClearSelection}
+                    className="ml-4 text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-2 rounded-full transition-colors"
+                    title="Limpiar selección"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
                 </div>
               </div>
             </div>
@@ -314,7 +354,12 @@ const Reportes = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
           <button
             onClick={handleCreateReport}
-            className="group relative bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-8 px-8 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
+            disabled={!selectedCompressor}
+            className={`group relative font-bold py-8 px-8 rounded-xl shadow-lg transition-all duration-300 ${
+              selectedCompressor
+                ? "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white transform hover:scale-105 hover:shadow-xl cursor-pointer"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
           >
             <div className="flex items-center space-x-4">
               <svg
@@ -336,14 +381,18 @@ const Reportes = () => {
                     ? "Crear Reporte Específico"
                     : "Crear Reporte"}
                 </h2>
-                <p className="text-blue-100 text-base">
+                <p
+                  className={`text-base ${
+                    selectedCompressor ? "text-blue-100" : "text-gray-400"
+                  }`}
+                >
                   {selectedCompressor
                     ? `Para: ${
                         selectedCompressor.alias ||
                         selectedCompressor.alias ||
                         "Compresor seleccionado"
                       }`
-                    : "Generar un nuevo reporte de mantenimiento"}
+                    : "Selecciona un compresor primero"}
                 </p>
               </div>
             </div>
@@ -379,11 +428,27 @@ const Reportes = () => {
 
         {/* Additional Info */}
         <div className="mt-12 text-center">
-          <p className="text-gray-600 text-lg">
-            {selectedCompressor
-              ? "Compresor seleccionado. Haz clic en 'Crear Reporte Específico' para continuar."
-              : "Busca un compresor específico o selecciona una opción para continuar"}
-          </p>
+          {selectedCompressor ? (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 max-w-2xl mx-auto">
+              <p className="text-green-800 text-lg font-semibold">
+                ✓ Compresor seleccionado correctamente
+              </p>
+              <p className="text-green-600 text-sm mt-1">
+                Haz clic en "Crear Reporte Específico" para generar el reporte
+                del compresor seleccionado
+              </p>
+            </div>
+          ) : (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-2xl mx-auto">
+              <p className="text-yellow-800 text-lg font-semibold">
+                ⚠ Selecciona un compresor primero
+              </p>
+              <p className="text-yellow-600 text-sm mt-1">
+                Usa la barra de búsqueda para encontrar y seleccionar un
+                compresor antes de crear un reporte
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

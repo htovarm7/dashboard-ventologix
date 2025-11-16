@@ -634,6 +634,102 @@ def get_engineer_compressors(email: str):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching engineer compressors: {str(e)}")
+
+# GET - Obtener registros de mantenimiento por número de cliente
+@web.get("/registros-mantenimiento", tags=["🔧 Mantenimiento"])
+def get_registros_mantenimiento(numero_cliente: int = Query(..., description="Número del cliente")):
+    """Obtiene los registros de mantenimiento de compresores de un cliente"""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        # Consulta para obtener registros de mantenimiento filtrados por número de cliente
+        query = """
+            SELECT 
+                id,
+                timestamp,
+                cliente,
+                tecnico,
+                email,
+                tipo,
+                compresor,
+                numero_serie,
+                filtro_aire,
+                filtro_aceite,
+                separador_aceite,
+                aceite,
+                kit_admision,
+                kit_minima,
+                kit_termostatica,
+                cople_flexible,
+                valvula_solenoide,
+                sensor_temperatura,
+                transductor_presion,
+                contactores,
+                analisis_baleros_unidad,
+                analisis_baleros_ventilador,
+                lubricacion_baleros,
+                limpieza_radiador_interna,
+                limpieza_radiador_externa,
+                comentarios_generales,
+                numero_cliente,
+                comentario_cliente,
+                link_form,
+                carpeta_fotos
+            FROM registros_mantenimiento_tornillo
+            WHERE numero_cliente = %s
+            ORDER BY timestamp DESC
+        """
+        cursor.execute(query, (numero_cliente,))
+        registros = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        # Formatear los registros para el frontend
+        formatted_registros = []
+        for registro in registros:
+            # Construir lista de tareas realizadas usando el mapeo
+            tasks = []
+            for col_name, display_name in MAINTENANCE_COLUMN_MAPPING.items():
+                if col_name in registro and registro[col_name]:
+                    # Verificar si se realizó el mantenimiento (Sí/No)
+                    value = registro[col_name].strip() if isinstance(registro[col_name], str) else registro[col_name]
+                    if value == "Sí":
+                        tasks.append({
+                            "id": col_name,
+                            "name": display_name,
+                            "completed": True,
+                            "comments": ""
+                        })
+
+            formatted_registro = {
+                "id": str(registro['id']),
+                "date": registro['timestamp'].strftime('%Y-%m-%d') if registro['timestamp'] else "",
+                "technician": registro['tecnico'] or "",
+                "cliente": registro['cliente'] or "",
+                "compresor": registro['compresor'] or "",
+                "numero_serie": registro['numero_serie'] or "",
+                "tasks": tasks,
+                "photos": [],  # Las fotos están en Google Drive (carpeta_fotos)
+                "carpeta_fotos": registro['carpeta_fotos'] or "",
+                "link_form": registro['link_form'] or "",
+                "comentarios_generales": registro['comentarios_generales'] or "",
+                "comentario_cliente": registro['comentario_cliente'] or ""
+            }
+            formatted_registros.append(formatted_registro)
+
+        return formatted_registros
+
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching registros de mantenimiento: {str(e)}")
     
 @web.get("/beta/consumption_prediction", tags=["📊 Análisis y Predicciones"])
 def consumption_prediction_plot(

@@ -26,11 +26,19 @@ type Visit = {
   technician: string;
   tasks: MaintenanceTask[];
   photos: string[];
+  carpeta_fotos?: string;
+  link_form?: string;
+  comentarios_generales?: string;
+  comentario_cliente?: string;
+  compresor?: string;
+  numero_serie?: string;
+  cliente?: string;
 };
 
 type Compressor = {
   id: string;
   name: string;
+  numero_serie?: string;
   visits: Visit[];
 };
 
@@ -38,97 +46,6 @@ type Client = {
   id: string;
   name: string;
   compressors: Compressor[];
-};
-
-// Mock data solo para visitas y detalles
-const getMockVisitsForCompressor = (compressorId: string): Visit[] => {
-  const visits: Visit[] = [
-    {
-      id: `v1-${compressorId}`,
-      date: "2024-01-02",
-      technician: "Ivan",
-      tasks: [
-        {
-          id: "t1",
-          name: "Filtro de aire",
-          completed: true,
-          comments: "Estaba bien sucio y lo cambié",
-        },
-        {
-          id: "t2",
-          name: "Limpieza de bandas",
-          completed: true,
-          comments: "Ya le urgía!",
-        },
-        {
-          id: "t3",
-          name: "Cambio de aceite",
-          completed: true,
-          comments: "",
-        },
-      ],
-      photos: [
-        "https://via.placeholder.com/200x150/4285F4/FFFFFF?text=Foto+1",
-        "https://via.placeholder.com/200x150/34A853/FFFFFF?text=Foto+2",
-      ],
-    },
-    {
-      id: `v2-${compressorId}`,
-      date: "2024-02-21",
-      technician: "Ivan",
-      tasks: [
-        {
-          id: "t5",
-          name: "Inspección general",
-          completed: true,
-          comments: "Todo en buen estado",
-        },
-        {
-          id: "t6",
-          name: "Limpieza de radiador",
-          completed: true,
-          comments: "",
-        },
-      ],
-      photos: [],
-    },
-    {
-      id: `v3-${compressorId}`,
-      date: "2024-05-11",
-      technician: "Carlos",
-      tasks: [
-        {
-          id: "t7",
-          name: "Mantenimiento preventivo",
-          completed: true,
-          comments: "Revisión completa realizada",
-        },
-      ],
-      photos: ["https://via.placeholder.com/200x150/FBBC04/FFFFFF?text=Foto+1"],
-    },
-    {
-      id: `v4-${compressorId}`,
-      date: "2024-11-07",
-      technician: "Ivan",
-      tasks: [
-        {
-          id: "t8",
-          name: "Filtro de aire",
-          completed: true,
-          comments: "Cambio programado",
-        },
-        {
-          id: "t9",
-          name: "Verificación de fugas",
-          completed: true,
-          comments: "Sin fugas detectadas",
-        },
-      ],
-      photos: [],
-    },
-  ];
-
-  return visits;
 };
 
 const Visitas = () => {
@@ -144,69 +61,101 @@ const Visitas = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadUserData = () => {
+    const loadUserData = async () => {
       const userData = sessionStorage.getItem("userData");
       if (userData) {
         try {
           const parsedData = JSON.parse(userData);
           const compresores = parsedData.compresores || [];
 
-          // Agrupar compresores por cliente
-          const clientsMap = new Map<string, Compressor[]>();
+          // Si no hay compresores, no hay datos para mostrar
+          if (compresores.length === 0) {
+            console.error("No hay compresores disponibles");
+            setLoading(false);
+            return;
+          }
 
-          compresores.forEach(
-            (
-              comp: {
-                id_compresor?: number;
-                id?: string | number;
-                linea?: string;
-                Linea?: string;
-                alias?: string;
-                Alias?: string;
-                numero_cliente?: number;
-                nombre_cliente?: string;
-              },
-              index: number
-            ) => {
-              const clientName =
-                comp.nombre_cliente ||
-                `Cliente ${comp.numero_cliente || parsedData.numero_cliente}`;
-              const compressorId = `${comp.id_compresor || index}`;
-              const compressorName =
-                comp.alias ||
-                comp.Alias ||
-                `Compresor ${comp.linea || comp.id || index + 1}`;
-
-              if (!clientsMap.has(clientName)) {
-                clientsMap.set(clientName, []);
-              }
-
-              const compressor: Compressor = {
-                id: compressorId,
-                name: compressorName,
-                visits: getMockVisitsForCompressor(compressorId),
-              };
-
-              clientsMap.get(clientName)!.push(compressor);
+          // Obtener todos los números de cliente únicos de los compresores
+          const numerosCliente = new Set<number>();
+          compresores.forEach((comp: any) => {
+            const numCliente = comp.numero_cliente || parsedData.numero_cliente;
+            if (numCliente) {
+              numerosCliente.add(numCliente);
             }
-          );
+          });
 
-          // Convertir el mapa a array de clientes
-          const clients: Client[] = Array.from(clientsMap.entries()).map(
-            ([clientName, compressors], index) => ({
-              id: `client-${index}`,
-              name: clientName,
-              compressors: compressors,
-            })
-          );
+          if (numerosCliente.size === 0) {
+            console.error("No se encontró número de cliente");
+            setLoading(false);
+            return;
+          }
+
+          // Fetch maintenance records from API para todos los clientes
+          const allRegistros: Visit[] = [];
+          
+          for (const numeroCliente of Array.from(numerosCliente)) {
+            try {
+              const response = await fetch(
+                `http://localhost:8000/web/registros-mantenimiento?numero_cliente=${numeroCliente}`
+              );
+
+              if (response.ok) {
+                const registros = await response.json();
+                allRegistros.push(...registros);
+              }
+            } catch (err) {
+              console.error(`Error fetching data for client ${numeroCliente}:`, err);
+            }
+          }
+
+          // Agrupar registros por cliente y compresor
+          const clientsMap = new Map<string, Client>();
+
+          allRegistros.forEach((registro) => {
+            const clientKey = registro.cliente || "Sin cliente";
+            const compressorKey = `${registro.compresor}-${registro.numero_serie}`;
+            const compressorName = registro.compresor || "Compresor";
+
+            // Crear cliente si no existe
+            if (!clientsMap.has(clientKey)) {
+              clientsMap.set(clientKey, {
+                id: clientKey,
+                name: clientKey,
+                compressors: [],
+              });
+            }
+
+            const client = clientsMap.get(clientKey)!;
+
+            // Buscar o crear compresor dentro del cliente
+            let compressor = client.compressors.find(
+              (c) => c.id === compressorKey
+            );
+
+            if (!compressor) {
+              compressor = {
+                id: compressorKey,
+                name: compressorName,
+                numero_serie: registro.numero_serie,
+                visits: [],
+              };
+              client.compressors.push(compressor);
+            }
+
+            // Agregar visita al compresor
+            compressor.visits.push(registro);
+          });
+
+          const clients = Array.from(clientsMap.values());
 
           setClientsData(clients);
           setLoading(false);
         } catch (error) {
-          console.error("Error parsing userData:", error);
+          console.error("Error loading data:", error);
           setLoading(false);
         }
       } else {
+        console.error("No userData in sessionStorage");
         setLoading(false);
       }
     };
@@ -447,6 +396,32 @@ const Visitas = () => {
 
             {/* Contenido del modal */}
             <div className="p-6">
+              {/* Información del compresor */}
+              {selectedVisit.compresor && (
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <span className="font-semibold text-gray-700">
+                        Compresor:
+                      </span>{" "}
+                      <span className="text-gray-900">
+                        {selectedVisit.compresor}
+                      </span>
+                    </div>
+                    {selectedVisit.numero_serie && (
+                      <div>
+                        <span className="font-semibold text-gray-700">
+                          Número de Serie:
+                        </span>{" "}
+                        <span className="text-gray-900">
+                          {selectedVisit.numero_serie}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Tareas realizadas */}
               <div className="mb-8">
                 <div className="flex items-center space-x-2 mb-4">
@@ -488,38 +463,81 @@ const Visitas = () => {
                 </div>
               </div>
 
-              {/* Fotos
-              {selectedVisit.photos.length > 0 && (
-                <div>
+              {/* Comentarios */}
+              {(selectedVisit.comentarios_generales ||
+                selectedVisit.comentario_cliente) && (
+                <div className="mb-8">
                   <div className="flex items-center space-x-2 mb-4">
-                    <Camera className="text-gray-700" size={24} />
-                    <h4 className="text-xl font-bold text-gray-900">Fotos</h4>
+                    <MessageSquare className="text-gray-700" size={24} />
+                    <h4 className="text-xl font-bold text-gray-900">
+                      Comentarios
+                    </h4>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {selectedVisit.photos.map((photo, index) => (
-                      <div
-                        key={index}
-                        className="aspect-video bg-gray-100 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
-                      >
-                        <Image
-                          src={photo}
-                          alt={`Foto ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
+                  {selectedVisit.comentarios_generales && (
+                    <div className="mb-3 p-4 bg-gray-50 rounded-lg">
+                      <div className="font-semibold text-gray-700 mb-1">
+                        Comentarios del Técnico:
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )} */}
-
-              {selectedVisit.photos.length === 0 && (
-                <div className="text-center py-8 bg-gray-50 rounded-lg">
-                  <Camera className="mx-auto text-gray-300 mb-2" size={48} />
-                  <p className="text-gray-500">
-                    No se agregaron fotos en esta visita
-                  </p>
+                      <div className="text-gray-900">
+                        {selectedVisit.comentarios_generales}
+                      </div>
+                    </div>
+                  )}
+                  {selectedVisit.comentario_cliente && (
+                    <div className="p-4 bg-blue-50 rounded-lg">
+                      <div className="font-semibold text-gray-700 mb-1">
+                        Comentarios del Cliente:
+                      </div>
+                      <div className="text-gray-900">
+                        {selectedVisit.comentario_cliente}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
+
+              {/* Enlaces */}
+              {(selectedVisit.carpeta_fotos || selectedVisit.link_form) && (
+                <div className="mb-8">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Camera className="text-gray-700" size={24} />
+                    <h4 className="text-xl font-bold text-gray-900">
+                      Recursos
+                    </h4>
+                  </div>
+                  <div className="space-y-3">
+                    {selectedVisit.carpeta_fotos && (
+                      <a
+                        href={selectedVisit.carpeta_fotos}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center space-x-3 p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+                      >
+                        <Camera className="text-green-600" size={20} />
+                        <div>
+                          <div className="font-semibold text-gray-900">
+                            Carpeta de Fotos
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Ver fotos en Google Drive
+                          </div>
+                        </div>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!selectedVisit.carpeta_fotos &&
+                !selectedVisit.link_form &&
+                selectedVisit.photos.length === 0 && (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg">
+                    <Camera className="mx-auto text-gray-300 mb-2" size={48} />
+                    <p className="text-gray-500">
+                      No hay recursos adicionales para esta visita
+                    </p>
+                  </div>
+                )}
             </div>
 
             {/* Footer del modal */}

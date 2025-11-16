@@ -4,113 +4,28 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import BackButton from "@/components/BackButton";
-import { ReportData } from "@/lib/types";
+import { ReportData, MaintenanceReportResponse } from "@/lib/types";
 import Image from "next/image";
 
-// Mock data para desarrollo
-const mockReportData: ReportData = {
-  folio: "MTY1641",
-  fecha: "23/08/2022",
-  compania: "GREEN CORRUGATED S.A. DE C.V.",
-  atencion: "Ing. Jorge Ezquerro",
-  direccion:
-    "VIA FERRCARRIL A MATAMOROS F COL. Sin Nombre C.P 88443 Nueva Lablueo",
-  telefono: "8152841751",
-  email: "CYNTHIA.PAEZ.RODRIGUEZ@RBRNBM.COM",
-  tecnico: "IVAN GUILLERMO REYES URBINA",
-  ayudantes: ["JOSÉ JOEL MARTÍNEZ ULLOA"],
-
-  tipo: "COMPRESORES",
-  modelo: "SGR 4FPM",
-  numeroSerie: "P1M2196290",
-  amperaje: "SQUARE D",
-  voltaje: "440",
-  marca: "Ingersoll Rand",
-
-  inicioServicio: "23/08/2022 3:54 p.m",
-  finServicio: "23/08/2022 5:23 p.m",
-  tipoServicio: "NORMAL",
-  tipoOrden: "DIAGNÓSTICO",
-
-  elementos: [
-    { nombre: "Nivel de aceite", estado: "correcto" },
-    { nombre: "Válvulas solenoides", estado: "correcto" },
-    { nombre: "Válvulas de control de aire", estado: "correcto" },
-    { nombre: "Válvula check/válvula de aceite", estado: "correcto" },
-    { nombre: "Presión(Descarga)", estado: "correcto" },
-    { nombre: "Termostato y elementos de aceite", estado: "correcto" },
-    { nombre: "Transmisores", estado: "correcto" },
-    { nombre: "Filtro de agua", estado: "incorrecto" },
-    { nombre: "Filtro de aire", estado: "incorrecto" },
-    { nombre: "Empaques de copetes", estado: "correcto" },
-    { nombre: "Válvula de Admisión/instalación eléctrica", estado: "correcto" },
-    { nombre: "Sello mecánico", estado: "correcto" },
-    { nombre: "Panel de radiador", estado: "correcto" },
-    { nombre: "Motor principal", estado: "correcto" },
-    { nombre: "Indicador de presión/temperatura", estado: "correcto" },
-    { nombre: "Válvulas de seguridad", estado: "correcto" },
-    { nombre: "Válvula check y/o Válvula Mínima", estado: "correcto" },
-    { nombre: "Baleros 1 Admisión", estado: "correcto" },
-    { nombre: "Baleros fecha de vencimiento", estado: "correcto" },
-    { nombre: "Baleros 1 descarga", estado: "correcto" },
-    { nombre: "Filtro de aceite", estado: "incorrecto" },
-    { nombre: "Filtro de aceite(Filtro(Fugas)", estado: "incorrecto" },
-    { nombre: "Mangueras", estado: "correcto" },
-    { nombre: "Líneas de aire(Fugas)", estado: "correcto" },
-    { nombre: "Rotores", estado: "correcto" },
-    { nombre: "Piloto automático y/o motor", estado: "correcto" },
-    { nombre: "Acoplamiento o bandas", estado: "correcto" },
-    { nombre: "Flecha de acoplamiento(Motor)", estado: "correcto" },
-  ],
-
-  lecturas: {
-    presionSeparador: 4,
-    presionAire: 6,
-    temperaturaOperacion: 194,
-    lcP1: 169,
-    lcP2: 169,
-    lcV1: 105,
-    lcV2: 109,
-    lcV3: 108,
-    voltL1L2: 460,
-    voltL2L3: 464,
-  },
-
-  condiciones: {
-    oralPortal: "N/A",
-    notas:
-      "Nota: ambiente en centro. Falta de ventilación de aire fresco al área del equipo.",
-  },
-
-  condicionesAmbientales: {
-    notaAdicional:
-      "Nota: ambiente en centro. Falta de ventilación de aire fresco al área del equipo.",
-  },
-
-  refacciones: [
-    {
-      refaccion:
-        "Filtro de Aire, Filtro de aceite, candado y sustituto al panel de enfriamiento del equipo y filtro general del equipo",
-      cantidad: 1,
-    },
-  ],
-
-  tiempoLaborado: [
-    { dia: "23/08/2022", entrada: "3:54 p.m", salida: "5:23 p.m" },
-  ],
-
-  firmas: {
-    cliente: "C+e",
-    tecnico: "IVN",
-  },
-
-  notasFinales: `Se realiza visita para diagnóstico técnica la sistema GREEN CORRUGATED S.A. DE C.V. para diagnóstico a compresor ingersoll Rand de 125 PSI el cual no esta trabajando el, detalle se encuentro en la válvula de carga la cual no estaba permitiendo el abastecimiento de presión ni filtros general del equipo.
-  
-Para esto comentamos con Ing. Jorge Ezquerro el estado actual del compresor, sin embargo no hace toma de desciciones sin antes pasar autorizacion de estados unidos el cual es el encargado de toma deciciones y autorizaciones.
-
-Filtro de Aire, Filtro de aceites, candado y sustitución al panel de enfriamiento del equipo y filtros general del equipo.
-
-Para continuar con la reparación del equipo en operación requiere autorización.`,
+// Mapeo de los nombres de mantenimiento de la API a elementos del reporte
+const MAINTENANCE_MAPPING: Record<string, string> = {
+  "Filtro de Aire": "Filtro de aire",
+  "Filtro Aceite": "Filtro de aceite",
+  "Separador de Aceite": "Separador de aceite",
+  "Aceite Sintético": "Nivel de aceite",
+  "Kit Válvula de Admisión": "Válvula de Admisión/instalación eléctrica",
+  "Kit Válvula de mínima presión": "Válvula check y/o Válvula Mínima",
+  "Kit de Válvula Termostática": "Termostato y elementos de aceite",
+  "Cople Flexible": "Acoplamiento o bandas",
+  "Válvula Solenoide": "Válvulas solenoides",
+  "Sensor de Temperatura": "Indicador de presión/temperatura",
+  "Transductor de Presión": "Presión(Descarga)",
+  "Contactores Eléctricos": "Válvula de Admisión/instalación eléctrica",
+  "Análisis baleros, unidad de compresión y motor eléctrico": "Baleros 1 Admisión",
+  "Análisis baleros ventilador enfriamiento": "Baleros 1 descarga",
+  "Lubricación Baleros Motor Electrico": "Motor principal",
+  "Limpieza interna de Radiador": "Panel de radiador",
+  "Limpieza externa de Radiador": "Panel de radiador",
 };
 
 const GenerateReportPage = () => {
@@ -120,6 +35,7 @@ const GenerateReportPage = () => {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [numeroSerie, setNumeroSerie] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -128,40 +44,197 @@ const GenerateReportPage = () => {
     }
 
     if (isAuthenticated) {
-      fetchReportData();
+      // Obtener número de serie del compresor seleccionado
+      const compressorData = sessionStorage.getItem("selectedCompressorForReport");
+      console.log("Datos del sessionStorage:", compressorData);
+      
+      if (compressorData) {
+        try {
+          const parsed = JSON.parse(compressorData);
+          console.log("Datos parseados:", parsed);
+          const serie = parsed.numero_serie;
+          console.log("Número de serie obtenido:", serie);
+          
+          if (serie) {
+            setNumeroSerie(serie);
+            fetchReportData(serie);
+          } else {
+            console.error("No se encontró numero_serie en los datos");
+            setError("No se encontró el número de serie del compresor seleccionado");
+            setLoading(false);
+          }
+        } catch (err) {
+          console.error("Error parsing compressor data:", err);
+          setError("Error al obtener datos del compresor seleccionado");
+          setLoading(false);
+        }
+      } else {
+        console.error("No hay selectedCompressorForReport en sessionStorage");
+        setError("No se ha seleccionado un compresor. Por favor regresa y selecciona uno.");
+        setLoading(false);
+      }
     }
   }, [isAuthenticated, isLoading, router]);
 
-  const fetchReportData = async () => {
+  const fetchReportData = async (serie: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      // TODO: Descomentar cuando el endpoint esté listo
-      // const response = await fetch("/api/maintenance-report", {
-      //   method: "GET",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //   },
-      // });
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+      const response = await fetch(
+        `${API_BASE_URL}/web/maintenance/report-data/${serie}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-      // if (!response.ok) {
-      //   throw new Error("Error al obtener los datos del reporte");
-      // }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.detail || "Error al obtener los datos del reporte"
+        );
+      }
 
-      // const data = await response.json();
-      // setReportData(data);
-
-      // Usando mock data por ahora
-      setTimeout(() => {
-        setReportData(mockReportData);
-        setLoading(false);
-      }, 1000); // Simula un pequeño delay de blue
+      const data: MaintenanceReportResponse = await response.json();
+      
+      // Mapear los datos de la API al formato ReportData
+      const mappedData = mapApiDataToReportData(data.reporte);
+      setReportData(mappedData);
+      setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
       console.error("Error fetching report data:", err);
       setLoading(false);
     }
+  };
+
+  const mapApiDataToReportData = (apiData: any): ReportData => {
+    // Generar folio basado en ID y timestamp
+    const fecha = apiData.timestamp ? new Date(apiData.timestamp) : new Date();
+    const folio = `MTY${apiData.id || "0000"}`;
+
+    // Mapear mantenimientos realizados a elementos
+    const elementos: Array<{ nombre: string; estado: "correcto" | "incorrecto" | "noAplica" }> = [
+      { nombre: "Nivel de aceite", estado: "noAplica" },
+      { nombre: "Válvulas solenoides", estado: "noAplica" },
+      { nombre: "Válvulas de control de aire", estado: "noAplica" },
+      { nombre: "Válvula check/válvula de aceite", estado: "noAplica" },
+      { nombre: "Presión(Descarga)", estado: "noAplica" },
+      { nombre: "Termostato y elementos de aceite", estado: "noAplica" },
+      { nombre: "Transmisores", estado: "noAplica" },
+      { nombre: "Filtro de agua", estado: "noAplica" },
+      { nombre: "Filtro de aire", estado: "noAplica" },
+      { nombre: "Empaques de copetes", estado: "noAplica" },
+      { nombre: "Válvula de Admisión/instalación eléctrica", estado: "noAplica" },
+      { nombre: "Sello mecánico", estado: "noAplica" },
+      { nombre: "Panel de radiador", estado: "noAplica" },
+      { nombre: "Motor principal", estado: "noAplica" },
+      { nombre: "Indicador de presión/temperatura", estado: "noAplica" },
+      { nombre: "Válvulas de seguridad", estado: "noAplica" },
+      { nombre: "Válvula check y/o Válvula Mínima", estado: "noAplica" },
+      { nombre: "Baleros 1 Admisión", estado: "noAplica" },
+      { nombre: "Baleros fecha de vencimiento", estado: "noAplica" },
+      { nombre: "Baleros 1 descarga", estado: "noAplica" },
+      { nombre: "Filtro de aceite", estado: "noAplica" },
+      { nombre: "Filtro de aceite(Filtro(Fugas)", estado: "noAplica" },
+      { nombre: "Mangueras", estado: "noAplica" },
+      { nombre: "Líneas de aire(Fugas)", estado: "noAplica" },
+      { nombre: "Rotores", estado: "noAplica" },
+      { nombre: "Piloto automático y/o motor", estado: "noAplica" },
+      { nombre: "Acoplamiento o bandas", estado: "noAplica" },
+      { nombre: "Flecha de acoplamiento(Motor)", estado: "noAplica" },
+    ];
+
+    // Actualizar elementos basados en los mantenimientos realizados
+    if (apiData.mantenimientos && Array.isArray(apiData.mantenimientos)) {
+      apiData.mantenimientos.forEach((mant: any) => {
+        if (mant.realizado) {
+          const mappedName = MAINTENANCE_MAPPING[mant.nombre];
+          if (mappedName) {
+            const elemento = elementos.find(e => e.nombre === mappedName);
+            if (elemento) {
+              elemento.estado = "correcto";
+            }
+          }
+        }
+      });
+    }
+
+    // Extraer refacciones de los comentarios si existen
+    const refacciones: { refaccion: string; cantidad: number }[] = [];
+    if (apiData.comentarios_generales) {
+      // Intentar extraer refacciones del texto
+      // Por ahora dejar vacío, se puede implementar parsing más adelante
+    }
+
+    return {
+      folio,
+      fecha: fecha.toLocaleDateString("es-MX"),
+      compania: apiData.cliente || "",
+      atencion: "Por definir",
+      direccion: "Por definir",
+      telefono: "Por definir",
+      email: apiData.email || "",
+      tecnico: apiData.tecnico || "",
+      ayudantes: [],
+
+      tipo: apiData.tipo || "COMPRESORES",
+      modelo: apiData.compresor || "",
+      numeroSerie: apiData.numero_serie || "",
+      amperaje: "Por definir",
+      voltaje: "Por definir",
+      marca: "Por definir",
+
+      inicioServicio: fecha.toLocaleString("es-MX"),
+      finServicio: fecha.toLocaleString("es-MX"),
+      tipoServicio: "NORMAL",
+      tipoOrden: "MANTENIMIENTO",
+
+      elementos,
+
+      lecturas: {
+        presionSeparador: 0,
+        presionAire: 0,
+        temperaturaOperacion: 0,
+        lcP1: 0,
+        lcP2: 0,
+        lcV1: 0,
+        lcV2: 0,
+        lcV3: 0,
+        voltL1L2: 0,
+        voltL2L3: 0,
+      },
+
+      condiciones: {
+        oralPortal: "N/A",
+        notas: apiData.comentarios_generales || "",
+      },
+
+      condicionesAmbientales: {
+        notaAdicional: apiData.comentario_cliente || "",
+      },
+
+      refacciones,
+
+      tiempoLaborado: [
+        {
+          dia: fecha.toLocaleDateString("es-MX"),
+          entrada: fecha.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
+          salida: fecha.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
+        },
+      ],
+
+      firmas: {
+        cliente: "",
+        tecnico: apiData.tecnico || "",
+      },
+
+      notasFinales: apiData.comentarios_generales || "",
+    };
   };
 
   const getEstadoIcon = (estado: "correcto" | "incorrecto" | "noAplica") => {
@@ -203,7 +276,7 @@ const GenerateReportPage = () => {
             <h2 className="text-blue-800 text-xl font-bold mb-2">Error</h2>
             <p className="text-blue-600">{error}</p>
             <button
-              onClick={fetchReportData}
+              onClick={() => numeroSerie && fetchReportData(numeroSerie)}
               className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
             >
               Reintentar
