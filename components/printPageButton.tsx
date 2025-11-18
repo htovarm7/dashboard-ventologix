@@ -4,8 +4,122 @@ import React from "react";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 
-const PrintPageButton: React.FC = () => {
+interface PrintPageButtonProps {
+  reportType?: "reporte" | "reporte-visita";
+}
+
+const PrintPageButton: React.FC<PrintPageButtonProps> = ({
+  reportType = "reporte",
+}) => {
   const downloadAsPDF = async () => {
+    // Para reporte-visita, generar y descargar PDF automáticamente usando html2canvas
+    if (reportType === "reporte-visita") {
+      try {
+        // Ocultar elementos no deseados
+        const elementsToHide = document.querySelectorAll(
+          '.no-print, nav, aside, [class*="sidebar"], [class*="Sidebar"], [class*="sideBar"], button, .fixed'
+        );
+        elementsToHide.forEach((el) => {
+          if (el instanceof HTMLElement) {
+            el.style.display = "none";
+          }
+        });
+
+        // Obtener el elemento a capturar (el reporte)
+        const reportElement = document.querySelector(
+          ".bg-white.rounded-lg.shadow-lg"
+        ) as HTMLElement;
+        if (!reportElement) {
+          throw new Error("No se encontró el elemento del reporte");
+        }
+
+        // Resetear zoom del navegador
+        const originalZoom = document.body.style.zoom || "1";
+        document.body.style.zoom = "1";
+
+        // Aplicar transformación temporal
+        const originalTransform = reportElement.style.transform;
+        reportElement.style.transform = "scale(0.9)";
+        reportElement.style.transformOrigin = "top center";
+
+        // Generar imagen del contenido
+        const canvas = await toPng(reportElement, {
+          cacheBust: true,
+          backgroundColor: "#ffffff",
+          pixelRatio: 2,
+          quality: 1,
+        });
+
+        // Restaurar estilos
+        reportElement.style.transform = originalTransform;
+        document.body.style.zoom = originalZoom;
+        elementsToHide.forEach((el) => {
+          if (el instanceof HTMLElement) {
+            el.style.display = "";
+          }
+        });
+
+        // Crear PDF en formato A3
+        const pdf = new jsPDF("p", "mm", "a3");
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        const img = new Image();
+        img.src = canvas;
+
+        await new Promise<void>((resolve) => {
+          img.onload = () => {
+            const imgWidth = pageWidth - 20; // Margen de 10mm a cada lado
+            const imgHeight = (img.height * imgWidth) / img.width;
+
+            let position = 10; // Margen superior
+            let heightLeft = imgHeight;
+
+            pdf.addImage(img, "PNG", 10, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight - 20;
+
+            while (heightLeft > 0) {
+              position -= pageHeight - 20;
+              pdf.addPage();
+              pdf.addImage(img, "PNG", 10, position, imgWidth, imgHeight);
+              heightLeft -= pageHeight;
+            }
+
+            // Generar nombre del archivo
+            const reportData = sessionStorage.getItem("currentReportData");
+            let fileName = `Reporte_Mantenimiento_${
+              new Date().toISOString().split("T")[0]
+            }.pdf`;
+
+            if (reportData) {
+              try {
+                const data = JSON.parse(reportData);
+                const numeroCliente = data.numero_cliente || "Cliente";
+                const cliente = (data.cliente || "Cliente").replace(
+                  /[^a-zA-Z0-9]/g,
+                  "_"
+                );
+                const fecha = data.timestamp
+                  ? new Date(data.timestamp).toISOString().split("T")[0]
+                  : new Date().toISOString().split("T")[0];
+                fileName = `Reporte_Mantenimiento_${numeroCliente}_${cliente}_${fecha}.pdf`;
+              } catch (e) {
+                console.error("Error parsing report data:", e);
+              }
+            }
+
+            pdf.save(fileName);
+            resolve();
+          };
+        });
+      } catch (error) {
+        console.error("Error al generar PDF:", error);
+        alert("Error al generar el PDF. Por favor, inténtalo de nuevo.");
+      }
+      return;
+    }
+
+    // Para otros reportes, continuar con la generación de PDF personalizada
     try {
       const elementsToHide = [
         'button[title="Descargar página como PDF"]',
@@ -64,7 +178,8 @@ const PrintPageButton: React.FC = () => {
       });
       elementToCapture.style.cssText = originalStyle;
 
-      const pdf = new jsPDF("p", "mm", "a4");
+      const pageFormat = "a4";
+      const pdf = new jsPDF("p", "mm", pageFormat);
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
 
@@ -114,17 +229,14 @@ const PrintPageButton: React.FC = () => {
           );
 
           if (currentPath.includes("graphsDateDay")) {
-            // Formato: Reporte_Diario_[CompresorAlias]_[YYYY-MM-DD].pdf
             return `Reporte_Diario_${cleanCompresorName}_${date}.pdf`;
           } else if (currentPath.includes("graphsDateWeek")) {
-            // Formato: Reporte_Semanal_[CompresorAlias]_Semana[Número]_[Año].pdf
             const year = new Date(date).getFullYear();
             const weekText = weekNumber
               ? `Semana${weekNumber}`
               : "SemanaActual";
             return `Reporte_Semanal_${cleanCompresorName}_${weekText}_${year}.pdf`;
           } else {
-            // Formato genérico
             return `Reporte_${cleanCompresorName}_${currentDate}.pdf`;
           }
         };

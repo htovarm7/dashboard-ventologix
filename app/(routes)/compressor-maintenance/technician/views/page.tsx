@@ -9,7 +9,9 @@ import {
   Camera,
   CheckSquare,
   MessageSquare,
+  FileText,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import BackButton from "@/components/BackButton";
 
 // Tipos
@@ -49,6 +51,7 @@ type Client = {
 };
 
 const Visitas = () => {
+  const router = useRouter();
   const [expandedClients, setExpandedClients] = useState<Set<string>>(
     new Set()
   );
@@ -194,6 +197,13 @@ const Visitas = () => {
     setShowDetails(true);
   };
 
+  const handleGenerateReport = (visit: Visit) => {
+    // Guardar los datos de la visita en sessionStorage para prellenar el formulario
+    sessionStorage.setItem('selectedVisitData', JSON.stringify(visit));
+    // Navegar a la página de generar reporte
+    router.push('/compressor-maintenance/technician/views/generate-report');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -322,12 +332,21 @@ const Visitas = () => {
                                     <span>{visit.technician}</span>
                                   </div>
                                 </div>
-                                <button
-                                  onClick={() => openVisitDetails(visit)}
-                                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
-                                >
-                                  Detalles
-                                </button>
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={() => handleGenerateReport(visit)}
+                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                                  >
+                                    <FileText size={16} />
+                                    <span>Generar Reporte</span>
+                                  </button>
+                                  <button
+                                    onClick={() => openVisitDetails(visit)}
+                                    className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+                                  >
+                                    Detalles
+                                  </button>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -541,10 +560,17 @@ const Visitas = () => {
             </div>
 
             {/* Footer del modal */}
-            <div className="border-t border-gray-200 p-6 bg-gray-50 rounded-b-lg">
+            <div className="border-t border-gray-200 p-6 bg-gray-50 rounded-b-lg flex justify-between items-center">
+              <button
+                onClick={() => handleGenerateReport(selectedVisit)}
+                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center space-x-2"
+              >
+                <FileText size={20} />
+                <span>Generar Reporte</span>
+              </button>
               <button
                 onClick={() => setShowDetails(false)}
-                className="w-full md:w-auto px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
               >
                 Cerrar
               </button>

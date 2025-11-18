@@ -1036,7 +1036,7 @@ function MainContent() {
         variant="outline"
         className="top-4 left-4 bg-white/10 backdrop-blur-sm border-white/50 text-white hover:bg-white hover:text-blue-600"
       />
-      <PrintPageButton />
+      <PrintPageButton reportType="reporte" />
 
       <div className="w-full min-w-full bg-gradient-to-r from-indigo-950 to-blue-400 text-white p-6">
         {/* Main docker on rows */}

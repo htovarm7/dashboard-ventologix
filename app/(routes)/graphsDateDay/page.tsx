@@ -546,7 +546,7 @@ function MainContent() {
         variant="primary"
         className="top-4 left-4"
       />
-      <PrintPageButton />
+      <PrintPageButton reportType="reporte" />
       <div className="flex flex-col items-center mb-2">
         <h1 className="text-4xl font-bold text-center">
           Reporte Diario por Fecha
@@ -611,7 +611,10 @@ function MainContent() {
         {/* Información del cliente - Solo mostrar si el usuario NO es 101010 */}
         {userClientNumber !== 101010 && (
           <>
-            <h2 className="text-3xl font-bold p-15"> Informacion del Cliente </h2>
+            <h2 className="text-3xl font-bold p-15">
+              {" "}
+              Informacion del Cliente{" "}
+            </h2>
             <div className="flex flex-wrap gap-60 items-center justify-center text-center">
               <div className="text-center">
                 <p className="text-2xl">{clientData?.nombre_cliente}</p>
