@@ -33,25 +33,58 @@ const PrintPageButton: React.FC<PrintPageButtonProps> = ({
           throw new Error("No se encontró el elemento del reporte");
         }
 
-        // Resetear zoom del navegador
+        // Resetear zoom y guardar estilos originales
         const originalZoom = document.body.style.zoom || "1";
         document.body.style.zoom = "1";
 
-        // Aplicar transformación temporal
-        const originalTransform = reportElement.style.transform;
+        const originalStyles = {
+          transform: reportElement.style.transform,
+          boxShadow: reportElement.style.boxShadow,
+          borderRadius: reportElement.style.borderRadius,
+        };
+
+        // Quitar sombras y bordes redondeados para el PDF
         reportElement.style.transform = "scale(0.9)";
         reportElement.style.transformOrigin = "top center";
+        reportElement.style.boxShadow = "none";
+        reportElement.style.borderRadius = "0";
 
-        // Generar imagen del contenido
+        // Generar imagen del contenido sin fondo blanco extra
         const canvas = await toPng(reportElement, {
           cacheBust: true,
-          backgroundColor: "#ffffff",
+          backgroundColor: "transparent",
           pixelRatio: 2,
           quality: 1,
+          width: reportElement.scrollWidth,
+          height: reportElement.scrollHeight,
+        });
+
+        // Extraer enlaces del reporte antes de convertir a imagen
+        const links: { url: string; text: string; rect: DOMRect }[] = [];
+        const linkElements = reportElement.querySelectorAll("a[href]");
+        linkElements.forEach((link) => {
+          if (link instanceof HTMLAnchorElement) {
+            const rect = link.getBoundingClientRect();
+            const reportRect = reportElement.getBoundingClientRect();
+            // Calcular posición relativa al reporte
+            const relativeRect = new DOMRect(
+              rect.left - reportRect.left,
+              rect.top - reportRect.top,
+              rect.width,
+              rect.height
+            );
+            links.push({
+              url: link.href,
+              text: link.textContent || "",
+              rect: relativeRect,
+            });
+          }
         });
 
         // Restaurar estilos
-        reportElement.style.transform = originalTransform;
+        reportElement.style.transform = originalStyles.transform;
+        reportElement.style.boxShadow = originalStyles.boxShadow;
+        reportElement.style.borderRadius = originalStyles.borderRadius;
         document.body.style.zoom = originalZoom;
         elementsToHide.forEach((el) => {
           if (el instanceof HTMLElement) {
@@ -59,7 +92,7 @@ const PrintPageButton: React.FC<PrintPageButtonProps> = ({
           }
         });
 
-        // Crear PDF en formato A3
+        // Crear PDF en formato A3 sin márgenes
         const pdf = new jsPDF("p", "mm", "a3");
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
@@ -69,23 +102,41 @@ const PrintPageButton: React.FC<PrintPageButtonProps> = ({
 
         await new Promise<void>((resolve) => {
           img.onload = () => {
-            const imgWidth = pageWidth - 20; // Margen de 10mm a cada lado
+            // Calcular dimensiones para ajustar al ancho de la página
+            const imgWidth = pageWidth;
             const imgHeight = (img.height * imgWidth) / img.width;
+            const scale = imgWidth / reportElement.scrollWidth;
 
-            let position = 10; // Margen superior
+            let position = 0;
             let heightLeft = imgHeight;
 
-            pdf.addImage(img, "PNG", 10, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight - 20;
+            pdf.addImage(img, "PNG", 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
 
             while (heightLeft > 0) {
-              position -= pageHeight - 20;
+              position -= pageHeight;
               pdf.addPage();
-              pdf.addImage(img, "PNG", 10, position, imgWidth, imgHeight);
+              pdf.addImage(img, "PNG", 0, position, imgWidth, imgHeight);
               heightLeft -= pageHeight;
             }
 
-            // Generar nombre del archivo
+            // Agregar enlaces clickeables al PDF
+            links.forEach((link) => {
+              const x = link.rect.left * scale * 0.264583; // Convertir px a mm
+              const y = link.rect.top * scale * 0.264583;
+              const width = link.rect.width * scale * 0.264583;
+              const height = link.rect.height * scale * 0.264583;
+
+              // Determinar en qué página está el enlace
+              const pageNum = Math.floor(y / pageHeight) + 1;
+              const yInPage = y % pageHeight;
+
+              if (pageNum <= pdf.getNumberOfPages()) {
+                pdf.setPage(pageNum);
+                pdf.link(x, yInPage, width, height, { url: link.url });
+              }
+            });
+
             const reportData = sessionStorage.getItem("currentReportData");
             let fileName = `Reporte_Mantenimiento_${
               new Date().toISOString().split("T")[0]
