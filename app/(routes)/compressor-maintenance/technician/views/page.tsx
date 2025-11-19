@@ -13,30 +13,8 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/BackButton";
-
-// Tipos
-type MaintenanceTask = {
-  id: string;
-  name: string;
-  completed: boolean;
-  comments: string;
-};
-
-type Visit = {
-  id: string;
-  date: string;
-  technician: string;
-  tasks: MaintenanceTask[];
-  photos: string[];
-  carpeta_fotos?: string;
-  link_form?: string;
-  comentarios_generales?: string;
-  comentario_cliente?: string;
-  compresor?: string;
-  numero_serie?: string;
-  cliente?: string;
-  numero_cliente?: number;
-};
+import { URL_API } from "@/lib/global";
+import { Visit } from "@/lib/types";
 
 type Compressor = {
   id: string;
@@ -69,7 +47,7 @@ const Visitas = () => {
   useEffect(() => {
     const syncSheets = async () => {
       try {
-        const response = await fetch("http://localhost:8000/web/maintenance/sync-sheets", {
+        const response = await fetch("${URL_API}/web/maintenance/sync-sheets", {
           method: "POST"
         });
         if (response.ok) {
@@ -120,7 +98,7 @@ const Visitas = () => {
           for (const numeroCliente of Array.from(numerosCliente)) {
             try {
               const response = await fetch(
-                `http://localhost:8000/web/registros-mantenimiento?numero_cliente=${numeroCliente}`
+                `${URL_API}/web/registros-mantenimiento?numero_cliente=${numeroCliente}`
               );
 
               if (response.ok) {
@@ -202,7 +180,7 @@ const Visitas = () => {
         const numeroSerie = registro.numero_serie || "";
         
         const response = await fetch(
-          `http://localhost:8000/web/maintenance/check-report?numero_cliente=${numeroCliente}&numero_serie=${numeroSerie}&fecha=${fecha}`
+          `${URL_API}/web/maintenance/check-report?numero_cliente=${numeroCliente}&numero_serie=${numeroSerie}&fecha=${fecha}`
         );
         
         if (response.ok) {
@@ -270,7 +248,7 @@ const Visitas = () => {
       const loadingMessage = "Generando reporte PDF...";
       alert(loadingMessage);
       
-      const response = await fetch("http://localhost:8000/web/maintenance/generate-report", {
+      const response = await fetch(`${URL_API}/web/maintenance/generate-report`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

@@ -317,3 +317,26 @@ export interface ReportData {
   // Notas finales
   notasFinales: string;
 }
+
+export type MaintenanceTask = {
+  id: string;
+  name: string;
+  completed: boolean;
+  comments: string;
+};
+
+export type Visit = {
+  id: string;
+  date: string;
+  technician: string;
+  tasks: MaintenanceTask[];
+  photos: string[];
+  carpeta_fotos?: string;
+  link_form?: string;
+  comentarios_generales?: string;
+  comentario_cliente?: string;
+  compresor?: string;
+  numero_serie?: string;
+  cliente?: string;
+  numero_cliente?: number;
+};
