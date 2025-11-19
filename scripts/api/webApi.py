@@ -1853,6 +1853,124 @@ def check_report_exists(numero_cliente: int, numero_serie: str, fecha: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error checking report: {str(e)}")
 
+@web.post("/maintenance/generate-report", tags=["🛠️ Mantenimiento de Compresores"])
+def generate_maintenance_report(request: GenerateReportRequest):
+    """
+    Genera un reporte PDF de mantenimiento y lo sube a Google Drive
+    """
+    try:
+        # Importar el módulo de generación de PDF
+        from generate_pdf_report import generate_and_upload_maintenance_report
+        
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+        
+        # Obtener datos del registro de mantenimiento
+        if request.registro_id:
+            # Buscar por ID específico
+            query = """
+            SELECT *
+            FROM registros_mantenimiento_tornillo
+            WHERE id = %s
+            """
+            cursor.execute(query, (request.registro_id,))
+        else:
+            # Buscar por número de serie y fecha
+            query = """
+            SELECT *
+            FROM registros_mantenimiento_tornillo
+            WHERE numero_serie = %s AND DATE(timestamp) = %s
+            ORDER BY timestamp DESC
+            LIMIT 1
+            """
+            cursor.execute(query, (request.numero_serie, request.fecha))
+        
+        registro = cursor.fetchone()
+        
+        if not registro:
+            raise HTTPException(
+                status_code=404,
+                detail="No se encontró el registro de mantenimiento"
+            )
+        
+        # Preparar datos del reporte
+        mantenimientos_realizados = []
+        for columna_bd, nombre_mantenimiento in MAINTENANCE_COLUMN_MAPPING.items():
+            valor = registro.get(columna_bd, "No")
+            mantenimientos_realizados.append({
+                "nombre": nombre_mantenimiento,
+                "realizado": valor and valor.lower() in ["sí", "si", "yes", "1"]
+            })
+        
+        report_data = {
+            "id": registro.get("id"),
+            "timestamp": registro.get("timestamp").isoformat() if registro.get("timestamp") else None,
+            "cliente": registro.get("cliente"),
+            "tecnico": registro.get("tecnico"),
+            "email": registro.get("email"),
+            "tipo": registro.get("tipo"),
+            "compresor": registro.get("compresor"),
+            "numero_serie": registro.get("numero_serie"),
+            "comentarios_generales": registro.get("comentarios_generales"),
+            "numero_cliente": registro.get("numero_cliente"),
+            "comentario_cliente": registro.get("comentario_cliente"),
+            "link_form": registro.get("link_form"),
+            "carpeta_fotos": registro.get("carpeta_fotos"),
+            "mantenimientos": mantenimientos_realizados
+        }
+        
+        # Generar PDF y subir a Google Drive
+        result = generate_and_upload_maintenance_report(report_data)
+        
+        if not result['success']:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error generando PDF: {result.get('error', 'Unknown error')}"
+            )
+        
+        # Guardar link en la base de datos
+        insert_query = """
+        INSERT INTO links_reportes_mtto (fecha, numero_cliente, nombre_cliente, link_reporte, numero_serie, registro_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        
+        cursor.execute(insert_query, (
+            result['fecha'],
+            registro.get('numero_cliente'),
+            registro.get('cliente'),
+            result['pdf_link'],
+            registro.get('numero_serie'),
+            registro.get('id')
+        ))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {
+            "success": True,
+            "message": "Reporte generado exitosamente",
+            "pdf_link": result['pdf_link'],
+            "filename": result['filename']
+        }
+        
+    except HTTPException:
+        raise
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating report: {str(e)}")
+    finally:
+        if 'cursor' in locals() and cursor:
+            cursor.close()
+        if 'conn' in locals() and conn:
+            conn.close()
+
 # =======================================================================================
 #                                    HELPER FUNCTIONS
 # =======================================================================================

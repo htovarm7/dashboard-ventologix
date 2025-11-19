@@ -47,7 +47,7 @@ const Visitas = () => {
   useEffect(() => {
     const syncSheets = async () => {
       try {
-        const response = await fetch("${URL_API}/web/maintenance/sync-sheets", {
+        const response = await fetch(`${URL_API}/web/maintenance/sync-sheets`, {
           method: "POST"
         });
         if (response.ok) {
