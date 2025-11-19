@@ -127,7 +127,7 @@ const Home = () => {
                   Visitas
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  Ver historial de visitas y mantenimientos
+                  Ver historial de visitas y generar reportes
                 </p>
               </div>
             </button>
@@ -146,7 +146,7 @@ const Home = () => {
                   Reportes
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  Genera reportes de mantenimiento
+                  Ver historial de reportes
                 </p>
               </div>
             </button>

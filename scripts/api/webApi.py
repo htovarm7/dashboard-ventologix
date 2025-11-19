@@ -14,6 +14,12 @@ import io
 import logging
 from typing import List, Tuple, Optional
 from pydantic import BaseModel, EmailStr
+import sys
+from pathlib import Path
+
+# Agregar el directorio de scripts al path para importar maintenance_reports
+SCRIPT_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(SCRIPT_DIR))
 
 # Modelos para las actualizaciones
 class UpdateClientNumberRequest(BaseModel):
@@ -42,6 +48,11 @@ class UpdateMaintenanceRequest(BaseModel):
     activo: Optional[bool] = None
     observaciones: Optional[str] = None
     costo: Optional[float] = None
+
+class GenerateReportRequest(BaseModel):
+    numero_serie: str
+    fecha: str
+    registro_id: Optional[str] = None
 
 
 # Mapeo de columnas de BD a nombres de mantenimientos legibles
@@ -1617,7 +1628,234 @@ def delete_maintenance(maintenance_id: int):
         if conn:
             conn.close()
 
-# Helper functions
+@web.get("/maintenance/report-data-by-id/{registro_id}", tags=["🛠️ Mantenimiento de Compresores"])
+def get_maintenance_report_data_by_id(registro_id: str):
+    """Obtener datos del reporte de mantenimiento por ID de registro específico"""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        # Consultar registro específico por ID
+        query = """
+        SELECT *
+        FROM registros_mantenimiento_tornillo
+        WHERE id = %s
+        """
+        
+        cursor.execute(query, (registro_id,))
+        registro = cursor.fetchone()
+
+        if not registro:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"No se encontró registro de mantenimiento con ID {registro_id}"
+            )
+
+        # Construir lista de mantenimientos realizados
+        mantenimientos_realizados = []
+        
+        for columna_bd, nombre_mantenimiento in MAINTENANCE_COLUMN_MAPPING.items():
+            valor = registro.get(columna_bd, "No")
+            if valor and valor.lower() in ["sí", "si", "yes", "1"]:
+                mantenimientos_realizados.append({
+                    "nombre": nombre_mantenimiento,
+                    "realizado": True,
+                    "valor": valor
+                })
+            else:
+                mantenimientos_realizados.append({
+                    "nombre": nombre_mantenimiento,
+                    "realizado": False,
+                    "valor": valor if valor else "No"
+                })
+
+        # Preparar respuesta estructurada
+        reporte = {
+            "id": registro.get("id"),
+            "timestamp": registro.get("timestamp").isoformat() if registro.get("timestamp") else None,
+            "cliente": registro.get("cliente"),
+            "tecnico": registro.get("tecnico"),
+            "email": registro.get("email"),
+            "tipo": registro.get("tipo"),
+            "compresor": registro.get("compresor"),
+            "numero_serie": registro.get("numero_serie"),
+            "comentarios_generales": registro.get("comentarios_generales"),
+            "numero_cliente": registro.get("numero_cliente"),
+            "comentario_cliente": registro.get("comentario_cliente"),
+            "link_form": registro.get("link_form"),
+            "carpeta_fotos": registro.get("carpeta_fotos"),
+            "mantenimientos": mantenimientos_realizados
+        }
+
+        cursor.close()
+        conn.close()
+
+        return {
+            "success": True,
+            "reporte": reporte
+        }
+
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching maintenance report data: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+@web.get("/maintenance/report-data/{numero_serie}", tags=["🛠️ Mantenimiento de Compresores"])
+def get_maintenance_report_data(numero_serie: str):
+    """Obtener datos del reporte de mantenimiento por número de serie del día actual"""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        # Consultar registros de mantenimiento del día actual
+        query = """
+        SELECT *
+        FROM registros_mantenimiento_tornillo
+        WHERE numero_serie = %s
+          AND timestamp >= CURDATE()
+          AND timestamp < CURDATE() + INTERVAL 1 DAY
+        ORDER BY timestamp DESC
+        LIMIT 1
+        """
+        
+        cursor.execute(query, (numero_serie,))
+        registro = cursor.fetchone()
+
+        if not registro:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"No se encontró registro de mantenimiento para el número de serie {numero_serie} en el día de hoy"
+            )
+
+        # Construir lista de mantenimientos realizados
+        mantenimientos_realizados = []
+        
+        for columna_bd, nombre_mantenimiento in MAINTENANCE_COLUMN_MAPPING.items():
+            valor = registro.get(columna_bd, "No")
+            if valor and valor.lower() in ["sí", "si", "yes", "1"]:
+                mantenimientos_realizados.append({
+                    "nombre": nombre_mantenimiento,
+                    "realizado": True,
+                    "valor": valor
+                })
+            else:
+                mantenimientos_realizados.append({
+                    "nombre": nombre_mantenimiento,
+                    "realizado": False,
+                    "valor": valor if valor else "No"
+                })
+
+        # Preparar respuesta estructurada
+        reporte = {
+            "id": registro.get("id"),
+            "timestamp": registro.get("timestamp").isoformat() if registro.get("timestamp") else None,
+            "cliente": registro.get("cliente"),
+            "tecnico": registro.get("tecnico"),
+            "email": registro.get("email"),
+            "tipo": registro.get("tipo"),
+            "compresor": registro.get("compresor"),
+            "numero_serie": registro.get("numero_serie"),
+            "comentarios_generales": registro.get("comentarios_generales"),
+            "numero_cliente": registro.get("numero_cliente"),
+            "comentario_cliente": registro.get("comentario_cliente"),
+            "link_form": registro.get("link_form"),
+            "carpeta_fotos": registro.get("carpeta_fotos"),
+            "mantenimientos": mantenimientos_realizados
+        }
+
+        cursor.close()
+        conn.close()
+
+        return {
+            "success": True,
+            "reporte": reporte
+        }
+
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching maintenance report data: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+@web.post("/maintenance/sync-sheets", tags=[" Mantenimiento de Compresores"])
+def sync_maintenance_sheets():
+    """
+    Ejecuta la sincronizaci�n de datos desde Google Sheets a la base de datos
+    """
+    try:
+        from maintenance_reports import sync_sheets_to_sql
+        result = sync_sheets_to_sql()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en sincronizaci�n: {str(e)}")
+
+
+@web.get("/maintenance/check-report", tags=[" Mantenimiento de Compresores"])
+def check_report_exists(numero_cliente: int, numero_serie: str, fecha: str):
+    """
+    Verifica si existe un reporte PDF generado para un cliente, compresor y fecha espec�ficos
+    """
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+        
+        query = """
+        SELECT id, fecha, numero_cliente, nombre_cliente, link_reporte, numero_serie, registro_id, created_at
+        FROM links_reportes_mtto
+        WHERE numero_cliente = %s AND numero_serie = %s AND fecha = %s
+        ORDER BY created_at DESC
+        LIMIT 1
+        """
+        
+        cursor.execute(query, (numero_cliente, numero_serie, fecha))
+        result = cursor.fetchone()
+        
+        cursor.close()
+        conn.close()
+        
+        if result:
+            return {
+                "exists": True,
+                "report": result
+            }
+        else:
+            return {
+                "exists": False,
+                "report": None
+            }
+    
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error checking report: {str(e)}")
+
+# =======================================================================================
+#                                    HELPER FUNCTIONS
+# =======================================================================================
 def litros_to_ft3(liters):
     """Convert liters to cubic feet"""
     return liters / 28.3168
@@ -1854,171 +2092,3 @@ def generate_predictions_fast(series: pd.Series, days: int = 3) -> Tuple[List[fl
     except Exception as e:
         promedio = np.mean(hist_valores)
         return [promedio] * days, "Promedio (modelo falló)"
-
-@web.get("/maintenance/report-data-by-id/{registro_id}", tags=["🛠️ Mantenimiento de Compresores"])
-def get_maintenance_report_data_by_id(registro_id: str):
-    """Obtener datos del reporte de mantenimiento por ID de registro específico"""
-    try:
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_DATABASE
-        )
-        cursor = conn.cursor(dictionary=True)
-
-        # Consultar registro específico por ID
-        query = """
-        SELECT *
-        FROM registros_mantenimiento_tornillo
-        WHERE id = %s
-        """
-        
-        cursor.execute(query, (registro_id,))
-        registro = cursor.fetchone()
-
-        if not registro:
-            raise HTTPException(
-                status_code=404, 
-                detail=f"No se encontró registro de mantenimiento con ID {registro_id}"
-            )
-
-        # Construir lista de mantenimientos realizados
-        mantenimientos_realizados = []
-        
-        for columna_bd, nombre_mantenimiento in MAINTENANCE_COLUMN_MAPPING.items():
-            valor = registro.get(columna_bd, "No")
-            if valor and valor.lower() in ["sí", "si", "yes", "1"]:
-                mantenimientos_realizados.append({
-                    "nombre": nombre_mantenimiento,
-                    "realizado": True,
-                    "valor": valor
-                })
-            else:
-                mantenimientos_realizados.append({
-                    "nombre": nombre_mantenimiento,
-                    "realizado": False,
-                    "valor": valor if valor else "No"
-                })
-
-        # Preparar respuesta estructurada
-        reporte = {
-            "id": registro.get("id"),
-            "timestamp": registro.get("timestamp").isoformat() if registro.get("timestamp") else None,
-            "cliente": registro.get("cliente"),
-            "tecnico": registro.get("tecnico"),
-            "email": registro.get("email"),
-            "tipo": registro.get("tipo"),
-            "compresor": registro.get("compresor"),
-            "numero_serie": registro.get("numero_serie"),
-            "comentarios_generales": registro.get("comentarios_generales"),
-            "numero_cliente": registro.get("numero_cliente"),
-            "comentario_cliente": registro.get("comentario_cliente"),
-            "link_form": registro.get("link_form"),
-            "carpeta_fotos": registro.get("carpeta_fotos"),
-            "mantenimientos": mantenimientos_realizados
-        }
-
-        cursor.close()
-        conn.close()
-
-        return {
-            "success": True,
-            "reporte": reporte
-        }
-
-    except mysql.connector.Error as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching maintenance report data: {str(e)}")
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-@web.get("/maintenance/report-data/{numero_serie}", tags=["🛠️ Mantenimiento de Compresores"])
-def get_maintenance_report_data(numero_serie: str):
-    """Obtener datos del reporte de mantenimiento por número de serie del día actual"""
-    try:
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_DATABASE
-        )
-        cursor = conn.cursor(dictionary=True)
-
-        # Consultar registros de mantenimiento del día actual
-        query = """
-        SELECT *
-        FROM registros_mantenimiento_tornillo
-        WHERE numero_serie = %s
-          AND timestamp >= CURDATE()
-          AND timestamp < CURDATE() + INTERVAL 1 DAY
-        ORDER BY timestamp DESC
-        LIMIT 1
-        """
-        
-        cursor.execute(query, (numero_serie,))
-        registro = cursor.fetchone()
-
-        if not registro:
-            raise HTTPException(
-                status_code=404, 
-                detail=f"No se encontró registro de mantenimiento para el número de serie {numero_serie} en el día de hoy"
-            )
-
-        # Construir lista de mantenimientos realizados
-        mantenimientos_realizados = []
-        
-        for columna_bd, nombre_mantenimiento in MAINTENANCE_COLUMN_MAPPING.items():
-            valor = registro.get(columna_bd, "No")
-            if valor and valor.lower() in ["sí", "si", "yes", "1"]:
-                mantenimientos_realizados.append({
-                    "nombre": nombre_mantenimiento,
-                    "realizado": True,
-                    "valor": valor
-                })
-            else:
-                mantenimientos_realizados.append({
-                    "nombre": nombre_mantenimiento,
-                    "realizado": False,
-                    "valor": valor if valor else "No"
-                })
-
-        # Preparar respuesta estructurada
-        reporte = {
-            "id": registro.get("id"),
-            "timestamp": registro.get("timestamp").isoformat() if registro.get("timestamp") else None,
-            "cliente": registro.get("cliente"),
-            "tecnico": registro.get("tecnico"),
-            "email": registro.get("email"),
-            "tipo": registro.get("tipo"),
-            "compresor": registro.get("compresor"),
-            "numero_serie": registro.get("numero_serie"),
-            "comentarios_generales": registro.get("comentarios_generales"),
-            "numero_cliente": registro.get("numero_cliente"),
-            "comentario_cliente": registro.get("comentario_cliente"),
-            "link_form": registro.get("link_form"),
-            "carpeta_fotos": registro.get("carpeta_fotos"),
-            "mantenimientos": mantenimientos_realizados
-        }
-
-        cursor.close()
-        conn.close()
-
-        return {
-            "success": True,
-            "reporte": reporte
-        }
-
-    except mysql.connector.Error as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching maintenance report data: {str(e)}")
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()

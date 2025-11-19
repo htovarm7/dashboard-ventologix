@@ -35,6 +35,7 @@ type Visit = {
   compresor?: string;
   numero_serie?: string;
   cliente?: string;
+  numero_cliente?: number;
 };
 
 type Compressor = {
@@ -62,6 +63,26 @@ const Visitas = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [clientsData, setClientsData] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reportLinks, setReportLinks] = useState<Map<string, string>>(new Map());
+
+  // Ejecutar sincronización con Google Sheets al cargar la página
+  useEffect(() => {
+    const syncSheets = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/web/maintenance/sync-sheets", {
+          method: "POST"
+        });
+        if (response.ok) {
+          const result = await response.json();
+          console.log("Sincronización completada:", result);
+        }
+      } catch (error) {
+        console.error("Error en sincronización:", error);
+      }
+    };
+
+    syncSheets();
+  }, []);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -152,6 +173,10 @@ const Visitas = () => {
           const clients = Array.from(clientsMap.values());
 
           setClientsData(clients);
+          
+          // Cargar los links de reportes para todas las visitas
+          await loadReportLinks(allRegistros);
+          
           setLoading(false);
         } catch (error) {
           console.error("Error loading data:", error);
@@ -165,6 +190,45 @@ const Visitas = () => {
 
     loadUserData();
   }, []);
+
+  // Función para cargar los links de reportes
+  const loadReportLinks = async (registros: Visit[]) => {
+    const linksMap = new Map<string, string>();
+    
+    for (const registro of registros) {
+      try {
+        const fecha = new Date(registro.date).toISOString().split('T')[0];
+        const numeroCliente = registro.numero_cliente || 0;
+        const numeroSerie = registro.numero_serie || "";
+        
+        const response = await fetch(
+          `http://localhost:8000/web/maintenance/check-report?numero_cliente=${numeroCliente}&numero_serie=${numeroSerie}&fecha=${fecha}`
+        );
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.exists && result.report) {
+            // Usar combinación única de fecha, cliente y número de serie como key
+            const key = `${numeroCliente}-${numeroSerie}-${fecha}`;
+            linksMap.set(key, result.report.link_reporte);
+          }
+        }
+      } catch (error) {
+        console.error("Error verificando reporte:", error);
+      }
+    }
+    
+    setReportLinks(linksMap);
+  };
+
+  // Función para obtener el link de reporte de una visita
+  const getReportLink = (visit: Visit): string | null => {
+    const fecha = new Date(visit.date).toISOString().split('T')[0];
+    const numeroCliente = visit.numero_cliente || 0;
+    const numeroSerie = visit.numero_serie || "";
+    const key = `${numeroCliente}-${numeroSerie}-${fecha}`;
+    return reportLinks.get(key) || null;
+  };
 
   const toggleClient = (clientId: string) => {
     const newExpanded = new Set(expandedClients);
@@ -197,11 +261,54 @@ const Visitas = () => {
     setShowDetails(true);
   };
 
-  const handleGenerateReport = (visit: Visit) => {
-    // Guardar los datos de la visita en sessionStorage para prellenar el formulario
-    sessionStorage.setItem('selectedVisitData', JSON.stringify(visit));
-    // Navegar a la página de generar reporte
-    router.push('/compressor-maintenance/technician/views/generate-report');
+  const handleGenerateReport = async (visit: Visit) => {
+    try {
+      const fecha = new Date(visit.date).toISOString().split('T')[0];
+      const numeroSerie = visit.numero_serie || "";
+      
+      // Mostrar indicador de carga
+      const loadingMessage = "Generando reporte PDF...";
+      alert(loadingMessage);
+      
+      const response = await fetch("http://localhost:8000/web/maintenance/generate-report", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          numero_serie: numeroSerie,
+          fecha: fecha,
+          registro_id: visit.id
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Actualizar el mapa de links
+        const numeroCliente = visit.numero_cliente || 0;
+        const key = `${numeroCliente}-${numeroSerie}-${fecha}`;
+        setReportLinks(prev => new Map(prev).set(key, result.pdf_link));
+        
+        alert("Reporte generado exitosamente!");
+        
+        // Abrir el PDF en una nueva pestaña
+        window.open(result.pdf_link, '_blank');
+      } else {
+        const error = await response.json();
+        alert(`Error generando reporte: ${error.detail}`);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error generando reporte. Por favor intente de nuevo.");
+    }
+  };
+
+  const handleViewReport = (visit: Visit) => {
+    const link = getReportLink(visit);
+    if (link) {
+      window.open(link, '_blank');
+    }
   };
 
   if (loading) {
@@ -333,13 +440,23 @@ const Visitas = () => {
                                   </div>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                  <button
-                                    onClick={() => handleGenerateReport(visit)}
-                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center space-x-2"
-                                  >
-                                    <FileText size={16} />
-                                    <span>Generar Reporte</span>
-                                  </button>
+                                  {getReportLink(visit) ? (
+                                    <button
+                                      onClick={() => handleViewReport(visit)}
+                                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                                    >
+                                      <FileText size={16} />
+                                      <span>Ver Reporte</span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleGenerateReport(visit)}
+                                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                                    >
+                                      <FileText size={16} />
+                                      <span>Generar Reporte</span>
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => openVisitDetails(visit)}
                                     className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
@@ -561,13 +678,23 @@ const Visitas = () => {
 
             {/* Footer del modal */}
             <div className="border-t border-gray-200 p-6 bg-gray-50 rounded-b-lg flex justify-between items-center">
-              <button
-                onClick={() => handleGenerateReport(selectedVisit)}
-                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center space-x-2"
-              >
-                <FileText size={20} />
-                <span>Generar Reporte</span>
-              </button>
+              {getReportLink(selectedVisit) ? (
+                <button
+                  onClick={() => handleViewReport(selectedVisit)}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center space-x-2"
+                >
+                  <FileText size={20} />
+                  <span>Ver Reporte</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleGenerateReport(selectedVisit)}
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center space-x-2"
+                >
+                  <FileText size={20} />
+                  <span>Generar Reporte</span>
+                </button>
+              )}
               <button
                 onClick={() => setShowDetails(false)}
                 className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
