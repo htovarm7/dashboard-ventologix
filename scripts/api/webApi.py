@@ -1856,11 +1856,12 @@ def check_report_exists(numero_cliente: int, numero_serie: str, fecha: str):
 @web.post("/maintenance/generate-report", tags=["🛠️ Mantenimiento de Compresores"])
 def generate_maintenance_report(request: GenerateReportRequest):
     """
-    Genera un reporte PDF de mantenimiento y lo sube a Google Drive
+    Genera un reporte PDF de mantenimiento usando Playwright y lo sube a Google Drive.
+    Renderiza la página Next.js de generación de reportes y la convierte a PDF.
     """
     try:
-        # Importar el módulo de generación de PDF
-        from generate_pdf_report import generate_and_upload_maintenance_report
+        # Importar el módulo de generación de PDF con Playwright
+        from generate_pdf_report_playwright import generate_and_upload_maintenance_report
         
         conn = mysql.connector.connect(
             host=DB_HOST,

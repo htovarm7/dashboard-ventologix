@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import BackButton from "@/components/BackButton";
 import { MaintenanceReportResponse, MaintenanceReportData } from "@/lib/types";
@@ -11,6 +11,7 @@ import PrintPageButton from "@/components/printPageButton";
 const ViewMaintenanceReportPage = () => {
   const { isAuthenticated, isLoading } = useAuth0();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [numeroSerie, setNumeroSerie] = useState("");
   const [reportData, setReportData] = useState<MaintenanceReportData | null>(
@@ -21,6 +22,15 @@ const ViewMaintenanceReportPage = () => {
 
   // Cargar datos de la visita seleccionada si existen
   useEffect(() => {
+    // Primero revisar si hay parámetro de query ?id=xxx (para Playwright)
+    const queryId = searchParams.get("id");
+    if (queryId) {
+      console.log("Loading report from query parameter:", queryId);
+      fetchReportDataById(queryId);
+      return;
+    }
+    
+    // Si no hay query param, revisar sessionStorage (para navegación web normal)
     const selectedVisitData = sessionStorage.getItem("selectedVisitData");
     if (selectedVisitData) {
       try {
@@ -41,7 +51,7 @@ const ViewMaintenanceReportPage = () => {
         console.error("Error parsing visit data:", error);
       }
     }
-  }, []);
+  }, [searchParams]);
 
   const fetchReportDataById = async (visitId: string) => {
     try {

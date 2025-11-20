@@ -245,8 +245,7 @@ const Visitas = () => {
       const numeroSerie = visit.numero_serie || "";
       
       // Mostrar indicador de carga
-      const loadingMessage = "Generando reporte PDF...";
-      alert(loadingMessage);
+      alert("Generando reporte PDF...\nEsto puede tomar unos segundos.");
       
       const response = await fetch(`${URL_API}/web/maintenance/generate-report`, {
         method: "POST",
@@ -268,7 +267,7 @@ const Visitas = () => {
         const key = `${numeroCliente}-${numeroSerie}-${fecha}`;
         setReportLinks(prev => new Map(prev).set(key, result.pdf_link));
         
-        alert("Reporte generado exitosamente!");
+        alert("¡Reporte generado exitosamente!");
         
         // Abrir el PDF en una nueva pestaña
         window.open(result.pdf_link, '_blank');
