@@ -33,7 +33,7 @@ SCOPES = ['https://www.googleapis.com/auth/drive.file']
 NEXTJS_URL = os.getenv("NEXTJS_URL", "http://localhost:3000")
 
 
-def authenticate_google_drive():
+async def authenticate_google_drive():
     """Autentica con Google Drive usando OAuth2 - Compatible con automation.py"""
     creds = None
     
@@ -69,7 +69,7 @@ def authenticate_google_drive():
     return build('drive', 'v3', credentials=creds)
 
 
-def get_or_create_folder(drive_service, parent_id, folder_name):
+async def get_or_create_folder(drive_service, parent_id, folder_name):
     """Obtiene o crea una carpeta en Google Drive"""
     try:
         # Buscar carpeta existente
@@ -231,158 +231,7 @@ async def generate_pdf_with_playwright_async(visit_id: str, numero_serie: str, f
         raise Exception(error_msg)
 
 
-def generate_pdf_with_playwright(visit_id: str, numero_serie: str, fecha_str: str) -> str:
-    """
-    Genera PDF usando Playwright sync en un thread separado.
-    Compatible con Python 3.13, Windows y FastAPI/uvicorn.
-    """
-    print(f"\n🔍 Generando PDF con Playwright")
-    print(f"   📋 Visita ID: {visit_id}")
-    print(f"   🔢 Serie: {numero_serie}")
-    print(f"   📅 Fecha: {fecha_str}")
-    
-    # Crear carpeta temporal para el PDF
-    temp_dir = tempfile.gettempdir()
-    pdf_filename = f"Reporte_Mantenimiento_{numero_serie}_{fecha_str}_{int(time.time())}.pdf"
-    pdf_path = os.path.join(temp_dir, pdf_filename)
-    
-    print(f"   📁 Ruta temporal: {pdf_path}")
-    
-    result = {"pdf_path": None, "error": None}
-    
-    def run_playwright_sync():
-        """Ejecuta Playwright SYNC en un thread nuevo"""
-        try:
-            print(f"   🎭 Importando Playwright sync...")
-            from playwright.sync_api import sync_playwright
-            
-            print(f"   🌐 Iniciando Playwright sync...")
-            with sync_playwright() as p:
-                print(f"   🌐 Lanzando navegador Chromium...")
-                try:
-                    browser = p.chromium.launch(
-                        headless=True,
-                        args=['--disable-dev-shm-usage', '--no-sandbox']
-                    )
-                except Exception as browser_error:
-                    error_msg = f"Error lanzando navegador: {str(browser_error)}"
-                    print(f"   ❌ {error_msg}")
-                    print(f"   💡 Intenta ejecutar: playwright install chromium")
-                    result["error"] = Exception(error_msg)
-                    return
-                
-                print(f"   ✅ Navegador lanzado")
-                page = browser.new_page()
-                page.set_viewport_size({"width": 1920, "height": 1080})
-                
-                # Construir URL para la página de generación
-                url = f"{NEXTJS_URL}/compressor-maintenance/technician/views/generate-report?id={visit_id}"
-                print(f"   🔗 URL: {url}")
-                
-                try:
-                    print(f"   ⏳ Navegando a la página...")
-                    response = page.goto(url, timeout=60000, wait_until="networkidle")
-                    
-                    if not response or response.status >= 400:
-                        error_msg = f"Error HTTP {response.status if response else 'sin respuesta'}"
-                        print(f"   ❌ {error_msg}")
-                        # Capturar contenido de la página para debug
-                        content = page.content()
-                        print(f"   📄 Contenido de la página: {content[:500]}...")
-                        result["error"] = Exception(error_msg)
-                        return
-                    
-                    print(f"   ✅ Página cargada (HTTP {response.status})")
-                    
-                    # Esperar a que el reporte esté completamente cargado
-                    print(f"   ⏳ Esperando a que el contenido se cargue...")
-                    try:
-                        page.wait_for_selector('text=REPORTE DE MANTENIMIENTO', timeout=30000)
-                        print(f"   ✅ Contenido encontrado")
-                    except Exception as wait_error:
-                        print(f"   ⚠️ Timeout esperando contenido: {str(wait_error)}")
-                        # Capturar screenshot para debug
-                        screenshot_path = os.path.join(temp_dir, f"error_screenshot_{int(time.time())}.png")
-                        page.screenshot(path=screenshot_path)
-                        print(f"   📸 Screenshot guardado: {screenshot_path}")
-                        result["error"] = Exception(f"No se encontró el contenido del reporte. Screenshot: {screenshot_path}")
-                        return
-                    
-                    # Esperar un poco más para asegurar que todo el contenido esté renderizado
-                    print(f"   ⏳ Esperando renderizado completo...")
-                    page.wait_for_timeout(3000)
-                    
-                    print(f"   📄 Generando PDF...")
-                    # Generar el PDF
-                    page.pdf(
-                        path=pdf_path,
-                        format="Letter",
-                        print_background=True,
-                        margin={
-                            "top": "0.5in",
-                            "right": "0.5in",
-                            "bottom": "0.5in",
-                            "left": "0.5in"
-                        }
-                    )
-                    
-                    print(f"   ✅ PDF generado exitosamente")
-                    
-                except Exception as page_error:
-                    print(f"   ❌ Error durante la navegación/generación: {str(page_error)}")
-                    print(f"   🔍 Tipo de error: {type(page_error).__name__}")
-                    result["error"] = page_error
-                    return
-                finally:
-                    print(f"   🔒 Cerrando navegador...")
-                    browser.close()
-            
-            # Verificar que el archivo se creó correctamente
-            if os.path.exists(pdf_path):
-                file_size = os.path.getsize(pdf_path)
-                print(f"   ✅ Archivo PDF creado - Tamaño: {file_size} bytes")
-                
-                if file_size < 1000:
-                    print(f"   ⚠️ ADVERTENCIA: Archivo muy pequeño, puede estar vacío o corrupto")
-                
-                result["pdf_path"] = pdf_path
-            else:
-                result["error"] = Exception("El archivo PDF no se encontró después de la generación")
-                
-        except ImportError as import_error:
-            error_msg = f"Error importando Playwright: {str(import_error)}. Ejecuta: pip install playwright && playwright install chromium"
-            print(f"   ❌ {error_msg}")
-            result["error"] = Exception(error_msg)
-        except Exception as e:
-            error_msg = str(e) if str(e) else "Error desconocido en la generación del PDF"
-            print(f"   ❌ Error en generación PDF: {error_msg}")
-            print(f"   🔍 Traceback completo:")
-            import traceback
-            traceback.print_exc()
-            result["error"] = Exception(error_msg)
-    
-    # Ejecutar en un thread separado
-    print(f"   🧵 Iniciando thread separado para Playwright sync...")
-    thread = threading.Thread(target=run_playwright_sync)
-    thread.start()
-    thread.join(timeout=120)  # Timeout de 2 minutos
-    
-    if thread.is_alive():
-        print(f"   ⏱️ Timeout: El thread aún está ejecutándose")
-        raise Exception("Timeout generando PDF (120 segundos)")
-    
-    # Verificar resultado
-    if result["error"]:
-        raise result["error"]
-    
-    if result["pdf_path"]:
-        return result["pdf_path"]
-    else:
-        raise Exception("No se pudo generar el PDF")
-        raise
-
-
-def upload_pdf_to_drive(drive_service, pdf_path: str, folder_id: str) -> str:
+async def upload_pdf_to_drive(drive_service, pdf_path: str, folder_id: str) -> str:> str:
     """
     Sube un archivo PDF a Google Drive y lo hace público
     
@@ -427,9 +276,10 @@ def upload_pdf_to_drive(drive_service, pdf_path: str, folder_id: str) -> str:
         raise
 
 
-def generate_and_upload_maintenance_report(report_data: dict) -> dict:
+async def generate_and_upload_maintenance_report_async(report_data: dict) -> dict:ct) -> dict:
     """
-    Función principal para generar PDF con Playwright y subirlo a Google Drive
+    Función principal ASYNC para generar PDF con Playwright y subirlo a Google Drive
+    Compatible con FastAPI/uvicorn - NO causa conflictos de event loop
     
     Args:
         report_data: Diccionario con datos del reporte de mantenimiento
@@ -445,7 +295,7 @@ def generate_and_upload_maintenance_report(report_data: dict) -> dict:
     """
     try:
         print(f"\n{'='*60}")
-        print(f"🚀 GENERANDO REPORTE DE MANTENIMIENTO")
+        print(f"🚀 GENERANDO REPORTE DE MANTENIMIENTO (ASYNC)")
         print(f"{'='*60}")
         
         # Extraer información del reporte
@@ -470,13 +320,13 @@ def generate_and_upload_maintenance_report(report_data: dict) -> dict:
         
         print(f"📅 Fecha formateada: {fecha_str}")
         
-        # 1. Generar PDF con Playwright
-        print(f"\n📄 Paso 1/3: Generación del PDF")
-        pdf_path = generate_pdf_with_playwright(visit_id, numero_serie, fecha_str)
+        # 1. Generar PDF con Playwright (ASYNC)
+        print(f"\n📄 Paso 1/3: Generación del PDF (Async)")
+        pdf_path = await generate_pdf_with_playwright_async(visit_id, numero_serie, fecha_str)
         
         # 2. Autenticar con Google Drive
         print(f"\n🔐 Paso 2/3: Autenticación con Google Drive")
-        drive_service = authenticate_google_drive()
+        drive_service = await authenticate_google_drive()
         print(f"   ✅ Autenticación exitosa")
         
         # 3. Crear estructura de carpetas y subir
@@ -484,13 +334,13 @@ def generate_and_upload_maintenance_report(report_data: dict) -> dict:
         print(f"   Estructura: Root > {numero_cliente} {cliente_nombre} > Compresor - {numero_serie} > {fecha_str} > Reportes")
         
         # Crear estructura de carpetas
-        client_folder = get_or_create_folder(drive_service, ROOT_FOLDER_ID, f"{numero_cliente} {cliente_nombre}")
-        comp_folder = get_or_create_folder(drive_service, client_folder, f"Compresor - {numero_serie}")
-        date_folder = get_or_create_folder(drive_service, comp_folder, fecha_str)
-        reports_folder = get_or_create_folder(drive_service, date_folder, "Reportes")
+        client_folder = await get_or_create_folder(drive_service, ROOT_FOLDER_ID, f"{numero_cliente} {cliente_nombre}")
+        comp_folder = await get_or_create_folder(drive_service, client_folder, f"Compresor - {numero_serie}")
+        date_folder = await get_or_create_folder(drive_service, comp_folder, fecha_str)
+        reports_folder = await get_or_create_folder(drive_service, date_folder, "Reportes")
         
         # Subir PDF
-        pdf_link = upload_pdf_to_drive(drive_service, pdf_path, reports_folder)
+        pdf_link = await upload_pdf_to_drive(drive_service, pdf_path, reports_folder)
         
         # Limpiar archivo temporal
         try:

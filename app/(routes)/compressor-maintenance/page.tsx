@@ -105,10 +105,11 @@ const Home = () => {
               <div className="text-center">
                 <div className="text-4xl mb-4">🔧</div>
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  Tabla de Compresores
+                  Tabla de Mantenimientos Activos
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  Gestiona y monitorea todos los compresores
+                  Visualiza y gestiona todos los mantenimientos activos de los
+                  compresores
                 </p>
               </div>
             </button>

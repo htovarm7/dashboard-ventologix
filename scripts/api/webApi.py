@@ -1854,14 +1854,14 @@ def check_report_exists(numero_cliente: int, numero_serie: str, fecha: str):
         raise HTTPException(status_code=500, detail=f"Error checking report: {str(e)}")
 
 @web.post("/maintenance/generate-report", tags=["🛠️ Mantenimiento de Compresores"])
-def generate_maintenance_report(request: GenerateReportRequest):
+async def generate_maintenance_report(request: GenerateReportRequest):
     """
     Genera un reporte PDF de mantenimiento usando Playwright y lo sube a Google Drive.
     Renderiza la página Next.js de generación de reportes y la convierte a PDF.
     """
     try:
         # Importar el módulo de generación de PDF con Playwright
-        from generate_pdf_report_playwright import generate_and_upload_maintenance_report
+        from generate_pdf_report_playwright import generate_and_upload_maintenance_report_async
         
         conn = mysql.connector.connect(
             host=DB_HOST,
@@ -1925,8 +1925,8 @@ def generate_maintenance_report(request: GenerateReportRequest):
             "mantenimientos": mantenimientos_realizados
         }
         
-        # Generar PDF y subir a Google Drive
-        result = generate_and_upload_maintenance_report(report_data)
+        # Generar PDF y subir a Google Drive (async)
+        result = await generate_and_upload_maintenance_report_async(report_data)
         
         if not result['success']:
             raise HTTPException(

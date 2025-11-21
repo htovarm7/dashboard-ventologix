@@ -44,11 +44,16 @@ const MaintenanceTimer = ({
 }) => {
   const [now, setNow] = useState<Date>(new Date());
 
+  // Actualizar el tiempo cada minuto
   useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 60 * 1000);
+    const interval = setInterval(() => {
+      console.log("Timer tick - actualizando now");
+      setNow(new Date());
+    }, 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
+  // Calcular datos del temporizador directamente en el render
   const parseDate = (d?: string) => {
     if (!d) return null;
     try {
@@ -69,18 +74,23 @@ const MaintenanceTimer = ({
   }
 
   // Calcular horas restantes
-  // Si tenemos horasTranscurridas del procedimiento (más exactas), usarlas
-  // Sino, calcular basado en el tiempo transcurrido desde el último mantenimiento
   let remaining: number;
   if (horasTranscurridas !== undefined && horasTranscurridas !== null) {
-    // horasTranscurridas son las horas reales de operación desde el último mantenimiento
-    // remaining = frecuencia - horas_transcurridas
+    // Usar horas reales de operación desde el último mantenimiento
     remaining = frequency - horasTranscurridas;
+    console.log(
+      `Usando horasTranscurridas: ${horasTranscurridas}, remaining: ${remaining}`
+    );
   } else {
     // Fallback: calcular por tiempo calendario
     const elapsedMs = now.getTime() - last.getTime();
     const elapsedHours = elapsedMs / (1000 * 60 * 60);
     remaining = frequency - elapsedHours;
+    console.log(
+      `Usando tiempo calendario: ${elapsedHours.toFixed(
+        2
+      )}h transcurridas, remaining: ${remaining.toFixed(2)}`
+    );
   }
 
   const progressPercent = Math.min(
@@ -1127,7 +1137,7 @@ const CompressorMaintenance = () => {
               compresores
             </p>
           </div>
-          {userRole === 2 && (
+          {/* {userRole === 2 && (
             <div className="flex gap-3">
               <button
                 onClick={() => setShowCompressorRegistrationModal(true)}
@@ -1144,7 +1154,7 @@ const CompressorMaintenance = () => {
                 Agregar Mantenimiento
               </button>
             </div>
-          )}
+          )} */}
         </div>
 
         {/* Compressor List */}
