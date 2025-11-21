@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  Plus,
   ChevronDown,
   ChevronRight,
   Settings,
@@ -632,7 +631,7 @@ const CompressorMaintenance = () => {
   };
 
   // Función para obtener datos del semáforo de mantenimientos para un compresor específico
-  const fetchSemaforoData = async (id_compresor: number) => {
+  const fetchSemaforoData = useCallback(async (id_compresor: number) => {
     try {
       const response = await fetch(
         `${URL_API}/web/maintenance/semaforo/${id_compresor}`
@@ -664,19 +663,22 @@ const CompressorMaintenance = () => {
         error
       );
     }
-  };
+  }, []);
 
   // Función para obtener datos del semáforo de todos los compresores
-  const fetchAllSemaforoData = async (compresores: Compressor[]) => {
-    try {
-      // Hacer llamadas en paralelo para todos los compresores
-      await Promise.all(
-        compresores.map((comp) => fetchSemaforoData(parseInt(comp.id)))
-      );
-    } catch (error) {
-      console.error("Error fetching all semaforo data:", error);
-    }
-  };
+  const fetchAllSemaforoData = useCallback(
+    async (compresores: Compressor[]) => {
+      try {
+        // Hacer llamadas en paralelo para todos los compresores
+        await Promise.all(
+          compresores.map((comp) => fetchSemaforoData(parseInt(comp.id)))
+        );
+      } catch (error) {
+        console.error("Error fetching all semaforo data:", error);
+      }
+    },
+    [fetchSemaforoData]
+  );
 
   // Función para convertir registros de API a formato local
   const convertApiRecordToLocal = (apiRecord: {
@@ -884,7 +886,7 @@ const CompressorMaintenance = () => {
     setTimeout(() => {
       loadUserData().catch(console.error);
     }, 500);
-  }, []);
+  }, [fetchAllSemaforoData]);
 
   // Actualizar semáforo cada minuto
   useEffect(() => {
@@ -895,7 +897,7 @@ const CompressorMaintenance = () => {
 
       return () => clearInterval(interval);
     }
-  }, [allCompresores]);
+  }, [allCompresores, fetchAllSemaforoData]);
 
   if (!loading && !isAuthorized) {
     return (

@@ -29,6 +29,11 @@ type Client = {
   compressors: Compressor[];
 };
 
+interface UserCompressor {
+  numero_cliente?: number;
+  [key: string]: unknown;
+}
+
 const Visitas = () => {
   const router = useRouter();
   const [expandedClients, setExpandedClients] = useState<Set<string>>(
@@ -81,7 +86,7 @@ const Visitas = () => {
 
           // Obtener todos los números de cliente únicos de los compresores
           const numerosCliente = new Set<number>();
-          compresores.forEach((comp: any) => {
+          compresores.forEach((comp: UserCompressor) => {
             const numCliente = comp.numero_cliente || parsedData.numero_cliente;
             if (numCliente) {
               numerosCliente.add(numCliente);

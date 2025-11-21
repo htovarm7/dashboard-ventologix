@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LoadingOverlay from "@/components/LoadingOverlay";
@@ -8,17 +8,15 @@ import { MaintenanceReportResponse, MaintenanceReportData } from "@/lib/types";
 import Image from "next/image";
 import PrintPageButton from "@/components/printPageButton";
 
-const MttoReport = () => {
+function MttoReportContent() {
   const { isAuthenticated, isLoading } = useAuth0();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [numeroSerie, setNumeroSerie] = useState("");
   const [reportData, setReportData] = useState<MaintenanceReportData | null>(
     null
   );
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Cargar datos de la visita seleccionada si existen
   useEffect(() => {
@@ -35,10 +33,6 @@ const MttoReport = () => {
     if (selectedVisitData) {
       try {
         const visitData = JSON.parse(selectedVisitData);
-        // Auto-llenar el número de serie y cargar el reporte por ID
-        if (visitData.numero_serie) {
-          setNumeroSerie(visitData.numero_serie);
-        }
         if (visitData.id) {
           // Auto-cargar el reporte usando el ID de la visita específica
           setTimeout(() => {
@@ -56,7 +50,6 @@ const MttoReport = () => {
   const fetchReportDataById = async (visitId: string) => {
     try {
       setLoading(true);
-      setError(null);
 
       const API_BASE_URL =
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -82,71 +75,11 @@ const MttoReport = () => {
       // Guardar datos del reporte en sessionStorage para el nombre del PDF
       sessionStorage.setItem("currentReportData", JSON.stringify(data.reporte));
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Error desconocido al cargar el reporte"
-      );
       console.error("Error fetching maintenance report data:", err);
       setReportData(null);
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchReportDataWithSerie = async (serie: string) => {
-    if (!serie.trim()) {
-      setError("Por favor ingrese un número de serie");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const API_BASE_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-      const response = await fetch(
-        `${API_BASE_URL}/web/maintenance/report-data/${serie}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.detail || "Error al obtener los datos del reporte"
-        );
-      }
-
-      const data: MaintenanceReportResponse = await response.json();
-      setReportData(data.reporte);
-      // Guardar datos del reporte en sessionStorage para el nombre del PDF
-      sessionStorage.setItem("currentReportData", JSON.stringify(data.reporte));
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Error desconocido al cargar el reporte"
-      );
-      console.error("Error fetching report data:", err);
-      setReportData(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchReportData = async () => {
-    await fetchReportDataWithSerie(numeroSerie);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchReportData();
   };
 
   if (isLoading) {
@@ -347,6 +280,14 @@ const MttoReport = () => {
       </div>
     </div>
   );
-};
+}
 
-export default MttoReport;
+export default function MttoReport() {
+  return (
+    <Suspense
+      fallback={<LoadingOverlay isVisible={true} message="Cargando..." />}
+    >
+      <MttoReportContent />
+    </Suspense>
+  );
+}
