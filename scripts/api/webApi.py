@@ -12,6 +12,7 @@ import os
 import dotenv as dotenv
 import io
 import logging
+import asyncio
 from typing import List, Tuple, Optional
 from pydantic import BaseModel, EmailStr
 import sys
@@ -1856,12 +1857,12 @@ def check_report_exists(numero_cliente: int, numero_serie: str, fecha: str):
 @web.post("/maintenance/generate-report", tags=["🛠️ Mantenimiento de Compresores"])
 async def generate_maintenance_report(request: GenerateReportRequest):
     """
-    Genera un reporte PDF de mantenimiento usando Playwright y lo sube a Google Drive.
-    Renderiza la página Next.js de generación de reportes y la convierte a PDF.
+    Genera un reporte PDF de mantenimiento usando Puppeteer y lo sube a Google Drive.
+    Captura la página de Next.js generate-report directamente.
     """
     try:
-        # Importar el módulo de generación de PDF con Playwright
-        from generate_pdf_report_playwright import generate_and_upload_maintenance_report_async
+        # Importar el módulo de generación de PDF con Puppeteer
+        from generate_pdf_puppeteer import generate_and_upload_maintenance_report
         
         conn = mysql.connector.connect(
             host=DB_HOST,
@@ -1925,8 +1926,13 @@ async def generate_maintenance_report(request: GenerateReportRequest):
             "mantenimientos": mantenimientos_realizados
         }
         
-        # Generar PDF y subir a Google Drive (async)
-        result = await generate_and_upload_maintenance_report_async(report_data)
+        # Generar PDF y subir a Google Drive (sync, se ejecuta en thread pool automáticamente por FastAPI)
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None, 
+            generate_and_upload_maintenance_report, 
+            report_data
+        )
         
         if not result['success']:
             raise HTTPException(

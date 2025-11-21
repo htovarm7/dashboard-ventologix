@@ -41,14 +41,16 @@ const Visitas = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [clientsData, setClientsData] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reportLinks, setReportLinks] = useState<Map<string, string>>(new Map());
+  const [reportLinks, setReportLinks] = useState<Map<string, string>>(
+    new Map()
+  );
 
   // Ejecutar sincronización con Google Sheets al cargar la página
   useEffect(() => {
     const syncSheets = async () => {
       try {
         const response = await fetch(`${URL_API}/web/maintenance/sync-sheets`, {
-          method: "POST"
+          method: "POST",
         });
         if (response.ok) {
           const result = await response.json();
@@ -94,7 +96,7 @@ const Visitas = () => {
 
           // Fetch maintenance records from API para todos los clientes
           const allRegistros: Visit[] = [];
-          
+
           for (const numeroCliente of Array.from(numerosCliente)) {
             try {
               const response = await fetch(
@@ -106,7 +108,10 @@ const Visitas = () => {
                 allRegistros.push(...registros);
               }
             } catch (err) {
-              console.error(`Error fetching data for client ${numeroCliente}:`, err);
+              console.error(
+                `Error fetching data for client ${numeroCliente}:`,
+                err
+              );
             }
           }
 
@@ -151,10 +156,10 @@ const Visitas = () => {
           const clients = Array.from(clientsMap.values());
 
           setClientsData(clients);
-          
+
           // Cargar los links de reportes para todas las visitas
           await loadReportLinks(allRegistros);
-          
+
           setLoading(false);
         } catch (error) {
           console.error("Error loading data:", error);
@@ -172,17 +177,17 @@ const Visitas = () => {
   // Función para cargar los links de reportes
   const loadReportLinks = async (registros: Visit[]) => {
     const linksMap = new Map<string, string>();
-    
+
     for (const registro of registros) {
       try {
-        const fecha = new Date(registro.date).toISOString().split('T')[0];
+        const fecha = new Date(registro.date).toISOString().split("T")[0];
         const numeroCliente = registro.numero_cliente || 0;
         const numeroSerie = registro.numero_serie || "";
-        
+
         const response = await fetch(
           `${URL_API}/web/maintenance/check-report?numero_cliente=${numeroCliente}&numero_serie=${numeroSerie}&fecha=${fecha}`
         );
-        
+
         if (response.ok) {
           const result = await response.json();
           if (result.exists && result.report) {
@@ -195,13 +200,13 @@ const Visitas = () => {
         console.error("Error verificando reporte:", error);
       }
     }
-    
+
     setReportLinks(linksMap);
   };
 
   // Función para obtener el link de reporte de una visita
   const getReportLink = (visit: Visit): string | null => {
-    const fecha = new Date(visit.date).toISOString().split('T')[0];
+    const fecha = new Date(visit.date).toISOString().split("T")[0];
     const numeroCliente = visit.numero_cliente || 0;
     const numeroSerie = visit.numero_serie || "";
     const key = `${numeroCliente}-${numeroSerie}-${fecha}`;
@@ -239,52 +244,28 @@ const Visitas = () => {
     setShowDetails(true);
   };
 
-  const handleGenerateReport = async (visit: Visit) => {
-    try {
-      const fecha = new Date(visit.date).toISOString().split('T')[0];
-      const numeroSerie = visit.numero_serie || "";
-      
-      // Mostrar indicador de carga
-      alert("Generando reporte PDF...\nEsto puede tomar unos segundos.");
-      
-      const response = await fetch(`${URL_API}/web/maintenance/generate-report`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          numero_serie: numeroSerie,
-          fecha: fecha,
-          registro_id: visit.id
-        })
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        
-        // Actualizar el mapa de links
-        const numeroCliente = visit.numero_cliente || 0;
-        const key = `${numeroCliente}-${numeroSerie}-${fecha}`;
-        setReportLinks(prev => new Map(prev).set(key, result.pdf_link));
-        
-        alert("¡Reporte generado exitosamente!");
-        
-        // Abrir el PDF en una nueva pestaña
-        window.open(result.pdf_link, '_blank');
-      } else {
-        const error = await response.json();
-        alert(`Error generando reporte: ${error.detail}`);
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      alert("Error generando reporte. Por favor intente de nuevo.");
-    }
+  const handleGenerateReport = (visit: Visit) => {
+    // Guardar los datos de la visita en sessionStorage
+    sessionStorage.setItem(
+      "selectedVisitData",
+      JSON.stringify({
+        id: visit.id,
+        numero_serie: visit.numero_serie,
+        date: visit.date,
+        cliente: visit.cliente,
+        technician: visit.technician,
+      })
+    );
+
+    router.push(
+      `/compressor-maintenance/technician/views/generate-report?id=${visit.id}`
+    );
   };
 
   const handleViewReport = (visit: Visit) => {
     const link = getReportLink(visit);
     if (link) {
-      window.open(link, '_blank');
+      window.open(link, "_blank");
     }
   };
 
@@ -427,7 +408,9 @@ const Visitas = () => {
                                     </button>
                                   ) : (
                                     <button
-                                      onClick={() => handleGenerateReport(visit)}
+                                      onClick={() =>
+                                        handleGenerateReport(visit)
+                                      }
                                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center space-x-2"
                                     >
                                       <FileText size={16} />

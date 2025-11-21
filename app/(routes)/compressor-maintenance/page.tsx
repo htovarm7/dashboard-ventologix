@@ -96,7 +96,7 @@ const Home = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-8">
           <div className="group">
             <button
               className="w-full bg-white hover:bg-blue-50 border-2 border-blue-200 hover:border-blue-400 rounded-xl p-8 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
@@ -148,6 +148,25 @@ const Home = () => {
                 </h3>
                 <p className="text-gray-600 text-sm">
                   Ver historial de reportes
+                </p>
+              </div>
+            </button>
+          </div>
+
+          <div className="group">
+            <button
+              className="w-full bg-white hover:bg-blue-50 border-2 border-blue-200 hover:border-blue-400 rounded-xl p-8 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+              onClick={() =>
+                window.open("https://forms.gle/6DccR76Ty7KMXjCcA", "_blank")
+              }
+            >
+              <div className="text-center">
+                <div className="text-4xl mb-4">📝</div>
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                  Forms de control de mantenimiento
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  Registra la información del mantenimiento realizado
                 </p>
               </div>
             </button>
