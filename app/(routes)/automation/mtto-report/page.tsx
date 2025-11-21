@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect, Suspense } from "react";
-import { useAuth0 } from "@auth0/auth0-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import BackButton from "@/components/BackButton";
 import { MaintenanceReportResponse, MaintenanceReportData } from "@/lib/types";
@@ -9,21 +8,21 @@ import Image from "next/image";
 import PrintPageButton from "@/components/printPageButton";
 
 function MttoReportContent() {
-  const { isAuthenticated, isLoading } = useAuth0();
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const [reportData, setReportData] = useState<MaintenanceReportData | null>(
     null
   );
   const [loading, setLoading] = useState(false);
+  const [isAutomation, setIsAutomation] = useState(false);
 
   // Cargar datos de la visita seleccionada si existen
   useEffect(() => {
-    // Primero revisar si hay parámetro de query ?id=xxx (para Playwright)
+    // Primero revisar si hay parámetro de query ?id=xxx (para Playwright y navegación)
     const queryId = searchParams.get("id");
     if (queryId) {
       console.log("Loading report from query parameter:", queryId);
+      setIsAutomation(true); // Modo automatización
       fetchReportDataById(queryId);
       return;
     }
@@ -51,6 +50,11 @@ function MttoReportContent() {
     try {
       setLoading(true);
 
+      // Señal para Playwright: iniciando carga
+      if (typeof window !== "undefined") {
+        (window as any).status = "loading";
+      }
+
       const API_BASE_URL =
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
       const response = await fetch(
@@ -65,6 +69,13 @@ function MttoReportContent() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("Error fetching report:", errorData);
+
+        // Señal para Playwright: error
+        if (typeof window !== "undefined") {
+          (window as any).status = "data-error";
+        }
+
         throw new Error(
           errorData.detail || "Error al obtener los datos del reporte"
         );
@@ -72,24 +83,29 @@ function MttoReportContent() {
 
       const data: MaintenanceReportResponse = await response.json();
       setReportData(data.reporte);
+
       // Guardar datos del reporte en sessionStorage para el nombre del PDF
       sessionStorage.setItem("currentReportData", JSON.stringify(data.reporte));
+
+      // Señal para Playwright: datos listos, esperar renderizado
+      setTimeout(() => {
+        if (typeof window !== "undefined") {
+          (window as any).status = "pdf-ready";
+          console.log("Report ready for PDF generation");
+        }
+      }, 500); // Pequeño delay para asegurar que el DOM esté completamente renderizado
     } catch (err) {
       console.error("Error fetching maintenance report data:", err);
       setReportData(null);
+
+      // Señal para Playwright: error
+      if (typeof window !== "undefined") {
+        (window as any).status = "data-error";
+      }
     } finally {
       setLoading(false);
     }
   };
-
-  if (isLoading) {
-    return <LoadingOverlay isVisible={true} message="Cargando..." />;
-  }
-
-  if (!isAuthenticated) {
-    router.push("/");
-    return null;
-  }
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";
@@ -105,9 +121,12 @@ function MttoReportContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="no-print">
-        <BackButton />
-      </div>
+      {/* Ocultar botón de regreso en modo automatización */}
+      {!isAutomation && (
+        <div className="no-print">
+          <BackButton />
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto mt-4">
         {/* Overlay de carga */}
@@ -272,7 +291,8 @@ function MttoReportContent() {
           </div>
         )}
 
-        {reportData && (
+        {/* Botón de impresión solo visible si no es modo automatización */}
+        {reportData && !isAutomation && (
           <div className="flex justify-center mb-8 no-print">
             <PrintPageButton reportType="reporte-visita" />
           </div>

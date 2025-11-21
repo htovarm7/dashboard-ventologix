@@ -1797,6 +1797,57 @@ def get_maintenance_report_data(numero_serie: str):
         if conn:
             conn.close()
 
+@web.get("/compressor/by-serial/{numero_serie}", tags=["⚙️ Gestión de Compresores"])
+def get_compressor_by_serial(numero_serie: str):
+    """
+    Obtiene toda la información de un compresor usando su número de serie.
+    Endpoint público para automation.py y reportes sin autenticación.
+    """
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+        
+        # Obtener toda la información del compresor
+        cursor.execute("""
+            SELECT 
+                c.*,
+                cl.nombre_cliente,
+                cl.numero_cliente
+            FROM compresores c
+            LEFT JOIN clientes cl ON c.id_cliente = cl.id_cliente
+            WHERE c.numero_serie = %s
+        """, (numero_serie,))
+        
+        compressor = cursor.fetchone()
+        
+        if not compressor:
+            raise HTTPException(status_code=404, detail=f"No se encontró compresor con número de serie: {numero_serie}")
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            "success": True,
+            "data": compressor
+        }
+        
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching compressor data: {str(e)}")
+    finally:
+        if 'cursor' in locals() and cursor:
+            cursor.close()
+        if 'conn' in locals() and conn:
+            conn.close()
+
 @web.post("/maintenance/sync-sheets", tags=[" Mantenimiento de Compresores"])
 def sync_maintenance_sheets():
     """
@@ -1808,6 +1859,118 @@ def sync_maintenance_sheets():
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en sincronizaci�n: {str(e)}")
+
+
+@web.get("/maintenance/check-report", tags=[" Mantenimiento de Compresores"])
+def check_report_exists(numero_cliente: int, numero_serie: str, fecha: str):
+    """
+    Verifica si existe un reporte PDF generado para un cliente, compresor y fecha espec�ficos
+    """
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+
+
+@web.get("/maintenance/pending-reports", tags=["🛠️ Mantenimiento de Compresores"])
+def get_pending_maintenance_reports():
+    """
+    Obtiene todos los registros de mantenimiento donde 'generado' es NULL.
+    Retorna lista con id, numero_serie, cliente, fecha, etc.
+    """
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+        
+        # Obtener registros pendientes con información del compresor y cliente
+        cursor.execute("""
+            SELECT 
+                rmt.id,
+                rmt.numero_serie,
+                rmt.timestamp as fecha,
+                rmt.tecnico,
+                rmt.email,
+                rmt.tipo,
+                c.Alias as compresor,
+                cl.nombre_cliente as cliente
+            FROM registros_mantenimientos_tornillo rmt
+            LEFT JOIN compresores c ON rmt.numero_serie = c.numero_serie
+            LEFT JOIN clientes cl ON c.id_cliente = cl.id_cliente
+            WHERE rmt.generado IS NULL
+            ORDER BY rmt.timestamp DESC
+        """)
+        
+        registros = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            "success": True,
+            "registros": registros,
+            "total": len(registros)
+        }
+        
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching pending reports: {str(e)}")
+    finally:
+        if 'cursor' in locals() and cursor:
+            cursor.close()
+        if 'conn' in locals() and conn:
+            conn.close()
+
+
+@web.put("/maintenance/mark-generated/{registro_id}", tags=["🛠️ Mantenimiento de Compresores"])
+def mark_maintenance_report_generated(registro_id: int):
+    """
+    Marca un registro de mantenimiento como generado (actualiza la columna 'generado' a TRUE).
+    """
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor()
+        
+        # Actualizar el registro
+        cursor.execute("""
+            UPDATE registros_mantenimientos_tornillo
+            SET generado = TRUE
+            WHERE id = %s
+        """, (registro_id,))
+        
+        conn.commit()
+        
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail=f"No se encontró registro con ID: {registro_id}")
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            "success": True,
+            "message": f"Registro {registro_id} marcado como generado"
+        }
+        
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating report status: {str(e)}")
+    finally:
+        if 'cursor' in locals() and cursor:
+            cursor.close()
+        if 'conn' in locals() and conn:
+            conn.close()
 
 
 @web.get("/maintenance/check-report", tags=[" Mantenimiento de Compresores"])

@@ -283,6 +283,44 @@ def obtener_clientes_desde_api():
     return {"diarios": [], "semanales": []}
 
 
+# ------------- API para reportes de mantenimiento -------------
+def obtener_registros_mantenimiento_pendientes():
+    """
+    Obtiene todos los registros de mantenimiento donde 'generado' es NULL.
+    Retorna lista de diccionarios con id, numero_serie, cliente, etc.
+    """
+    api_url = "http://127.0.0.1:8000/web/maintenance/pending-reports"
+    print(f"🔧 Obteniendo reportes de mantenimiento pendientes...")
+    
+    try:
+        response = requests.get(api_url, timeout=30)
+        
+        if response.status_code == 200:
+            data = response.json()
+            registros = data.get("registros", [])
+            print(f"✅ {len(registros)} reportes de mantenimiento pendientes")
+            return registros
+        else:
+            print(f"❌ Error API mantenimiento - Código: {response.status_code}")
+            return []
+            
+    except Exception as e:
+        print(f"❌ Error obteniendo reportes pendientes: {e}")
+        return []
+
+
+def marcar_reporte_generado(registro_id: int):
+    """Marca un registro de mantenimiento como generado."""
+    api_url = f"http://127.0.0.1:8000/web/maintenance/mark-generated/{registro_id}"
+    
+    try:
+        response = requests.put(api_url, timeout=10)
+        return response.status_code == 200
+    except Exception as e:
+        print(f"❌ Error marcando reporte como generado: {e}")
+        return False
+
+
 # ------------- Render PDF -------------
 def generar_pdf_cliente(id_cliente: int, linea: str, nombre_cliente: str, alias: str, tipo: str, etiqueta_fecha: str) -> str:
     """
@@ -403,6 +441,110 @@ def generar_pdf_cliente(id_cliente: int, linea: str, nombre_cliente: str, alias:
     except Exception as e:
         print(f"   ❌ Error general en generación PDF: {str(e)}")
         return None
+
+
+def generar_pdf_reporte_mantenimiento(registro_id: int, numero_serie: str, cliente: str, fecha: str) -> str:
+    """
+    Genera PDF de reporte de mantenimiento usando la página mtto-report.
+    
+    Args:
+        registro_id: ID del registro de mantenimiento
+        numero_serie: Número de serie del compresor
+        cliente: Nombre del cliente
+        fecha: Fecha del mantenimiento (YYYY-MM-DD)
+    
+    Returns:
+        str: Ruta del PDF generado o None si falla
+    """
+    # Sanitizar nombre de archivo
+    cliente_limpio = cliente.replace("/", "-").replace("\\", "-")
+    nombre_archivo = f"Reporte Mantenimiento {cliente_limpio} {numero_serie} {fecha}.pdf"
+    pdf_path = os.path.join(DOWNLOADS_FOLDER, nombre_archivo)
+    
+    print(f"\n🔧 Generando reporte de mantenimiento:")
+    print(f"   📋 Cliente: {cliente}")
+    print(f"   🔢 Número Serie: {numero_serie}")
+    print(f"   🆔 Registro ID: {registro_id}")
+    print(f"   📄 Archivo: {nombre_archivo}")
+
+    try:
+        with sync_playwright() as p:
+            print(f"   🌐 Iniciando navegador...")
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.set_viewport_size({"width": 1920, "height": 1080})
+
+            url = f"http://localhost:3000/automation/mtto-report?id={registro_id}"
+            print(f"   🔗 URL: {url}")
+            
+            try:
+                print(f"   ⏳ Navegando a la página...")
+                page.goto(url, timeout=180000)  # 3 minutos
+                print(f"   ✅ Página cargada, esperando contenido...")
+
+                # Esperar señal de la página
+                page.wait_for_function(
+                    "window.status === 'pdf-ready' || window.status === 'data-error'",
+                    timeout=180000
+                )
+                
+                # Verificar status
+                status = page.evaluate("() => window.status")
+                print(f"   📊 Status de la página: {status}")
+                
+                if status == "data-error":
+                    print(f"   ❌ Error de datos reportado por la página")
+                    browser.close()
+                    return None
+
+                print(f"   📏 Calculando altura de la página...")
+                full_height = page.evaluate("""
+                () => Math.max(
+                    document.body.scrollHeight,
+                    document.documentElement.scrollHeight
+                )
+                """)
+                safe_height = max(int(full_height) - 2, 1)
+                print(f"   📐 Altura calculada: {full_height}px, ajustada: {safe_height}px")
+                
+                print(f"   🖨️ Generando PDF...")
+                page.pdf(
+                    path=pdf_path,
+                    width="1920px",
+                    height=f"{safe_height}px",
+                    print_background=True,
+                    margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
+                )
+
+                print(f"   ✅ PDF generado exitosamente")
+
+            except Exception as e:
+                print(f"   ❌ Error en proceso de generación: {str(e)}")
+                browser.close()
+                return None
+
+            browser.close()
+            
+            # Verificar que el archivo se creó correctamente
+            if os.path.exists(pdf_path):
+                file_size = os.path.getsize(pdf_path)
+                print(f"   ✅ Archivo creado - Tamaño: {file_size} bytes")
+                
+                # Marcar como generado en la base de datos
+                if marcar_reporte_generado(registro_id):
+                    print(f"   ✅ Registro marcado como generado en BD")
+                else:
+                    print(f"   ⚠️ No se pudo marcar como generado en BD")
+                
+                return pdf_path
+            else:
+                print(f"   ❌ El archivo PDF no se encontró después de la generación")
+                return None
+                
+    except Exception as e:
+        print(f"   ❌ Error general: {str(e)}")
+        return None
+
 
 # ------------- Envío correo -------------
 def send_mail(recipient_config: dict, pdf_file_path: str):
@@ -651,6 +793,78 @@ def generar_todos_los_pdfs(clientes: list, tipo: str) -> tuple[set, list]:
     return generados, fallidos
 
 
+def generar_reportes_mantenimiento_pendientes() -> tuple[int, int]:
+    """
+    Genera todos los reportes de mantenimiento pendientes (donde generado es NULL).
+    
+    Returns:
+        tuple: (exitosos, fallidos)
+    """
+    print(f"\n🔧 === PROCESANDO REPORTES DE MANTENIMIENTO PENDIENTES ===")
+    
+    registros = obtener_registros_mantenimiento_pendientes()
+    
+    if not registros:
+        print(f"✅ No hay reportes de mantenimiento pendientes")
+        return 0, 0
+    
+    print(f"📋 Total de reportes pendientes: {len(registros)}")
+    
+    exitosos = 0
+    fallidos = 0
+    inicio_proceso = time.time()
+    
+    for i, registro in enumerate(registros, 1):
+        inicio_registro = time.time()
+        
+        try:
+            registro_id = registro['id']
+            numero_serie = registro['numero_serie']
+            cliente = registro.get('cliente', 'Cliente')
+            fecha = registro.get('fecha', datetime.now().strftime('%Y-%m-%d'))
+            
+            print(f"\n{'='*60}")
+            print(f"🔧 [{i}/{len(registros)}] Procesando reporte de mantenimiento")
+            print(f"   🆔 ID: {registro_id}")
+            print(f"   📋 Cliente: {cliente}")
+            print(f"   🔢 Serie: {numero_serie}")
+            
+            pdf_path = generar_pdf_reporte_mantenimiento(
+                registro_id=registro_id,
+                numero_serie=numero_serie,
+                cliente=cliente,
+                fecha=fecha
+            )
+            
+            tiempo_registro = time.time() - inicio_registro
+            
+            if pdf_path:
+                print(f"✅ ÉXITO - Reporte generado en {tiempo_registro:.2f}s")
+                exitosos += 1
+            else:
+                print(f"❌ FALLÓ - Reporte no generado (Tiempo: {tiempo_registro:.2f}s)")
+                fallidos += 1
+                
+        except Exception as e:
+            tiempo_registro = time.time() - inicio_registro
+            print(f"❌ EXCEPCIÓN - Registro ID: {registro.get('id', 'N/A')}")
+            print(f"   Error: {str(e)}")
+            print(f"   Tiempo: {tiempo_registro:.2f}s")
+            fallidos += 1
+    
+    tiempo_total = time.time() - inicio_proceso
+    
+    print(f"\n{'='*60}")
+    print(f"📈 === RESUMEN REPORTES DE MANTENIMIENTO ===")
+    print(f"✅ Exitosos: {exitosos}")
+    print(f"❌ Fallidos: {fallidos}")
+    print(f"⏱️ Tiempo total: {tiempo_total:.2f}s")
+    if len(registros) > 0:
+        print(f"⚡ Tiempo promedio: {tiempo_total/len(registros):.2f}s")
+    
+    return exitosos, fallidos
+
+
 def enviar_por_recipients(config: dict, seccion: str, failed_generation_pdfs: list = None):
     """
     Envía correos basándose directamente en recipients.json.
@@ -788,6 +1002,16 @@ def main():
         pdfs_generados, pdfs_fallidos = generar_todos_los_pdfs(clientes_diarios, "diario")
         print(f"\n📧 Iniciando envío de correos diarios...")
         enviar_por_recipients(recipients_cfg, "diarios", pdfs_fallidos)
+        
+        # ---- REPORTES DE MANTENIMIENTO (se ejecutan junto con diarios) ----
+        print("\n" + "="*80)
+        print("🔧 === VERIFICANDO REPORTES DE MANTENIMIENTO PENDIENTES ===")
+        print("="*80)
+        exitosos_mtto, fallidos_mtto = generar_reportes_mantenimiento_pendientes()
+        
+        if fallidos_mtto > 0:
+            print(f"⚠️ Hay {fallidos_mtto} reportes de mantenimiento que fallaron")
+        
     else:
         print("\n" + "="*80)
         print("🌅 === REPORTES DIARIOS OMITIDOS ===")
