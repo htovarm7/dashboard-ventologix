@@ -307,7 +307,7 @@ def generar_pdf_cliente(id_cliente: int, linea: str, nombre_cliente: str, alias:
             page.set_viewport_size({"width": 1920, "height": 1080})
 
             if tipo == "diario":
-                url = f"http://localhost:3000/reportesD?id_cliente={id_cliente}&linea={linea}"
+                url = f"http://localhost:3000/automation/reportesD?id_cliente={id_cliente}&linea={linea}"
                 print(f"   🔗 URL Diario: {url}")
                 
                 try:
@@ -345,7 +345,7 @@ def generar_pdf_cliente(id_cliente: int, linea: str, nombre_cliente: str, alias:
                     return None
 
             else:  # semanal
-                url = f"http://localhost:3000/reportesS?id_cliente={id_cliente}&linea={linea}"
+                url = f"http://localhost:3000/automation/reportesS?id_cliente={id_cliente}&linea={linea}"
                 print(f"   🔗 URL Semanal: {url}")
                 
                 try:
@@ -630,7 +630,7 @@ def generar_todos_los_pdfs(clientes: list, tipo: str) -> tuple[set, list]:
     
     print(f"\n{'='*60}")
     print(f"📈 === RESUMEN FINAL {tipo.upper()} ===")
-    print(f"✅ PDFs generados exitosamente: {len(generados)}")
+    # print(f"✅ PDFs generados exitosamente: {len(generados)}")
     print(f"❌ PDFs fallidos: {len(fallidos)}")
     print(f"⏱️ Tiempo total del proceso: {tiempo_total:.2f}s")
     print(f"⚡ Tiempo promedio por cliente: {tiempo_total/len(clientes):.2f}s")
