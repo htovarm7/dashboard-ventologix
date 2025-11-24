@@ -1407,11 +1407,11 @@ def get_maintenance_records(
 
 @web.get("/maintenance/semaforo/{id_compresor}", tags=["🛠️ Mantenimiento de Compresores"])
 def get_maintenance_semaforo(id_compresor: int):
-    """Obtener las horas transcurridas por mantenimiento usando el procedimiento SemaforoMantenimientos
-    
-    El procedimiento retorna:
-    - Primera columna: id_mantenimiento
-    - Segunda columna: horas_transcurridas desde el último mantenimiento
+    """Obtener las horas acumuladas por mantenimiento leyendo la tabla mantenimientos
+
+    Retorna:
+    - id_mantenimiento
+    - horas_acumuladas
     """
     try:
         conn = mysql.connector.connect(
@@ -1420,43 +1420,42 @@ def get_maintenance_semaforo(id_compresor: int):
             password=DB_PASSWORD,
             database=DB_DATABASE
         )
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
 
-        # Llamar al procedimiento almacenado con el id_compresor
-        cursor.callproc('SemaforoMantenimientos', [id_compresor])
-        
-        # Obtener los resultados
-        semaforo_data = []
-        for result in cursor.stored_results():
-            semaforo_data = result.fetchall()
-        
-        cursor.close()
-        conn.close()
+        cursor.execute(
+            "SELECT id_mantenimiento, horas_acumuladas FROM mantenimientos WHERE id_compresor = %s",
+            (id_compresor,)
+        )
+        rows = cursor.fetchall()
 
-        # Formatear los datos para el frontend
-        # El procedimiento retorna: id_mantenimiento, horas_transcurridas
-        if not semaforo_data:
+        if not rows:
             return {
                 "id_compresor": id_compresor,
                 "mantenimientos": [],
                 "message": "No hay datos disponibles"
             }
-        
-        # Formatear cada fila
+
         mantenimientos_horas = []
-        for row in semaforo_data:
-            if isinstance(row, (list, tuple)) and len(row) >= 2:
+        for row in rows:
+            # Safe parsing
+            id_m = None
+            horas = 0.0
+            if row.get('id_mantenimiento') is not None:
+                try:
+                    id_m = int(row['id_mantenimiento'])
+                except Exception:
+                    id_m = None
+            if row.get('horas_acumuladas') is not None:
+                try:
+                    horas = float(row['horas_acumuladas'])
+                except Exception:
+                    horas = 0.0
+
+            if id_m is not None:
                 mantenimientos_horas.append({
-                    "id_mantenimiento": int(row[0]),
-                    "horas_transcurridas": float(row[1])
+                    "id_mantenimiento": id_m,
+                    "horas_acumuladas": horas
                 })
-            elif isinstance(row, dict):
-                keys = list(row.keys())
-                if len(keys) >= 2:
-                    mantenimientos_horas.append({
-                        "id_mantenimiento": int(row[keys[0]]),
-                        "horas_transcurridas": float(row[keys[1]])
-                    })
 
         return {
             "id_compresor": id_compresor,
@@ -1469,9 +1468,15 @@ def get_maintenance_semaforo(id_compresor: int):
         raise HTTPException(status_code=500, detail=f"Error fetching semaforo data: {str(e)}")
     finally:
         if 'cursor' in locals() and cursor:
-            cursor.close()
-        if 'conn' in locals() and conn.is_connected():
-            conn.close()
+            try:
+                cursor.close()
+            except Exception:
+                pass
+        if 'conn' in locals() and conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 @web.get("/maintenance/{maintenance_id}", tags=["🛠️ Mantenimiento de Compresores"])
 def get_maintenance_by_id(maintenance_id: int):
@@ -1859,16 +1864,6 @@ def sync_maintenance_sheets():
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en sincronizaci�n: {str(e)}")
-
-
-@web.get("/maintenance/check-report", tags=[" Mantenimiento de Compresores"])
-def check_report_exists(numero_cliente: int, numero_serie: str, fecha: str):
-    """
-    Verifica si existe un reporte PDF generado para un cliente, compresor y fecha espec�ficos
-    """
-    try:
-        conn = mysql.connector.connect(
-            host=DB_HOST,
 
 
 @web.get("/maintenance/pending-reports", tags=["🛠️ Mantenimiento de Compresores"])

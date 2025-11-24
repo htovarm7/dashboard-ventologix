@@ -642,13 +642,13 @@ const CompressorMaintenance = () => {
 
       const data = await response.json();
 
-      // El API retorna: { id_compresor, mantenimientos: [{id_mantenimiento, horas_transcurridas}] }
+      // El API retorna: { id_compresor, mantenimientos: [{id_mantenimiento, horas_acumuladas}] }
       if (data.mantenimientos && Array.isArray(data.mantenimientos)) {
-        // Actualizar el estado con las horas transcurridas por cada id_mantenimiento
+        // Actualizar el estado con las horas acumuladas por cada id_mantenimiento
         const newSemaforoData: Record<number, number> = {};
         data.mantenimientos.forEach(
-          (mant: { id_mantenimiento: number; horas_transcurridas: number }) => {
-            newSemaforoData[mant.id_mantenimiento] = mant.horas_transcurridas;
+          (mant: { id_mantenimiento: number; horas_acumuladas: number }) => {
+            newSemaforoData[mant.id_mantenimiento] = mant.horas_acumuladas;
           }
         );
 
