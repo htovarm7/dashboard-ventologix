@@ -504,6 +504,36 @@ const CompressorMaintenance = () => {
   const [filteredMaintenances, setFilteredMaintenances] = useState<
     CompressorMaintenance[]
   >([]);
+
+  // Función helper para calcular si un mantenimiento es urgente
+  const isMaintenanceUrgent = (
+    record: MaintenanceRecord,
+    horasTranscurridas?: number
+  ): boolean => {
+    if (!record.lastMaintenanceDate || !record.frequency || record.frequency <= 0) {
+      return false;
+    }
+
+    let remaining: number;
+    if (horasTranscurridas !== undefined && horasTranscurridas !== null) {
+      remaining = record.frequency - horasTranscurridas;
+    } else {
+      const last = new Date(record.lastMaintenanceDate.includes("T") ? record.lastMaintenanceDate : `${record.lastMaintenanceDate}T00:00:00`);
+      if (isNaN(last.getTime())) return false;
+      const now = new Date();
+      const elapsedMs = now.getTime() - last.getTime();
+      const elapsedHours = elapsedMs / (1000 * 60 * 60);
+      remaining = record.frequency - elapsedHours;
+    }
+
+    const progressPercent = Math.min(
+      Math.max(((record.frequency - remaining) / record.frequency) * 100, 0),
+      100
+    );
+    const remainingPercent = Math.max(0, 100 - progressPercent);
+
+    return remaining <= 0 || remainingPercent <= 15;
+  };
   const [expandedCompressors, setExpandedCompressors] = useState<Set<string>>(
     new Set()
   );
@@ -1215,6 +1245,20 @@ const CompressorMaintenance = () => {
                                       ? "s"
                                       : ""}
                                   </span>
+                                  {(() => {
+                                    const urgentCount = cm.maintenanceRecords.filter(
+                                      (r: MaintenanceRecord) => 
+                                        r.isActive && isMaintenanceUrgent(
+                                          r,
+                                          r.id_mantenimiento ? semaforoData[r.id_mantenimiento] : undefined
+                                        )
+                                    ).length;
+                                    return urgentCount > 0 ? (
+                                      <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                                        🔴 {urgentCount} urgente{urgentCount !== 1 ? "s" : ""}
+                                      </span>
+                                    ) : null;
+                                  })()}
                                 </div>
                               </div>
                             </div>
@@ -1390,6 +1434,20 @@ const CompressorMaintenance = () => {
                             ? "s"
                             : ""}
                         </span>
+                        {(() => {
+                          const urgentCount = cm.maintenanceRecords.filter(
+                            (r) => 
+                              r.isActive && isMaintenanceUrgent(
+                                r,
+                                r.id_mantenimiento ? semaforoData[r.id_mantenimiento] : undefined
+                              )
+                          ).length;
+                          return urgentCount > 0 ? (
+                            <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                              🔴 {urgentCount} urgente{urgentCount !== 1 ? "s" : ""}
+                            </span>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
                   </div>
