@@ -7,6 +7,12 @@ import { MaintenanceReportResponse, MaintenanceReportData } from "@/lib/types";
 import Image from "next/image";
 import PrintPageButton from "@/components/printPageButton";
 
+declare global {
+  interface Window {
+    status: string;
+  }
+}
+
 function MttoReportContent() {
   const searchParams = useSearchParams();
 
@@ -52,7 +58,7 @@ function MttoReportContent() {
 
       // Señal para Playwright: iniciando carga
       if (typeof window !== "undefined") {
-        (window as any).status = "loading";
+        window.status = "loading";
       }
 
       const API_BASE_URL =
@@ -73,7 +79,7 @@ function MttoReportContent() {
 
         // Señal para Playwright: error
         if (typeof window !== "undefined") {
-          (window as any).status = "data-error";
+          window.status = "data-error";
         }
 
         throw new Error(
@@ -90,7 +96,7 @@ function MttoReportContent() {
       // Señal para Playwright: datos listos, esperar renderizado
       setTimeout(() => {
         if (typeof window !== "undefined") {
-          (window as any).status = "pdf-ready";
+          window.status = "pdf-ready";
           console.log("Report ready for PDF generation");
         }
       }, 500); // Pequeño delay para asegurar que el DOM esté completamente renderizado
@@ -100,7 +106,7 @@ function MttoReportContent() {
 
       // Señal para Playwright: error
       if (typeof window !== "undefined") {
-        (window as any).status = "data-error";
+        window.status = "data-error";
       }
     } finally {
       setLoading(false);
