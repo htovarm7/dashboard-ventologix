@@ -921,26 +921,6 @@ const CompressorMaintenance = () => {
     );
   }
 
-  // Verificar que solo el rol 2 (VAST) pueda acceder a esta página
-  if (!loading && isAuthorized && userRole !== 2) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <Settings size={64} className="mx-auto mb-4 text-red-300" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Pagina en desarollo
-          </h2>
-          <button
-            onClick={() => (window.location.href = "/home")}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Volver al Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const toggleCompressorExpansion = (compressorId: string) => {
     const newExpanded = new Set(expandedCompressors);
     if (newExpanded.has(compressorId)) {
