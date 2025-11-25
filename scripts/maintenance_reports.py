@@ -1,15 +1,17 @@
 import os
 import pickle
 from datetime import datetime
+import dotenv
 import gspread
 import mysql.connector
 from pathlib import Path
 from google_auth_oauthlib.flow import InstalledAppFlow
+dotenv.load_dotenv()
 
 # -----------------------------
 # CONFIGURACIÓN
 # -----------------------------
-SCRIPT_DIR = Path(__file__).resolve().parent.parent
+SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 LIB_DIR = PROJECT_ROOT / "lib"
 
@@ -23,10 +25,10 @@ SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets"
 ]
 
-DB_HOST = "34.174.55.1"
-DB_USER = "andres"
-DB_PASS = 'as"#%dasdr'
-DB_NAME = "pruebas"
+DB_HOST = os.getenv("DB_HOST")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_DATABASE = os.getenv("DB_DATABASE")
 DB_TABLE = "registros_mantenimiento_tornillo"
 
 # -----------------------------
@@ -122,8 +124,8 @@ def sync_sheets_to_sql():
         conn = mysql.connector.connect(
             host=DB_HOST,
             user=DB_USER,
-            password=DB_PASS,
-            database=DB_NAME
+            password=DB_PASSWORD,
+            database=DB_DATABASE
         )
         cursor = conn.cursor()
         
