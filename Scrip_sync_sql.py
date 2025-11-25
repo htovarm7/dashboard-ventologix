@@ -7,11 +7,10 @@ from pathlib import Path
 # -----------------------------
 # CONFIGURACIÓN
 # -----------------------------
-SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR  # dashboard-ventologix (script is already in project root)
+PROJECT_ROOT = Path(__file__).resolve().parent  # carpeta del script
 LIB_DIR = PROJECT_ROOT / "lib"
+SERVICE_ACCOUNT_FILE = LIB_DIR / "credentials.json"
 
-SERVICE_ACCOUNT_FILE = str(LIB_DIR / "credentials.json")
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 SPREADSHEET_ID = "1SOmQD9uUMVlsGP4OBbZ3lJSBeet1J2fsmbxqYz200mI"

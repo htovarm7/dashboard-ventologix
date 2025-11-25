@@ -61,14 +61,12 @@ const Home = () => {
           <div className="group">
             <button
               className="w-full bg-white hover:bg-green-50 border-2 border-green-200 hover:border-green-400 rounded-xl p-8 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-              onClick={() =>
-                router.push("/compressor-maintenance/client/prev-maintenance")
-              }
+              onClick={() => router.push("/compressor-maintenance/views")}
             >
               <div className="text-center">
                 <div className="text-4xl mb-4">📅</div>
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  Mantenimientos previos
+                  Historial de Mantenimientos
                 </h3>
                 <p className="text-gray-600 text-sm">
                   Ver historial de mantenimientos
@@ -118,9 +116,7 @@ const Home = () => {
           <div className="group">
             <button
               className="w-full bg-white hover:bg-green-50 border-2 border-green-200 hover:border-green-400 rounded-xl p-8 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-              onClick={() =>
-                router.push("/compressor-maintenance/technician/views")
-              }
+              onClick={() => router.push("/compressor-maintenance/views")}
             >
               <div className="text-center">
                 <div className="text-4xl mb-4">📅</div>
