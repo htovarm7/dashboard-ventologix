@@ -236,9 +236,56 @@ const Visitas = () => {
 
           const clients = Array.from(clientsMap.values());
 
-          setClientsData(clients);
+          // Si la API no devolvió clientes (p. ej. 422) intentar mostrar
+          // solamente compresores del usuario que tengan visitas (coincidan en número de serie)
+          if (clients.length === 0 && compresores.length > 0) {
+            // Crear set de números de serie que aparecen en los registros
+            const registroSerials = new Set<string>();
+            allRegistros.forEach((r) => {
+              if (r.numero_serie) registroSerials.add(r.numero_serie);
+            });
 
-          // Cargar los links de reportes para todas las visitas
+            // Si no hay registros con número de serie, no mostrar fallback
+            if (registroSerials.size === 0) {
+              setClientsData([]);
+            } else {
+              const fallbackMap = new Map<string, Client>();
+
+              compresores.forEach((comp: any) => {
+                const compSerie = comp.numero_serie || "";
+                if (!compSerie || !registroSerials.has(compSerie)) return; // solo los que tienen visitas
+
+                const clientKey =
+                  comp.nombre_cliente ||
+                  `Cliente ${comp.numero_cliente || "N/A"}`;
+                const compressorKey = `${
+                  comp.alias || "Compresor"
+                }-${compSerie}`;
+
+                if (!fallbackMap.has(clientKey)) {
+                  fallbackMap.set(clientKey, {
+                    id: clientKey,
+                    name: clientKey,
+                    compressors: [],
+                  });
+                }
+
+                const clientObj = fallbackMap.get(clientKey)!;
+                clientObj.compressors.push({
+                  id: compressorKey,
+                  name: comp.alias || comp.nombre_cliente || "Compresor",
+                  numero_serie: compSerie || undefined,
+                  visits: [],
+                });
+              });
+
+              setClientsData(Array.from(fallbackMap.values()));
+            }
+          } else {
+            setClientsData(clients);
+          }
+
+          // Cargar los links de reportes para todas las visitas (si hay)
           await loadReportLinks(allRegistros);
 
           setLoading(false);

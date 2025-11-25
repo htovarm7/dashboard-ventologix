@@ -647,10 +647,10 @@ def get_engineer_compressors(email: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching engineer compressors: {str(e)}")
 
-# GET - Obtener registros de mantenimiento por número de cliente
+# GET - Obtener registros de mantenimiento (opcionalmente por número de cliente)
 @web.get("/registros-mantenimiento", tags=["🔧 Mantenimiento"])
-def get_registros_mantenimiento(numero_cliente: int = Query(..., description="Número del cliente")):
-    """Obtiene los registros de mantenimiento de compresores de un cliente"""
+def get_registros_mantenimiento(numero_cliente: Optional[int] = Query(None, description="Número del cliente")):
+    """Obtiene los registros de mantenimiento. Si se proporciona `numero_cliente`, filtra por cliente; si no, devuelve todos los registros."""
     try:
         conn = mysql.connector.connect(
             host=DB_HOST,
@@ -659,9 +659,8 @@ def get_registros_mantenimiento(numero_cliente: int = Query(..., description="N�
             database=DB_DATABASE
         )
         cursor = conn.cursor(dictionary=True)
-
-        # Consulta para obtener registros de mantenimiento filtrados por número de cliente
-        query = """
+        # Base de la consulta
+        base_query = """
             SELECT 
                 id,
                 timestamp,
@@ -694,10 +693,14 @@ def get_registros_mantenimiento(numero_cliente: int = Query(..., description="N�
                 link_form,
                 carpeta_fotos
             FROM registros_mantenimiento_tornillo
-            WHERE numero_cliente = %s
-            ORDER BY timestamp DESC
         """
-        cursor.execute(query, (numero_cliente,))
+
+        if numero_cliente is not None:
+            query = base_query + "\n WHERE numero_cliente = %s\n ORDER BY timestamp DESC"
+            cursor.execute(query, (numero_cliente,))
+        else:
+            query = base_query + "\n ORDER BY timestamp DESC"
+            cursor.execute(query)
         registros = cursor.fetchall()
 
         cursor.close()
