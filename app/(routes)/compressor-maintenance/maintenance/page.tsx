@@ -32,84 +32,49 @@ type MaintenanceTypesResponse = {
   maintenance_types: MaintenanceType[];
 };
 
+// --- CAMBIO 1: Timer basado estrictamente en horas acumuladas vs frecuencia ---
 const MaintenanceTimer = ({
-  lastMaintenanceDate,
   frequency,
   horasTranscurridas,
 }: {
-  lastMaintenanceDate?: string;
+  lastMaintenanceDate?: string; // Se mantiene en props por compatibilidad pero no se usa para cálculo
   frequency: number;
   horasTranscurridas?: number;
 }) => {
-  const [now, setNow] = useState<Date>(new Date());
+  // Sin estados ni efectos de intervalo para evitar re-renders
 
-  // Actualizar el tiempo cada minuto
-  useEffect(() => {
-    const interval = setInterval(() => {
-      console.log("Timer tick - actualizando now");
-      setNow(new Date());
-    }, 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Calcular datos del temporizador directamente en el render
-  const parseDate = (d?: string) => {
-    if (!d) return null;
-    try {
-      const date = d.includes("T") ? new Date(d) : new Date(`${d}T00:00:00`);
-      return isNaN(date.getTime()) ? null : date;
-    } catch {
-      return null;
-    }
-  };
-
-  const last = parseDate(lastMaintenanceDate);
-  if (!last || !frequency || frequency <= 0) {
+  if (!frequency || frequency <= 0) {
     return (
       <div className="mt-3 text-sm text-gray-500">
-        Sin datos de temporizador
+        Configuración incompleta
       </div>
     );
   }
 
-  // Calcular horas restantes
-  let remaining: number;
-  if (horasTranscurridas !== undefined && horasTranscurridas !== null) {
-    // Usar horas reales de operación desde el último mantenimiento
-    remaining = frequency - horasTranscurridas;
-    console.log(
-      `Usando horasTranscurridas: ${horasTranscurridas}, remaining: ${remaining}`
-    );
-  } else {
-    // Fallback: calcular por tiempo calendario
-    const elapsedMs = now.getTime() - last.getTime();
-    const elapsedHours = elapsedMs / (1000 * 60 * 60);
-    remaining = frequency - elapsedHours;
-    console.log(
-      `Usando tiempo calendario: ${elapsedHours.toFixed(
-        2
-      )}h transcurridas, remaining: ${remaining.toFixed(2)}`
-    );
-  }
+  // Lógica: Horas usadas vienen del endpoint (semaforoData). Si es null/undefined, es 0.
+  const hoursUsed = horasTranscurridas ?? 0;
+  
+  // Cálculo: Frecuencia - Lo que ya se usó = Lo que resta
+  const remaining = frequency - hoursUsed;
 
-  const progressPercent = Math.min(
-    Math.max(((frequency - remaining) / frequency) * 100, 0),
+  // Porcentaje de PROGRESO (qué tanto de la vida útil se ha consumido)
+  // Si hoursUsed = 0, progreso = 0%. Si hoursUsed = frequency, progreso = 100%.
+  const usagePercent = Math.min(
+    Math.max((hoursUsed / frequency) * 100, 0),
     100
   );
 
-  const remainingPercent = Math.max(0, 100 - progressPercent);
+  // Porcentaje restante (vida útil que le queda)
+  const remainingPercent = 100 - usagePercent;
 
   let status: "green" | "yellow" | "red" = "green";
-  if (remainingPercent > 30) {
-    status = "green";
-  } else if (remainingPercent > 15) {
-    status = "yellow";
-  } else {
-    status = "red";
-  }
-
+  
   if (remaining <= 0) {
-    status = "red";
+    status = "red"; // Ya se pasó de horas
+  } else if (remainingPercent <= 15) { 
+    status = "yellow"; // Le queda menos del 15% de vida
+  } else {
+    status = "green"; // Todo bien
   }
 
   const statusClasses =
@@ -126,28 +91,8 @@ const MaintenanceTimer = ({
       ? "bg-yellow-500"
       : "bg-red-600";
 
-  const formatRemaining = (h: number) => {
-    const abs = Math.abs(h);
-
-    // Si son menos de 1 hora, mostrar en minutos
-    if (abs < 1) {
-      return `${Math.round(abs * 60)} min`;
-    }
-
-    // Si son menos de 24 horas, mostrar solo horas
-    if (abs < 24) {
-      return `${Math.round(abs)} h`;
-    }
-
-    // Si son 24 horas o más, mostrar días y horas
-    const days = Math.floor(abs / 24);
-    const hours = Math.round(abs % 24);
-
-    if (hours === 0) {
-      return `${days} d`;
-    }
-
-    return `${days} d ${hours} h`;
+  const formatValue = (val: number) => {
+    return Math.round(val).toLocaleString();
   };
 
   return (
@@ -159,22 +104,29 @@ const MaintenanceTimer = ({
           ? "🟢 En tiempo"
           : status === "yellow"
           ? "🟡 Próximo"
-          : "🔴 Urgente"}
+          : "🔴 Vencido"}
       </div>
 
       <div className="flex-1 mx-3">
+        {/* Barra de progreso */}
         <div className="w-full h-2 bg-gray-200 rounded overflow-hidden">
           <div
-            style={{ width: `${progressPercent}%` }}
-            className={`h-2 ${barClass}`}
+            style={{ width: `${usagePercent}%` }}
+            className={`h-2 transition-all duration-300 ${barClass}`}
           ></div>
+        </div>
+        {/* Escala visual pequeña */}
+        <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+            <span>0h</span>
+            <span>{formatValue(hoursUsed)}h uso</span>
+            <span>{formatValue(frequency)}h</span>
         </div>
       </div>
 
-      <div className="text-sm text-gray-600 whitespace-nowrap">
+      <div className="text-sm text-gray-600 whitespace-nowrap font-medium">
         {remaining >= 0
-          ? `Restan ${formatRemaining(remaining)}`
-          : `Vencido hace ${formatRemaining(-remaining)}`}
+          ? `Restan ${formatValue(remaining)} h`
+          : `Vencido por ${formatValue(Math.abs(remaining))} h`}
       </div>
     </div>
   );
@@ -505,35 +457,26 @@ const CompressorMaintenance = () => {
     CompressorMaintenance[]
   >([]);
 
-  // Función helper para calcular si un mantenimiento es urgente
+  // --- CAMBIO 2: Actualizar lógica de urgencia para coincidir con el timer ---
   const isMaintenanceUrgent = (
     record: MaintenanceRecord,
     horasTranscurridas?: number
   ): boolean => {
-    if (!record.lastMaintenanceDate || !record.frequency || record.frequency <= 0) {
+    if (!record.frequency || record.frequency <= 0) {
       return false;
     }
 
-    let remaining: number;
-    if (horasTranscurridas !== undefined && horasTranscurridas !== null) {
-      remaining = record.frequency - horasTranscurridas;
-    } else {
-      const last = new Date(record.lastMaintenanceDate.includes("T") ? record.lastMaintenanceDate : `${record.lastMaintenanceDate}T00:00:00`);
-      if (isNaN(last.getTime())) return false;
-      const now = new Date();
-      const elapsedMs = now.getTime() - last.getTime();
-      const elapsedHours = elapsedMs / (1000 * 60 * 60);
-      remaining = record.frequency - elapsedHours;
-    }
+    // Usar horas de uso (0 si no hay dato)
+    const hoursUsed = horasTranscurridas ?? 0;
+    const remaining = record.frequency - hoursUsed;
+    
+    // Porcentaje restante de vida
+    const remainingPercent = (remaining / record.frequency) * 100;
 
-    const progressPercent = Math.min(
-      Math.max(((record.frequency - remaining) / record.frequency) * 100, 0),
-      100
-    );
-    const remainingPercent = Math.max(0, 100 - progressPercent);
-
+    // Urgente si quedan 0 o menos horas, o si queda menos del 15% de vida
     return remaining <= 0 || remainingPercent <= 15;
   };
+
   const [expandedCompressors, setExpandedCompressors] = useState<Set<string>>(
     new Set()
   );
@@ -860,11 +803,7 @@ const CompressorMaintenance = () => {
           const maintenanceApiRecords = await fetchMaintenanceRecords(
             parsedData.numeroCliente
           );
-          console.log(
-            "Registros de mantenimiento obtenidos de la API:",
-            maintenanceApiRecords
-          );
-
+          
           const maintenanceRecords = maintenanceApiRecords.map(
             convertApiRecordToLocal
           );
@@ -918,16 +857,9 @@ const CompressorMaintenance = () => {
     }, 500);
   }, [fetchAllSemaforoData]);
 
-  // Actualizar semáforo cada minuto
-  useEffect(() => {
-    if (allCompresores.length > 0) {
-      const interval = setInterval(() => {
-        fetchAllSemaforoData(allCompresores);
-      }, 60000); // 60 segundos
-
-      return () => clearInterval(interval);
-    }
-  }, [allCompresores, fetchAllSemaforoData]);
+  // --- CAMBIO 3: ELIMINADO EL USEEFFECT DEL INTERVALO ---
+  // Anteriormente había aquí un useEffect que hacía setInterval cada 60s. 
+  // Se ha eliminado para evitar refrescos constantes de la página.
 
   if (!loading && !isAuthorized) {
     return (
@@ -1025,14 +957,6 @@ const CompressorMaintenance = () => {
           ? compressor.tipo
           : "piston";
 
-      console.log(
-        "Tipo de compresor a usar:",
-        tipoCompresor,
-        "Original:",
-        compressor.tipo
-      );
-      console.log("Datos del compresor completo:", compressor);
-
       // Obtener los tipos de mantenimiento del endpoint
       const response = await fetch(
         `${URL_API}/web/maintenance/types?tipo=${tipoCompresor}`
@@ -1043,7 +967,6 @@ const CompressorMaintenance = () => {
       }
 
       const data: MaintenanceTypesResponse = await response.json();
-      console.log("Tipos de mantenimiento obtenidos:", data);
 
       // Crear registros de mantenimiento en la base de datos usando el API
       const maintenanceRecords: MaintenanceRecord[] = [];
@@ -1063,8 +986,6 @@ const CompressorMaintenance = () => {
           fecha_creacion: today,
         };
 
-        console.log("Creando mantenimiento:", maintenanceRequest);
-
         const addResponse = await fetch(`${URL_API}/web/maintenance/add`, {
           method: "POST",
           headers: {
@@ -1075,7 +996,6 @@ const CompressorMaintenance = () => {
 
         if (addResponse.ok) {
           const addResult = await addResponse.json();
-          console.log("Mantenimiento creado exitosamente:", addResult);
 
           // Crear el objeto MaintenanceRecord para el estado local
           maintenanceRecords.push({
@@ -1149,24 +1069,6 @@ const CompressorMaintenance = () => {
               compresores
             </p>
           </div>
-          {/* {userRole === 2 && (
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowCompressorRegistrationModal(true)}
-                className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors shadow-lg"
-              >
-                <Plus size={20} />
-                Dar de alta compresor
-              </button>
-              <button
-                onClick={() => setShowMaintenanceForm(true)}
-                className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
-              >
-                <Plus size={20} />
-                Agregar Mantenimiento
-              </button>
-            </div>
-          )} */}
         </div>
 
         {/* Compressor List */}
