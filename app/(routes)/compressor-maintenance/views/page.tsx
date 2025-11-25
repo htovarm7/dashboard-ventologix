@@ -251,15 +251,19 @@ const Visitas = () => {
             } else {
               const fallbackMap = new Map<string, Client>();
 
-              compresores.forEach((comp: any) => {
-                const compSerie = comp.numero_serie || "";
+              compresores.forEach((comp: UserCompressor) => {
+                const compSerie =
+                  (comp as { numero_serie?: string }).numero_serie || "";
                 if (!compSerie || !registroSerials.has(compSerie)) return; // solo los que tienen visitas
 
                 const clientKey =
-                  comp.nombre_cliente ||
-                  `Cliente ${comp.numero_cliente || "N/A"}`;
+                  (comp as { nombre_cliente?: string }).nombre_cliente ||
+                  `Cliente ${
+                    (comp as { numero_cliente?: number }).numero_cliente ||
+                    "N/A"
+                  }`;
                 const compressorKey = `${
-                  comp.alias || "Compresor"
+                  (comp as { alias?: string }).alias || "Compresor"
                 }-${compSerie}`;
 
                 if (!fallbackMap.has(clientKey)) {
@@ -273,7 +277,9 @@ const Visitas = () => {
                 const clientObj = fallbackMap.get(clientKey)!;
                 clientObj.compressors.push({
                   id: compressorKey,
-                  name: comp.alias || comp.nombre_cliente || "Compresor",
+                  name:
+                    (comp as { nombre_cliente?: string }).nombre_cliente ||
+                    "Compresor",
                   numero_serie: compSerie || undefined,
                   visits: [],
                 });
