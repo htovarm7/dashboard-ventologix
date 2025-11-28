@@ -494,6 +494,19 @@ const CompressorMaintenance = () => {
   >([]);
 
   // --- CAMBIO 2: Actualizar lógica de urgencia para coincidir con el timer ---
+  // Detecta si el mantenimiento está próximo (semáforo amarillo)
+  const isMaintenanceNext = (
+    record: MaintenanceRecord,
+    horasTranscurridas?: number
+  ): boolean => {
+    if (!record.frequency || record.frequency <= 0) {
+      return false;
+    }
+    const hoursUsed = horasTranscurridas ?? 0;
+    // Considerar "próximo" si está dentro del 20% antes de la frecuencia
+    // Ejemplo: frecuencia=100, amarillo si horas >= 80 y < 100
+    return hoursUsed >= record.frequency * 0.8 && hoursUsed < record.frequency;
+  };
   const isMaintenanceUrgent = (
     record: MaintenanceRecord,
     horasTranscurridas?: number
@@ -1199,12 +1212,51 @@ const CompressorMaintenance = () => {
                                               : undefined
                                           )
                                       ).length;
-                                    return urgentCount > 0 ? (
-                                      <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-                                        🔴 {urgentCount} urgente
-                                        {urgentCount !== 1 ? "s" : ""}
-                                      </span>
-                                    ) : null;
+                                    const nextCount =
+                                      cm.maintenanceRecords.filter(
+                                        (r: MaintenanceRecord) =>
+                                          r.isActive &&
+                                          !isMaintenanceUrgent(
+                                            r,
+                                            r.id_mantenimiento &&
+                                              cm.compressor.id &&
+                                              semaforoData[
+                                                Number(cm.compressor.id)
+                                              ]
+                                              ? semaforoData[
+                                                  Number(cm.compressor.id)
+                                                ][Number(r.id_mantenimiento)]
+                                              : undefined
+                                          ) &&
+                                          isMaintenanceNext(
+                                            r,
+                                            r.id_mantenimiento &&
+                                              cm.compressor.id &&
+                                              semaforoData[
+                                                Number(cm.compressor.id)
+                                              ]
+                                              ? semaforoData[
+                                                  Number(cm.compressor.id)
+                                                ][Number(r.id_mantenimiento)]
+                                              : undefined
+                                          )
+                                      ).length;
+                                    return (
+                                      <>
+                                        {urgentCount > 0 && (
+                                          <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                                            🔴 {urgentCount} urgente
+                                            {urgentCount !== 1 ? "s" : ""}
+                                          </span>
+                                        )}
+                                        {nextCount > 0 && (
+                                          <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                                            🟡 {nextCount} próximo
+                                            {nextCount !== 1 ? "s" : ""}
+                                          </span>
+                                        )}
+                                      </>
+                                    );
                                   })()}
                                 </div>
                               </div>
