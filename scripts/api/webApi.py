@@ -1416,6 +1416,8 @@ def get_maintenance_semaforo(id_compresor: int):
     - id_mantenimiento
     - horas_acumuladas
     """
+    import logging
+    logging.basicConfig(level=logging.INFO)
     try:
         conn = mysql.connector.connect(
             host=DB_HOST,

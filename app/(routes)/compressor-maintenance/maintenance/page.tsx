@@ -32,51 +32,52 @@ type MaintenanceTypesResponse = {
   maintenance_types: MaintenanceType[];
 };
 
-// --- CAMBIO 1: Timer basado estrictamente en horas acumuladas vs frecuencia ---
 const MaintenanceTimer = ({
   frequency,
   horasTranscurridas,
 }: {
-  lastMaintenanceDate?: string; // Se mantiene en props por compatibilidad pero no se usa para cálculo
+  lastMaintenanceDate?: string;
   frequency: number;
   horasTranscurridas?: number;
 }) => {
-  // Sin estados ni efectos de intervalo para evitar re-renders
-
+  // Validación inicial
   if (!frequency || frequency <= 0) {
     return (
-      <div className="mt-3 text-sm text-gray-500">
-        Configuración incompleta
+      <div className="mt-3 p-3 bg-gray-100 rounded-lg border border-gray-300">
+        <div className="text-sm text-gray-600">⚠️ Configuración incompleta</div>
       </div>
     );
   }
 
-  // Lógica: Horas usadas vienen del endpoint (semaforoData). Si es null/undefined, es 0.
+  // Horas usadas desde el último mantenimiento (0 si no hay dato)
   const hoursUsed = horasTranscurridas ?? 0;
-  
-  // Cálculo: Frecuencia - Lo que ya se usó = Lo que resta
-  const remaining = frequency - hoursUsed;
 
-  // Porcentaje de PROGRESO (qué tanto de la vida útil se ha consumido)
-  // Si hoursUsed = 0, progreso = 0%. Si hoursUsed = frequency, progreso = 100%.
+  // CORRECCIÓN: Asegurarnos de que hoursUsed sea un número válido
+  const validHoursUsed = isNaN(hoursUsed) ? 0 : Math.max(0, hoursUsed);
+
+  // Horas restantes hasta el próximo mantenimiento
+  const remaining = frequency - validHoursUsed;
+
+  // Porcentaje de progreso (cuánto de la vida útil se ha consumido)
   const usagePercent = Math.min(
-    Math.max((hoursUsed / frequency) * 100, 0),
+    Math.max((validHoursUsed / frequency) * 100, 0),
     100
   );
 
   // Porcentaje restante (vida útil que le queda)
   const remainingPercent = 100 - usagePercent;
 
+  // Determinar estado del semáforo
   let status: "green" | "yellow" | "red" = "green";
-  
-  if (remaining <= 0) {
-    status = "red"; // Ya se pasó de horas
-  } else if (remainingPercent <= 15) { 
-    status = "yellow"; // Le queda menos del 15% de vida
+  if (remaining <= 10) {
+    status = "red"; // Vencido
+  } else if (remainingPercent <= 20) {
+    status = "yellow"; // Próximo a vencer (queda menos del 15%)
   } else {
-    status = "green"; // Todo bien
+    status = "green"; // En tiempo
   }
 
+  // Clases de estilo según estado
   const statusClasses =
     status === "green"
       ? "bg-green-100 text-green-800"
@@ -96,36 +97,71 @@ const MaintenanceTimer = ({
   };
 
   return (
-    <div className="mt-3 flex items-center justify-between gap-3">
-      <div
-        className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses}`}
-      >
-        {status === "green"
-          ? "🟢 En tiempo"
-          : status === "yellow"
-          ? "🟡 Próximo"
-          : "🔴 Vencido"}
+    <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
+      {/* Badge de estado */}
+      <div className="flex items-center gap-2 mb-2">
+        <span
+          className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClasses}`}
+        >
+          {status === "green"
+            ? "🟢 En tiempo"
+            : status === "yellow"
+            ? "🟡 Próximo"
+            : "🔴 Vencido"}
+        </span>
       </div>
 
-      <div className="flex-1 mx-3">
-        {/* Barra de progreso */}
-        <div className="w-full h-2 bg-gray-200 rounded overflow-hidden">
+      {/* Información detallada */}
+      <div className="space-y-2 text-sm">
+        <div className="flex justify-between">
+          <span className="text-gray-600">Horas usadas:</span>
+          <span className="font-semibold text-gray-900">
+            {formatValue(validHoursUsed)} h
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-600">Frecuencia:</span>
+          <span className="font-semibold text-gray-900">
+            {formatValue(frequency)} h
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-600">
+            {remaining >= 0 ? "Horas restantes:" : "Vencido por:"}
+          </span>
+          <span
+            className={`font-semibold ${
+              remaining >= 0 ? "text-green-700" : "text-red-700"
+            }`}
+          >
+            {formatValue(Math.abs(remaining))} h
+          </span>
+        </div>
+      </div>
+
+      {/* Barra de progreso */}
+      <div className="mt-3">
+        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
           <div
+            className={`h-full rounded-full transition-all duration-500 ${barClass}`}
             style={{ width: `${usagePercent}%` }}
-            className={`h-2 transition-all duration-300 ${barClass}`}
-          ></div>
+          />
         </div>
-        {/* Escala visual pequeña */}
-        <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-            <span>0h</span>
-            <span>{formatValue(hoursUsed)}h uso</span>
-            <span>{formatValue(frequency)}h</span>
+
+        {/* Escala visual */}
+        <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <span>0h</span>
+          <span>{formatValue(validHoursUsed)}h uso</span>
+          <span>{formatValue(frequency)}h</span>
         </div>
       </div>
 
-      <div className="text-sm text-gray-600 whitespace-nowrap font-medium">
+      {/* Mensaje de resumen */}
+      <div className="mt-2 text-xs text-gray-600 text-center">
         {remaining >= 0
-          ? `Restan ${formatValue(remaining)} h`
+          ? `Restan ${formatValue(remaining)} h (${remainingPercent.toFixed(
+              1
+            )}% de vida útil)`
           : `Vencido por ${formatValue(Math.abs(remaining))} h`}
       </div>
     </div>
@@ -469,7 +505,7 @@ const CompressorMaintenance = () => {
     // Usar horas de uso (0 si no hay dato)
     const hoursUsed = horasTranscurridas ?? 0;
     const remaining = record.frequency - hoursUsed;
-    
+
     // Porcentaje restante de vida
     const remainingPercent = (remaining / record.frequency) * 100;
 
@@ -491,7 +527,10 @@ const CompressorMaintenance = () => {
   const [allCompresores, setAllCompresores] = useState<Compressor[]>([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [userRole, setUserRole] = useState<number>(0);
-  const [semaforoData, setSemaforoData] = useState<Record<number, number>>({});
+  // semaforoData: { [id_compresor]: { [id_mantenimiento]: horas_acumuladas } }
+  const [semaforoData, setSemaforoData] = useState<
+    Record<number, Record<number, number>>
+  >({});
   const [userData, setUserData] = useState<{
     numeroCliente?: number;
     nombre?: string;
@@ -614,20 +653,21 @@ const CompressorMaintenance = () => {
       }
 
       const data = await response.json();
+      console.log("Semaforo API response:", { id_compresor, data });
 
       // El API retorna: { id_compresor, mantenimientos: [{id_mantenimiento, horas_acumuladas}] }
       if (data.mantenimientos && Array.isArray(data.mantenimientos)) {
-        // Actualizar el estado con las horas acumuladas por cada id_mantenimiento
-        const newSemaforoData: Record<number, number> = {};
+        // Guardar por compresor y por mantenimiento
+        const mantenimientosPorCompresor: Record<number, number> = {};
         data.mantenimientos.forEach(
           (mant: { id_mantenimiento: number; horas_acumuladas: number }) => {
-            newSemaforoData[mant.id_mantenimiento] = mant.horas_acumuladas;
+            mantenimientosPorCompresor[mant.id_mantenimiento] =
+              mant.horas_acumuladas;
           }
         );
-
         setSemaforoData((prev) => ({
           ...prev,
-          ...newSemaforoData,
+          [id_compresor]: mantenimientosPorCompresor,
         }));
       }
     } catch (error) {
@@ -803,7 +843,7 @@ const CompressorMaintenance = () => {
           const maintenanceApiRecords = await fetchMaintenanceRecords(
             parsedData.numeroCliente
           );
-          
+
           const maintenanceRecords = maintenanceApiRecords.map(
             convertApiRecordToLocal
           );
@@ -857,10 +897,6 @@ const CompressorMaintenance = () => {
     }, 500);
   }, [fetchAllSemaforoData]);
 
-  // --- CAMBIO 3: ELIMINADO EL USEEFFECT DEL INTERVALO ---
-  // Anteriormente había aquí un useEffect que hacía setInterval cada 60s. 
-  // Se ha eliminado para evitar refrescos constantes de la página.
-
   if (!loading && !isAuthorized) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
@@ -899,10 +935,8 @@ const CompressorMaintenance = () => {
     }
   ) => {
     try {
-      // Para mantenimientos personalizados, usar el tipo 30
       const tipoMantenimiento = 30;
 
-      // Crear el mantenimiento en la base de datos
       const maintenanceRequest = {
         id_compresor: parseInt(maintenanceData.compressorId),
         id_mantenimiento: tipoMantenimiento,
@@ -1148,16 +1182,27 @@ const CompressorMaintenance = () => {
                                       : ""}
                                   </span>
                                   {(() => {
-                                    const urgentCount = cm.maintenanceRecords.filter(
-                                      (r: MaintenanceRecord) => 
-                                        r.isActive && isMaintenanceUrgent(
-                                          r,
-                                          r.id_mantenimiento ? semaforoData[r.id_mantenimiento] : undefined
-                                        )
-                                    ).length;
+                                    const urgentCount =
+                                      cm.maintenanceRecords.filter(
+                                        (r: MaintenanceRecord) =>
+                                          r.isActive &&
+                                          isMaintenanceUrgent(
+                                            r,
+                                            r.id_mantenimiento &&
+                                              cm.compressor.id &&
+                                              semaforoData[
+                                                Number(cm.compressor.id)
+                                              ]
+                                              ? semaforoData[
+                                                  Number(cm.compressor.id)
+                                                ][Number(r.id_mantenimiento)]
+                                              : undefined
+                                          )
+                                      ).length;
                                     return urgentCount > 0 ? (
                                       <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-                                        🔴 {urgentCount} urgente{urgentCount !== 1 ? "s" : ""}
+                                        🔴 {urgentCount} urgente
+                                        {urgentCount !== 1 ? "s" : ""}
                                       </span>
                                     ) : null;
                                   })()}
@@ -1250,9 +1295,17 @@ const CompressorMaintenance = () => {
                                                 }
                                                 frequency={record.frequency}
                                                 horasTranscurridas={
-                                                  record.id_mantenimiento
+                                                  record.id_mantenimiento &&
+                                                  cm.compressor.id &&
+                                                  semaforoData[
+                                                    Number(cm.compressor.id)
+                                                  ]
                                                     ? semaforoData[
-                                                        record.id_mantenimiento
+                                                        Number(cm.compressor.id)
+                                                      ][
+                                                        Number(
+                                                          record.id_mantenimiento
+                                                        )
                                                       ]
                                                     : undefined
                                                 }
@@ -1338,15 +1391,23 @@ const CompressorMaintenance = () => {
                         </span>
                         {(() => {
                           const urgentCount = cm.maintenanceRecords.filter(
-                            (r) => 
-                              r.isActive && isMaintenanceUrgent(
+                            (r) =>
+                              r.isActive &&
+                              isMaintenanceUrgent(
                                 r,
-                                r.id_mantenimiento ? semaforoData[r.id_mantenimiento] : undefined
+                                r.id_mantenimiento &&
+                                  cm.compressor.id &&
+                                  semaforoData[Number(cm.compressor.id)]
+                                  ? semaforoData[Number(cm.compressor.id)][
+                                      Number(r.id_mantenimiento)
+                                    ]
+                                  : undefined
                               )
                           ).length;
                           return urgentCount > 0 ? (
                             <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-                              🔴 {urgentCount} urgente{urgentCount !== 1 ? "s" : ""}
+                              🔴 {urgentCount} urgente
+                              {urgentCount !== 1 ? "s" : ""}
                             </span>
                           ) : null;
                         })()}
@@ -1434,8 +1495,12 @@ const CompressorMaintenance = () => {
                                     }
                                     frequency={record.frequency}
                                     horasTranscurridas={
-                                      record.id_mantenimiento
-                                        ? semaforoData[record.id_mantenimiento]
+                                      record.id_mantenimiento &&
+                                      cm.compressor.id &&
+                                      semaforoData[Number(cm.compressor.id)]
+                                        ? semaforoData[
+                                            Number(cm.compressor.id)
+                                          ][Number(record.id_mantenimiento)]
                                         : undefined
                                     }
                                   />
