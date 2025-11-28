@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/BackButton";
+import { URL_API } from "@/lib/global";
 
 const Home = () => {
   const { user, isAuthenticated, isLoading } = useAuth0();
@@ -23,6 +24,24 @@ const Home = () => {
       }
     }
   }, [isAuthenticated, user, isLoading, router]);
+
+  useEffect(() => {
+    const syncSheets = async () => {
+      try {
+        const response = await fetch(`${URL_API}/web/maintenance/sync-sheets`, {
+          method: "POST",
+        });
+        if (response.ok) {
+          const result = await response.json();
+          console.log("Sincronización completada:", result);
+        }
+      } catch (error) {
+        console.error("Error en sincronización:", error);
+      }
+    };
+
+    syncSheets();
+  }, []);
 
   const ClientView = () => (
     <div className="flex-1 bg-gradient-to-br from-blue-50 to-indigo-100 p-8 flex items-center justify-center min-h-screen relative">

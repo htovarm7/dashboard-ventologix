@@ -4,6 +4,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
 import DateReportDropdown from "@/components/DateReportDropdown";
 import { Compressor } from "@/lib/types";
+import { URL_API } from "@/lib/global";
 
 const Home = () => {
   const { user, isAuthenticated, isLoading, logout } = useAuth0();
@@ -292,9 +293,7 @@ const Home = () => {
                 onClick={() => router.push("/consumption-kwh")}
                 style={{ WebkitTapHighlightColor: "transparent" }}
               >
-                <span className="font-medium">
-                  Consumo KwH (BETA)
-                </span>
+                <span className="font-medium">Consumo KwH (BETA)</span>
               </button>
             </div>
           ) : (

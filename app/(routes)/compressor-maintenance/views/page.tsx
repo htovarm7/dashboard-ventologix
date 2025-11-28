@@ -51,25 +51,6 @@ const Visitas = () => {
   );
   const [userRole, setUserRole] = useState<number>(0);
 
-  // Ejecutar sincronización con Google Sheets al cargar la página
-  useEffect(() => {
-    const syncSheets = async () => {
-      try {
-        const response = await fetch(`${URL_API}/web/maintenance/sync-sheets`, {
-          method: "POST",
-        });
-        if (response.ok) {
-          const result = await response.json();
-          console.log("Sincronización completada:", result);
-        }
-      } catch (error) {
-        console.error("Error en sincronización:", error);
-      }
-    };
-
-    syncSheets();
-  }, []);
-
   useEffect(() => {
     const loadUserData = async () => {
       const userData = sessionStorage.getItem("userData");
@@ -89,11 +70,15 @@ const Visitas = () => {
           }
 
           const serialToAliasMap = new Map<string, string>();
-          compresores.forEach((comp: UserCompressor & { numero_serie?: string; alias?: string }) => {
-            if (comp.numero_serie && comp.alias) {
-              serialToAliasMap.set(comp.numero_serie, comp.alias);
+          compresores.forEach(
+            (
+              comp: UserCompressor & { numero_serie?: string; alias?: string }
+            ) => {
+              if (comp.numero_serie && comp.alias) {
+                serialToAliasMap.set(comp.numero_serie, comp.alias);
+              }
             }
-          });
+          );
 
           // Fetch maintenance records from API
           const allRegistros: Visit[] = [];
@@ -172,7 +157,11 @@ const Visitas = () => {
             // Para clientes, agrupar solo por compresor (sin mostrar nivel de cliente)
             allRegistros.forEach((registro) => {
               const compressorKey = `${registro.compresor}-${registro.numero_serie}`;
-              const compressorName = (registro.numero_serie && serialToAliasMap.get(registro.numero_serie)) || registro.compresor || "Compresor";
+              const compressorName =
+                (registro.numero_serie &&
+                  serialToAliasMap.get(registro.numero_serie)) ||
+                registro.compresor ||
+                "Compresor";
               const clientKey = "Mi Empresa"; // Usar un solo "cliente" virtual para clientes
 
               // Crear cliente virtual si no existe
@@ -208,7 +197,11 @@ const Visitas = () => {
             allRegistros.forEach((registro) => {
               const clientKey = registro.cliente || "Sin cliente";
               const compressorKey = `${registro.compresor}-${registro.numero_serie}`;
-              const compressorName = (registro.numero_serie && serialToAliasMap.get(registro.numero_serie)) || registro.compresor || "Compresor";
+              const compressorName =
+                (registro.numero_serie &&
+                  serialToAliasMap.get(registro.numero_serie)) ||
+                registro.compresor ||
+                "Compresor";
 
               // Crear cliente si no existe
               if (!clientsMap.has(clientKey)) {
@@ -284,9 +277,7 @@ const Visitas = () => {
                 const clientObj = fallbackMap.get(clientKey)!;
                 clientObj.compressors.push({
                   id: compressorKey,
-                  name:
-                    (comp as { alias?: string }).alias ||
-                    "Compresor",
+                  name: (comp as { alias?: string }).alias || "Compresor",
                   numero_serie: compSerie || undefined,
                   visits: [],
                 });
