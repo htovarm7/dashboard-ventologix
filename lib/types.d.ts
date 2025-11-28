@@ -229,6 +229,7 @@ export interface MaintenanceReportData {
   numero_cliente: string;
   comentario_cliente: string;
   link_form: string;
+  fotos_drive: string[];
   carpeta_fotos: string;
   mantenimientos: MaintenanceItem[];
 }

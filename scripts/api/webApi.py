@@ -17,10 +17,24 @@ from typing import List, Tuple, Optional
 from pydantic import BaseModel, EmailStr
 import sys
 from pathlib import Path
+import pickle
+
+from googleapiclient.discovery import build
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+
 
 # Agregar el directorio de scripts al path para importar maintenance_reports
 SCRIPT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SCRIPT_DIR))
+PROJECT_ROOT = SCRIPT_DIR.parent
+LIB_DIR = PROJECT_ROOT / "lib"
+
+OAUTH_CREDENTIALS_FILE = str(LIB_DIR / "credentials.json")
+TOKEN_FILE = str(LIB_DIR / "token.pickle")
+
+SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 
 # Modelos para las actualizaciones
 class UpdateClientNumberRequest(BaseModel):
@@ -1667,9 +1681,10 @@ def get_maintenance_report_data_by_id(registro_id: str):
                 detail=f"No se encontró registro de mantenimiento con ID {registro_id}"
             )
 
+        fotos_drive = get_drive_folder_images(registro.get("carpeta_fotos"))
+
         # Construir lista de mantenimientos realizados
         mantenimientos_realizados = []
-        
         for columna_bd, nombre_mantenimiento in MAINTENANCE_COLUMN_MAPPING.items():
             valor = registro.get(columna_bd, "No")
             if valor and valor.lower() in ["sí", "si", "yes", "1"]:
@@ -1700,6 +1715,9 @@ def get_maintenance_report_data_by_id(registro_id: str):
             "comentario_cliente": registro.get("comentario_cliente"),
             "link_form": registro.get("link_form"),
             "carpeta_fotos": registro.get("carpeta_fotos"),
+
+            "fotos_drive": fotos_drive,
+
             "mantenimientos": mantenimientos_realizados
         }
 
@@ -2017,130 +2035,6 @@ def check_report_exists(numero_cliente: int, numero_serie: str, fecha: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error checking report: {str(e)}")
 
-@web.post("/maintenance/generate-report", tags=["🛠️ Mantenimiento de Compresores"])
-async def generate_maintenance_report(request: GenerateReportRequest):
-    """
-    Genera un reporte PDF de mantenimiento usando Puppeteer y lo sube a Google Drive.
-    Captura la página de Next.js generate-report directamente.
-    """
-    try:
-        # Importar el módulo de generación de PDF con Puppeteer
-        from generate_pdf_puppeteer import generate_and_upload_maintenance_report
-        
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_DATABASE
-        )
-        cursor = conn.cursor(dictionary=True)
-        
-        # Obtener datos del registro de mantenimiento
-        if request.registro_id:
-            # Buscar por ID específico
-            query = """
-            SELECT *
-            FROM registros_mantenimiento_tornillo
-            WHERE id = %s
-            """
-            cursor.execute(query, (request.registro_id,))
-        else:
-            # Buscar por número de serie y fecha
-            query = """
-            SELECT *
-            FROM registros_mantenimiento_tornillo
-            WHERE numero_serie = %s AND DATE(timestamp) = %s
-            ORDER BY timestamp DESC
-            LIMIT 1
-            """
-            cursor.execute(query, (request.numero_serie, request.fecha))
-        
-        registro = cursor.fetchone()
-        
-        if not registro:
-            raise HTTPException(
-                status_code=404,
-                detail="No se encontró el registro de mantenimiento"
-            )
-        
-        # Preparar datos del reporte
-        mantenimientos_realizados = []
-        for columna_bd, nombre_mantenimiento in MAINTENANCE_COLUMN_MAPPING.items():
-            valor = registro.get(columna_bd, "No")
-            mantenimientos_realizados.append({
-                "nombre": nombre_mantenimiento,
-                "realizado": valor and valor.lower() in ["sí", "si", "yes", "1"]
-            })
-        
-        report_data = {
-            "id": registro.get("id"),
-            "timestamp": registro.get("timestamp").isoformat() if registro.get("timestamp") else None,
-            "cliente": registro.get("cliente"),
-            "tecnico": registro.get("tecnico"),
-            "email": registro.get("email"),
-            "tipo": registro.get("tipo"),
-            "compresor": registro.get("compresor"),
-            "numero_serie": registro.get("numero_serie"),
-            "comentarios_generales": registro.get("comentarios_generales"),
-            "numero_cliente": registro.get("numero_cliente"),
-            "comentario_cliente": registro.get("comentario_cliente"),
-            "link_form": registro.get("link_form"),
-            "carpeta_fotos": registro.get("carpeta_fotos"),
-            "mantenimientos": mantenimientos_realizados
-        }
-        
-        # Generar PDF y subir a Google Drive (sync, se ejecuta en thread pool automáticamente por FastAPI)
-        loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(
-            None, 
-            generate_and_upload_maintenance_report, 
-            report_data
-        )
-        
-        if not result['success']:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error generando PDF: {result.get('error', 'Unknown error')}"
-            )
-        
-        # Guardar link en la base de datos
-        insert_query = """
-        INSERT INTO links_reportes_mtto (fecha, numero_cliente, nombre_cliente, link_reporte, numero_serie, registro_id)
-        VALUES (%s, %s, %s, %s, %s, %s)
-        """
-        
-        cursor.execute(insert_query, (
-            result['fecha'],
-            registro.get('numero_cliente'),
-            registro.get('cliente'),
-            result['pdf_link'],
-            registro.get('numero_serie'),
-            registro.get('id')
-        ))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return {
-            "success": True,
-            "message": "Reporte generado exitosamente",
-            "pdf_link": result['pdf_link'],
-            "filename": result['filename']
-        }
-        
-    except HTTPException:
-        raise
-    except mysql.connector.Error as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error generating report: {str(e)}")
-    finally:
-        if 'cursor' in locals() and cursor:
-            cursor.close()
-        if 'conn' in locals() and conn:
-            conn.close()
-
 # =======================================================================================
 #                                    HELPER FUNCTIONS
 # =======================================================================================
@@ -2380,3 +2274,71 @@ def generate_predictions_fast(series: pd.Series, days: int = 3) -> Tuple[List[fl
     except Exception as e:
         promedio = np.mean(hist_valores)
         return [promedio] * days, "Promedio (modelo falló)"
+    
+def get_public_image_url(file_id: str):
+    return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
+
+def get_drive_folder_images(folder_url: str):
+    """
+    Conecta a Google Drive usando OAuth, renueva tokens automáticamente,
+    extrae las imágenes dentro de una carpeta y regresa URLs visibles.
+    """
+
+    if not folder_url:
+        return []
+
+    # ------------------------------------------
+    # 1. Extraer folderId del URL de Google Drive
+    # ------------------------------------------
+    try:
+        folder_id = folder_url.split("/folders/")[1].split("?")[0]
+    except Exception:
+        return []
+
+    # ------------------------------------------
+    # 2. Cargar credenciales/tokens
+    # ------------------------------------------
+    creds = None
+
+    if os.path.exists(TOKEN_FILE):
+        with open(TOKEN_FILE, "rb") as token:
+            creds = pickle.load(token)
+
+    # Si no hay token válido → pedir login / refrescar
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                OAUTH_CREDENTIALS_FILE, SCOPES
+            )
+            creds = flow.run_local_server(port=0)
+
+        # Guardar token actualizado
+        with open(TOKEN_FILE, "wb") as token:
+            pickle.dump(creds, token)
+
+    # ------------------------------------------
+    # 3. Crear cliente Drive
+    # ------------------------------------------
+    service = build("drive", "v3", credentials=creds)
+
+    # ------------------------------------------
+    # 4. Buscar solo imágenes dentro de la carpeta
+    # ------------------------------------------
+    results = service.files().list(
+        q=f"'{folder_id}' in parents and mimeType contains 'image/'",
+        fields="files(id, name)"
+    ).execute()
+
+    files = results.get("files", [])
+
+    # ------------------------------------------
+    # 5. Convertir a URLs visibles
+    # ------------------------------------------
+    images = [
+        f"https://drive.google.com/thumbnail?id={f['id']}&sz=w2000"
+        for f in files
+    ]
+
+    return images

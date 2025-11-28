@@ -71,8 +71,10 @@ function ViewMaintenanceReportContent() {
       }
 
       const data: MaintenanceReportResponse = await response.json();
-      setReportData(data.reporte);
-      // Guardar datos del reporte en sessionStorage para el nombre del PDF
+      setReportData({
+        ...data.reporte,
+        fotos_drive: data.reporte.fotos_drive || [],
+      });
       sessionStorage.setItem("currentReportData", JSON.stringify(data.reporte));
     } catch (err) {
       console.error("Error fetching maintenance report data:", err);
@@ -247,28 +249,33 @@ function ViewMaintenanceReportContent() {
               </div>
             )}
 
-            <div className="p-6">
-              <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                RECURSOS
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {reportData.carpeta_fotos && (
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="font-semibold text-xl text-green-800">
-                      Carpeta de Fotos
-                    </p>
-                    <a
-                      href={reportData.carpeta_fotos}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-green-700 underline break-all"
-                    >
-                      {reportData.carpeta_fotos}
-                    </a>
-                  </div>
-                )}
+            {reportData.fotos_drive?.length > 0 && (
+              <div className="p-4 bg-white border border-gray-200 rounded-lg col-span-2">
+                <p className="font-semibold text-xl mb-3 text-gray-700">
+                  Fotos detectadas en Drive
+                </p>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {reportData.fotos_drive.map((fotoUrl, index) => (
+                    <div key={index} className="flex flex-col items-center">
+                      <img
+                        src={fotoUrl}
+                        className="w-full h-32 object-cover rounded-lg shadow"
+                        alt={`Foto ${index + 1}`}
+                      />
+                      <a
+                        href={fotoUrl.replace("export=view", "export=download")}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 text-blue-600 underline text-sm"
+                      >
+                        Descargar
+                      </a>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
