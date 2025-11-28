@@ -120,12 +120,6 @@ const MaintenanceTimer = ({
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-600">Frecuencia:</span>
-          <span className="font-semibold text-gray-900">
-            {formatValue(frequency)} h
-          </span>
-        </div>
-        <div className="flex justify-between">
           <span className="text-gray-600">
             {remaining >= 0 ? "Horas restantes:" : "Vencido por:"}
           </span>
@@ -493,8 +487,6 @@ const CompressorMaintenance = () => {
     CompressorMaintenance[]
   >([]);
 
-  // --- CAMBIO 2: Actualizar lógica de urgencia para coincidir con el timer ---
-  // Detecta si el mantenimiento está próximo (semáforo amarillo)
   const isMaintenanceNext = (
     record: MaintenanceRecord,
     horasTranscurridas?: number
@@ -503,8 +495,6 @@ const CompressorMaintenance = () => {
       return false;
     }
     const hoursUsed = horasTranscurridas ?? 0;
-    // Considerar "próximo" si está dentro del 20% antes de la frecuencia
-    // Ejemplo: frecuencia=100, amarillo si horas >= 80 y < 100
     return hoursUsed >= record.frequency * 0.8 && hoursUsed < record.frequency;
   };
   const isMaintenanceUrgent = (
@@ -1318,24 +1308,26 @@ const CompressorMaintenance = () => {
                                                     className="text-gray-400"
                                                   />
                                                   <span className="text-gray-600">
-                                                    Frecuencia:
+                                                    Frecuencia de Cambio:
                                                   </span>
                                                   <span className="font-medium">
                                                     {record.frequency} horas
                                                   </span>
                                                 </div>
-
                                                 <div className="flex items-center gap-2">
                                                   <Calendar
                                                     size={16}
                                                     className="text-gray-400"
                                                   />
                                                   <span className="text-gray-600">
-                                                    Último:
+                                                    Último Mantenimiento:
                                                   </span>
                                                   <span className="font-medium">
-                                                    {record.lastMaintenanceDate ||
-                                                      "No registrado"}
+                                                    {record.lastMaintenanceDate
+                                                      ? record.lastMaintenanceDate.split(
+                                                          "T"
+                                                        )[0]
+                                                      : "No registrado"}
                                                   </span>
                                                 </div>
                                               </div>
@@ -1518,7 +1510,7 @@ const CompressorMaintenance = () => {
                                         className="text-gray-400"
                                       />
                                       <span className="text-gray-600">
-                                        Frecuencia:
+                                        Frecuencia de Cambio:
                                       </span>
                                       <span className="font-medium">
                                         {record.frequency} horas
@@ -1531,7 +1523,7 @@ const CompressorMaintenance = () => {
                                         className="text-gray-400"
                                       />
                                       <span className="text-gray-600">
-                                        Último:
+                                        Último Mantenimiento:
                                       </span>
                                       <span className="font-medium">
                                         {record.lastMaintenanceDate ||
