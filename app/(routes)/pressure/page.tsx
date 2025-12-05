@@ -9,6 +9,7 @@ import { UserData } from "@/lib/types";
 import { URL_API } from "@/lib/global";
 import BackButton from "@/components/BackButton";
 import { PressureStats } from "@/lib/types";
+import DateNavigator from "@/components/DateNavigator";
 
 // Helper function outside component to avoid re-creation
 const formatDateForAPI = (date: Date): string => {
@@ -391,6 +392,23 @@ const PressureAnalysis = () => {
           {/* Image Display - Only show when both image and stats are ready */}
           {imageUrl && pressureStats && imageReady && statsReady && (
             <div className="space-y-6">
+              {/* Date Navigator */}
+              {selectedDate && (
+                <DateNavigator
+                  currentDate={formatDateForAPI(selectedDate)}
+                  onDateChange={(newDate) => {
+                    const newDateObj = new Date(newDate + "T00:00:00");
+                    setSelectedDate(newDateObj);
+                    loadPressureAnalysis(
+                      userData!.numero_cliente.toString(),
+                      newDate
+                    );
+                  }}
+                  type="day"
+                  label="Navegación de Fechas"
+                />
+              )}
+
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-semibold text-gray-900">
                   Análisis de Presión -{" "}
