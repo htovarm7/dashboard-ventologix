@@ -6,7 +6,11 @@ import LoadingOverlay from "@/components/LoadingOverlay";
 import BackButton from "@/components/BackButton";
 import { MaintenanceReportResponse, MaintenanceReportData } from "@/lib/types";
 import Image from "next/image";
-import PrintPageButton from "@/components/printPageButton";
+
+interface ModalState {
+  isOpen: boolean;
+  imageSrc: string;
+}
 
 function ViewMaintenanceReportContent() {
   const { isAuthenticated, isLoading } = useAuth0();
@@ -17,6 +21,10 @@ function ViewMaintenanceReportContent() {
     null
   );
   const [loading, setLoading] = useState(false);
+  const [imageModal, setImageModal] = useState<ModalState>({
+    isOpen: false,
+    imageSrc: "",
+  });
 
   // Cargar datos de la visita seleccionada si existen
   useEffect(() => {
@@ -103,6 +111,14 @@ function ViewMaintenanceReportContent() {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const openImageModal = (imageSrc: string) => {
+    setImageModal({ isOpen: true, imageSrc });
+  };
+
+  const closeImageModal = () => {
+    setImageModal({ isOpen: false, imageSrc: "" });
   };
 
   return (
@@ -250,40 +266,60 @@ function ViewMaintenanceReportContent() {
             )}
 
             {reportData.fotos_drive?.length > 0 && (
-              <div className="p-4 bg-white border border-gray-200 rounded-lg col-span-2">
-                <p className="font-semibold text-xl mb-3 text-gray-700">
-                  Fotos detectadas en Drive
-                </p>
+              <div className="p-6 border-b">
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  FOTOS DEL MANTENIMIENTO
+                </h2>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {reportData.fotos_drive.map((fotoUrl, index) => (
-                    <div key={index} className="flex flex-col items-center">
-                      <img
+                    <div
+                      key={index}
+                      className="cursor-pointer transform hover:scale-105 transition-transform"
+                      onClick={() => openImageModal(fotoUrl)}
+                    >
+                      <Image
                         src={fotoUrl}
-                        className="w-full h-32 object-cover rounded-lg shadow"
+                        className="w-full h-full object-cover rounded-lg shadow hover:shadow-lg"
                         alt={`Foto ${index + 1}`}
                       />
-                      <a
-                        href={fotoUrl.replace("export=view", "export=download")}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-2 text-blue-600 underline text-sm"
-                      >
-                        Descargar
-                      </a>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {imageModal.isOpen && (
+              <div
+                className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4 no-print"
+                onClick={closeImageModal}
+              >
+                <div
+                  className="relative max-w-4xl max-h-[90vh]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Image
+                    src={imageModal.imageSrc}
+                    alt="Imagen ampliada"
+                    className="w-full h-full object-contain"
+                  />
+                  <button
+                    onClick={closeImageModal}
+                    className="absolute top-2 right-2 bg-white rounded-full w-10 h-10 flex items-center justify-center text-black font-bold text-xl hover:bg-gray-200"
+                  >
+                    ✕
+                  </button>
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {reportData && (
+        {/* {reportData && (
           <div className="flex justify-center mb-8 no-print">
             <PrintPageButton reportType="reporte-visita" />
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );

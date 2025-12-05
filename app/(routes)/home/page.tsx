@@ -4,7 +4,6 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
 import DateReportDropdown from "@/components/DateReportDropdown";
 import { Compressor } from "@/lib/types";
-import { URL_API } from "@/lib/global";
 
 const Home = () => {
   const { user, isAuthenticated, isLoading, logout } = useAuth0();
