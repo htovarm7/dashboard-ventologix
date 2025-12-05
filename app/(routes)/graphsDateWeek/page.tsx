@@ -29,6 +29,7 @@ import {
 
 import LoadingOverlay from "@/components/LoadingOverlay";
 import BackButton from "@/components/BackButton";
+import DateNavigator from "@/components/DateNavigator";
 
 // Libraries for charts
 import {
@@ -117,6 +118,51 @@ function MainContent() {
     ((summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) /
       (compressorData?.hp ?? 1)) *
       100 || 0;
+
+  const handleDateChange = (newDate: string) => {
+    setSelectedDate(newDate);
+    const compresorData = sessionStorage.getItem("selectedCompresor");
+    if (compresorData) {
+      const data = JSON.parse(compresorData);
+      data.date = newDate;
+      sessionStorage.setItem("selectedCompresor", JSON.stringify(data));
+    }
+    const id_cliente = searchParams.get("id_cliente");
+    const linea = searchParams.get("linea") || "A";
+    if (id_cliente) {
+      fetchData(id_cliente, linea, newDate);
+    }
+  };
+
+  const handleWeekChange = (weekNumber: number) => {
+    setSelectedWeekNumber(weekNumber);
+    const compresorData = sessionStorage.getItem("selectedCompresor");
+    if (compresorData) {
+      const data = JSON.parse(compresorData);
+      data.weekNumber = weekNumber;
+      sessionStorage.setItem("selectedCompresor", JSON.stringify(data));
+    }
+
+    // Calculate the date for the given week number
+    const currentYear = new Date().getFullYear();
+    const jan4 = new Date(currentYear, 0, 4);
+    const daysToMonday = (jan4.getDay() + 6) % 7;
+    const firstMonday = new Date(jan4);
+    firstMonday.setDate(jan4.getDate() - daysToMonday);
+    const mondayOfWeek = new Date(firstMonday);
+    mondayOfWeek.setDate(firstMonday.getDate() + (weekNumber - 1) * 7);
+
+    const newDate = mondayOfWeek.toISOString().split("T")[0];
+    setSelectedDate(newDate);
+
+    const id_cliente = searchParams.get("id_cliente");
+    const linea = searchParams.get("linea") || "A";
+    if (id_cliente) {
+      fetchData(id_cliente, linea, newDate);
+    }
+  };
+
+  const searchParams = useSearchParams();
 
   const fetchData = useCallback(
     async (id: string, linea: string, date: string) => {
@@ -305,8 +351,6 @@ function MainContent() {
     },
     []
   );
-
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (isAuthorized) {
@@ -1037,6 +1081,16 @@ function MainContent() {
         className="top-4 left-4 bg-white/10 backdrop-blur-sm border-white/50 text-white hover:bg-white hover:text-blue-600"
       />
       <PrintPageButton reportType="reporte" />
+      <div className="flex justify-center my-4 w-full">
+        <DateNavigator
+          currentDate={selectedDate}
+          onDateChange={handleDateChange}
+          onWeekChange={handleWeekChange}
+          type="week"
+          weekNumber={selectedWeekNumber || undefined}
+          label="Selecciona la semana"
+        />
+      </div>
 
       <div className="w-full min-w-full bg-gradient-to-r from-indigo-950 to-blue-400 text-white p-6">
         {/* Main docker on rows */}

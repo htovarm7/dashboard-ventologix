@@ -36,6 +36,7 @@ import { Pie, Chart } from "react-chartjs-2";
 import { putBlur } from "@/lib/reportsFunctions";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import BackButton from "@/components/BackButton";
+import DateNavigator from "@/components/DateNavigator";
 
 // ECharts for the gauge chart
 import ReactECharts from "echarts-for-react";
@@ -289,6 +290,22 @@ function MainContent() {
     ? (hp_equivalente / hp_instalado) * 100
     : 0;
   const aguja = Math.max(30, Math.min(120, porcentajeUso)); // Limita entre 30% y 120%
+
+  const handleDateChange = (newDate: string) => {
+    setSelectedDate(newDate);
+    if (userClientNumber !== null) {
+      const compresorData = sessionStorage.getItem("selectedCompresor");
+      if (compresorData) {
+        const data = JSON.parse(compresorData);
+        data.date = newDate;
+        sessionStorage.setItem("selectedCompresor", JSON.stringify(data));
+      }
+      const id_cliente =
+        searchParams.get("id_cliente") || userClientNumber.toString();
+      const linea = searchParams.get("linea") || "A";
+      fetchData(id_cliente, linea, newDate);
+    }
+  };
 
   const HpOptions = {
     series: [
@@ -554,6 +571,14 @@ function MainContent() {
         <h2 className="text-4xl font-bold text-center">
           {compresorAlias || compressorData?.alias}
         </h2>
+        <div className="flex justify-center my-4 w-full">
+          <DateNavigator
+            currentDate={selectedDate}
+            onDateChange={handleDateChange}
+            type="day"
+            label="Selecciona el día"
+          />
+        </div>
         <h3 className="text-3xl font-bold text-center">
           Fecha:{" "}
           {selectedDate
