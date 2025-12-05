@@ -332,6 +332,11 @@ const EditMaintenanceModal = ({
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      const userDataStr = sessionStorage.getItem("userData");
+      const currentUserName = userDataStr
+        ? JSON.parse(userDataStr)?.name || "Usuario desconocido"
+        : "Usuario desconocido";
+
       const response = await fetch(
         `${URL_API}/web/maintenance/${maintenance.id}`,
         {
@@ -344,6 +349,7 @@ const EditMaintenanceModal = ({
             ultimo_mantenimiento: editData.lastMaintenanceDate,
             observaciones: editData.description,
             activo: editData.isActive,
+            editado_por: currentUserName,
           }),
         }
       );

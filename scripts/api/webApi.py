@@ -63,6 +63,7 @@ class UpdateMaintenanceRequest(BaseModel):
     activo: Optional[bool] = None
     observaciones: Optional[str] = None
     costo: Optional[float] = None
+    editado_por: Optional[str] = None
 
 class GenerateReportRequest(BaseModel):
     numero_serie: str
@@ -1575,6 +1576,9 @@ def update_maintenance(maintenance_id: int, request: UpdateMaintenanceRequest):
         if request.costo is not None:
             update_fields.append("costo = %s")
             update_values.append(request.costo)
+        if request.editado_por is not None:
+            update_fields.append("editado_por = %s")
+            update_values.append(request.editado_por)
 
         if not update_fields:
             raise HTTPException(status_code=400, detail="No se proporcionaron campos para actualizar")

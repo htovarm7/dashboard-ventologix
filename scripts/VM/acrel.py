@@ -86,7 +86,13 @@ def insert_data(payload):
                 INSERT INTO pruebas (device_id, ua, ub, uc, ia, ib, ic, time)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
             """
+
+            insert_hoy = """
+                INSERT INTO hoy (device_id, ua, ub, uc, ia, ib, ic, time)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+            """
             cursor.execute(insert_electrico, (id_cliente, ua, ub, uc, ia, ib, ic, formatted_time))
+            cursor.execute(insert_hoy, (id_cliente, ua, ub, uc, ia, ib, ic, formatted_time))
 
             # Paso 5: Insertar sensores si existen
             sensor_data = payload.get("sensorDatas", [])
