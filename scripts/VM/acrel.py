@@ -84,7 +84,7 @@ def insert_data(payload):
             # Paso 4: Valores eléctricos
             points = payload["data"][0].get("point", [])
             ua = find_val(points, 1)
-            ub = find_val(points, 2)
+            ub = find_val(points, 2)  
             uc = find_val(points, 3)
             ia = find_val(points, 7)
             ib = find_val(points, 8)
@@ -101,23 +101,6 @@ def insert_data(payload):
             """
             cursor.execute(insert_electrico, (id_cliente, ua, ub, uc, ia, ib, ic, formatted_time))
             cursor.execute(insert_hoy, (id_cliente, ua, ub, uc, ia, ib, ic, formatted_time))
-
-            # Paso 5: Insertar sensores si existen
-            sensor_data = payload.get("sensorDatas", [])
-            if len(sensor_data) >= 4:
-                sensor1 = float(sensor_data[0]["value"])
-                sensor2 = float(sensor_data[1]["value"])
-                sensor3 = float(sensor_data[2]["value"])
-                columna4 = float(sensor_data[3]["value"])
-                p_device_id = 1  # Fijo
-
-                insert_presion = """
-                    INSERT INTO presion (p_device_id, sensor1, sensor2, sensor3, columna4, timestamp)
-                    VALUES (%s, %s, %s, %s, %s, %s);
-                """
-                cursor.execute(insert_presion, (p_device_id, sensor1, sensor2, sensor3, columna4, formatted_time))
-            else:
-                print("Advertencia: Datos de sensores incompletos.")
 
             # Confirmar cambios
             connection.commit()
