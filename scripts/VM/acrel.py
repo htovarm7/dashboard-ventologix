@@ -24,17 +24,25 @@ def find_val(points, id):
     return next((p["val"] for p in points if p["id"] == id), 0)
 
 def redondear_a_30s(timestamp_ms):
+    # Convertir timestamp UTC a datetime UTC
+    dt_utc = datetime.utcfromtimestamp(timestamp_ms / 1000.0).replace(tzinfo=pytz.UTC)
+
+    # Convertir a hora de Monterrey
     monterrey_tz = pytz.timezone("America/Monterrey")
-    dt = datetime.fromtimestamp(timestamp_ms / 1000.0, tz=monterrey_tz)
-    segundos = dt.second
+    dt_mty = dt_utc.astimezone(monterrey_tz)
+
+    # Redondear segundos a 0 o 30
+    segundos = dt_mty.second
     if segundos < 15:
         nuevos_segundos = 0
     elif segundos < 45:
         nuevos_segundos = 30
     else:
         nuevos_segundos = 0
-        dt += timedelta(minutes=1)
-    return dt.replace(second=nuevos_segundos, microsecond=0)
+        dt_mty += timedelta(minutes=1)
+
+    return dt_mty.replace(second=nuevos_segundos, microsecond=0)
+
 
 def insert_data(payload):
     try:
