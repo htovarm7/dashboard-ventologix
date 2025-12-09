@@ -852,7 +852,6 @@ def consumption_prediction_plot(
         kwh_anual = promedio_diario * 365
         costo_anual = kwh_anual * costoKwh
 
-        # 🎨 GRAFICAR (apilado por compresor)
         plt.switch_backend('Agg')  # Usar backend no-GUI
         fig, ax = plt.subplots(figsize=(12, 6))
         
@@ -1019,18 +1018,22 @@ def pressure_analysis_plot( numero_cliente: int = Query(..., description="Númer
         
         # Operational range
         ax.fill_between(df_operativa['time'], presion_min, presion_max, 
-                       color='green', alpha=0.1, label=f'Rango operativo {presion_min}-{presion_max} psi')
+                       color='green', alpha=0.1, label=f'Zona Operativa {presion_min}-{presion_max} psi')
         
-        # Zona de presión de trabajo
-        ax.fill_between(df_operativa['time'], 100, 120, color='green', alpha=0.15, label='Zona trabajo 100–120 psi')
         # Zona de advertencia
-        ax.fill_between(df_operativa['time'], 95, 100, color='yellow', alpha=0.4, label='Zona warning 95–100 psi')
+        ax.fill_between(df_operativa['time'], 95, 100, color='yellow', alpha=0.2, label='Zona Riesgo 95–100 psi')
         # Zona Alarma WA
         ax.axhline(95, color='red', alpha=0.4, label='Alarma Whatsapp psi < 95')
         
-        # Out of range points
+        # Evento de riesgo: 95 <= PSI < 100 (bolitas naranjas)
+        evento_riesgo = (df_operativa['presion1_psi'] >= 95) & (df_operativa['presion1_psi'] < 100)
+        ax.plot(df_operativa['time'][evento_riesgo], df_operativa['presion1_psi'][evento_riesgo], 
+               'o', color='orange', label='Evento de Riesgo (95-100 psi)', markersize=4)
+        
+        # Evento crítico: PSI < 95 (bolitas rojas)
+        fuera_bajo = df_operativa['presion1_psi'] < 95
         ax.plot(df_operativa['time'][fuera_bajo], df_operativa['presion1_psi'][fuera_bajo], 
-               'o', color='red', label='Fuera de rango')
+               'o', color='red', label='Evento Crítico (psi < 95)', markersize=4)
         
         # Average line
         ax.axhline(promedio, color='black', linestyle='-', label='Promedio suavizado')
@@ -1040,7 +1043,7 @@ def pressure_analysis_plot( numero_cliente: int = Query(..., description="Númer
             registros = df_operativa.loc[ev['start_idx']:ev['end_idx']]
             if not registros.empty:
                 ax.fill_between(registros['time'], registros['presion1_psi'], presion_max, 
-                               color='red', alpha=0.25)
+                               color='red', alpha=0.3)
 
         # Set labels and title
         ax.set_xlabel('Tiempo')
