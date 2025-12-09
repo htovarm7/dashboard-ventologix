@@ -34,8 +34,11 @@ const calendarStyles = `
     color: white !important;
   }
   .react-calendar-custom .react-calendar__tile--now {
-    background-color: #f3f4f6 !important;
+    background-color: #fbbf24 !important;
+    color: #78350f !important;
     font-weight: bold;
+    border: 2px solid #f59e0b !important;
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.4) !important;
   }
   .react-calendar-custom .react-calendar__navigation button {
     color: #374151;
@@ -255,9 +258,11 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
         </h2>
 
         {selectedCompresor && (
-          <div className={`absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-72 sm:w-80 max-w-[90vw] bg-white border border-gray-200 rounded-lg shadow-xl transition-all duration-300 z-10 ${
-            isOpen ? "opacity-100 visible" : "opacity-0 invisible"
-          } group-hover:opacity-100 group-hover:visible`}>
+          <div
+            className={`absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-72 sm:w-80 max-w-[90vw] bg-white border border-gray-200 rounded-lg shadow-xl transition-all duration-300 z-10 ${
+              isOpen ? "opacity-100 visible" : "opacity-0 invisible"
+            } group-hover:opacity-100 group-hover:visible`}
+          >
             <div className="py-2">
               {tipo === "DIARIO" && (
                 <div className="px-4 py-3 border-b border-gray-100 flex flex-col items-center">

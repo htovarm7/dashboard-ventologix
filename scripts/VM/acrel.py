@@ -99,12 +99,18 @@ def insert_data(payload):
                 INSERT INTO hoy (device_id, ua, ub, uc, ia, ib, ic, time)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
             """
+            
+            # Insertar en tabla pruebas
             cursor.execute(insert_electrico, (id_cliente, ua, ub, uc, ia, ib, ic, formatted_time))
+            print(f"  ✓ Insertado en tabla 'pruebas' - id_cliente {id_cliente}")
+            
+            # Insertar en tabla hoy
             cursor.execute(insert_hoy, (id_cliente, ua, ub, uc, ia, ib, ic, formatted_time))
+            print(f"  ✓ Insertado en tabla 'hoy' - id_cliente {id_cliente}")
 
             # Confirmar cambios
             connection.commit()
-            print(f"✅ Datos insertados para KPM {id_kpm} a {formatted_time}")
+            print(f"✅ Datos confirmados para id_cliente {id_cliente} a {formatted_time} - UA:{ua} UB:{ub} UC:{uc} IA:{ia} IB:{ib} IC:{ic}")
 
     except Error as e:
         print("❌ Error en MySQL:", e)

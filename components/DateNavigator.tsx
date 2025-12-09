@@ -35,16 +35,32 @@ export default function DateNavigator({
   };
 
   const handleNext = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split("T")[0];
+
     if (type === "week" && onWeekChange && weekNumber !== undefined) {
-      onWeekChange(weekNumber + 1);
+      const date = new Date(currentDate + "T00:00:00");
+      const nextWeekDate = new Date(date);
+      nextWeekDate.setDate(date.getDate() + 7);
+      const nextWeekStr = nextWeekDate.toISOString().split("T")[0];
+
+      if (nextWeekStr <= todayStr) {
+        onWeekChange(weekNumber + 1);
+      }
     } else {
       const date = new Date(currentDate + "T00:00:00");
+      const nextDate = new Date(date);
       if (type === "day") {
-        date.setDate(date.getDate() + 1);
+        nextDate.setDate(date.getDate() + 1);
       } else {
-        date.setDate(date.getDate() + 7);
+        nextDate.setDate(date.getDate() + 7);
       }
-      onDateChange(date.toISOString().split("T")[0]);
+      const nextDateStr = nextDate.toISOString().split("T")[0];
+
+      if (nextDateStr <= todayStr) {
+        onDateChange(nextDateStr);
+      }
     }
   };
 
@@ -68,7 +84,7 @@ export default function DateNavigator({
   };
 
   return (
-    <div className="flex items-center gap-4 bg-white rounded-lg shadow p-3">
+    <div className="flex items-center gap-4 bg-white rounded-lg p-3">
       <button
         onClick={handlePrevious}
         className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
@@ -79,7 +95,6 @@ export default function DateNavigator({
       </button>
 
       <div className="flex flex-col items-center min-w-[250px]">
-        {label && <span className="text-sm text-gray-600">{label}</span>}
         <span className="text-lg font-semibold text-gray-800">
           {type === "day"
             ? new Date(currentDate + "T00:00:00").toLocaleDateString("es-ES", {

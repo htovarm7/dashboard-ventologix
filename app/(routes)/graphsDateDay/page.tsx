@@ -99,77 +99,65 @@ function MainContent() {
     }
   }, []);
 
+  const fetchDataWithRetry = useCallback(
+    async (url: string, maxRetries: number = 3): Promise<any> => {
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const res = await fetch(url, {
+            headers: {
+              accept: "application/json",
+              "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+            },
+            cache: "no-store",
+          });
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          }
+          const data = await res.json();
+          // Verificar que los datos no estén vacíos
+          if (data && Object.keys(data).length > 0) {
+            return data;
+          }
+          // Si los datos están vacíos y no es el último intento, reintentar
+          if (attempt < maxRetries - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            continue;
+          }
+          return data;
+        } catch (error) {
+          if (attempt === maxRetries - 1) {
+            throw error;
+          }
+          // Esperar antes de reintentar
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+    },
+    []
+  );
+
   const fetchData = useCallback(
     async (id: string, linea: string, date: string) => {
       setIsLoading(true);
       try {
+        const timestamp = new Date().getTime();
         const [pieRes, lineRes, dayRes, clientRes, compressorRes] =
           await Promise.all([
-            (async () => {
-              const res = await fetch(
-                `${URL_API}/report/pie-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}`,
-                {
-                  headers: {
-                    accept: "application/json",
-                    "x-internal-api-key":
-                      process.env.NEXT_PUBLIC_API_SECRET || "",
-                  },
-                }
-              );
-              return res.json();
-            })(),
-            (async () => {
-              const res = await fetch(
-                `${URL_API}/report/line-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}`,
-                {
-                  headers: {
-                    accept: "application/json",
-                    "x-internal-api-key":
-                      process.env.NEXT_PUBLIC_API_SECRET || "",
-                  },
-                }
-              );
-              return res.json();
-            })(),
-            (async () => {
-              const res = await fetch(
-                `${URL_API}/report/day-report-data?id_cliente=${id}&linea=${linea}&date=${date}`,
-                {
-                  headers: {
-                    accept: "application/json",
-                    "x-internal-api-key":
-                      process.env.NEXT_PUBLIC_API_SECRET || "",
-                  },
-                }
-              );
-              return res.json();
-            })(),
-            (async () => {
-              const res = await fetch(
-                `${URL_API}/report/client-data?id_cliente=${id}`,
-                {
-                  headers: {
-                    accept: "application/json",
-                    "x-internal-api-key":
-                      process.env.NEXT_PUBLIC_API_SECRET || "",
-                  },
-                }
-              );
-              return res.json();
-            })(),
-            (async () => {
-              const res = await fetch(
-                `${URL_API}/report/compressor-data?id_cliente=${id}&linea=${linea}`,
-                {
-                  headers: {
-                    accept: "application/json",
-                    "x-internal-api-key":
-                      process.env.NEXT_PUBLIC_API_SECRET || "",
-                  },
-                }
-              );
-              return res.json();
-            })(),
+            fetchDataWithRetry(
+              `${URL_API}/report/pie-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}&_t=${timestamp}`
+            ),
+            fetchDataWithRetry(
+              `${URL_API}/report/line-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}&_t=${timestamp}`
+            ),
+            fetchDataWithRetry(
+              `${URL_API}/report/day-report-data?id_cliente=${id}&linea=${linea}&date=${date}&_t=${timestamp}`
+            ),
+            fetchDataWithRetry(
+              `${URL_API}/report/client-data?id_cliente=${id}&_t=${timestamp}`
+            ),
+            fetchDataWithRetry(
+              `${URL_API}/report/compressor-data?id_cliente=${id}&linea=${linea}&_t=${timestamp}`
+            ),
           ]);
 
         if (clientRes.data && clientRes.data.length > 0)
@@ -178,57 +166,72 @@ function MainContent() {
           setCompresorData(compressorRes.data[0]);
 
         // Verificar que pieRes.data existe y tiene las propiedades esperadas
-        if (pieRes.data && typeof pieRes.data === "object") {
+        if (
+          pieRes &&
+          pieRes.data &&
+          typeof pieRes.data === "object" &&
+          (pieRes.data.LOAD !== undefined ||
+            pieRes.data.NOLOAD !== undefined ||
+            pieRes.data.OFF !== undefined)
+        ) {
           const { LOAD, NOLOAD, OFF } = pieRes.data;
           setChartData([LOAD || 0, NOLOAD || 0, OFF || 0]);
           setLoad(LOAD || 0);
           setNoLoad(NOLOAD || 0);
           setOff(OFF || 0);
         } else {
-          console.error("pieRes.data no tiene el formato esperado:", pieRes);
-          // Valores por defecto
-          setChartData([0, 0, 100]);
-          setLoad(0);
-          setNoLoad(0);
-          setOff(100);
+          console.warn(
+            "pieRes.data no tiene los datos esperados. pieRes:",
+            pieRes
+          );
         }
 
-        if (dayRes.data) {
+        if (dayRes && dayRes.data) {
           setDayData(dayRes.data);
         }
 
         // Verificar que lineRes.data existe antes de procesarlo
-        if (lineRes.data && Array.isArray(lineRes.data)) {
-          const rawData = (lineRes.data as LineData[]).map((item) => ({
-            time: new Date(item.time),
-            corriente: item.corriente,
-          }));
-          rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
+        if (lineRes && lineRes.data && Array.isArray(lineRes.data)) {
+          if (lineRes.data.length > 0) {
+            const rawData = (lineRes.data as LineData[]).map((item) => ({
+              time: new Date(item.time),
+              corriente: item.corriente,
+            }));
+            rawData.sort((a, b) => a.time.getTime() - b.time.getTime());
 
-          const times = rawData.map((item) =>
-            item.time.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-            })
-          );
+            const times = rawData.map((item) =>
+              item.time.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              })
+            );
 
-          const currents: (number | null)[] = rawData.map(
-            (item) => item.corriente
-          );
+            const currents: (number | null)[] = rawData.map(
+              (item) => item.corriente
+            );
 
-          if (!times.includes("23:59:59")) {
-            times.push("23:59:59");
-            currents.push(null);
+            if (!times.includes("23:59:59")) {
+              times.push("23:59:59");
+              currents.push(null);
+            }
+
+            setLineChartLabels(times);
+            setLineChartData(currents);
+            const validCurrents = currents.filter(
+              (c): c is number => c !== null
+            );
+            setMaxData(
+              validCurrents.length > 0 ? Math.max(...validCurrents) * 1.3 : 0
+            );
+          } else {
+            console.warn("lineRes.data es un array vacío");
+            setLineChartLabels([]);
+            setLineChartData([]);
+            setMaxData(0);
           }
-
-          setLineChartLabels(times);
-          setLineChartData(currents);
-          setMaxData(
-            Math.max(...currents.filter((c): c is number => c !== null)) * 1.3
-          );
         } else {
-          console.error("lineRes.data no es un array válido:", lineRes);
+          console.warn("lineRes.data no es un array válido:", lineRes);
           setLineChartLabels([]);
           setLineChartData([]);
           setMaxData(0);
@@ -236,14 +239,6 @@ function MainContent() {
         setIsLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
-        // Establecer valores por defecto en caso de error
-        setChartData([0, 0, 100]);
-        setLoad(0);
-        setNoLoad(0);
-        setOff(100);
-        setLineChartLabels([]);
-        setLineChartData([]);
-        setMaxData(0);
         setIsLoading(false);
       }
     },
@@ -291,21 +286,21 @@ function MainContent() {
     : 0;
   const aguja = Math.max(30, Math.min(120, porcentajeUso)); // Limita entre 30% y 120%
 
-  const handleDateChange = (newDate: string) => {
-    setSelectedDate(newDate);
-    if (userClientNumber !== null) {
+  const handleDateChange = useCallback(
+    (newDate: string) => {
+      setSelectedDate(newDate);
       const compresorData = sessionStorage.getItem("selectedCompresor");
       if (compresorData) {
         const data = JSON.parse(compresorData);
         data.date = newDate;
         sessionStorage.setItem("selectedCompresor", JSON.stringify(data));
       }
-      const id_cliente =
-        searchParams.get("id_cliente") || userClientNumber.toString();
-      const linea = searchParams.get("linea") || "A";
-      fetchData(id_cliente, linea, newDate);
-    }
-  };
+      setTimeout(() => {
+        window.location.reload();
+      }, 300);
+    },
+    [userClientNumber, searchParams, fetchData]
+  );
 
   const HpOptions = {
     series: [
@@ -558,10 +553,10 @@ function MainContent() {
   return (
     <main className="relative">
       <BackButton
-        position="fixed"
+        position="relative"
         size="md"
         variant="primary"
-        className="top-4 left-4"
+        className="mt-4 ml-8"
       />
       <PrintPageButton reportType="reporte" />
       <div className="flex flex-col items-center mb-2">

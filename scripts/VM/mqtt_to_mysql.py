@@ -98,8 +98,13 @@ def on_message(client, userdata, msg):
             INSERT INTO pruebas (device_id, ua, ub, uc, ia, ib, ic, time)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
+        insert_hoy = """
+            INSERT INTO hoy (device_id, ua, ub, uc, ia, ib, ic, time)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
         values = (id_device, ua, ub, uc, ia, ib, ic, time_fmt)
         cursor.execute(insert_query, values)
+        cursor.execute(insert_hoy, values)
         conn.commit()
 
         logging.info(f"✅ Insertado Device {id_device} | {time_fmt}")

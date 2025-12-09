@@ -119,6 +119,8 @@ function MainContent() {
       (compressorData?.hp ?? 1)) *
       100 || 0;
 
+  const searchParams = useSearchParams();
+
   const handleDateChange = (newDate: string) => {
     setSelectedDate(newDate);
     const compresorData = sessionStorage.getItem("selectedCompresor");
@@ -127,11 +129,10 @@ function MainContent() {
       data.date = newDate;
       sessionStorage.setItem("selectedCompresor", JSON.stringify(data));
     }
-    const id_cliente = searchParams.get("id_cliente");
-    const linea = searchParams.get("linea") || "A";
-    if (id_cliente) {
-      fetchData(id_cliente, linea, newDate);
-    }
+    // Refresh la página después de cambiar la fecha
+    setTimeout(() => {
+      window.location.reload();
+    }, 300);
   };
 
   const handleWeekChange = (weekNumber: number) => {
@@ -155,14 +156,11 @@ function MainContent() {
     const newDate = mondayOfWeek.toISOString().split("T")[0];
     setSelectedDate(newDate);
 
-    const id_cliente = searchParams.get("id_cliente");
-    const linea = searchParams.get("linea") || "A";
-    if (id_cliente) {
-      fetchData(id_cliente, linea, newDate);
-    }
+    // Refresh la página después de cambiar la semana
+    setTimeout(() => {
+      window.location.reload();
+    }, 300);
   };
-
-  const searchParams = useSearchParams();
 
   const fetchData = useCallback(
     async (id: string, linea: string, date: string) => {
@@ -1077,8 +1075,8 @@ function MainContent() {
       <BackButton
         position="fixed"
         size="md"
-        variant="outline"
-        className="top-4 left-4 bg-white/10 backdrop-blur-sm border-white/50 text-white hover:bg-white hover:text-blue-600"
+        variant="primary"
+        className="mt-6 ml-6 bg-blue-400"
       />
       <PrintPageButton reportType="reporte" />
       <div className="flex justify-center my-4 w-full">
