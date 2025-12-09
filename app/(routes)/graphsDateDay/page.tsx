@@ -100,7 +100,10 @@ function MainContent() {
   }, []);
 
   const fetchDataWithRetry = useCallback(
-    async (url: string, maxRetries: number = 3): Promise<any> => {
+    async (
+      url: string,
+      maxRetries: number = 3
+    ): Promise<Record<string, unknown>> => {
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
           const res = await fetch(url, {
@@ -132,6 +135,7 @@ function MainContent() {
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
+      return {};
     },
     []
   );
@@ -160,25 +164,36 @@ function MainContent() {
             ),
           ]);
 
-        if (clientRes.data && clientRes.data.length > 0)
-          setClientData(clientRes.data[0]);
-        if (compressorRes.data && compressorRes.data.length > 0)
-          setCompresorData(compressorRes.data[0]);
+        if (
+          clientRes.data &&
+          Array.isArray(clientRes.data) &&
+          clientRes.data.length > 0
+        )
+          setClientData(clientRes.data[0] as clientData);
+        if (
+          compressorRes.data &&
+          Array.isArray(compressorRes.data) &&
+          compressorRes.data.length > 0
+        )
+          setCompresorData(compressorRes.data[0] as compressorData);
 
         // Verificar que pieRes.data existe y tiene las propiedades esperadas
+        const pieData = pieRes.data as Record<string, unknown>;
         if (
           pieRes &&
-          pieRes.data &&
-          typeof pieRes.data === "object" &&
-          (pieRes.data.LOAD !== undefined ||
-            pieRes.data.NOLOAD !== undefined ||
-            pieRes.data.OFF !== undefined)
+          pieData &&
+          typeof pieData === "object" &&
+          (pieData.LOAD !== undefined ||
+            pieData.NOLOAD !== undefined ||
+            pieData.OFF !== undefined)
         ) {
-          const { LOAD, NOLOAD, OFF } = pieRes.data;
-          setChartData([LOAD || 0, NOLOAD || 0, OFF || 0]);
-          setLoad(LOAD || 0);
-          setNoLoad(NOLOAD || 0);
-          setOff(OFF || 0);
+          const LOAD = (pieData.LOAD as number) || 0;
+          const NOLOAD = (pieData.NOLOAD as number) || 0;
+          const OFF = (pieData.OFF as number) || 0;
+          setChartData([LOAD, NOLOAD, OFF]);
+          setLoad(LOAD);
+          setNoLoad(NOLOAD);
+          setOff(OFF);
         } else {
           console.warn(
             "pieRes.data no tiene los datos esperados. pieRes:",
@@ -187,7 +202,7 @@ function MainContent() {
         }
 
         if (dayRes && dayRes.data) {
-          setDayData(dayRes.data);
+          setDayData(dayRes.data as dayData);
         }
 
         // Verificar que lineRes.data existe antes de procesarlo
@@ -286,21 +301,18 @@ function MainContent() {
     : 0;
   const aguja = Math.max(30, Math.min(120, porcentajeUso)); // Limita entre 30% y 120%
 
-  const handleDateChange = useCallback(
-    (newDate: string) => {
-      setSelectedDate(newDate);
-      const compresorData = sessionStorage.getItem("selectedCompresor");
-      if (compresorData) {
-        const data = JSON.parse(compresorData);
-        data.date = newDate;
-        sessionStorage.setItem("selectedCompresor", JSON.stringify(data));
-      }
-      setTimeout(() => {
-        window.location.reload();
-      }, 300);
-    },
-    [userClientNumber, searchParams, fetchData]
-  );
+  const handleDateChange = useCallback((newDate: string) => {
+    setSelectedDate(newDate);
+    const compresorData = sessionStorage.getItem("selectedCompresor");
+    if (compresorData) {
+      const data = JSON.parse(compresorData);
+      data.date = newDate;
+      sessionStorage.setItem("selectedCompresor", JSON.stringify(data));
+    }
+    setTimeout(() => {
+      window.location.reload();
+    }, 300);
+  }, []);
 
   const HpOptions = {
     series: [
@@ -571,7 +583,6 @@ function MainContent() {
             currentDate={selectedDate}
             onDateChange={handleDateChange}
             type="day"
-            label="Selecciona el día"
           />
         </div>
         <h3 className="text-3xl font-bold text-center">

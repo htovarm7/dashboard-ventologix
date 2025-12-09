@@ -405,7 +405,6 @@ const PressureAnalysis = () => {
                     );
                   }}
                   type="day"
-                  label="Navegación de Fechas"
                 />
               )}
 

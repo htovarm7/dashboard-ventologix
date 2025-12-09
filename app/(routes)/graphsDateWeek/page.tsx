@@ -1086,7 +1086,6 @@ function MainContent() {
           onWeekChange={handleWeekChange}
           type="week"
           weekNumber={selectedWeekNumber || undefined}
-          label="Selecciona la semana"
         />
       </div>
 

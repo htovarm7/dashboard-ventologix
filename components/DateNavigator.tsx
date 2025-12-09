@@ -7,7 +7,6 @@ interface DateNavigatorProps {
   currentDate: string;
   onDateChange: (newDate: string) => void;
   type: "day" | "week";
-  label?: string;
   weekNumber?: number;
   onWeekChange?: (weekNumber: number) => void;
 }
@@ -16,7 +15,6 @@ export default function DateNavigator({
   currentDate,
   onDateChange,
   type,
-  label,
   weekNumber,
   onWeekChange,
 }: DateNavigatorProps) {
