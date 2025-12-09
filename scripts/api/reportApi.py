@@ -261,121 +261,130 @@ def get_daily_report(id_cliente: int = Query(..., description="ID del cliente"),
 
 # Select Date
 @report.get("/pie-data-proc-day", tags=["🗓️ Selector de Fechas"])
-def get_pie_data_proc(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente"), date: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
+def get_pie_data_proc(id_cliente: int = Query(...), linea: str = Query(...), date: str = Query(...)):
     try:
-        # Connect to DB
         conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_DATABASE
+            host=DB_HOST, user=DB_USER,
+            password=DB_PASSWORD, database=DB_DATABASE
         )
         cursor = conn.cursor()
 
-        # Llamar al procedimiento con id_cliente en vez de 7,7
+        # Ejecutar DFDFTest
         cursor.execute(
-            "call DataFiltradaDayFecha(%s, %s, %s, %s)",
+            "CALL DFDFTest(%s, %s, %s, %s)",
             (id_cliente, id_cliente, linea, date)
         )
 
-        results = cursor.fetchall()
+        # Primer resultset = TempConEstadoAnterior
+        rows = cursor.fetchall()
 
-        # Close resources
+        # Saltar al siguiente resultset (resumen)
+        cursor.nextset()
+        resumen = cursor.fetchone()
+
+        # Consumir cualquier resultset extra
+        while cursor.nextset():
+            pass
+
         cursor.close()
         conn.close()
 
-        if not results:
-            return {"error": "No data from procedure"}
+        if not rows:
+            return {"error": "No data from DFDFTest"}
 
-        # Map the results (ajustar columnas)
+        # rows = row_id, time, corriente, estado, estado_anterior
         data = [
-            {"time": row[1], "estado": row[3], "estado_anterior": row[4]}
-            for row in results
+            {
+                "time": r[1],
+                "estado": r[3],
+                "estado_anterior": r[4]
+            }
+            for r in rows
         ]
 
-        # Calcular porcentajes
         load_percentage = np.round(percentage_load(data), 2)
         noload_percentage = np.round(percentage_noload(data), 2)
         off_percentage = np.round(percentage_off(data), 2)
 
         return {
             "data": {
-                "LOAD": load_percentage,
-                "NOLOAD": noload_percentage,
-                "OFF": off_percentage
+                "LOAD": float(load_percentage),
+                "NOLOAD": float(noload_percentage),
+                "OFF": float(off_percentage)
             }
         }
 
-    except mysql.connector.Error as err:
+    except Exception as err:
         return {"error": str(err)}
 
 @report.get("/line-data-proc-day", tags=["🗓️ Selector de Fechas"])
-def get_line_data(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente"), date: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
+def get_line_data(id_cliente: int = Query(...), linea: str = Query(...), date: str = Query(...)):
+
     try:
-        
-        # Conectar a la base de datos
         conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_DATABASE
+            host=DB_HOST, user=DB_USER,
+            password=DB_PASSWORD, database=DB_DATABASE
         )
         cursor = conn.cursor()
 
-        # Ejecutar SP con la fecha proporcionada
+        # Ejecutar DFDFTest
         cursor.execute(
-            "call DataFiltradaDayFecha(%s, %s, %s, %s)",
+            "CALL DFDFTest(%s, %s, %s, %s)",
             (id_cliente, id_cliente, linea, date)
         )
-        results = cursor.fetchall()
+
+        # Primer resultset = TempConEstadoAnterior
+        rows = cursor.fetchall()
+
+        # Saltar al resultset resumen
+        cursor.nextset()
+        cursor.fetchone()
+
+        # Limpiar resultsets restantes
+        while cursor.nextset():
+            pass
 
         cursor.close()
         conn.close()
 
-        if not results:
-            return {"error": "No data found for the specified date."}
+        if not rows:
+            return {"error": "No data in DFDFTest"}
 
-        # Organizar los datos por tiempo
-        data = [
-            {"time": row[1], "corriente": row[2]} for row in results
-        ]
-        
-        # Ordenar los datos por tiempo
+        # rows = row_id, time, corriente, estado, estado_anterior
+        data = [{"time": r[1], "corriente": r[2]} for r in rows]
+
+        # Ordenar por time
         data.sort(key=lambda x: x["time"])
 
-        # Agrupar los datos en intervalos de 30 segundos y calcular el promedio
+        # Agrupar por intervalos de 30s
         grouped_data = []
         temp_data = []
-        start_time = data[0]["time"]  # Empezar desde el primer registro
+        start_time = data[0]["time"]
 
         for entry in data:
-            # Si la diferencia entre el tiempo actual y el primer registro del grupo es mayor a 30 segundos, hacer un promedio
             if (entry["time"] - start_time) >= timedelta(seconds=30):
-                if temp_data:
-                    avg_corriente = np.round(np.mean([item["corriente"] for item in temp_data]), 2)
-                    grouped_data.append({
-                        "time": start_time.strftime('%Y-%m-%d %H:%M:%S'),
-                        "corriente": avg_corriente
-                    })
-                # Resetear el grupo y actualizar el tiempo de inicio
+                avg_corr = round(np.mean([t["corriente"] for t in temp_data]), 2)
+                grouped_data.append({
+                    "time": start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                    "corriente": avg_corr
+                })
                 temp_data = [entry]
                 start_time = entry["time"]
             else:
                 temp_data.append(entry)
-        
-        # Para el último grupo
+
         if temp_data:
-            avg_corriente = np.round(np.mean([item["corriente"] for item in temp_data]), 2)
+            avg_corr = round(np.mean([t["corriente"] for t in temp_data]), 2)
             grouped_data.append({
                 "time": start_time.strftime('%Y-%m-%d %H:%M:%S'),
-                "corriente": avg_corriente
+                "corriente": avg_corr
             })
 
-        # Devolver los datos agrupados
-        return JSONResponse(content={"data": grouped_data})
+        return {"data": grouped_data}
 
     except Exception as e:
-        return JSONResponse(content={"error": str(e)})
+        return {"error": str(e)}
+
 
 @report.get("/day-report-data", tags=["🗓️ Selector de Fechas"])
 def get_day_report(id_cliente: int = Query(..., description="ID del cliente"), linea: str = Query(..., description="Línea del cliente"), date: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
