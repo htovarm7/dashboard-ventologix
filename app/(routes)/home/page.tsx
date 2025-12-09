@@ -14,6 +14,7 @@ const Home = () => {
   const [compresores, setCompresores] = useState<Compressor[]>([]);
   const [numeroCliente, setNumeroCliente] = useState<number | null>(null);
   const [rol, setRol] = useState<number | null>(null);
+  const [secciones, setSecciones] = useState<string[]>([]);
   const [selectedCompresor, setSelectedCompresor] = useState<Compressor | null>(
     null
   );
@@ -37,6 +38,7 @@ const Home = () => {
           setCompresores(parsedData.compresores || []);
           setNumeroCliente(parsedData.numero_cliente);
           setRol(parsedData.rol);
+          setSecciones(parsedData.secciones || []);
 
           console.log(userData);
 
@@ -236,69 +238,72 @@ const Home = () => {
           ) : (
             <div className="flex flex-col gap-8">
               <div className="grid grid-cols-1 sm:grid-cols-3 max-w-3xl gap-6 md:gap-8 mx-auto px-4 w-full">
-                <button
-                  className="w-full text-lg text-violet-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-violet-200 p-4 rounded-xl hover:bg-violet-50 hover:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
-                  onClick={() => router.push("/prediction")}
-                  style={{ WebkitTapHighlightColor: "transparent" }}
-                >
-                  <span className="font-medium">
-                    Predicción de Consumo (BETA)
-                  </span>
-                </button>
-                <button
-                  className="w-full text-lg text-pink-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-pink-200 p-4 rounded-xl hover:bg-pink-50 hover:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
-                  onClick={() => router.push("/pressure")}
-                  style={{ WebkitTapHighlightColor: "transparent" }}
-                >
-                  <span className="font-medium">Presión (BETA)</span>
-                </button>
-                <button
-                  className="w-full text-lg text-green-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-green-200 p-4 rounded-xl hover:bg-green-50 hover:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
-                  onClick={() => router.push("/compressor-maintenance")}
-                  style={{ WebkitTapHighlightColor: "transparent" }}
-                >
-                  <span className="font-medium">
-                    Mantenimiento de Compresores
-                  </span>
-                </button>
-                {/* <button
-                  className="w-full text-lg text-red-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-violet-200 p-4 rounded-xl hover:bg-violet-50 hover:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
-                  onClick={() => router.push("/consumption-kwh")}
-                  style={{ WebkitTapHighlightColor: "transparent" }}
-                >
-                  <span className="font-medium">Consumo KwH (BETA)</span>
-                </button> */}
+                {secciones.includes("Prediccion") && (
+                  <button
+                    className="w-full text-lg text-violet-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-violet-200 p-4 rounded-xl hover:bg-violet-50 hover:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
+                    onClick={() => router.push("/prediction")}
+                    style={{ WebkitTapHighlightColor: "transparent" }}
+                  >
+                    <span className="font-medium">
+                      Predicción de Consumo (BETA)
+                    </span>
+                  </button>
+                )}
+                {secciones.includes("Presion") && (
+                  <button
+                    className="w-full text-lg text-pink-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-pink-200 p-4 rounded-xl hover:bg-pink-50 hover:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
+                    onClick={() => router.push("/pressure")}
+                    style={{ WebkitTapHighlightColor: "transparent" }}
+                  >
+                    <span className="font-medium">Presión (BETA)</span>
+                  </button>
+                )}
+                {secciones.includes("Mantenimiento") && (
+                  <button
+                    className="w-full text-lg text-green-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-green-200 p-4 rounded-xl hover:bg-green-50 hover:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
+                    onClick={() => router.push("/compressor-maintenance")}
+                    style={{ WebkitTapHighlightColor: "transparent" }}
+                  >
+                    <span className="font-medium">
+                      Mantenimiento de Compresores
+                    </span>
+                  </button>
+                )}
               </div>
 
               {/* Botones que aparecen solo cuando se selecciona un compresor */}
               {selectedCompresor && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 max-w-3xl gap-6 md:gap-8 mx-auto px-4 w-full">
-                  <div className="w-full text-lg text-purple-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-purple-200 p-4 rounded-xl hover:bg-purple-50 hover:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50 active:scale-100 shadow-sm">
-                    <DateReportDropdown
-                      title="Reporte por Fecha"
-                      compresores={compresores}
-                      selectedCompresor={selectedCompresor}
-                      colorScheme={{
-                        text: "text-purple-600",
-                        icon: "text-purple-500",
-                        hover: "hover:text-purple-700",
-                      }}
-                      tipo="DIARIO"
-                    />
-                  </div>
-                  <div className="w-full text-lg text-cyan-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-cyan-200 p-4 rounded-xl hover:bg-cyan-50 hover:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-50 active:scale-100 shadow-sm">
-                    <DateReportDropdown
-                      title="Reporte por Semana"
-                      compresores={compresores}
-                      selectedCompresor={selectedCompresor}
-                      colorScheme={{
-                        text: "text-cyan-600",
-                        icon: "text-cyan-500",
-                        hover: "hover:text-cyan-700",
-                      }}
-                      tipo="SEMANAL"
-                    />
-                  </div>
+                  {secciones.includes("ReporteDia") && (
+                    <div className="w-full text-lg text-purple-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-purple-200 p-4 rounded-xl hover:bg-purple-50 hover:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50 active:scale-100 shadow-sm">
+                      <DateReportDropdown
+                        title="Reporte por Fecha"
+                        compresores={compresores}
+                        selectedCompresor={selectedCompresor}
+                        colorScheme={{
+                          text: "text-purple-600",
+                          icon: "text-purple-500",
+                          hover: "hover:text-purple-700",
+                        }}
+                        tipo="DIARIO"
+                      />
+                    </div>
+                  )}
+                  {secciones.includes("ReporteSemana") && (
+                    <div className="w-full text-lg text-cyan-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-cyan-200 p-4 rounded-xl hover:bg-cyan-50 hover:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-50 active:scale-100 shadow-sm">
+                      <DateReportDropdown
+                        title="Reporte por Semana"
+                        compresores={compresores}
+                        selectedCompresor={selectedCompresor}
+                        colorScheme={{
+                          text: "text-cyan-600",
+                          icon: "text-cyan-500",
+                          hover: "hover:text-cyan-700",
+                        }}
+                        tipo="SEMANAL"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 

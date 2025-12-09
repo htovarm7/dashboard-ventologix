@@ -123,45 +123,68 @@ def get_usuario_by_email(email: str):
         )
         cursor = conn.cursor(dictionary=True)
 
+        # 1. OBTENER USUARIO
         cursor.execute(
             "SELECT id, email, numeroCliente, rol, name FROM usuarios_auth WHERE email = %s",
             (email,)
         )
         usuario = cursor.fetchall()
 
-        id = usuario[0]['id'] if usuario else None
-        email = usuario[0]['email'] if usuario else None
-        numeroCliente = usuario[0]['numeroCliente'] if usuario else None
-        rol = usuario[0]['rol'] if usuario else None
-        name = usuario[0]['name'] if usuario else None 
+        if not usuario:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-        # Initialize compresores as empty list
+        user_id = usuario[0]['id']
+        numeroCliente = usuario[0]['numeroCliente']
+        rol = usuario[0]['rol']
+
+        # 2. OBTENER COMPRESORES SEGÚN ROL
         compresores = []
 
-        # 0 = Admin, 1 = Gerente VT, 2 = VAST, 3 = Gerente Cliente, 4 = Cliente
-        if(rol == 3 or rol == 4):
-            cursor.execute("SELECT c.id as id_compresor, c.linea, c.proyecto as id_cliente, c.Alias as alias, c.tipo as tipo, c.numero_serie as numero_serie FROM compresores c JOIN clientes c2 ON c2.id_cliente = c.id_cliente WHERE c2.numero_cliente  = %s;", (numeroCliente,))
+        if rol in (3, 4):  # Cliente y gerente cliente
+            cursor.execute("""
+                SELECT c.id AS id_compresor, c.linea, c.proyecto AS id_cliente,
+                       c.Alias AS alias, c.tipo AS tipo, c.numero_serie AS numero_serie
+                FROM compresores c 
+                JOIN clientes c2 ON c2.id_cliente = c.id_cliente 
+                WHERE c2.numero_cliente = %s
+            """, (numeroCliente,))
             compresores = cursor.fetchall()
 
-        if(rol == 0 or rol == 1 or rol == 2):
-            cursor.execute("SELECT  c.id as id_compresor, c.linea, c.proyecto as id_cliente, c.Alias as alias, c.numero_serie as numero_serie, c.tipo as tipo, c2.nombre_cliente, c2.numero_cliente FROM compresores c JOIN clientes c2 ON c.id_cliente = c2.id_cliente")
+        elif rol in (0, 1, 2):  # Admin, VT, VAST
+            cursor.execute("""
+                SELECT c.id AS id_compresor, c.linea, c.proyecto AS id_cliente,
+                       c.Alias AS alias, c.numero_serie AS numero_serie, 
+                       c.tipo AS tipo, c2.nombre_cliente, c2.numero_cliente
+                FROM compresores c 
+                JOIN clientes c2 ON c.id_cliente = c2.id_cliente
+            """)
             compresores = cursor.fetchall()
 
-        # For rol == 2 (VAST), compresores remains as empty list
+        # 3. OBTENER SECCIONES HABILITADAS
+        cursor.execute("""
+            SELECT seccion, habilitado 
+            FROM usuario_secciones
+            WHERE usuario_id = %s
+        """, (user_id,))
+        secciones = cursor.fetchall()
+
+        # Convertimos a formato simple: ["energia", "mantenimiento"]
+        secciones_habilitadas = [
+            s["seccion"] for s in secciones if s["habilitado"] == 1
+        ]
 
         cursor.close()
         conn.close()
 
-        if not usuario:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
+        # 4. RESPUESTA COMPLETA
         return {
-            "id": id,
-            "email": email,
+            "id": usuario[0]['id'],
+            "email": usuario[0]['email'],
             "numeroCliente": numeroCliente,
             "rol": rol,
-            "name": name,
-            "compresores": compresores
+            "name": usuario[0]['name'],
+            "compresores": compresores,
+            "secciones": secciones_habilitadas   # 👈 AÑADIDO AQUÍ
         }
 
     except mysql.connector.Error as e:

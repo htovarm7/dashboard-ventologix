@@ -53,6 +53,7 @@ export interface UserData {
   email: string;
   name: string;
   timestamp: number;
+  secciones?: string[];
 }
 
 export interface UserResponse {

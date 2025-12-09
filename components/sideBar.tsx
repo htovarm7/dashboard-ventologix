@@ -10,6 +10,7 @@ interface SideBarProps {
   compresores?: Compressor[];
   selectedCompresor?: Compressor | null;
   rol?: number | null;
+  secciones?: string[];
 }
 
 interface NavigationChild {
@@ -34,7 +35,11 @@ interface NavigationItem {
   children?: NavigationChild[];
 }
 
-const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
+const SideBar: React.FC<SideBarProps> = ({
+  selectedCompresor,
+  rol,
+  secciones = [],
+}) => {
   const router = useRouter();
   const pathname = usePathname();
   const { logout, user } = useAuth0();
@@ -308,7 +313,50 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
     return selectedCompresor !== null;
   };
 
-  // Cerrar sidebar al hacer clic fuera en móvil
+  // Función para filtrar items según las secciones disponibles
+  const getFilteredNavigationItems = (): NavigationItem[] => {
+    return navigationItems.filter((item) => {
+      // Siempre mostrar Inicio
+      if (item.id === "home") return true;
+
+      // Siempre mostrar Admin View si aplica
+      if (item.id === "admin view") return true;
+
+      // Filtrar BETA items según secciones
+      if (item.id === "beta") {
+        // Mostrar si hay al menos una sección válida
+        if (secciones.length === 0) return true; // Si no hay secciones definidas, mostrar todo
+        return true; // Mostrar el grupo BETA si hay secciones
+      }
+
+      // Filtrar otros items según secciones
+      if (secciones.length === 0) return true; // Si no hay secciones, mostrar todo
+
+      // Mostrar solo items cuyas secciones estén en la lista permitida
+      if (item.id === "consumption-kwh") {
+        return secciones.includes("ConsumoKwH");
+      }
+
+      return true;
+    });
+  };
+
+  const getFilteredBetaChildren = (): NavigationChild[] => {
+    const betaItem = navigationItems.find((item) => item.id === "beta");
+    if (!betaItem || !betaItem.children) return [];
+
+    if (secciones.length === 0) return betaItem.children;
+
+    return betaItem.children.filter((child) => {
+      if (child.id === "prediction") {
+        return secciones.includes("Prediccion");
+      }
+      if (child.id === "pressure-prediction") {
+        return secciones.includes("Presion");
+      }
+      return true;
+    });
+  }; // Cerrar sidebar al hacer clic fuera en móvil
   useEffect(() => {
     const handleClickOutside = (event: Event) => {
       const target = event.target as HTMLElement;
@@ -477,7 +525,7 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
 
           <nav className="flex-1 overflow-y-auto py-4">
             <div className="px-4 space-y-2">
-              {navigationItems.map((item) => (
+              {getFilteredNavigationItems().map((item) => (
                 <div key={item.id}>
                   <div
                     className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-200 ${
@@ -560,41 +608,77 @@ const SideBar: React.FC<SideBarProps> = ({ selectedCompresor, rol }) => {
                       }`}
                     >
                       <div className="ml-4 mt-2 space-y-1">
-                        {item.children.map((child) => (
-                          <div
-                            key={child.id}
-                            className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all duration-200 ${
-                              isActiveRoute(child.route)
-                                ? "bg-blue-500 text-white"
-                                : child.disabled
-                                ? "text-slate-500 cursor-not-allowed"
-                                : canAccessRoute(item)
-                                ? "hover:bg-slate-600 text-slate-300"
-                                : "text-slate-500 cursor-not-allowed opacity-50"
-                            }`}
-                            onClick={() => {
-                              if (!child.disabled && canAccessRoute(item)) {
-                                handleNavigation(child.route);
-                              }
-                            }}
-                          >
-                            <div className="flex items-center gap-2">
-                              {child.icon}
-                              <span className="text-sm">{child.title}</span>
-                              {child.badge && (
-                                <span
-                                  className={`px-1.5 py-0.5 text-xs rounded font-semibold ${
-                                    child.badge === "NUEVO"
-                                      ? "bg-green-600 text-white"
-                                      : "bg-yellow-600 text-white"
-                                  }`}
-                                >
-                                  {child.badge}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                        {item.id === "beta"
+                          ? getFilteredBetaChildren().map((child) => (
+                              <div
+                                key={child.id}
+                                className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all duration-200 ${
+                                  isActiveRoute(child.route)
+                                    ? "bg-blue-500 text-white"
+                                    : child.disabled
+                                    ? "text-slate-500 cursor-not-allowed"
+                                    : canAccessRoute(item)
+                                    ? "hover:bg-slate-600 text-slate-300"
+                                    : "text-slate-500 cursor-not-allowed opacity-50"
+                                }`}
+                                onClick={() => {
+                                  if (!child.disabled && canAccessRoute(item)) {
+                                    handleNavigation(child.route);
+                                  }
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  {child.icon}
+                                  <span className="text-sm">{child.title}</span>
+                                  {child.badge && (
+                                    <span
+                                      className={`px-1.5 py-0.5 text-xs rounded font-semibold ${
+                                        child.badge === "NUEVO"
+                                          ? "bg-green-600 text-white"
+                                          : "bg-yellow-600 text-white"
+                                      }`}
+                                    >
+                                      {child.badge}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          : item.children.map((child) => (
+                              <div
+                                key={child.id}
+                                className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all duration-200 ${
+                                  isActiveRoute(child.route)
+                                    ? "bg-blue-500 text-white"
+                                    : child.disabled
+                                    ? "text-slate-500 cursor-not-allowed"
+                                    : canAccessRoute(item)
+                                    ? "hover:bg-slate-600 text-slate-300"
+                                    : "text-slate-500 cursor-not-allowed opacity-50"
+                                }`}
+                                onClick={() => {
+                                  if (!child.disabled && canAccessRoute(item)) {
+                                    handleNavigation(child.route);
+                                  }
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  {child.icon}
+                                  <span className="text-sm">{child.title}</span>
+                                  {child.badge && (
+                                    <span
+                                      className={`px-1.5 py-0.5 text-xs rounded font-semibold ${
+                                        child.badge === "NUEVO"
+                                          ? "bg-green-600 text-white"
+                                          : "bg-yellow-600 text-white"
+                                      }`}
+                                    >
+                                      {child.badge}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                       </div>
                     </div>
                   )}

@@ -15,6 +15,7 @@ export default function RootLayout({
     null
   );
   const [rol, setRol] = useState<number | null>(null);
+  const [secciones, setSecciones] = useState<string[]>([]);
 
   // Check if current route should hide sidebar
   const hideSidebar = pathname === "/reportesD" || pathname === "/reportesS";
@@ -28,6 +29,7 @@ export default function RootLayout({
           const parsedData = JSON.parse(userData);
           setCompresores(parsedData.compresores || []);
           setRol(parsedData.rol);
+          setSecciones(parsedData.secciones || []);
         } catch (error) {
           console.error("Error parsing userData from sessionStorage:", error);
         }
@@ -84,6 +86,7 @@ export default function RootLayout({
           compresores={compresores}
           selectedCompresor={selectedCompresor}
           rol={rol}
+          secciones={secciones}
         />
       )}
       {children}
