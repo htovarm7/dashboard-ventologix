@@ -113,7 +113,6 @@ logging.basicConfig(level=logging.INFO)
 # GET - Obtener usuario por email (para autenticación)
 @web.get("/usuarios/{email}", tags=["🔐 Autenticación"])
 def get_usuario_by_email(email: str):
-    """Obtiene los datos del usuario por email para autenticación"""
     try:
         conn = mysql.connector.connect(
             host=DB_HOST,
@@ -129,17 +128,15 @@ def get_usuario_by_email(email: str):
             (email,)
         )
         usuario = cursor.fetchall()
-
         if not usuario:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-        user_id = usuario[0]['id']
-        numeroCliente = usuario[0]['numeroCliente']
-        rol = usuario[0]['rol']
+        user = usuario[0]
+        numeroCliente = user['numeroCliente']
+        rol = user['rol']
 
         # 2. OBTENER COMPRESORES SEGÚN ROL
         compresores = []
-
         if rol in (3, 4):  # Cliente y gerente cliente
             cursor.execute("""
                 SELECT c.id AS id_compresor, c.linea, c.proyecto AS id_cliente,
@@ -160,37 +157,32 @@ def get_usuario_by_email(email: str):
             """)
             compresores = cursor.fetchall()
 
-        # 3. OBTENER SECCIONES HABILITADAS
+        # 3. OBTENER SECCIONES HABILITADAS PARA EL CLIENTE
         cursor.execute("""
-            SELECT seccion, habilitado 
-            FROM usuario_secciones
-            WHERE usuario_id = %s
-        """, (user_id,))
-        secciones = cursor.fetchall()
-
-        # Convertimos a formato simple: ["energia", "mantenimiento"]
-        secciones_habilitadas = [
-            s["seccion"] for s in secciones if s["habilitado"] == 1
-        ]
+            SELECT seccion
+            FROM cliente_secciones
+            WHERE numeroCliente = %s AND habilitado = 1
+        """, (numeroCliente,))
+        secciones = [s['seccion'] for s in cursor.fetchall()]
 
         cursor.close()
         conn.close()
 
-        # 4. RESPUESTA COMPLETA
         return {
-            "id": usuario[0]['id'],
-            "email": usuario[0]['email'],
+            "id": user['id'],
+            "email": user['email'],
             "numeroCliente": numeroCliente,
             "rol": rol,
-            "name": usuario[0]['name'],
+            "name": user['name'],
             "compresores": compresores,
-            "secciones": secciones_habilitadas   # 👈 AÑADIDO AQUÍ
+            "secciones": secciones
         }
 
     except mysql.connector.Error as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching usuario: {str(e)}")
+
 
 # GET - Obtener ingenieros filtrados por cliente
 @web.get("/ingenieros", tags=["👥 Gestión de Usuarios"])
