@@ -81,6 +81,27 @@ export default function DateNavigator({
     return `${mondayStr} - ${sundayStr}`;
   };
 
+  const isToday = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split("T")[0];
+
+    if (type === "day") {
+      return currentDate === todayStr;
+    } else {
+      // For week type, check if today falls within the current week
+      const date = new Date(currentDate + "T00:00:00");
+      const dayOfWeek = date.getDay();
+      const daysSinceMonday = (dayOfWeek + 6) % 7;
+      const monday = new Date(date);
+      monday.setDate(date.getDate() - daysSinceMonday);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+
+      return today >= monday && today <= sunday;
+    }
+  };
+
   return (
     <div className="flex items-center gap-4 bg-white rounded-lg p-3">
       <button
@@ -105,14 +126,16 @@ export default function DateNavigator({
         </span>
       </div>
 
-      <button
-        onClick={handleNext}
-        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-        title={type === "day" ? "Día siguiente" : "Semana siguiente"}
-      >
-        <span>{type === "day" ? "Día Siguiente" : "Semana Siguiente"}</span>
-        <ChevronRight size={20} />
-      </button>
+      {!isToday() && (
+        <button
+          onClick={handleNext}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+          title={type === "day" ? "Día siguiente" : "Semana siguiente"}
+        >
+          <span>{type === "day" ? "Día Siguiente" : "Semana Siguiente"}</span>
+          <ChevronRight size={20} />
+        </button>
+      )}
     </div>
   );
 }
