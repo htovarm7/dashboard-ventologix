@@ -1021,6 +1021,13 @@ def pressure_analysis_plot( numero_cliente: int = Query(..., description="Númer
         ax.fill_between(df_operativa['time'], presion_min, presion_max, 
                        color='green', alpha=0.1, label=f'Rango operativo {presion_min}-{presion_max} psi')
         
+        # Zona de presión de trabajo
+        ax.fill_between(df_operativa['time'], 100, 120, color='green', alpha=0.15, label='Zona trabajo 100–120 psi')
+        # Zona de advertencia
+        ax.fill_between(df_operativa['time'], 95, 100, color='yellow', alpha=0.4, label='Zona warning 95–100 psi')
+        # Zona Alarma WA
+        ax.axhline(95, color='red', alpha=0.4, label='Alarma Whatsapp psi < 95')
+        
         # Out of range points
         ax.plot(df_operativa['time'][fuera_bajo], df_operativa['presion1_psi'][fuera_bajo], 
                'o', color='red', label='Fuera de rango')
