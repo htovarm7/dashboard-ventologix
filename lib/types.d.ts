@@ -233,6 +233,8 @@ export interface MaintenanceReportData {
   fotos_drive: string[];
   carpeta_fotos: string;
   mantenimientos: MaintenanceItem[];
+  Generado?: number; // 0 = no generado, 1 = generado
+  link_pdf?: string; // URL del PDF en Google Drive
 }
 
 export interface MaintenanceReportResponse {

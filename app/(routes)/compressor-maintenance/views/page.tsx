@@ -376,20 +376,83 @@ const Visitas = () => {
     setShowDetails(true);
   };
 
-  const handleGenerateReport = (visit: Visit) => {
-    // Guardar los datos de la visita en sessionStorage
-    sessionStorage.setItem(
-      "selectedVisitData",
-      JSON.stringify({
-        id: visit.id,
-        numero_serie: visit.numero_serie,
-        date: visit.date,
-        cliente: visit.cliente,
-        technician: visit.technician,
-      })
-    );
+  const handleGenerateReport = async (visit: Visit) => {
+    try {
+      // Mostrar loading
+      const loadingEl = document.createElement("div");
+      loadingEl.id = "pdf-loading";
+      loadingEl.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      `;
+      loadingEl.innerHTML = `
+        <div style="background: white; padding: 30px; border-radius: 8px; text-align: center;">
+          <div style="font-size: 18px; margin-bottom: 20px;">Generando PDF...</div>
+          <div style="width: 40px; height: 40px; border: 4px solid #ddd; border-top-color: #1e40af; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+          <style>
+            @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
+          </style>
+        </div>
+      `;
+      document.body.appendChild(loadingEl);
 
-    router.push(`/compressor-maintenance/views/generate-report`);
+      // Generar PDF
+      const API_BASE_URL =
+        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
+      const response = await fetch(
+        `${API_BASE_URL}/web/maintenance/generate-pdf/${visit.id}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Remover loading
+      const loading = document.getElementById("pdf-loading");
+      if (loading) loading.remove();
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Error al generar el PDF");
+      }
+
+      const result = await response.json();
+
+      // Guardar datos para navigate
+      sessionStorage.setItem(
+        "selectedVisitData",
+        JSON.stringify({
+          id: visit.id,
+          numero_serie: visit.numero_serie,
+          date: visit.date,
+          cliente: visit.cliente,
+          technician: visit.technician,
+          pdf_link: result.pdf_link,
+        })
+      );
+
+      // Navegar al reporte
+      router.push(`/compressor-maintenance/views/generate-report`);
+    } catch (err) {
+      const loading = document.getElementById("pdf-loading");
+      if (loading) loading.remove();
+
+      console.error("Error generating PDF:", err);
+      alert(
+        `Error al generar PDF: ${err instanceof Error ? err.message : "Error desconocido"}`
+      );
+    }
   };
 
   const handleViewReport = (visit: Visit) => {

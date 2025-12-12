@@ -42,6 +42,10 @@ function ViewMaintenanceReportContent() {
       try {
         const visitData = JSON.parse(selectedVisitData);
         if (visitData.id) {
+          // Guardar el PDF link si existe
+          if (visitData.pdf_link) {
+            sessionStorage.setItem("pdf_link", visitData.pdf_link);
+          }
           // Auto-cargar el reporte usando el ID de la visita específica
           setTimeout(() => {
             fetchReportDataById(visitData.id);
@@ -119,6 +123,13 @@ function ViewMaintenanceReportContent() {
 
   const closeImageModal = () => {
     setImageModal({ isOpen: false, imageSrc: "" });
+  };
+
+  const handleViewPdf = () => {
+    const pdfLink = sessionStorage.getItem("pdf_link");
+    if (pdfLink) {
+      window.open(pdfLink, "_blank");
+    }
   };
 
   return (
@@ -314,6 +325,17 @@ function ViewMaintenanceReportContent() {
                 </div>
               </div>
             )}
+
+            {/* Botones de acción */}
+            <div className="p-6 bg-gray-100 flex gap-4 no-print">
+              <button
+                onClick={handleViewPdf}
+                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+              >
+                <span>📄</span>
+                Ver PDF Generado
+              </button>
+            </div>
           </div>
         )}
 

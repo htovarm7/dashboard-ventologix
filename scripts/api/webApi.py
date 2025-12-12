@@ -13,6 +13,7 @@ import dotenv as dotenv
 import io
 import logging
 import asyncio
+import time
 from typing import List, Tuple, Optional
 from pydantic import BaseModel, EmailStr
 import sys
@@ -20,9 +21,16 @@ from pathlib import Path
 import pickle
 
 from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
+
+try:
+    from weasyprint import HTML, CSS
+except ImportError:
+    logging.warning("WeasyPrint not installed. PDF generation will not work.")
+    HTML = CSS = None
 
 
 # Agregar el directorio de scripts al path para importar maintenance_reports
@@ -1744,10 +1752,10 @@ def get_maintenance_report_data_by_id(registro_id: str):
             "comentario_cliente": registro.get("comentario_cliente"),
             "link_form": registro.get("link_form"),
             "carpeta_fotos": registro.get("carpeta_fotos"),
-
             "fotos_drive": fotos_drive,
-
-            "mantenimientos": mantenimientos_realizados
+            "mantenimientos": mantenimientos_realizados,
+            "Generado": registro.get("Generado", 0),
+            "link_pdf": registro.get("link_pdf")
         }
 
         cursor.close()
@@ -1833,7 +1841,9 @@ def get_maintenance_report_data(numero_serie: str):
             "comentario_cliente": registro.get("comentario_cliente"),
             "link_form": registro.get("link_form"),
             "carpeta_fotos": registro.get("carpeta_fotos"),
-            "mantenimientos": mantenimientos_realizados
+            "mantenimientos": mantenimientos_realizados,
+            "Generado": registro.get("Generado", 0),
+            "link_pdf": registro.get("link_pdf")
         }
 
         cursor.close()
@@ -2063,6 +2073,222 @@ def check_report_exists(numero_cliente: int, numero_serie: str, fecha: str):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error checking report: {str(e)}")
+
+
+@web.post("/maintenance/generate-pdf/{registro_id}", tags=["🛠️ Mantenimiento de Compresores"])
+def generate_pdf_report(registro_id: str):
+    """
+    Genera un PDF del reporte de mantenimiento, lo sube a Google Drive
+    en la carpeta padre de fotos, y actualiza la BD.
+    
+    Flow:
+    1. Obtener datos del registro
+    2. Generar HTML/PDF
+    3. Obtener carpeta padre de Google Drive
+    4. Subir PDF a Drive
+    5. Actualizar BD (Generado = 1, link_pdf)
+    """
+    if not HTML:
+        raise HTTPException(
+            status_code=500,
+            detail="WeasyPrint no está instalado. Instale con: pip install weasyprint"
+        )
+
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        # Paso 1: Obtener datos del registro
+        cursor.execute(
+            "SELECT * FROM registros_mantenimiento_tornillo WHERE id = %s",
+            (registro_id,)
+        )
+        registro = cursor.fetchone()
+
+        if not registro:
+            raise HTTPException(status_code=404, detail=f"Registro no encontrado: {registro_id}")
+
+        # Paso 2: Generar HTML del reporte (para convertir a PDF)
+        html_content = _generate_report_html(registro)
+
+        # Convertir HTML a PDF usando WeasyPrint
+        pdf_bytes = HTML(string=html_content).write_pdf()
+
+        # Paso 3: Obtener carpeta padre de Google Drive
+        if not registro.get("carpeta_fotos"):
+            raise HTTPException(status_code=400, detail="No hay carpeta de fotos asociada")
+
+        parent_folder_id = _get_drive_parent_folder(registro["carpeta_fotos"])
+
+        if not parent_folder_id:
+            raise HTTPException(status_code=400, detail="No se pudo obtener carpeta padre de Drive")
+
+        # Paso 4: Subir PDF a Drive
+        numero_serie = registro.get("numero_serie", "SIN_SERIE")
+        timestamp = registro.get("timestamp")
+        if timestamp:
+            from datetime import datetime
+            try:
+                if isinstance(timestamp, str):
+                    dt = datetime.fromisoformat(timestamp)
+                else:
+                    dt = timestamp
+                fecha_str = dt.strftime("%Y%m%d")
+            except:
+                fecha_str = str(timestamp)[:8]
+        else:
+            fecha_str = "SIN_FECHA"
+        
+        pdf_filename = f"Reporte_Mtto_{numero_serie}_{fecha_str}.pdf"
+        pdf_drive_id, pdf_web_link = _upload_pdf_to_drive(
+            pdf_bytes,
+            pdf_filename,
+            parent_folder_id
+        )
+
+        # Paso 5: Actualizar BD
+        cursor.execute(
+            """
+            UPDATE registros_mantenimiento_tornillo
+            SET Generado = 1, link_pdf = %s
+            WHERE id = %s
+            """,
+            (pdf_web_link, registro_id)
+        )
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": "PDF generado y subido exitosamente",
+            "pdf_link": pdf_web_link,
+            "pdf_id": pdf_drive_id,
+            "registro_id": registro_id
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        if 'conn' in locals():
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")
+    finally:
+        if 'cursor' in locals() and cursor:
+            cursor.close()
+        if 'conn' in locals() and conn:
+            conn.close()
+
+
+@web.get("/maintenance/get-parent-folder/{registro_id}", tags=["🛠️ Mantenimiento de Compresores"])
+def get_parent_folder(registro_id: str):
+    """
+    Obtiene el ID de la carpeta padre en Google Drive
+    a partir del link de la carpeta de fotos del registro.
+    """
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute(
+            "SELECT carpeta_fotos FROM registros_mantenimiento_tornillo WHERE id = %s",
+            (registro_id,)
+        )
+        registro = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        if not registro or not registro.get("carpeta_fotos"):
+            raise HTTPException(status_code=404, detail="No se encontró carpeta de fotos")
+
+        parent_folder_id = _get_drive_parent_folder(registro["carpeta_fotos"])
+
+        if not parent_folder_id:
+            raise HTTPException(status_code=400, detail="No se pudo obtener carpeta padre")
+
+        return {
+            "success": True,
+            "parent_folder_id": parent_folder_id,
+            "carpeta_fotos": registro["carpeta_fotos"]
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@web.put("/maintenance/update-generado/{registro_id}", tags=["🛠️ Mantenimiento de Compresores"])
+def update_generado_status(registro_id: str, link_pdf: str = Body(None)):
+    """
+    Actualiza el estado 'Generado' de un registro de mantenimiento.
+    Opcionalmente guarda el link del PDF.
+    """
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor()
+
+        if link_pdf:
+            cursor.execute(
+                """
+                UPDATE registros_mantenimiento_tornillo
+                SET Generado = 1, link_pdf = %s
+                WHERE id = %s
+                """,
+                (link_pdf, registro_id)
+            )
+        else:
+            cursor.execute(
+                """
+                UPDATE registros_mantenimiento_tornillo
+                SET Generado = 1
+                WHERE id = %s
+                """,
+                (registro_id,)
+            )
+
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail=f"Registro no encontrado: {registro_id}")
+
+        cursor.close()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": "Estado actualizado",
+            "registro_id": registro_id
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        if 'conn' in locals():
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    finally:
+        if 'cursor' in locals() and cursor:
+            cursor.close()
+        if 'conn' in locals() and conn:
+            conn.close()
 
 # =======================================================================================
 #                                    HELPER FUNCTIONS
@@ -2371,3 +2597,502 @@ def get_drive_folder_images(folder_url: str):
     ]
 
     return images
+
+
+def _generate_report_html(registro: dict) -> str:
+    """
+    Genera HTML del reporte de mantenimiento con diseño profesional
+    que se mantiene al convertir a PDF con WeasyPrint.
+    Similar a printPageButton pero optimizado para WeasyPrint.
+    """
+    from datetime import datetime
+
+    def format_date(date_str):
+        if not date_str:
+            return "N/A"
+        try:
+            dt = datetime.fromisoformat(str(date_str))
+            return dt.strftime("%d de %B de %Y, %H:%M")
+        except:
+            return str(date_str)
+
+    # Construir mantenimientos realizados
+    mantenimientos_html = ""
+    for columna, nombre in MAINTENANCE_COLUMN_MAPPING.items():
+        valor = registro.get(columna, "No")
+        realizado = valor and str(valor).lower() in ["sí", "si", "yes", "1", "true"]
+        bg_color = "#dcfce7" if realizado else "#f3f4f6"
+        border_color = "#16a34a" if realizado else "#d1d5db"
+        icono = "✓" if realizado else "✗"
+        color_icono = "#16a34a" if realizado else "#9ca3af"
+
+        mantenimientos_html += f"""
+        <tr>
+            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; background-color: {bg_color}; border-left: 4px solid {border_color}; font-weight: 500;">{nombre}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; background-color: {bg_color}; border-left: 4px solid {border_color}; text-align: center;"><span style="font-size: 20px; font-weight: bold; color: {color_icono};">{icono}</span></td>
+        </tr>
+        """
+
+    # Construir fotos grid
+    fotos_html = ""
+    fotos_drive = registro.get("fotos_drive", [])
+    if fotos_drive and isinstance(fotos_drive, list):
+        fotos_html = '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">'
+        for foto_url in fotos_drive:
+            fotos_html += f'''
+            <div style="page-break-inside: avoid;">
+                <img src="{foto_url}" style="width: 100%; height: 280px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);">
+            </div>
+            '''
+        fotos_html += '</div>'
+
+    # Comentarios condicionales
+    comentarios_generales = ""
+    if registro.get('comentarios_generales'):
+        comentarios_generales = f'''
+        <div class="section">
+            <div class="section-title">Comentarios Generales</div>
+            <div style="background-color: #f0f9ff; padding: 16px; border-radius: 6px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; border-left: 4px solid #1e40af; color: #1f2937;">{registro.get('comentarios_generales', '')}</div>
+        </div>
+        '''
+
+    comentario_cliente = ""
+    if registro.get('comentario_cliente'):
+        comentario_cliente = f'''
+        <div class="section">
+            <div class="section-title">Comentario del Cliente</div>
+            <div style="background-color: #eff6ff; padding: 16px; border-radius: 6px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; border-left: 4px solid #0369a1; color: #1f2937;">{registro.get('comentario_cliente', '')}</div>
+        </div>
+        '''
+
+    fotos_seccion = ""
+    if fotos_html:
+        fotos_seccion = f'''
+        <div class="section">
+            <div class="section-title">Fotos del Mantenimiento</div>
+            {fotos_html}
+        </div>
+        '''
+
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reporte de Mantenimiento</title>
+        <style>
+            * {{
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }}
+            html, body {{
+                width: 100%;
+                height: 100%;
+            }}
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+                color: #1f2937;
+                line-height: 1.6;
+                background-color: #ffffff;
+            }}
+            .container {{
+                width: 100%;
+                background-color: white;
+                page-break-after: always;
+            }}
+            .header {{
+                background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+                color: white;
+                padding: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                page-break-inside: avoid;
+            }}
+            .header-left {{
+                display: flex;
+                align-items: center;
+                gap: 24px;
+                flex: 1;
+            }}
+            .logo {{
+                width: 80px;
+                height: 80px;
+                background-color: white;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                color: #1e40af;
+                font-size: 32px;
+                flex-shrink: 0;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+            }}
+            .header-info {{
+                display: flex;
+                flex-direction: column;
+            }}
+            .header-info h1 {{
+                margin: 0;
+                font-size: 32px;
+                font-weight: 800;
+                letter-spacing: -1px;
+                line-height: 1.2;
+            }}
+            .header-info p {{
+                margin: 6px 0 0 0;
+                font-size: 13px;
+                opacity: 0.95;
+                font-weight: 500;
+            }}
+            .header-right {{
+                text-align: right;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }}
+            .header-right .id {{
+                font-size: 28px;
+                font-weight: bold;
+                margin-bottom: 6px;
+                letter-spacing: -0.5px;
+            }}
+            .header-right p {{
+                margin: 0;
+                font-size: 12px;
+                opacity: 0.9;
+                font-weight: 500;
+            }}
+            .section {{
+                padding: 28px 32px;
+                border-bottom: 1px solid #e5e7eb;
+                page-break-inside: avoid;
+            }}
+            .section:last-child {{
+                border-bottom: none;
+                page-break-inside: avoid;
+            }}
+            .section-title {{
+                background: linear-gradient(90deg, #1e40af 0%, #1e3a8a 50%, #0f172a 100%);
+                color: white;
+                padding: 14px 18px;
+                border-radius: 6px;
+                font-weight: 700;
+                font-size: 12px;
+                text-transform: uppercase;
+                letter-spacing: 0.8px;
+                margin-bottom: 20px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }}
+            .grid {{
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 24px;
+            }}
+            .grid-item {{
+                display: flex;
+                flex-direction: column;
+            }}
+            .grid-label {{
+                font-size: 10px;
+                color: #6b7280;
+                margin-bottom: 8px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.4px;
+            }}
+            .grid-value {{
+                font-size: 14px;
+                font-weight: 600;
+                color: #1f2937;
+                line-height: 1.4;
+            }}
+            .maintenance-table {{
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+                background-color: white;
+                page-break-inside: avoid;
+            }}
+            .maintenance-table thead {{
+                background-color: #f3f4f6;
+            }}
+            .maintenance-table th {{
+                padding: 14px;
+                text-align: left;
+                font-weight: 700;
+                border-bottom: 2px solid #d1d5db;
+                color: #1f2937;
+                font-size: 12px;
+                text-transform: uppercase;
+                letter-spacing: 0.3px;
+            }}
+            .maintenance-table tbody tr {{
+                page-break-inside: avoid;
+            }}
+            .legend {{
+                margin-top: 16px;
+                font-size: 12px;
+                color: #4b5563;
+                padding: 10px 0;
+                display: flex;
+                gap: 24px;
+            }}
+            .legend-item {{
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-weight: 600;
+            }}
+            .footer {{
+                padding: 20px 32px;
+                background-color: #f9fafb;
+                border-top: 2px solid #e5e7eb;
+                font-size: 11px;
+                color: #6b7280;
+                text-align: center;
+                page-break-inside: avoid;
+                font-weight: 500;
+            }}
+            @page {{
+                size: A4;
+                margin: 0;
+            }}
+            @media print {{
+                body {{
+                    background-color: white;
+                    margin: 0;
+                    padding: 0;
+                }}
+                .container {{
+                    box-shadow: none;
+                    margin: 0;
+                    padding: 0;
+                }}
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-left">
+                    <div class="logo">V</div>
+                    <div class="header-info">
+                        <h1>VENTOLOGIX</h1>
+                        <p>REPORTE DE MANTENIMIENTO</p>
+                        <p>{registro.get('cliente', 'N/A')}</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="id">#{registro.get('id', 'N/A')}</div>
+                    <p>ID Registro</p>
+                </div>
+            </div>
+
+            <!-- Datos Generales -->
+            <div class="section">
+                <div class="section-title">Datos Generales</div>
+                <div class="grid">
+                    <div class="grid-item">
+                        <div class="grid-label">Cliente</div>
+                        <div class="grid-value">{registro.get('cliente', 'N/A')}</div>
+                    </div>
+                    <div class="grid-item">
+                        <div class="grid-label">Fecha de Mantenimiento</div>
+                        <div class="grid-value">{format_date(registro.get('timestamp'))}</div>
+                    </div>
+                    <div class="grid-item">
+                        <div class="grid-label">Técnico Responsable</div>
+                        <div class="grid-value">{registro.get('tecnico', 'N/A')}</div>
+                    </div>
+                    <div class="grid-item">
+                        <div class="grid-label">Email del Técnico</div>
+                        <div class="grid-value">{registro.get('email', 'N/A')}</div>
+                    </div>
+                    <div class="grid-item">
+                        <div class="grid-label">Tipo de Servicio</div>
+                        <div class="grid-value">{registro.get('tipo', 'N/A')}</div>
+                    </div>
+                    <div class="grid-item">
+                        <div class="grid-label">Modelo del Compresor</div>
+                        <div class="grid-value">{registro.get('compresor', 'N/A')}</div>
+                    </div>
+                    <div class="grid-item">
+                        <div class="grid-label">Número de Serie</div>
+                        <div class="grid-value" style="font-family: 'Courier New', monospace; font-weight: 700;">{registro.get('numero_serie', 'N/A')}</div>
+                    </div>
+                    <div class="grid-item">
+                        <div class="grid-label">Número de Cliente</div>
+                        <div class="grid-value">{registro.get('numero_cliente', 'N/A')}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mantenimientos Realizados -->
+            <div class="section">
+                <div class="section-title">Mantenimientos Realizados</div>
+                <table class="maintenance-table">
+                    <thead>
+                        <tr>
+                            <th>Tipo de Mantenimiento</th>
+                            <th style="width: 100px; text-align: center;">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {mantenimientos_html}
+                    </tbody>
+                </table>
+                <div class="legend">
+                    <div class="legend-item"><span style="color: #16a34a; font-size: 16px;">✓</span>Se realizó cambio</div>
+                    <div class="legend-item"><span style="color: #9ca3af; font-size: 16px;">✗</span>Se mantuvo igual</div>
+                </div>
+            </div>
+
+            {comentarios_generales}
+            {comentario_cliente}
+            {fotos_seccion}
+
+            <!-- Footer -->
+            <div class="footer">
+                <p>Reporte generado automáticamente por VENTOLOGIX el {datetime.now().strftime("%d de %B de %Y a las %H:%M")}</p>
+                <p style="margin-top: 8px; opacity: 0.7;">© 2025 VENTOLOGIX - Todos los derechos reservados</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    return html
+
+
+def _get_drive_parent_folder(folder_url: str) -> str:
+    """
+    Extrae el folder_id de un URL de Google Drive
+    y obtiene el ID de su carpeta padre.
+    
+    Retorna: parent_folder_id (str) o None si falla
+    """
+    try:
+        # Extraer folder_id del URL
+        folder_id = folder_url.split("/folders/")[1].split("?")[0]
+    except Exception:
+        return None
+
+    try:
+        # Cargar credenciales
+        creds = None
+        if os.path.exists(TOKEN_FILE):
+            with open(TOKEN_FILE, "rb") as token:
+                creds = pickle.load(token)
+
+        # Refrescar si es necesario
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    OAUTH_CREDENTIALS_FILE, SCOPES
+                )
+                creds = flow.run_local_server(port=0)
+
+            with open(TOKEN_FILE, "wb") as token:
+                pickle.dump(creds, token)
+
+        # Crear cliente Drive y obtener padres de la carpeta
+        service = build("drive", "v3", credentials=creds)
+        
+        file_info = service.files().get(
+            fileId=folder_id,
+            fields="parents"
+        ).execute()
+
+        parents = file_info.get("parents", [])
+        if parents:
+            return parents[0]  # Retornar ID del primer padre
+        
+        return None
+
+    except Exception as e:
+        logging.error(f"Error obteniendo carpeta padre: {str(e)}")
+        return None
+
+
+def _upload_pdf_to_drive(pdf_bytes: bytes, filename: str, parent_folder_id: str) -> tuple:
+    """
+    Sube un PDF a Google Drive en la carpeta especificada.
+    
+    Retorna: (file_id, web_view_link)
+    """
+    import tempfile
+    import time
+
+    tmp_path = None
+    try:
+        # Cargar credenciales
+        creds = None
+        if os.path.exists(TOKEN_FILE):
+            with open(TOKEN_FILE, "rb") as token:
+                creds = pickle.load(token)
+
+        # Refrescar si es necesario
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    OAUTH_CREDENTIALS_FILE, SCOPES
+                )
+                creds = flow.run_local_server(port=0)
+
+            with open(TOKEN_FILE, "wb") as token:
+                pickle.dump(creds, token)
+
+        # Crear cliente Drive
+        service = build("drive", "v3", credentials=creds)
+
+        # Guardar temporalmente el PDF para usar MediaFileUpload
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix=".pdf")
+        try:
+            # Escribir bytes directamente al file descriptor
+            os.write(tmp_fd, pdf_bytes)
+        finally:
+            os.close(tmp_fd)
+
+        # Pequeña pausa para asegurar que el archivo esté completamente escrito
+        time.sleep(0.1)
+
+        # Crear archivo en Drive
+        file_metadata = {
+            "name": filename,
+            "mimeType": "application/pdf",
+            "parents": [parent_folder_id]
+        }
+
+        # Usar resumable=False para evitar problemas con archivos en uso
+        media = MediaFileUpload(tmp_path, mimetype="application/pdf", resumable=False)
+
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields="id, webViewLink"
+        ).execute()
+
+        file_id = file.get("id")
+        web_view_link = file.get("webViewLink")
+
+        return file_id, web_view_link
+
+    except Exception as e:
+        logging.error(f"Error subiendo PDF a Drive: {str(e)}")
+        raise
+    finally:
+        # Limpiar archivo temporal
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except Exception as cleanup_error:
+                logging.warning(f"No se pudo eliminar archivo temporal {tmp_path}: {cleanup_error}")
