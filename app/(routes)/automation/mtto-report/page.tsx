@@ -5,12 +5,6 @@ import LoadingOverlay from "@/components/LoadingOverlay";
 import BackButton from "@/components/BackButton";
 import { MaintenanceReportResponse, MaintenanceReportData } from "@/lib/types";
 import Image from "next/image";
-import PrintPageButton from "@/components/printPageButton";
-
-interface ModalState {
-  isOpen: boolean;
-  imageSrc: string;
-}
 
 declare global {
   interface Window {
@@ -26,10 +20,6 @@ function MttoReportContent() {
   );
   const [loading, setLoading] = useState(false);
   const [isAutomation, setIsAutomation] = useState(false);
-  const [imageModal, setImageModal] = useState<ModalState>({
-    isOpen: false,
-    imageSrc: "",
-  });
 
   // Cargar datos de la visita seleccionada si existen
   useEffect(() => {
@@ -125,14 +115,6 @@ function MttoReportContent() {
     }
   };
 
-  const openImageModal = (imageSrc: string) => {
-    setImageModal({ isOpen: true, imageSrc });
-  };
-
-  const closeImageModal = () => {
-    setImageModal({ isOpen: false, imageSrc: "" });
-  };
-
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
@@ -189,45 +171,83 @@ function MttoReportContent() {
               </div>
             </div>
 
-            {/* Datos Generales */}
             <div className="p-6">
               <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                DATOS GENERALES
+                DATOS DEL COMPRESOR
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Columna 1 */}
                 <div>
-                  <p className="text-sm text-gray-600">Cliente:</p>
-                  <p className="font-semibold">{reportData.cliente}</p>
+                  <div className="mb-2">
+                    <p className="text-sm text-gray-600">Cliente:</p>
+                    <p className="font-semibold">{reportData.cliente}</p>
+                  </div>
+                  <div className="mb-2">
+                    <p className="text-sm text-gray-600">Tipo:</p>
+                    <p className="font-semibold">{reportData.tipo}</p>
+                  </div>
+                  <div className="mb-2">
+                    <p className="text-sm text-gray-600">Alias:</p>
+                    <p className="font-semibold">{reportData.Alias || "N/A"}</p>
+                  </div>
+                  <div className="mb-2">
+                    <p className="text-sm text-gray-600">HP:</p>
+                    <p className="font-semibold">{reportData.hp || "N/A"}</p>
+                  </div>
                 </div>
+                {/* Columna 2 */}
                 <div>
-                  <p className="text-sm text-gray-600">Fecha:</p>
-                  <p className="font-semibold">
-                    {formatDate(reportData.timestamp)}
-                  </p>
+                  <div className="mb-2">
+                    <p className="text-sm text-gray-600">Voltaje:</p>
+                    <p className="font-semibold">
+                      {reportData.voltaje || "N/A"}
+                    </p>
+                  </div>
+                  <div className="mb-2">
+                    <p className="text-sm text-gray-600">Marca:</p>
+                    <p className="font-semibold">{reportData.compresor}</p>
+                  </div>
+                  <div className="mb-2">
+                    <p className="text-sm text-gray-600">Año:</p>
+                    <p className="font-semibold">{reportData.anio || "N/A"}</p>
+                  </div>
+                  <div className="mb-2">
+                    <p className="text-sm text-gray-600">Número de Serie:</p>
+                    <p className="font-semibold">{reportData.numero_serie}</p>
+                  </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Datos del Técnico */}
+            <div className="p-6">
+              <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                DATOS DEL TÉCNICO
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Columna 1 */}
                 <div>
-                  <p className="text-sm text-gray-600">Técnico:</p>
-                  <p className="font-semibold">{reportData.tecnico}</p>
+                  <div className="mb-2">
+                    <p className="text-sm text-gray-600">Nombre del técnico:</p>
+                    <p className="font-semibold">{reportData.tecnico}</p>
+                  </div>
+                  <div className="mb-2">
+                    <p className="text-sm text-gray-600">Email del técnico:</p>
+                    <p className="font-semibold">{reportData.email}</p>
+                  </div>
                 </div>
+                {/* Columna 2 */}
                 <div>
-                  <p className="text-sm text-gray-600">Email del Técnico:</p>
-                  <p className="font-semibold">{reportData.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Tipo:</p>
-                  <p className="font-semibold">{reportData.tipo}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Compresor:</p>
-                  <p className="font-semibold">{reportData.compresor}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Número de Serie:</p>
-                  <p className="font-semibold">{reportData.numero_serie}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Número de Cliente:</p>
-                  <p className="font-semibold">{reportData.numero_cliente}</p>
+                  <div className="mb-2">
+                    <p className="text-sm text-gray-600">Número de teléfono:</p>
+                    <p className="font-semibold">+52 8184777023</p>
+                  </div>
+                  <div className="mb-2">
+                    <p className="text-sm text-gray-600">Fecha de la visita:</p>
+                    <p className="font-semibold">
+                      {formatDate(reportData.timestamp)}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -303,7 +323,6 @@ function MttoReportContent() {
                     <div
                       key={index}
                       className="cursor-pointer transform hover:scale-105 transition-transform"
-                      onClick={() => openImageModal(fotoUrl)}
                     >
                       <Image
                         src={fotoUrl}

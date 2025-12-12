@@ -235,6 +235,10 @@ export interface MaintenanceReportData {
   mantenimientos: MaintenanceItem[];
   Generado?: number; // 0 = no generado, 1 = generado
   link_pdf?: string; // URL del PDF en Google Drive
+  hp?: number;
+  voltaje?: number;
+  anio?: number;
+  Alias?: string;
 }
 
 export interface MaintenanceReportResponse {

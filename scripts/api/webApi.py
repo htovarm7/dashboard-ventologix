@@ -1702,11 +1702,18 @@ def get_maintenance_report_data_by_id(registro_id: str):
         )
         cursor = conn.cursor(dictionary=True)
 
-        # Consultar registro específico por ID
+        # Consultar registro específico por ID con datos del compresor
         query = """
-        SELECT *
-        FROM registros_mantenimiento_tornillo
-        WHERE id = %s
+        SELECT 
+            rmt.*,
+            c.hp,
+            c.voltaje,
+            c.anio,
+            c.Alias
+        FROM registros_mantenimiento_tornillo rmt
+        LEFT JOIN compresores c ON rmt.numero_serie = c.numero_serie
+        WHERE rmt.id = %s
+        LIMIT 1
         """
         
         cursor.execute(query, (registro_id,))
@@ -1755,7 +1762,11 @@ def get_maintenance_report_data_by_id(registro_id: str):
             "fotos_drive": fotos_drive,
             "mantenimientos": mantenimientos_realizados,
             "Generado": registro.get("Generado", 0),
-            "link_pdf": registro.get("link_pdf")
+            "link_pdf": registro.get("link_pdf"),
+            "hp": registro.get("hp"),
+            "voltaje": registro.get("voltaje"),
+            "anio": registro.get("anio"),
+            "Alias": registro.get("Alias")
         }
 
         cursor.close()
