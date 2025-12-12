@@ -25,6 +25,11 @@ const nextConfig = {
         hostname: 'api.ventologix.com',
         port: '',
         pathname: '/web/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'drive.google.com',
+        pathname: '/thumbnail/**',
       }
     ],
   },

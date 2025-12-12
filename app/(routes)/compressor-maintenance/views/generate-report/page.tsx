@@ -280,6 +280,8 @@ function ViewMaintenanceReportContent() {
                     >
                       <Image
                         src={fotoUrl}
+                        width={400}
+                        height={400}
                         className="w-full h-full object-cover rounded-lg shadow hover:shadow-lg"
                         alt={`Foto ${index + 1}`}
                       />
