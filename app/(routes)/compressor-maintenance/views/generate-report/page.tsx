@@ -177,27 +177,33 @@ function ViewMaintenanceReportContent() {
               <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
                 DATOS DEL COMPRESOR
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Columna 1 */}
+              <div className="grid grid-cols-4 gap-8">
+                {/* Fila 1 */}
                 <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Cliente:</p>
                     <p className="font-semibold">{reportData.cliente}</p>
                   </div>
+                </div>
+                <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Tipo:</p>
                     <p className="font-semibold">{reportData.tipo}</p>
                   </div>
+                </div>
+                <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Alias:</p>
                     <p className="font-semibold">{reportData.Alias || "N/A"}</p>
                   </div>
+                </div>
+                <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">HP:</p>
                     <p className="font-semibold">{reportData.hp || "N/A"}</p>
                   </div>
                 </div>
-                {/* Columna 2 */}
+                {/* Fila 2 */}
                 <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Voltaje:</p>
@@ -205,14 +211,20 @@ function ViewMaintenanceReportContent() {
                       {reportData.voltaje || "N/A"}
                     </p>
                   </div>
+                </div>
+                <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Marca:</p>
                     <p className="font-semibold">{reportData.compresor}</p>
                   </div>
+                </div>
+                <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Año:</p>
                     <p className="font-semibold">{reportData.anio || "N/A"}</p>
                   </div>
+                </div>
+                <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Número de Serie:</p>
                     <p className="font-semibold">{reportData.numero_serie}</p>
