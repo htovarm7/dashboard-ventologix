@@ -18,7 +18,10 @@ export default function RootLayout({
   const [secciones, setSecciones] = useState<string[]>([]);
 
   // Check if current route should hide sidebar
-  const hideSidebar = pathname === "/reportesD" || pathname === "/reportesS";
+  const hideSidebar =
+    pathname === "/reportesD" ||
+    pathname === "/reportesS" ||
+    pathname === "/automation/mtto-report";
 
   useEffect(() => {
     // Get user data from session storage

@@ -7,6 +7,11 @@ import { MaintenanceReportResponse, MaintenanceReportData } from "@/lib/types";
 import Image from "next/image";
 import PrintPageButton from "@/components/printPageButton";
 
+interface ModalState {
+  isOpen: boolean;
+  imageSrc: string;
+}
+
 declare global {
   interface Window {
     status: string;
@@ -21,6 +26,10 @@ function MttoReportContent() {
   );
   const [loading, setLoading] = useState(false);
   const [isAutomation, setIsAutomation] = useState(false);
+  const [imageModal, setImageModal] = useState<ModalState>({
+    isOpen: false,
+    imageSrc: "",
+  });
 
   // Cargar datos de la visita seleccionada si existen
   useEffect(() => {
@@ -88,7 +97,10 @@ function MttoReportContent() {
       }
 
       const data: MaintenanceReportResponse = await response.json();
-      setReportData(data.reporte);
+      setReportData({
+        ...data.reporte,
+        fotos_drive: data.reporte.fotos_drive || [],
+      });
 
       // Guardar datos del reporte en sessionStorage para el nombre del PDF
       sessionStorage.setItem("currentReportData", JSON.stringify(data.reporte));
@@ -113,6 +125,14 @@ function MttoReportContent() {
     }
   };
 
+  const openImageModal = (imageSrc: string) => {
+    setImageModal({ isOpen: true, imageSrc });
+  };
+
+  const closeImageModal = () => {
+    setImageModal({ isOpen: false, imageSrc: "" });
+  };
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
@@ -126,7 +146,7 @@ function MttoReportContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8">
       {/* Ocultar botón de regreso en modo automatización */}
       {!isAutomation && (
         <div className="no-print">
@@ -142,7 +162,7 @@ function MttoReportContent() {
 
         {/* Reporte */}
         {reportData && !loading && (
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
+          <div className="bg-white rounded-lg overflow-hidden mb-6">
             <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
@@ -170,7 +190,7 @@ function MttoReportContent() {
             </div>
 
             {/* Datos Generales */}
-            <div className="p-6 border-b">
+            <div className="p-6">
               <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
                 DATOS GENERALES
               </h2>
@@ -212,7 +232,7 @@ function MttoReportContent() {
               </div>
             </div>
 
-            <div className="p-6 border-b">
+            <div className="p-6">
               <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
                 MANTENIMIENTOS REALIZADOS
               </h2>
@@ -246,7 +266,7 @@ function MttoReportContent() {
 
             {/* Comentarios */}
             {reportData.comentarios_generales && (
-              <div className="p-6 border-b">
+              <div className="p-6">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
                   COMENTARIOS GENERALES
                 </h2>
@@ -260,7 +280,7 @@ function MttoReportContent() {
 
             {/* Comentario del Cliente */}
             {reportData.comentario_cliente && (
-              <div className="p-6 border-b">
+              <div className="p-6">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
                   COMENTARIO DEL CLIENTE
                 </h2>
@@ -272,35 +292,31 @@ function MttoReportContent() {
               </div>
             )}
 
-            <div className="p-6">
-              <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                RECURSOS
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {reportData.carpeta_fotos && (
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="font-semibold text-xl text-green-800">
-                      Carpeta de Fotos
-                    </p>
-                    <a
-                      href={reportData.carpeta_fotos}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-green-700 underline break-all"
-                    >
-                      {reportData.carpeta_fotos}
-                    </a>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+            {reportData.fotos_drive && reportData.fotos_drive.length > 0 && (
+              <div className="p-6">
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  FOTOS DEL MANTENIMIENTO
+                </h2>
 
-        {/* Botón de impresión solo visible si no es modo automatización */}
-        {reportData && !isAutomation && (
-          <div className="flex justify-center mb-8 no-print">
-            <PrintPageButton reportType="reporte-visita" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {reportData.fotos_drive.map((fotoUrl, index) => (
+                    <div
+                      key={index}
+                      className="cursor-pointer transform hover:scale-105 transition-transform"
+                      onClick={() => openImageModal(fotoUrl)}
+                    >
+                      <Image
+                        src={fotoUrl}
+                        width={400}
+                        height={400}
+                        className="w-full h-full object-cover rounded-lg shadow hover:shadow-lg"
+                        alt={`Foto ${index + 1}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

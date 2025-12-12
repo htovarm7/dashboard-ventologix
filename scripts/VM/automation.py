@@ -13,6 +13,8 @@ import json
 import os
 import smtplib
 import time
+import pickle
+import tempfile
 from email.message import EmailMessage
 from dotenv import load_dotenv
 from email.utils import make_msgid
@@ -23,6 +25,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.http import MediaFileUpload
 import glob
+import mysql.connector
 
 # ---- Config regional (meses en español) ----
 try:
@@ -179,6 +182,348 @@ def upload_to_google_drive(file_path: str, folder_id: str = GOOGLE_DRIVE_FOLDER_
         print(f"Error al subir {os.path.basename(file_path)} a Google Drive: {e}")
         return False
 
+
+# ------------- Funciones para Reportes de Mantenimiento (generación local) -------------
+def _get_drive_service_maintenance():
+    """
+    Obtiene el servicio de Google Drive autenticado usando OAuth2 para mantenimiento.
+    Usa token.pickle si existe, sino autentica con OAuth.
+    """
+    try:
+        token_file = os.path.join(BASE_DIR, "token.pickle")
+        oauth_file = os.path.join(BASE_DIR, "credentials.json")
+        scopes = ['https://www.googleapis.com/auth/drive']
+        
+        creds = None
+        
+        if os.path.exists(token_file):
+            with open(token_file, 'rb') as token:
+                creds = pickle.load(token)
+        
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                if not os.path.exists(oauth_file):
+                    return None
+                
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    oauth_file,
+                    scopes
+                )
+                creds = flow.run_local_server(port=0)
+            
+            with open(token_file, 'wb') as token:
+                pickle.dump(creds, token)
+        
+        drive_service = build('drive', 'v3', credentials=creds)
+        return drive_service
+        
+    except Exception as e:
+        print(f"❌ Error autenticando Google Drive para mantenimiento: {e}")
+        return None
+
+
+def _get_drive_parent_folder_maintenance(folder_url: str) -> str:
+    """
+    Obtiene la carpeta padre de una carpeta de Google Drive.
+    Extrae el ID de la carpeta desde una URL de Google Drive.
+    """
+    try:
+        if folder_url.startswith('http'):
+            try:
+                folder_id = folder_url.split("/folders/")[1].split("?")[0]
+            except Exception:
+                return None
+        else:
+            folder_id = folder_url
+        
+        drive_service = _get_drive_service_maintenance()
+        
+        if not drive_service:
+            return None
+        
+        file_metadata = drive_service.files().get(
+            fileId=folder_id,
+            fields='parents'
+        ).execute()
+        
+        parents = file_metadata.get('parents', [])
+        
+        if parents:
+            return parents[0]
+        
+        return None
+            
+    except Exception as e:
+        print(f"❌ Error obteniendo carpeta padre: {e}")
+        return None
+
+
+def _upload_pdf_to_drive_maintenance(pdf_bytes: bytes, filename: str, parent_folder_id: str) -> tuple:
+    """
+    Sube un PDF a Google Drive usando un archivo temporal.
+    """
+    tmp_path = None
+    try:
+        token_file = os.path.join(BASE_DIR, "token.pickle")
+        oauth_file = os.path.join(BASE_DIR, "credentials.json")
+        scopes = ['https://www.googleapis.com/auth/drive']
+        
+        creds = None
+        if os.path.exists(token_file):
+            with open(token_file, "rb") as token:
+                creds = pickle.load(token)
+
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    oauth_file, scopes
+                )
+                creds = flow.run_local_server(port=0)
+
+            with open(token_file, "wb") as token:
+                pickle.dump(creds, token)
+
+        service = build("drive", "v3", credentials=creds)
+
+        # Guardar temporalmente el PDF
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix=".pdf")
+        try:
+            os.write(tmp_fd, pdf_bytes)
+        finally:
+            os.close(tmp_fd)
+
+        time.sleep(0.1)
+
+        file_metadata = {
+            "name": filename,
+            "mimeType": "application/pdf",
+            "parents": [parent_folder_id]
+        }
+
+        media = MediaFileUpload(tmp_path, mimetype="application/pdf", resumable=False)
+
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields="id, webViewLink"
+        ).execute()
+
+        file_id = file.get("id")
+        web_view_link = file.get("webViewLink")
+
+        return file_id, web_view_link
+
+    except Exception as e:
+        print(f"❌ Error subiendo PDF a Drive: {str(e)}")
+        return None, None
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                time.sleep(0.2)
+                os.remove(tmp_path)
+            except Exception:
+                pass
+
+
+def generar_pdf_reporte_mantenimiento_local(registro_id: int, cliente: str, numero_serie: str) -> bytes:
+    """
+    Genera un PDF accediendo a la ruta mtto-report con Playwright.
+    Retorna los bytes del PDF sin guardar a disco.
+    """
+    try:
+        url = f"http://localhost:3000/automation/mtto-report?id={registro_id}"
+        print(f"   🌐 Accediendo a: {url}")
+        
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.set_viewport_size({"width": 1920, "height": 1080})
+            
+            try:
+                page.goto(url, wait_until="networkidle", timeout=60000)
+                
+                max_wait = 30
+                elapsed = 0
+                while elapsed < max_wait:
+                    try:
+                        status = page.evaluate("() => window.status")
+                        
+                        if status == "pdf-ready":
+                            break
+                        elif status == "data-error":
+                            browser.close()
+                            return None
+                    except Exception:
+                        pass
+                    
+                    time.sleep(1)
+                    elapsed += 1
+                
+                page.wait_for_load_state("networkidle")
+                time.sleep(2)
+                
+                pdf_bytes = page.pdf(format="A2", scale=1.0, print_background=True)
+                browser.close()
+                
+                return pdf_bytes
+                    
+            except Exception as e:
+                print(f"   ❌ Error durante navegación: {str(e)}")
+                browser.close()
+                return None
+                
+    except Exception as e:
+        print(f"   ❌ Error general: {str(e)}")
+        return None
+
+
+def procesar_mantenimientos_pendientes():
+    """
+    Procesa todos los reportes de mantenimiento pendientes.
+    Genera PDFs, los sube a Google Drive y marca como generados.
+    """
+    print(f"\n🔧 === PROCESANDO REPORTES DE MANTENIMIENTO PENDIENTES ===")
+    
+    try:
+        # Obtener BD config
+        db_host = os.getenv("DB_HOST", "localhost")
+        db_user = os.getenv("DB_USER")
+        db_password = os.getenv("DB_PASSWORD")
+        db_database = os.getenv("DB_DATABASE")
+        
+        if not all([db_user, db_password, db_database]):
+            print(f"❌ Credenciales de BD no configuradas")
+            return 0, 0
+        
+        conn = mysql.connector.connect(
+            host=db_host,
+            user=db_user,
+            password=db_password,
+            database=db_database
+        )
+        
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT 
+                id,
+                numero_serie,
+                timestamp,
+                cliente,
+                carpeta_fotos
+            FROM registros_mantenimiento_tornillo
+            WHERE Generado IS NULL
+            ORDER BY timestamp DESC
+        """)
+        
+        registros = cursor.fetchall()
+        
+        if not registros:
+            print(f"✅ No hay reportes de mantenimiento pendientes")
+            cursor.close()
+            conn.close()
+            return 0, 0
+        
+        print(f"📋 Total de reportes pendientes: {len(registros)}")
+        
+        exitosos = 0
+        fallidos = 0
+        
+        for i, registro in enumerate(registros, 1):
+            try:
+                registro_id = registro['id']
+                numero_serie = registro.get('numero_serie', 'N/A')
+                cliente = registro.get('cliente', 'Cliente')
+                carpeta_fotos = registro.get('carpeta_fotos')
+                
+                print(f"\n🔧 [{i}/{len(registros)}] Procesando mantenimiento")
+                print(f"   🆔 ID: {registro_id} | Cliente: {cliente} | Serie: {numero_serie}")
+                
+                # Generar PDF
+                pdf_bytes = generar_pdf_reporte_mantenimiento_local(
+                    registro_id=registro_id,
+                    cliente=cliente,
+                    numero_serie=numero_serie
+                )
+                
+                if not pdf_bytes:
+                    print(f"   ❌ Falló generación de PDF")
+                    fallidos += 1
+                    continue
+                
+                print(f"   ✅ PDF generado exitosamente")
+                
+                # Subir a Google Drive si hay carpeta
+                pdf_web_link = None
+                if carpeta_fotos:
+                    print(f"   📤 Subiendo a Google Drive...")
+                    parent_folder_id = _get_drive_parent_folder_maintenance(carpeta_fotos)
+                    
+                    if parent_folder_id:
+                        timestamp = registro.get("timestamp")
+                        if timestamp:
+                            try:
+                                if isinstance(timestamp, str):
+                                    dt = datetime.fromisoformat(timestamp)
+                                else:
+                                    dt = timestamp
+                                fecha_str = dt.strftime("%Y%m%d")
+                            except:
+                                fecha_str = str(timestamp)[:8]
+                        else:
+                            fecha_str = "SIN_FECHA"
+                        
+                        pdf_filename = f"Reporte_Mtto_{numero_serie}_{fecha_str}.pdf"
+                        pdf_drive_id, pdf_web_link = _upload_pdf_to_drive_maintenance(
+                            pdf_bytes,
+                            pdf_filename,
+                            parent_folder_id
+                        )
+                        
+                        if pdf_web_link:
+                            print(f"   ✅ Subido a Drive: {pdf_web_link}")
+                
+                # Marcar como generado
+                if pdf_web_link:
+                    cursor.execute(
+                        """UPDATE registros_mantenimiento_tornillo
+                           SET Generado = 1, link_pdf = %s
+                           WHERE id = %s""",
+                        (pdf_web_link, registro_id)
+                    )
+                else:
+                    cursor.execute(
+                        """UPDATE registros_mantenimiento_tornillo
+                           SET Generado = 1
+                           WHERE id = %s""",
+                        (registro_id,)
+                    )
+                conn.commit()
+                
+                print(f"   ✅ Registro marcado como generado")
+                exitosos += 1
+                
+            except Exception as e:
+                print(f"   ❌ Error: {str(e)}")
+                fallidos += 1
+                conn.rollback()
+        
+        cursor.close()
+        conn.close()
+        
+        print(f"\n📈 === RESUMEN MANTENIMIENTO ===")
+        print(f"✅ Exitosos: {exitosos}")
+        print(f"❌ Fallidos: {fallidos}")
+        
+        return exitosos, fallidos
+        
+    except Exception as e:
+        print(f"❌ Error procesando mantenimientos: {e}")
+        return 0, 0
 
 # ------------- Verificaciones previas -------------
 def verificar_conectividad():
@@ -1007,7 +1352,7 @@ def main():
         print("\n" + "="*80)
         print("🔧 === VERIFICANDO REPORTES DE MANTENIMIENTO PENDIENTES ===")
         print("="*80)
-        exitosos_mtto, fallidos_mtto = generar_reportes_mantenimiento_pendientes()
+        exitosos_mtto, fallidos_mtto = procesar_mantenimientos_pendientes()
         
         if fallidos_mtto > 0:
             print(f"⚠️ Hay {fallidos_mtto} reportes de mantenimiento que fallaron")

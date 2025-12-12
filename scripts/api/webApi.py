@@ -1984,9 +1984,10 @@ def get_pending_maintenance_reports():
 
 
 @web.put("/maintenance/mark-generated/{registro_id}", tags=["🛠️ Mantenimiento de Compresores"])
-def mark_maintenance_report_generated(registro_id: int):
+def mark_maintenance_report_generated(registro_id: int, link_pdf: str = None, pdf_drive_id: str = None):
     """
-    Marca un registro de mantenimiento como generado (actualiza la columna 'generado' a TRUE).
+    Marca un registro de mantenimiento como generado (actualiza la columna 'Generado' a 1).
+    Opcionalmente actualiza el link del PDF en Google Drive.
     """
     try:
         conn = mysql.connector.connect(
@@ -1997,12 +1998,19 @@ def mark_maintenance_report_generated(registro_id: int):
         )
         cursor = conn.cursor()
         
-        # Actualizar el registro
-        cursor.execute("""
-            UPDATE registros_mantenimientos_tornillo
-            SET generado = TRUE
-            WHERE id = %s
-        """, (registro_id,))
+        # Actualizar el registro con el nombre correcto de la tabla
+        if link_pdf:
+            cursor.execute("""
+                UPDATE registros_mantenimiento_tornillo
+                SET Generado = 1, link_pdf = %s
+                WHERE id = %s
+            """, (link_pdf, registro_id))
+        else:
+            cursor.execute("""
+                UPDATE registros_mantenimiento_tornillo
+                SET Generado = 1
+                WHERE id = %s
+            """, (registro_id,))
         
         conn.commit()
         
