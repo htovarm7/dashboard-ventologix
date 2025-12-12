@@ -383,10 +383,20 @@ def generar_pdf_reporte_mantenimiento_local(registro_id: int, cliente: str, nume
 
 def procesar_mantenimientos_pendientes():
     """
+    Alias para compatibilidad con código antiguo.
+    Redirige a generar_reportes_mantenimiento_pendientes().
+    """
+    return generar_reportes_mantenimiento_pendientes()
+
+
+def procesar_mantenimientos_pendientes_OLD():
+    """
+    DEPRECATED: Esta función ha sido reemplazada por generar_reportes_mantenimiento_pendientes().
+    Se mantiene aquí como referencia histórica.
     Procesa todos los reportes de mantenimiento pendientes.
     Genera PDFs, los sube a Google Drive y marca como generados.
     """
-    print(f"\n🔧 === PROCESANDO REPORTES DE MANTENIMIENTO PENDIENTES ===")
+    print(f"\n🔧 === PROCESANDO REPORTES DE MANTENIMIENTO PENDIENTES (DEPRECATED) ===")
     
     try:
         # Obtener BD config
@@ -628,42 +638,138 @@ def obtener_clientes_desde_api():
     return {"diarios": [], "semanales": []}
 
 
-# ------------- API para reportes de mantenimiento -------------
+# ------------- Funciones BD para reportes de mantenimiento (sin API) -------------
+def obtener_conexion_bd():
+    """
+    Obtiene una conexión a la base de datos MySQL usando variables de entorno.
+    """
+    try:
+        db_host = os.getenv("DB_HOST", "localhost")
+        db_user = os.getenv("DB_USER")
+        db_password = os.getenv("DB_PASSWORD")
+        db_database = os.getenv("DB_DATABASE")
+        db_port = int(os.getenv("DB_PORT", "3306"))
+        
+        if not all([db_user, db_password, db_database]):
+            print(f"❌ Credenciales de BD no configuradas en variables de entorno")
+            return None
+        
+        conn = mysql.connector.connect(
+            host=db_host,
+            port=db_port,
+            user=db_user,
+            password=db_password,
+            database=db_database
+        )
+        return conn
+        
+    except Exception as e:
+        print(f"❌ Error conectando a la BD: {e}")
+        return None
+
+
 def obtener_registros_mantenimiento_pendientes():
     """
-    Obtiene todos los registros de mantenimiento donde 'generado' es NULL.
+    Obtiene todos los registros de mantenimiento donde 'Generado' es NULL o 0.
+    Lee directamente de la BD, sin depender de APIs.
     Retorna lista de diccionarios con id, numero_serie, cliente, etc.
     """
-    api_url = "http://127.0.0.1:8000/web/maintenance/pending-reports"
-    print(f"🔧 Obteniendo reportes de mantenimiento pendientes...")
+    print(f"🔧 Obteniendo reportes de mantenimiento pendientes de la BD...")
+    
+    conn = obtener_conexion_bd()
+    if not conn:
+        print(f"❌ No se pudo conectar a la BD")
+        return []
     
     try:
-        response = requests.get(api_url, timeout=30)
+        cursor = conn.cursor(dictionary=True)
         
-        if response.status_code == 200:
-            data = response.json()
-            registros = data.get("registros", [])
-            print(f"✅ {len(registros)} reportes de mantenimiento pendientes")
-            return registros
+        cursor.execute("""
+            SELECT 
+                id,
+                numero_serie,
+                timestamp,
+                cliente,
+                carpeta_fotos,
+                email,
+                tecnico
+            FROM registros_mantenimiento_tornillo
+            WHERE Generado IS NULL OR Generado = 0
+            ORDER BY timestamp DESC
+        """)
+        
+        registros = cursor.fetchall()
+        cursor.close()
+        
+        if registros:
+            print(f"✅ {len(registros)} reportes de mantenimiento pendientes encontrados")
         else:
-            print(f"❌ Error API mantenimiento - Código: {response.status_code}")
-            return []
+            print(f"✅ No hay reportes de mantenimiento pendientes")
+        
+        return registros
+        
+    except Exception as e:
+        print(f"❌ Error obteniendo reportes pendientes de BD: {e}")
+        return []
+    finally:
+        try:
+            conn.close()
+        except:
+            pass
+
+
+def marcar_reporte_generado(registro_id: int, link_pdf: str = None):
+    """
+    Marca un registro de mantenimiento como generado en la BD.
+    Actualiza directamente el campo 'Generado' a 1 y opcionalmente guarda el link_pdf.
+    
+    Args:
+        registro_id: ID del registro a marcar
+        link_pdf: URL del PDF en Google Drive (opcional)
+    
+    Returns:
+        bool: True si se marcó exitosamente, False en caso contrario
+    """
+    conn = obtener_conexion_bd()
+    if not conn:
+        print(f"❌ No se pudo conectar a la BD para marcar reporte como generado")
+        return False
+    
+    try:
+        cursor = conn.cursor()
+        
+        if link_pdf:
+            cursor.execute("""
+                UPDATE registros_mantenimiento_tornillo
+                SET Generado = 1, link_pdf = %s
+                WHERE id = %s
+            """, (link_pdf, registro_id))
+        else:
+            cursor.execute("""
+                UPDATE registros_mantenimiento_tornillo
+                SET Generado = 1
+                WHERE id = %s
+            """, (registro_id,))
+        
+        conn.commit()
+        
+        if cursor.rowcount > 0:
+            print(f"   ✅ Registro {registro_id} marcado como generado en BD")
+            return True
+        else:
+            print(f"   ⚠️ No se actualizó ningún registro (ID: {registro_id})")
+            return False
             
     except Exception as e:
-        print(f"❌ Error obteniendo reportes pendientes: {e}")
-        return []
-
-
-def marcar_reporte_generado(registro_id: int):
-    """Marca un registro de mantenimiento como generado."""
-    api_url = f"http://127.0.0.1:8000/web/maintenance/mark-generated/{registro_id}"
-    
-    try:
-        response = requests.put(api_url, timeout=10)
-        return response.status_code == 200
-    except Exception as e:
-        print(f"❌ Error marcando reporte como generado: {e}")
+        print(f"   ❌ Error marcando reporte como generado: {e}")
+        conn.rollback()
         return False
+    finally:
+        try:
+            cursor.close()
+            conn.close()
+        except:
+            pass
 
 
 # ------------- Render PDF -------------
@@ -875,11 +981,8 @@ def generar_pdf_reporte_mantenimiento(registro_id: int, numero_serie: str, clien
                 file_size = os.path.getsize(pdf_path)
                 print(f"   ✅ Archivo creado - Tamaño: {file_size} bytes")
                 
-                # Marcar como generado en la base de datos
-                if marcar_reporte_generado(registro_id):
-                    print(f"   ✅ Registro marcado como generado en BD")
-                else:
-                    print(f"   ⚠️ No se pudo marcar como generado en BD")
+                # Marcar como generado en la base de datos (sin link_pdf por ahora)
+                marcar_reporte_generado(registro_id, link_pdf=None)
                 
                 return pdf_path
             else:
@@ -1140,7 +1243,8 @@ def generar_todos_los_pdfs(clientes: list, tipo: str) -> tuple[set, list]:
 
 def generar_reportes_mantenimiento_pendientes() -> tuple[int, int]:
     """
-    Genera todos los reportes de mantenimiento pendientes (donde generado es NULL).
+    Genera todos los reportes de mantenimiento pendientes (donde Generado IS NULL o 0).
+    Lee directamente de la BD y marca como generado después de crear el PDF.
     
     Returns:
         tuple: (exitosos, fallidos)
@@ -1166,13 +1270,27 @@ def generar_reportes_mantenimiento_pendientes() -> tuple[int, int]:
             registro_id = registro['id']
             numero_serie = registro['numero_serie']
             cliente = registro.get('cliente', 'Cliente')
-            fecha = registro.get('fecha', datetime.now().strftime('%Y-%m-%d'))
+            
+            # Obtener fecha del timestamp si existe
+            timestamp = registro.get('timestamp')
+            if timestamp:
+                try:
+                    if isinstance(timestamp, str):
+                        dt = datetime.fromisoformat(timestamp)
+                    else:
+                        dt = timestamp
+                    fecha = dt.strftime('%Y-%m-%d')
+                except:
+                    fecha = datetime.now().strftime('%Y-%m-%d')
+            else:
+                fecha = datetime.now().strftime('%Y-%m-%d')
             
             print(f"\n{'='*60}")
             print(f"🔧 [{i}/{len(registros)}] Procesando reporte de mantenimiento")
             print(f"   🆔 ID: {registro_id}")
             print(f"   📋 Cliente: {cliente}")
             print(f"   🔢 Serie: {numero_serie}")
+            print(f"   📅 Fecha: {fecha}")
             
             pdf_path = generar_pdf_reporte_mantenimiento(
                 registro_id=registro_id,
@@ -1186,6 +1304,12 @@ def generar_reportes_mantenimiento_pendientes() -> tuple[int, int]:
             if pdf_path:
                 print(f"✅ ÉXITO - Reporte generado en {tiempo_registro:.2f}s")
                 exitosos += 1
+                
+                # Opcionalmente, subir a Google Drive si hay carpeta_fotos
+                carpeta_fotos = registro.get('carpeta_fotos')
+                if carpeta_fotos and upload_to_google_drive(pdf_path):
+                    print(f"   ☁️ Subido a Google Drive exitosamente")
+                
             else:
                 print(f"❌ FALLÓ - Reporte no generado (Tiempo: {tiempo_registro:.2f}s)")
                 fallidos += 1
