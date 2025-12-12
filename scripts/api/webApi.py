@@ -1766,7 +1766,8 @@ def get_maintenance_report_data_by_id(registro_id: str):
             "hp": registro.get("hp"),
             "voltaje": registro.get("voltaje"),
             "anio": registro.get("anio"),
-            "Alias": registro.get("Alias")
+            "Alias": registro.get("Alias"),
+            "link_pdf": registro.get("link_pdf")
         }
 
         cursor.close()

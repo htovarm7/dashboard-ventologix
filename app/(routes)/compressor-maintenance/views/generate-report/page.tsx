@@ -358,17 +358,19 @@ function ViewMaintenanceReportContent() {
                 onClick={closeImageModal}
               >
                 <div
-                  className="relative max-w-4xl max-h-[90vh]"
+                  className="relative max-w-4xl max-h-[90vh] w-full"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Image
                     src={imageModal.imageSrc}
                     alt="Imagen ampliada"
-                    className="w-full h-full object-contain"
+                    width={2000}
+                    height={2000}
+                    className="w-full h-auto object-contain rounded-lg"
                   />
                   <button
                     onClick={closeImageModal}
-                    className="absolute top-2 right-2 bg-white rounded-full w-10 h-10 flex items-center justify-center text-black font-bold text-xl hover:bg-gray-200"
+                    className="absolute top-2 right-2 bg-white rounded-full w-10 h-10 flex items-center justify-center text-black font-bold text-xl hover:bg-gray-200 transition-colors"
                   >
                     ✕
                   </button>
