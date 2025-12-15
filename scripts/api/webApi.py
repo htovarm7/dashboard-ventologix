@@ -2155,6 +2155,44 @@ def update_generado_status(registro_id: str, link_pdf: str = Body(None)):
         if 'conn' in locals() and conn:
             conn.close()
 
+@web.get("/kwh/get-data/{numero_cliente}", tags=["Consumo Energetico"])
+def get_kwh_data(numero_cliente: int):
+    """Obtiene datos de consumo kWh y factor de potencia para un cliente específico"""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT kwh.*, c.nombre_cliente, c.numero_cliente
+            FROM kwh_consumo kwh
+            JOIN clientes c ON kwh.id_cliente = c.id_cliente
+            WHERE c.numero_cliente = %s
+            ORDER BY kwh.fecha_registro DESC
+        """, (numero_cliente,))
+
+        kwh_data = cursor.fetchall()
+
+        return {
+            "success": True,
+            "data": kwh_data,
+            "total": len(kwh_data)
+        }
+
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching kWh data: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
 # =======================================================================================
 #                                    HELPER FUNCTIONS
 # =======================================================================================
