@@ -1115,7 +1115,7 @@ def get_kwh_mensual_por_dia(año: int = Query(..., description="Año"),
         # Ejecutar procedimiento almacenado
         cursor.execute(
             "CALL kwh_mensual_por_dia(%s, %s)",
-            (año, mes)
+            (año, mes,)
         )
 
         results = cursor.fetchall()
@@ -1146,8 +1146,7 @@ def get_kwh_mensual_por_dia(año: int = Query(..., description="Año"),
 
 
 @report.get("/kwh-diario-fases", tags=["📊 KWh Diario por Fases"])
-def get_kwh_diario_fases(device_id: int = Query(..., description="Numero del Cliente"),
-                         fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
+def get_kwh_diario_fases(fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
     try:
         conn = mysql.connector.connect(
             host=DB_HOST,
@@ -1159,8 +1158,8 @@ def get_kwh_diario_fases(device_id: int = Query(..., description="Numero del Cli
 
         # Ejecutar procedimiento almacenado
         cursor.execute(
-            "CALL kwh_diario_fases(%s, %s)",
-            (device_id, fecha)
+            "CALL kwh_diario_fases(%s)",
+            (fecha,)
         )
 
         results = cursor.fetchall()
