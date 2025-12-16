@@ -213,8 +213,8 @@ const ConsumptionKwH = () => {
   // Preparar datos para gráfica mensual
   const mensualChartData = {
     labels: mensualData.map((item) => {
-      const [month, day] = item.fecha.split("-");
-      return `${day}/${month}`;
+      const [year, month, day] = item.fecha.split("-");
+      return `${day}/${month}/${year}`;
     }),
     datasets: [
       {
