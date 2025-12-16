@@ -1101,8 +1101,7 @@ def get_week_summary_general(id_cliente: int = Query(..., description="ID del cl
 
 # Monthly and Daily Phase endpoints
 @report.get("/kwh-mensual-por-dia", tags=["📊 KWh Mensual"])
-def get_kwh_mensual_por_dia(device_id: int = Query(..., description="Numero del Cliente"), 
-                            año: int = Query(..., description="Año"),
+def get_kwh_mensual_por_dia(año: int = Query(..., description="Año"),
                             mes: int = Query(..., description="Mes")):
     try:
         conn = mysql.connector.connect(
@@ -1115,8 +1114,8 @@ def get_kwh_mensual_por_dia(device_id: int = Query(..., description="Numero del 
 
         # Ejecutar procedimiento almacenado
         cursor.execute(
-            "CALL kwh_mensual_por_dia(%s, %s, %s)",
-            (device_id, año, mes)
+            "CALL kwh_mensual_por_dia(%s, %s)",
+            (año, mes)
         )
 
         results = cursor.fetchall()
