@@ -4,18 +4,20 @@ import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/BackButton";
-import { Line } from "react-chartjs-2";
+import { Line, Bar } from "react-chartjs-2";
 import {
     Chart as ChartJS,
     CategoryScale,
     LinearScale,
     PointElement,
     LineElement,
+    BarElement,
     Title,
     Tooltip,
     Legend,
     Filler,
 } from "chart.js";
+import { URL_API } from "@/lib/global";
 
 // Registrar componentes de Chart.js
 ChartJS.register(
@@ -23,48 +25,27 @@ ChartJS.register(
     LinearScale,
     PointElement,
     LineElement,
+    BarElement,
     Title,
     Tooltip,
     Legend,
     Filler
 );
 
-// Mock Data - Datos de ejemplo
-const mockAmperageData = {
-    labels: [
-        "00:00", "02:00", "04:00", "06:00", "08:00", "10:00",
-        "12:00", "14:00", "16:00", "18:00", "20:00", "22:00"
-    ],
-    datasets: [
-        {
-            label: "Fase A (A)",
-            data: [45, 42, 38, 52, 68, 75, 82, 78, 71, 65, 58, 48],
-            borderColor: "rgb(239, 68, 68)",
-            backgroundColor: "rgba(239, 68, 68, 0.1)",
-            tension: 0.4,
-            fill: true,
-        },
-        {
-            label: "Fase B (A)",
-            data: [43, 40, 36, 50, 66, 73, 80, 76, 69, 63, 56, 46],
-            borderColor: "rgb(59, 130, 246)",
-            backgroundColor: "rgba(59, 130, 246, 0.1)",
-            tension: 0.4,
-            fill: true,
-        },
-        {
-            label: "Fase C (A)",
-            data: [44, 41, 37, 51, 67, 74, 81, 77, 70, 64, 57, 47],
-            borderColor: "rgb(34, 197, 94)",
-            backgroundColor: "rgba(34, 197, 94, 0.1)",
-            tension: 0.4,
-            fill: true,
-        },
-    ],
-};
+interface KwhMensualData {
+    fecha: string;
+    kwh: number;
+}
+
+interface KwhDiarioData {
+    time: string;
+    kWa: number;
+    kWb: number;
+    kWc: number;
+}
 
 const chartOptions = {
-    responsive: true,
+    responsive: false,
     maintainAspectRatio: false,
     plugins: {
         legend: {
@@ -75,18 +56,6 @@ const chartOptions = {
                 },
                 usePointStyle: true,
                 padding: 15,
-            },
-        },
-        title: {
-            display: true,
-            text: "Monitoreo de Amperaje - Últimas 24 Horas",
-            font: {
-                size: 18,
-                weight: "bold" as const,
-            },
-            padding: {
-                top: 10,
-                bottom: 30,
             },
         },
         tooltip: {
@@ -108,31 +77,10 @@ const chartOptions = {
             grid: {
                 color: "rgba(0, 0, 0, 0.05)",
             },
-            ticks: {
-                callback: function(value: string | number) {
-                    return value + " A";
-                },
-            },
-            title: {
-                display: true,
-                text: "Amperaje (A)",
-                font: {
-                    size: 14,
-                    weight: "bold" as const,
-                },
-            },
         },
         x: {
             grid: {
                 color: "rgba(0, 0, 0, 0.05)",
-            },
-            title: {
-                display: true,
-                text: "Hora del día",
-                font: {
-                    size: 14,
-                    weight: "bold" as const,
-                },
             },
         },
     },
@@ -143,28 +91,42 @@ const chartOptions = {
     },
 };
 
-// Mock Data - Estadísticas resumen
-const mockStats = {
-    faseA: {
-        promedio: 62.5,
-        maximo: 82,
-        minimo: 38,
-        actual: 48,
+const diarioChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            position: "top" as const,
+            labels: {
+                font: {
+                    size: 12,
+                },
+                usePointStyle: true,
+                padding: 15,
+            },
+        },
+        tooltip: {
+            enabled: false,
+        },
     },
-    faseB: {
-        promedio: 60.7,
-        maximo: 80,
-        minimo: 36,
-        actual: 46,
+    scales: {
+        y: {
+            beginAtZero: true,
+            grid: {
+                color: "rgba(0, 0, 0, 0.05)",
+            },
+        },
+        x: {
+            grid: {
+                color: "rgba(0, 0, 0, 0.05)",
+            },
+        },
     },
-    faseC: {
-        promedio: 61.6,
-        maximo: 81,
-        minimo: 37,
-        actual: 47,
+    interaction: {
+        mode: "nearest" as const,
+        axis: "x" as const,
+        intersect: false,
     },
-    consumoTotal: 1847.5, // kWh
-    costoEstimado: 12540.75, // MXN
 };
 
 const ConsumptionKwH = () => {
@@ -172,6 +134,19 @@ const ConsumptionKwH = () => {
     const router = useRouter();
     const [rol, setRol] = useState<number | null>(null);
     const [isAuthorized, setIsAuthorized] = useState(false);
+    const [deviceId, setDeviceId] = useState<number | null>(null);
+    
+    // Estados para datos
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    
+    const [mensualData, setMensualData] = useState<KwhMensualData[]>([]);
+    const [diarioData, setDiarioData] = useState<KwhDiarioData[]>([]);
+    const [loadingMensual, setLoadingMensual] = useState(false);
+    const [loadingDiario, setLoadingDiario] = useState(false);
+    const [errorMensual, setErrorMensual] = useState<string | null>(null);
+    const [errorDiario, setErrorDiario] = useState<string | null>(null);
 
     useEffect(() => {
         const userData = sessionStorage.getItem("userData");
@@ -179,47 +154,121 @@ const ConsumptionKwH = () => {
         if (userData) {
             try {
                 const parsedData = JSON.parse(userData);
+                console.log("userData:", parsedData);
                 setRol(parsedData.rol);
-                
-                // Solo roles 0 y 1 pueden acceder
-                if (parsedData.rol === 0 || parsedData.rol === 1) {
-                    setIsAuthorized(true);
-                } else {
-                    setIsAuthorized(false);
-                }
+                setDeviceId(parsedData.numero_cliente);
+                setIsAuthorized(true);
             } catch (error) {
                 console.error("Error parsing userData from sessionStorage:", error);
                 sessionStorage.removeItem("userData");
-                setIsAuthorized(false);
             }
         }
     }, [isAuthenticated, user, isLoading, router]);
 
-    if (!isAuthorized && rol !== null) {
-        return (
-            <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 flex items-center justify-center">
-                <div className="max-w-md w-full">
-                    <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-                        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                        </div>
-                        <h2 className="text-2xl font-bold text-gray-800 mb-4">Pagina en desarrollo</h2>
-                        <p className="text-gray-600 mb-6">
-                            Esta sección está en desarrollo y no está disponible en este momento.
-                        </p>
-                        <button
-                            onClick={() => router.push("/home")}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
-                        >
-                            Volver al Inicio
-                        </button>
-                    </div>
-                </div>
-            </main>
-        );
-    }
+    // Fetch datos mensuales
+    useEffect(() => {
+        if (!isAuthorized || !deviceId) return;
+
+        const fetchMensualData = async () => {
+            setLoadingMensual(true);
+            setErrorMensual(null);
+            try {
+                const response = await fetch(
+                    `${URL_API}/report/kwh-mensual-por-dia?device_id=${deviceId}&año=${selectedYear}&mes=${selectedMonth}`
+                );
+                if (!response.ok) throw new Error("Error fetching monthly data");
+                const result = await response.json();
+                setMensualData(result.data || []);
+            } catch (error) {
+                console.error("Error fetching monthly data:", error);
+                setErrorMensual("Error al cargar datos mensuales");
+            } finally {
+                setLoadingMensual(false);
+            }
+        };
+
+        fetchMensualData();
+    }, [isAuthorized, deviceId, selectedYear, selectedMonth]);
+
+    // Fetch datos diarios
+    useEffect(() => {
+        if (!isAuthorized || !deviceId) return;
+
+        const fetchDiarioData = async () => {
+            setLoadingDiario(true);
+            setErrorDiario(null);
+            try {
+                const response = await fetch(
+                    `${URL_API}/report/kwh-diario-fases?device_id=${deviceId}&fecha=${selectedDate}`
+                );
+                if (!response.ok) throw new Error("Error fetching daily data");
+                const result = await response.json();
+                setDiarioData(result.data || []);
+            } catch (error) {
+                console.error("Error fetching daily data:", error);
+                setErrorDiario("Error al cargar datos diarios");
+            } finally {
+                setLoadingDiario(false);
+            }
+        };
+
+        fetchDiarioData();
+    }, [isAuthorized, deviceId, selectedDate]);
+
+    // Calcular total KWH mensual
+    const totalKwhMensual = mensualData.reduce((sum, item) => sum + item.kwh, 0);
+
+    // Preparar datos para gráfica mensual
+    const mensualChartData = {
+        labels: mensualData.map(item => {
+            const date = new Date(item.fecha);
+            return `${date.getDate()}/${date.getMonth() + 1}`;
+        }),
+        datasets: [
+            {
+                label: "kWh",
+                data: mensualData.map(item => item.kwh),
+                borderColor: "rgb(147, 51, 234)",
+                backgroundColor: "rgba(147, 51, 234, 0.1)",
+                tension: 0.4,
+                fill: true,
+            },
+        ],
+    };
+
+    // Preparar datos para gráfica diaria
+    const diarioChartData = {
+        labels: diarioData.map(item => {
+            const time = new Date(item.time);
+            return time.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        }),
+        datasets: [
+            {
+                label: "Fase A (kW)",
+                data: diarioData.map(item => item.kWa),
+                borderColor: "rgb(239, 68, 68)",
+                backgroundColor: "rgba(239, 68, 68, 0.1)",
+                tension: 0.4,
+                fill: true,
+            },
+            {
+                label: "Fase B (kW)",
+                data: diarioData.map(item => item.kWb),
+                borderColor: "rgb(59, 130, 246)",
+                backgroundColor: "rgba(59, 130, 246, 0.1)",
+                tension: 0.4,
+                fill: true,
+            },
+            {
+                label: "Fase C (kW)",
+                data: diarioData.map(item => item.kWc),
+                borderColor: "rgb(34, 197, 94)",
+                backgroundColor: "rgba(34, 197, 94, 0.1)",
+                tension: 0.4,
+                fill: true,
+            },
+        ],
+    };
 
     if (rol === null) {
         return (
@@ -243,31 +292,96 @@ const ConsumptionKwH = () => {
                     </h1>
                 </div>
 
-
-                {/* Tarjeta Consumo Total */}
+                {/* Tarjeta Consumo Total Mensual */}
                 <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl shadow-lg p-8 text-white transform transition hover:scale-105 mb-8">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-2xl font-semibold">Consumo Total</h3>
+                        <h3 className="text-2xl font-semibold">Consumo Total Mensual</h3>
                         <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <p className="text-sm opacity-90 mb-2">Últimas 24 horas</p>
-                            <p className="text-4xl font-bold">{mockStats.consumoTotal.toLocaleString()} kWh</p>
-                        </div>
-                        <div className="md:pl-6 md:border-l border-white/30">
-                            <p className="text-sm opacity-90 mb-2">Costo Estimado</p>
-                            <p className="text-4xl font-bold">${mockStats.costoEstimado.toLocaleString()} MXN</p>
-                        </div>
+                    <div>
+                        <p className="text-sm opacity-90 mb-2">
+                            {selectedYear}-{String(selectedMonth).padStart(2, '0')}
+                        </p>
+                        <p className="text-5xl font-bold">
+                            {(totalKwhMensual / 1000000).toFixed(2)} MWh
+                        </p>
                     </div>
                 </div>
 
+                {/* Gráfica Mensual */}
                 <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-                    <div className="h-[500px]">
-                        <Line data={mockAmperageData} options={chartOptions} />
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-800">
+                            Consumo Mensual - {selectedYear}-{String(selectedMonth).padStart(2, '0')}
+                        </h2>
+                        <div className="flex gap-4">
+                            <select
+                                value={selectedYear}
+                                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                {[2024, 2025, 2026].map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
+                            </select>
+                            <select
+                                value={selectedMonth}
+                                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => (
+                                    <option key={month} value={month}>
+                                        {String(month).padStart(2, '0')}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
+                    
+                    {loadingMensual ? (
+                        <div className="h-[400px] flex items-center justify-center">
+                            <p className="text-gray-500">Cargando datos mensuales...</p>
+                        </div>
+                    ) : errorMensual ? (
+                        <div className="h-[400px] flex items-center justify-center">
+                            <p className="text-red-500">{errorMensual}</p>
+                        </div>
+                    ) : (
+                        <div className="h-[400px]">
+                            <Line data={mensualChartData} options={chartOptions} />
+                        </div>
+                    )}
+                </div>
+
+                {/* Gráfica Diaria */}
+                <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-800">
+                            Potencia por Fase - {selectedDate}
+                        </h2>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    
+                    {loadingDiario ? (
+                        <div className="h-[400px] flex items-center justify-center">
+                            <p className="text-gray-500">Cargando datos diarios...</p>
+                        </div>
+                    ) : errorDiario ? (
+                        <div className="h-[400px] flex items-center justify-center">
+                            <p className="text-red-500">{errorDiario}</p>
+                        </div>
+                    ) : (
+                        <div className="h-[400px]">
+                            <Line data={diarioChartData} options={diarioChartOptions} />
+                        </div>
+                    )}
                 </div>
             </div>
         </main>

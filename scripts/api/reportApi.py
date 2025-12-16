@@ -1,7 +1,5 @@
 from fastapi import FastAPI, Query, HTTPException, APIRouter
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.responses import StreamingResponse
 
 import mysql.connector
 import os
@@ -9,9 +7,6 @@ from dotenv import load_dotenv
 import numpy as np
 from datetime import datetime, timedelta
 import pandas as pd
-from io import BytesIO
-from pydantic import BaseModel
-from reportlab.pdfgen import canvas
 from statistics import mean, pstdev
 
 """
@@ -1102,6 +1097,99 @@ def get_week_summary_general(id_cliente: int = Query(..., description="ID del cl
 
     except mysql.connector.Error as err:
         return {"error": str(err)}
+
+
+# Monthly and Daily Phase endpoints
+@report.get("/kwh-mensual-por-dia", tags=["📊 KWh Mensual"])
+def get_kwh_mensual_por_dia(device_id: int = Query(..., description="Numero del Cliente"), 
+                            año: int = Query(..., description="Año"),
+                            mes: int = Query(..., description="Mes")):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor()
+
+        # Ejecutar procedimiento almacenado
+        cursor.execute(
+            "CALL kwh_mensual_por_dia(%s, %s, %s)",
+            (device_id, año, mes)
+        )
+
+        results = cursor.fetchall()
+
+        # Consumir resultsets pendientes
+        while cursor.nextset():
+            pass
+
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return {"data": []}
+
+        # Mapear resultados
+        columns = ["fecha", "kwh"]
+        data = [dict(zip(columns, row)) for row in results]
+
+        return {
+            "data": data,
+            "periodo": f"{año}-{mes:02d}"
+        }
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
+    except Exception as e:
+        return {"error": f"Error inesperado: {str(e)}"}
+
+
+@report.get("/kwh-diario-fases", tags=["📊 KWh Diario por Fases"])
+def get_kwh_diario_fases(device_id: int = Query(..., description="Numero del Cliente"),
+                         fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor()
+
+        # Ejecutar procedimiento almacenado
+        cursor.execute(
+            "CALL kwh_diario_fases(%s, %s)",
+            (device_id, fecha)
+        )
+
+        results = cursor.fetchall()
+
+        # Consumir resultsets pendientes
+        while cursor.nextset():
+            pass
+
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return {"data": []}
+
+        # Mapear resultados
+        columns = ["time", "kWa", "kWb", "kWc"]
+        data = [dict(zip(columns, row)) for row in results]
+
+        return {
+            "data": data,
+            "fecha": fecha
+        }
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
+    except Exception as e:
+        return {"error": f"Error inesperado: {str(e)}"}
+
 
 # Static data endpoints
 @report.get("/client-data", tags=["📋 Datos Estáticos"])
