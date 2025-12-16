@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/BackButton";
-import { Bar } from "react-chartjs-2";
+import { Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -45,7 +45,7 @@ interface KwhDiarioData {
 }
 
 const chartOptions = {
-  responsive: false,
+  responsive: true,
   maintainAspectRatio: true,
   plugins: {
     legend: {
@@ -87,8 +87,8 @@ const chartOptions = {
 };
 
 const diarioChartOptions = {
-  responsive: false,
-  maintainAspectRatio: true,
+  responsive: true,
+  maintainAspectRatio: false,
   plugins: {
     legend: {
       position: "top" as const,
@@ -101,7 +101,7 @@ const diarioChartOptions = {
       },
     },
     tooltip: {
-      enabled: true,
+      enabled: false,
     },
   },
   scales: {
@@ -116,6 +116,11 @@ const diarioChartOptions = {
         color: "rgba(0, 0, 0, 0.05)",
       },
     },
+  },
+  interaction: {
+    mode: "nearest" as const,
+    axis: "x" as const,
+    intersect: false,
   },
 };
 
@@ -227,7 +232,6 @@ const ConsumptionKwH = () => {
     ],
   };
 
-  // Preparar datos para gráfica diaria
   const diarioChartData = {
     labels: diarioData.map((item) => {
       const time = new Date(item.time);
@@ -240,23 +244,26 @@ const ConsumptionKwH = () => {
       {
         label: "Fase A (kW)",
         data: diarioData.map((item) => item.kWa),
-        backgroundColor: "rgba(239, 68, 68, 0.8)",
-        borderColor: "rgb(239, 68, 68)",
-        borderWidth: 1,
+        backgroundColor: "rgba(128, 128, 128, 0.5)", // gris semi-transparente
+        borderColor: "rgb(239, 68, 68)", // rojo línea
+        borderWidth: 0.8,
+        fill: true,
       },
       {
         label: "Fase B (kW)",
         data: diarioData.map((item) => item.kWb),
-        backgroundColor: "rgba(59, 130, 246, 0.8)",
-        borderColor: "rgb(59, 130, 246)",
-        borderWidth: 1,
+        backgroundColor: "rgba(128, 128, 128, 0.5)", // gris semi-transparente
+        borderColor: "rgb(59, 130, 246)", // azul línea
+        borderWidth: 0.8,
+        fill: true,
       },
       {
         label: "Fase C (kW)",
         data: diarioData.map((item) => item.kWc),
-        backgroundColor: "rgba(34, 197, 94, 0.8)",
-        borderColor: "rgb(34, 197, 94)",
-        borderWidth: 1,
+        backgroundColor: "rgba(128, 128, 128, 0.5)", // gris semi-transparente
+        borderColor: "rgb(34, 197, 94)", // verde línea
+        borderWidth: 0.8,
+        fill: true,
       },
     ],
   };
@@ -353,7 +360,7 @@ const ConsumptionKwH = () => {
               <p className="text-red-500">{errorMensual}</p>
             </div>
           ) : (
-            <div className="relative w-full" style={{ height: "500px" }}>
+            <div className="relative w-full h-full">
               <Bar data={mensualChartData} options={chartOptions} />
             </div>
           )}
@@ -382,8 +389,8 @@ const ConsumptionKwH = () => {
               <p className="text-red-500">{errorDiario}</p>
             </div>
           ) : (
-            <div className="relative w-full" style={{ height: "500px" }}>
-              <Bar data={diarioChartData} options={diarioChartOptions} />
+            <div className="relative w-full" style={{ height: "700px" }}>
+              <Line data={diarioChartData} options={diarioChartOptions} />
             </div>
           )}
         </div>
