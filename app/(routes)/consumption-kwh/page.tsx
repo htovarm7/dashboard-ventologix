@@ -96,7 +96,7 @@ const diarioChartOptions = {
         font: {
           size: 12,
         },
-        usePointStyle: true,
+        usePointStyle: false,
         padding: 15,
       },
     },
@@ -116,11 +116,6 @@ const diarioChartOptions = {
         color: "rgba(0, 0, 0, 0.05)",
       },
     },
-  },
-  interaction: {
-    mode: "nearest" as const,
-    axis: "x" as const,
-    intersect: false,
   },
 };
 
@@ -218,8 +213,8 @@ const ConsumptionKwH = () => {
   // Preparar datos para gráfica mensual
   const mensualChartData = {
     labels: mensualData.map((item) => {
-      const date = new Date(item.fecha);
-      return `${date.getDate()}/${date.getMonth() + 1}`;
+      const [year, month, day] = item.fecha.split("-");
+      return `${day}/${month}`;
     }),
     datasets: [
       {
@@ -244,26 +239,23 @@ const ConsumptionKwH = () => {
       {
         label: "Fase A (kW)",
         data: diarioData.map((item) => item.kWa),
-        backgroundColor: "rgba(128, 128, 128, 0.5)", // gris semi-transparente
-        borderColor: "rgb(239, 68, 68)", // rojo línea
+        borderColor: "rgb(239, 68, 68)",
         borderWidth: 0.8,
-        fill: true,
+        pointRadius: 0,
       },
       {
         label: "Fase B (kW)",
         data: diarioData.map((item) => item.kWb),
-        backgroundColor: "rgba(128, 128, 128, 0.5)", // gris semi-transparente
-        borderColor: "rgb(59, 130, 246)", // azul línea
+        borderColor: "rgb(59, 130, 246)",
         borderWidth: 0.8,
-        fill: true,
+        pointRadius: 0,
       },
       {
         label: "Fase C (kW)",
         data: diarioData.map((item) => item.kWc),
-        backgroundColor: "rgba(128, 128, 128, 0.5)", // gris semi-transparente
-        borderColor: "rgb(34, 197, 94)", // verde línea
+        borderColor: "rgb(34, 197, 94)",
         borderWidth: 0.8,
-        fill: true,
+        pointRadius: 0,
       },
     ],
   };
