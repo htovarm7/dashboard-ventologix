@@ -462,8 +462,7 @@ const ConsumptionKwH = () => {
             <div className="bg-white rounded-xl shadow-lg p-8">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-bold text-gray-800">
-                  Consumo por Día - {selectedYear}-
-                  {String(selectedMonth).padStart(2, "0")}
+                  Consumo Mensual - {getMonthName(selectedMonth)}
                 </h3>
                 <div className="flex gap-4">
                   <select
@@ -507,7 +506,6 @@ const ConsumptionKwH = () => {
             </div>
           </div>
 
-          {/* SECCIÓN CONSUMO DIARIO */}
           <div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-3xl font-bold text-gray-800">
@@ -528,7 +526,7 @@ const ConsumptionKwH = () => {
               {/* Gráfica de Potencia (kWh) */}
               <div className="bg-white rounded-xl shadow-lg p-8">
                 <h3 className="text-2xl font-bold text-gray-800 mb-6">
-                  Potencia por Fase (kW)
+                  Potencia por Fase (kW) - Diario
                 </h3>
 
                 {loadingDiario ? (
@@ -549,7 +547,7 @@ const ConsumptionKwH = () => {
               {/* Gráfica de Corriente (Amperaje) */}
               <div className="bg-white rounded-xl shadow-lg p-8">
                 <h3 className="text-2xl font-bold text-gray-800 mb-6">
-                  Corriente por Fase (A)
+                  Corriente por Fase (A) - Diario
                 </h3>
 
                 {loadingAmperaje ? (
@@ -607,7 +605,7 @@ const ConsumptionKwH = () => {
               {/* Gráfica de Voltaje */}
               <div className="bg-white rounded-xl shadow-lg p-8">
                 <h3 className="text-2xl font-bold text-gray-800 mb-6">
-                  Voltaje por Fase (V)
+                  Voltaje por Fase (V) - Diario
                 </h3>
 
                 {loadingVoltaje ? (
