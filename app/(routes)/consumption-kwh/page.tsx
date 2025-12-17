@@ -16,6 +16,7 @@ import {
   Legend,
   Filler,
 } from "chart.js";
+import ChartDataLabels from "chartjs-plugin-datalabels";
 import { URL_API } from "@/lib/global";
 import Image from "next/image";
 
@@ -29,7 +30,8 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
+  ChartDataLabels
 );
 
 interface KwhMensualData {
@@ -58,7 +60,7 @@ interface VoltajeDiarioData {
   uc: number;
 }
 
-const chartOptions = {
+const mensualChartOptions = {
   responsive: true,
   maintainAspectRatio: true,
   plugins: {
@@ -84,6 +86,15 @@ const chartOptions = {
         size: 13,
       },
     },
+    datalabels: {
+      anchor: "end" as const,
+      align: "end" as const,
+      color: "#000",
+      font: {
+        size: 12,
+      },
+      formatter: (value: number) => value.toFixed(2),
+    },
   },
   scales: {
     y: {
@@ -99,6 +110,7 @@ const chartOptions = {
     },
   },
 };
+
 
 const diarioChartOptions = {
   responsive: true,
@@ -503,7 +515,7 @@ const ConsumptionKwH = () => {
                 </div>
               ) : (
                 <div className="relative w-full">
-                  <Bar data={mensualChartData} options={chartOptions} />
+                  <Bar data={mensualChartData} options={mensualChartOptions} />
                 </div>
               )}
             </div>
