@@ -237,7 +237,7 @@ const Home = () => {
             </div>
           ) : (
             <div className="flex flex-col gap-8">
-              <div className="grid grid-cols-1 sm:grid-cols-3 max-w-3xl gap-6 md:gap-8 mx-auto px-4 w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 max-w-3xl gap-6 md:gap-8 mx-auto px-4 w-full">
                 {secciones.includes("Prediccion") && (
                   <button
                     className="w-full text-lg text-violet-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-violet-200 p-4 rounded-xl hover:bg-violet-50 hover:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
@@ -271,7 +271,7 @@ const Home = () => {
                 )}
                 {secciones.includes("KWH") && (
                   <button
-                    className="w-full text-xl text-cyan-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-green-200 p-4 rounded-xl hover:bg-green-50 hover:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
+                    className="w-full text-xl text-blue-900 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-blue-200 p-4 rounded-xl hover:bg-blue-50 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
                     onClick={() => router.push("/consumption-kwh")}
                     style={{ WebkitTapHighlightColor: "transparent" }}
                   >
