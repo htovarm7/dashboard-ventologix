@@ -447,7 +447,10 @@ const ConsumptionKwH = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-5xl font-bold">
-                    {totalKwhMensual.toFixed(2)} kWh
+                    {totalKwhMensual.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })} kWh
                   </p>
                 </div>
                 <div className="text-right">

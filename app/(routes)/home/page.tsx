@@ -271,12 +271,12 @@ const Home = () => {
                 )}
                 {secciones.includes("KWH") && (
                   <button
-                    className="w-full text-lg text-cyan-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-green-200 p-4 rounded-xl hover:bg-green-50 hover:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
+                    className="w-full text-xl text-cyan-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-green-200 p-4 rounded-xl hover:bg-green-50 hover:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
                     onClick={() => router.push("/consumption-kwh")}
                     style={{ WebkitTapHighlightColor: "transparent" }}
                   >
                     <span className="font-medium">
-                      Consumo de KWH
+                      Monitoreo de Consumo KWH
                     </span>
                   </button>
                 )}
