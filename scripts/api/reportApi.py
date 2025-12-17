@@ -1189,6 +1189,94 @@ def get_kwh_diario_fases(fecha: str = Query(..., description="Fecha en formato Y
         return {"error": f"Error inesperado: {str(e)}"}
 
 
+@report.get("/amperaje-diario-fases", tags=["📊 Amperaje Diario por Fases"])
+def get_amperaje_diario_fases(fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor()
+
+        # Ejecutar procedimiento almacenado
+        cursor.execute(
+            "CALL amperaje_diario_fases(%s)",
+            (fecha,)
+        )
+
+        results = cursor.fetchall()
+
+        # Consumir resultsets pendientes
+        while cursor.nextset():
+            pass
+
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return {"data": []}
+
+        # Mapear resultados
+        columns = ["time", "ia", "ib", "ic"]
+        data = [dict(zip(columns, row)) for row in results]
+
+        return {
+            "data": data,
+            "fecha": fecha
+        }
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
+    except Exception as e:
+        return {"error": f"Error inesperado: {str(e)}"}
+
+
+@report.get("/voltaje-diario-fases", tags=["📊 Voltaje Diario por Fases"])
+def get_voltaje_diario_fases(fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor()
+
+        # Ejecutar procedimiento almacenado
+        cursor.execute(
+            "CALL voltaje_diario_fases(%s)",
+            (fecha,)
+        )
+
+        results = cursor.fetchall()
+
+        # Consumir resultsets pendientes
+        while cursor.nextset():
+            pass
+
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return {"data": []}
+
+        # Mapear resultados
+        columns = ["time", "ua", "ub", "uc"]
+        data = [dict(zip(columns, row)) for row in results]
+
+        return {
+            "data": data,
+            "fecha": fecha
+        }
+
+    except mysql.connector.Error as err:
+        return {"error": str(err)}
+    except Exception as e:
+        return {"error": f"Error inesperado: {str(e)}"}
+
+
 # Static data endpoints
 @report.get("/client-data", tags=["📋 Datos Estáticos"])
 def get_client_data(id_cliente: int = Query(..., description="ID del cliente")):
