@@ -129,6 +129,9 @@ const diarioChartOptions = {
     tooltip: {
       enabled: false,
     },
+    datalabels: {
+      display: false,
+    },
   },
   scales: {
     y: {
@@ -341,6 +344,7 @@ const ConsumptionKwH = () => {
         backgroundColor: "rgba(6, 71, 176, 1)",
         borderWidth: 0.8,
         pointRadius: 0,
+        fill: false,
       },
       {
         label: "Fase B (kW)",
@@ -349,6 +353,7 @@ const ConsumptionKwH = () => {
         backgroundColor: "rgba(0, 255, 94, 1)",
         borderWidth: 0.8,
         pointRadius: 0,
+        fill: false,
       },
       {
         label: "Fase C (kW)",
@@ -357,6 +362,7 @@ const ConsumptionKwH = () => {
         backgroundColor: "rgba(255, 0, 123, 1)",
         borderWidth: 0.8,
         pointRadius: 0,
+        fill: false,
       },
     ],
   };
@@ -592,6 +598,7 @@ const ConsumptionKwH = () => {
                             backgroundColor: "rgba(6, 71, 176, 1)",
                             borderWidth: 0.8,
                             pointRadius: 0,
+                            fill: false,
                           },
                           {
                             label: "Fase B (A)",
@@ -600,6 +607,7 @@ const ConsumptionKwH = () => {
                             backgroundColor: "rgba(0, 255, 94, 1)",
                             borderWidth: 0.8,
                             pointRadius: 0,
+                            fill: false,
                           },
                           {
                             label: "Fase C (A)",
@@ -608,6 +616,7 @@ const ConsumptionKwH = () => {
                             backgroundColor: "rgba(255, 0, 123, 1)",
                             borderWidth: 0.8,
                             pointRadius: 0,
+                            fill: false,
                           },
                         ],
                       }}
@@ -650,6 +659,7 @@ const ConsumptionKwH = () => {
                             backgroundColor: "rgba(6, 71, 176, 1)",
                             borderWidth: 0.8,
                             pointRadius: 0,
+                            fill: false,
                           },
                           {
                             label: "Fase B (V)",
@@ -658,6 +668,7 @@ const ConsumptionKwH = () => {
                             backgroundColor: "rgba(0, 255, 94, 1)",
                             borderWidth: 0.8,
                             pointRadius: 0,
+                            fill: false,
                           },
                           {
                             label: "Fase C (V)",
@@ -666,6 +677,7 @@ const ConsumptionKwH = () => {
                             backgroundColor: "rgba(255, 0, 123, 1)",
                             borderWidth: 0.8,
                             pointRadius: 0,
+                            fill: false,
                           },
                         ],
                       }}
