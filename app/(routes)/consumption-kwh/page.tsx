@@ -129,6 +129,9 @@ const diarioChartOptions = {
     tooltip: {
       enabled: false,
     },
+    datalabels: {
+      display: false, // 🔴 Esto quita los números
+    },
   },
   scales: {
     y: {
