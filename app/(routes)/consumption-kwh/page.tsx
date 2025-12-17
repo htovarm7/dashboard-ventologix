@@ -131,7 +131,7 @@ const diarioChartOptions = {
     },
     datalabels: {
       display: false, // 🔴 Esto quita los números
-    }
+    },
   },
   scales: {
     y: {
