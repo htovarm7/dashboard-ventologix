@@ -159,10 +159,10 @@ const Home = () => {
               <div className="text-center">
                 <div className="text-4xl mb-4">📋</div>
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  Reportes
+                  Generar Reportes
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  Ver historial de reportes
+                  Genera los diferentes tipos de reportes de mantenimiento
                 </p>
               </div>
             </button>

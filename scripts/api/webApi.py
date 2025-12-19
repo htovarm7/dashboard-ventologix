@@ -70,6 +70,35 @@ class GenerateReportRequest(BaseModel):
     fecha: str
     registro_id: Optional[str] = None
 
+class AddClientRequest(BaseModel):
+    id_cliente: int
+    numero_cliente: int
+    nombre_cliente: str
+    RFC: str
+    direccion: Optional[str] = None
+    champion: Optional[str] = None
+    id_compresor: Optional[int] = None
+    CostokWh: Optional[float] = 0.17
+    demoDiario: Optional[bool] = None
+    demoSemanal: Optional[bool] = None
+
+class AddCompressorRequest(BaseModel):
+    hp: Optional[int] = None
+    tipo: Optional[str] = None
+    voltaje: int
+    marca: Optional[str] = None
+    numero_serie: Optional[str] = None
+    anio: Optional[int] = None
+    id_cliente: int
+    Amp_Load: Optional[int] = None
+    Amp_No_Load: Optional[int] = None
+    proyecto: Optional[int] = None
+    linea: Optional[str] = None
+    LOAD_NO_LOAD: Optional[float] = None
+    Alias: Optional[str] = None
+    segundosPorRegistro: Optional[int] = 30
+    fecha_ultimo_mtto: Optional[str] = None
+
 
 # Mapeo de columnas de BD a nombres de mantenimientos legibles
 MAINTENANCE_COLUMN_MAPPING = {
@@ -2145,6 +2174,145 @@ def update_generado_status(registro_id: str, link_pdf: str = Body(None)):
         if 'cursor' in locals() and cursor:
             cursor.close()
         if 'conn' in locals() and conn:
+            conn.close()
+
+# Add Client and compressor
+@web.post("/client/add-client", tags=["⚙️ Gestión de Clientes y Compresores"])
+def add_client(request: AddClientRequest):
+    """Agregar un nuevo cliente a la base de datos"""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        # Verificar que el número de cliente no exista
+        cursor.execute(
+            "SELECT id_cliente FROM clientes WHERE numero_cliente = %s",
+            (request.numero_cliente,)
+        )
+        if cursor.fetchone():
+            raise HTTPException(status_code=409, detail="El número de cliente ya existe")
+        cursor.fetchall()  # Limpiar resultados
+
+        # Insertar nuevo cliente
+        cursor.execute(
+            """INSERT INTO clientes 
+               (id_cliente, numero_cliente, nombre_cliente, RFC, direccion, champion, 
+                id_compresor, CostokWh) 
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+            (
+                request.id_cliente,
+                request.numero_cliente,
+                request.nombre_cliente,
+                request.RFC,
+                request.direccion,
+                request.champion,
+                request.id_compresor,
+                request.CostokWh if request.CostokWh else 0.17
+            )
+        )
+
+        conn.commit()
+
+        return {
+            "success": True,
+            "message": "Cliente agregado exitosamente",
+            "id_cliente": request.id_cliente,
+            "numero_cliente": request.numero_cliente,
+            "nombre_cliente": request.nombre_cliente
+        }
+
+    except mysql.connector.Error as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error adding client: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+@web.post("/compressor/add-compressor", tags=["⚙️ Gestión de Clientes y Compresores"])
+def add_compressor(request: AddCompressorRequest):
+    """Agregar un nuevo compresor a la base de datos"""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        # Verificar que el cliente existe
+        cursor.execute(
+            "SELECT id_cliente FROM clientes WHERE id_cliente = %s",
+            (request.id_cliente,)
+        )
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Cliente no encontrado")
+        cursor.fetchall()  # Limpiar resultados
+
+        # Insertar nuevo compresor
+        cursor.execute(
+            """INSERT INTO compresores 
+               (hp, tipo, voltaje, marca, numero_serie, anio, id_cliente, Amp_Load, Amp_No_Load, 
+                proyecto, linea, LOAD_NO_LOAD, Alias, segundosPorRegistro, fecha_ultimo_mtto) 
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            (
+                request.hp,
+                request.tipo,
+                request.voltaje,
+                request.marca,
+                request.numero_serie,
+                request.anio,
+                request.id_cliente,
+                request.Amp_Load,
+                request.Amp_No_Load,
+                request.proyecto,
+                request.linea,
+                request.LOAD_NO_LOAD,
+                request.Alias,
+                request.segundosPorRegistro if request.segundosPorRegistro else 30,
+                request.fecha_ultimo_mtto
+            )
+        )
+
+        compressor_id = cursor.lastrowid
+        conn.commit()
+
+        return {
+            "success": True,
+            "message": "Compresor agregado exitosamente",
+            "id": compressor_id,
+            "numero_serie": request.numero_serie,
+            "Alias": request.Alias
+        }
+
+    except mysql.connector.Error as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error adding compressor: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
             conn.close()
 
 # =======================================================================================

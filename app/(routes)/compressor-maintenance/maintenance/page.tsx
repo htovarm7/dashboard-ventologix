@@ -1099,7 +1099,7 @@ const CompressorMaintenance = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <BackButton className="fixed" />
+      <BackButton className="fixed top-4 left-4 z-50" />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -1115,477 +1115,505 @@ const CompressorMaintenance = () => {
         </div>
 
         {/* Compressor List */}
-        <div className="space-y-4">
-          {userRole === 2
-            ? // Agrupación por cliente para rol 2 (VAST)
-              (() => {
-                const groupedData =
-                  groupMaintenancesByClient(filteredMaintenances);
-                return Object.entries(groupedData).map(
-                  ([clientName, clientMaintenances]) => (
-                    <div
-                      key={clientName}
-                      className="bg-white rounded-lg shadow overflow-hidden"
-                    >
-                      {/* Client Header */}
-                      <div className="bg-blue-50 p-4 border-b border-blue-200">
-                        <div className="flex items-center justify-between">
-                          <h2 className="text-xl font-bold text-blue-900">
-                            {clientName}
-                          </h2>
-                          <span className="px-3 py-1 bg-blue-200 text-blue-800 rounded-full text-sm font-medium">
-                            {clientMaintenances.length} compresor
-                            {clientMaintenances.length !== 1 ? "es" : ""}
-                          </span>
+        {filteredMaintenances.length === 0 ? (
+          <div className="text-center py-16 text-gray-500">
+            <Settings size={64} className="mx-auto mb-4 text-gray-300" />
+            <p className="text-xl font-medium">
+              No hay mantenimientos disponibles
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {userRole === 2
+              ? // Agrupación por cliente para rol 2 (VAST)
+                (() => {
+                  const groupedData =
+                    groupMaintenancesByClient(filteredMaintenances);
+                  return Object.entries(groupedData).map(
+                    ([clientName, clientMaintenances]) => (
+                      <div
+                        key={clientName}
+                        className="bg-white rounded-lg shadow overflow-hidden"
+                      >
+                        {/* Client Header */}
+                        <div className="bg-blue-50 p-4 border-b border-blue-200">
+                          <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-blue-900">
+                              {clientName}
+                            </h2>
+                            <span className="px-3 py-1 bg-blue-200 text-blue-800 rounded-full text-sm font-medium">
+                              {clientMaintenances.length} compresor
+                              {clientMaintenances.length !== 1 ? "es" : ""}
+                            </span>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Client's Compressors */}
-                      <div className="divide-y divide-gray-200">
-                        {clientMaintenances.map((cm: CompressorMaintenance) => (
-                          <div key={cm.compressor.id}>
-                            {/* Compressor Header */}
-                            <div
-                              className="p-6 cursor-pointer hover:bg-gray-50 transition-colors"
-                              onClick={() =>
-                                toggleCompressorExpansion(cm.compressor.id)
-                              }
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-4">
-                                  {expandedCompressors.has(cm.compressor.id) ? (
-                                    <ChevronDown
-                                      size={20}
-                                      className="text-gray-500"
-                                    />
-                                  ) : (
-                                    <ChevronRight
-                                      size={20}
-                                      className="text-gray-500"
-                                    />
-                                  )}
-                                  <div>
-                                    <h3 className="text-lg font-semibold text-gray-900">
-                                      {cm.compressor.alias}
-                                    </h3>
-                                  </div>
-                                </div>
-                                <div className="flex items-center space-x-4">
-                                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                                    {cm.maintenanceRecords.length} mantenimiento
-                                    {cm.maintenanceRecords.length !== 1
-                                      ? "s"
-                                      : ""}
-                                  </span>
-                                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                                    {
-                                      cm.maintenanceRecords.filter(
-                                        (r: MaintenanceRecord) => r.isActive
-                                      ).length
-                                    }{" "}
-                                    activo
-                                    {cm.maintenanceRecords.filter(
-                                      (r: MaintenanceRecord) => r.isActive
-                                    ).length !== 1
-                                      ? "s"
-                                      : ""}
-                                  </span>
-                                  {(() => {
-                                    const urgentCount =
-                                      cm.maintenanceRecords.filter(
-                                        (r: MaintenanceRecord) =>
-                                          r.isActive &&
-                                          isMaintenanceUrgent(
-                                            r,
-                                            r.id_mantenimiento &&
-                                              cm.compressor.id &&
-                                              semaforoData[
-                                                Number(cm.compressor.id)
-                                              ]
-                                              ? semaforoData[
-                                                  Number(cm.compressor.id)
-                                                ][Number(r.id_mantenimiento)]
-                                              : undefined
-                                          )
-                                      ).length;
-                                    const nextCount =
-                                      cm.maintenanceRecords.filter(
-                                        (r: MaintenanceRecord) =>
-                                          r.isActive &&
-                                          !isMaintenanceUrgent(
-                                            r,
-                                            r.id_mantenimiento &&
-                                              cm.compressor.id &&
-                                              semaforoData[
-                                                Number(cm.compressor.id)
-                                              ]
-                                              ? semaforoData[
-                                                  Number(cm.compressor.id)
-                                                ][Number(r.id_mantenimiento)]
-                                              : undefined
-                                          ) &&
-                                          isMaintenanceNext(
-                                            r,
-                                            r.id_mantenimiento &&
-                                              cm.compressor.id &&
-                                              semaforoData[
-                                                Number(cm.compressor.id)
-                                              ]
-                                              ? semaforoData[
-                                                  Number(cm.compressor.id)
-                                                ][Number(r.id_mantenimiento)]
-                                              : undefined
-                                          )
-                                      ).length;
-                                    return (
-                                      <>
-                                        {urgentCount > 0 && (
-                                          <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-                                            🔴 {urgentCount} urgente
-                                            {urgentCount !== 1 ? "s" : ""}
-                                          </span>
-                                        )}
-                                        {nextCount > 0 && (
-                                          <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
-                                            🟡 {nextCount} próximo
-                                            {nextCount !== 1 ? "s" : ""}
-                                          </span>
-                                        )}
-                                      </>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Maintenance Records */}
-                            {expandedCompressors.has(cm.compressor.id) && (
-                              <div className="p-6 bg-gray-50">
-                                {cm.maintenanceRecords.length === 0 ? (
-                                  <div className="text-center py-8 text-gray-500">
-                                    <Settings
-                                      size={48}
-                                      className="mx-auto mb-4 text-gray-300"
-                                    />
-                                    <p>
-                                      No hay mantenimientos registrados para
-                                      este compresor
-                                    </p>
-                                    <button
-                                      onClick={() =>
-                                        setShowMaintenanceForm(true)
-                                      }
-                                      className="mt-2 text-blue-600 hover:text-blue-800 font-medium"
-                                    >
-                                      Agregar el primer mantenimiento
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="grid gap-4">
-                                    {cm.maintenanceRecords.map(
-                                      (record: MaintenanceRecord) => (
-                                        <div
-                                          key={record.id}
-                                          className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
-                                        >
-                                          <div className="flex justify-between items-start">
-                                            <div className="flex-1">
-                                              <div className="flex items-center gap-3 mb-3">
-                                                <h4 className="font-semibold text-gray-900 text-lg">
-                                                  {record.type}
-                                                </h4>
-                                                <span
-                                                  className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                    record.isActive
-                                                      ? "bg-green-100 text-green-800"
-                                                      : "bg-gray-100 text-gray-600"
-                                                  }`}
-                                                >
-                                                  {record.isActive
-                                                    ? "Activo"
-                                                    : "Inactivo"}
-                                                </span>
-                                              </div>
-
-                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                                                <div className="flex items-center gap-2">
-                                                  <Clock
-                                                    size={16}
-                                                    className="text-gray-400"
-                                                  />
-                                                  <span className="text-gray-600">
-                                                    Frecuencia de Cambio:
-                                                  </span>
-                                                  <span className="font-medium">
-                                                    {record.frequency} horas
-                                                  </span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                  <Calendar
-                                                    size={16}
-                                                    className="text-gray-400"
-                                                  />
-                                                  <span className="text-gray-600">
-                                                    Último Mantenimiento:
-                                                  </span>
-                                                  <span className="font-medium">
-                                                    {record.lastMaintenanceDate
-                                                      ? record.lastMaintenanceDate.split(
-                                                          "T"
-                                                        )[0]
-                                                      : "No registrado"}
-                                                  </span>
-                                                </div>
-                                              </div>
-
-                                              {/* Contador por horas y semáforo */}
-                                              <MaintenanceTimer
-                                                lastMaintenanceDate={
-                                                  record.lastMaintenanceDate
-                                                }
-                                                frequency={record.frequency}
-                                                horasTranscurridas={
-                                                  record.id_mantenimiento &&
+                        {/* Client's Compressors */}
+                        <div className="divide-y divide-gray-200">
+                          {clientMaintenances.map(
+                            (cm: CompressorMaintenance) => (
+                              <div key={cm.compressor.id}>
+                                {/* Compressor Header */}
+                                <div
+                                  className="p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+                                  onClick={() =>
+                                    toggleCompressorExpansion(cm.compressor.id)
+                                  }
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-4">
+                                      {expandedCompressors.has(
+                                        cm.compressor.id
+                                      ) ? (
+                                        <ChevronDown
+                                          size={20}
+                                          className="text-gray-500"
+                                        />
+                                      ) : (
+                                        <ChevronRight
+                                          size={20}
+                                          className="text-gray-500"
+                                        />
+                                      )}
+                                      <div>
+                                        <h3 className="text-lg font-semibold text-gray-900">
+                                          {cm.compressor.alias}
+                                        </h3>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center space-x-4">
+                                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                                        {cm.maintenanceRecords.length}{" "}
+                                        mantenimiento
+                                        {cm.maintenanceRecords.length !== 1
+                                          ? "s"
+                                          : ""}
+                                      </span>
+                                      <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                                        {
+                                          cm.maintenanceRecords.filter(
+                                            (r: MaintenanceRecord) => r.isActive
+                                          ).length
+                                        }{" "}
+                                        activo
+                                        {cm.maintenanceRecords.filter(
+                                          (r: MaintenanceRecord) => r.isActive
+                                        ).length !== 1
+                                          ? "s"
+                                          : ""}
+                                      </span>
+                                      {(() => {
+                                        const urgentCount =
+                                          cm.maintenanceRecords.filter(
+                                            (r: MaintenanceRecord) =>
+                                              r.isActive &&
+                                              isMaintenanceUrgent(
+                                                r,
+                                                r.id_mantenimiento &&
                                                   cm.compressor.id &&
                                                   semaforoData[
                                                     Number(cm.compressor.id)
                                                   ]
-                                                    ? semaforoData[
-                                                        Number(cm.compressor.id)
-                                                      ][
-                                                        Number(
-                                                          record.id_mantenimiento
-                                                        )
-                                                      ]
-                                                    : undefined
-                                                }
-                                              />
-
-                                              {record.description && (
-                                                <div className="mt-3 pt-3 border-t border-gray-100">
-                                                  <p className="text-sm text-gray-600">
-                                                    <strong>
-                                                      Observaciones:
-                                                    </strong>{" "}
-                                                    {record.description}
-                                                  </p>
-                                                </div>
-                                              )}
-                                            </div>
-
-                                            {userRole === 2 && (
-                                              <button
-                                                onClick={() =>
-                                                  handleEditMaintenance(record)
-                                                }
-                                                className="ml-4 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
-                                                title="Editar mantenimiento"
-                                              >
-                                                <Edit size={18} />
-                                              </button>
+                                                  ? semaforoData[
+                                                      Number(cm.compressor.id)
+                                                    ][
+                                                      Number(r.id_mantenimiento)
+                                                    ]
+                                                  : undefined
+                                              )
+                                          ).length;
+                                        const nextCount =
+                                          cm.maintenanceRecords.filter(
+                                            (r: MaintenanceRecord) =>
+                                              r.isActive &&
+                                              !isMaintenanceUrgent(
+                                                r,
+                                                r.id_mantenimiento &&
+                                                  cm.compressor.id &&
+                                                  semaforoData[
+                                                    Number(cm.compressor.id)
+                                                  ]
+                                                  ? semaforoData[
+                                                      Number(cm.compressor.id)
+                                                    ][
+                                                      Number(r.id_mantenimiento)
+                                                    ]
+                                                  : undefined
+                                              ) &&
+                                              isMaintenanceNext(
+                                                r,
+                                                r.id_mantenimiento &&
+                                                  cm.compressor.id &&
+                                                  semaforoData[
+                                                    Number(cm.compressor.id)
+                                                  ]
+                                                  ? semaforoData[
+                                                      Number(cm.compressor.id)
+                                                    ][
+                                                      Number(r.id_mantenimiento)
+                                                    ]
+                                                  : undefined
+                                              )
+                                          ).length;
+                                        return (
+                                          <>
+                                            {urgentCount > 0 && (
+                                              <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                                                🔴 {urgentCount} urgente
+                                                {urgentCount !== 1 ? "s" : ""}
+                                              </span>
                                             )}
-                                          </div>
-                                        </div>
-                                      )
+                                            {nextCount > 0 && (
+                                              <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                                                🟡 {nextCount} próximo
+                                                {nextCount !== 1 ? "s" : ""}
+                                              </span>
+                                            )}
+                                          </>
+                                        );
+                                      })()}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Maintenance Records */}
+                                {expandedCompressors.has(cm.compressor.id) && (
+                                  <div className="p-6 bg-gray-50">
+                                    {cm.maintenanceRecords.length === 0 ? (
+                                      <div className="text-center py-8 text-gray-500">
+                                        <Settings
+                                          size={48}
+                                          className="mx-auto mb-4 text-gray-300"
+                                        />
+                                        <p>
+                                          No hay mantenimientos registrados para
+                                          este compresor
+                                        </p>
+                                        <button
+                                          onClick={() =>
+                                            setShowMaintenanceForm(true)
+                                          }
+                                          className="mt-2 text-blue-600 hover:text-blue-800 font-medium"
+                                        >
+                                          Agregar el primer mantenimiento
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="grid gap-4">
+                                        {cm.maintenanceRecords.map(
+                                          (record: MaintenanceRecord) => (
+                                            <div
+                                              key={record.id}
+                                              className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
+                                            >
+                                              <div className="flex justify-between items-start">
+                                                <div className="flex-1">
+                                                  <div className="flex items-center gap-3 mb-3">
+                                                    <h4 className="font-semibold text-gray-900 text-lg">
+                                                      {record.type}
+                                                    </h4>
+                                                    <span
+                                                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                        record.isActive
+                                                          ? "bg-green-100 text-green-800"
+                                                          : "bg-gray-100 text-gray-600"
+                                                      }`}
+                                                    >
+                                                      {record.isActive
+                                                        ? "Activo"
+                                                        : "Inactivo"}
+                                                    </span>
+                                                  </div>
+
+                                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                                    <div className="flex items-center gap-2">
+                                                      <Clock
+                                                        size={16}
+                                                        className="text-gray-400"
+                                                      />
+                                                      <span className="text-gray-600">
+                                                        Frecuencia de Cambio:
+                                                      </span>
+                                                      <span className="font-medium">
+                                                        {record.frequency} horas
+                                                      </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                      <Calendar
+                                                        size={16}
+                                                        className="text-gray-400"
+                                                      />
+                                                      <span className="text-gray-600">
+                                                        Último Mantenimiento:
+                                                      </span>
+                                                      <span className="font-medium">
+                                                        {record.lastMaintenanceDate
+                                                          ? record.lastMaintenanceDate.split(
+                                                              "T"
+                                                            )[0]
+                                                          : "No registrado"}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+
+                                                  {/* Contador por horas y semáforo */}
+                                                  <MaintenanceTimer
+                                                    lastMaintenanceDate={
+                                                      record.lastMaintenanceDate
+                                                    }
+                                                    frequency={record.frequency}
+                                                    horasTranscurridas={
+                                                      record.id_mantenimiento &&
+                                                      cm.compressor.id &&
+                                                      semaforoData[
+                                                        Number(cm.compressor.id)
+                                                      ]
+                                                        ? semaforoData[
+                                                            Number(
+                                                              cm.compressor.id
+                                                            )
+                                                          ][
+                                                            Number(
+                                                              record.id_mantenimiento
+                                                            )
+                                                          ]
+                                                        : undefined
+                                                    }
+                                                  />
+
+                                                  {record.description && (
+                                                    <div className="mt-3 pt-3 border-t border-gray-100">
+                                                      <p className="text-sm text-gray-600">
+                                                        <strong>
+                                                          Observaciones:
+                                                        </strong>{" "}
+                                                        {record.description}
+                                                      </p>
+                                                    </div>
+                                                  )}
+                                                </div>
+
+                                                {userRole === 2 && (
+                                                  <button
+                                                    onClick={() =>
+                                                      handleEditMaintenance(
+                                                        record
+                                                      )
+                                                    }
+                                                    className="ml-4 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="Editar mantenimiento"
+                                                  >
+                                                    <Edit size={18} />
+                                                  </button>
+                                                )}
+                                              </div>
+                                            </div>
+                                          )
+                                        )}
+                                      </div>
                                     )}
                                   </div>
                                 )}
                               </div>
-                            )}
-                          </div>
-                        ))}
+                            )
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )
-                );
-              })()
-            : // Lista normal para otros roles
-              filteredMaintenances.map((cm) => (
-                <div
-                  key={cm.compressor.id}
-                  className="bg-white rounded-lg shadow overflow-hidden"
-                >
-                  {/* Compressor Header */}
+                    )
+                  );
+                })()
+              : // Lista normal para otros roles
+                filteredMaintenances.map((cm) => (
                   <div
-                    className="p-6 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={() => toggleCompressorExpansion(cm.compressor.id)}
+                    key={cm.compressor.id}
+                    className="bg-white rounded-lg shadow overflow-hidden"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        {expandedCompressors.has(cm.compressor.id) ? (
-                          <ChevronDown size={20} className="text-gray-500" />
-                        ) : (
-                          <ChevronRight size={20} className="text-gray-500" />
-                        )}
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {cm.compressor.alias}
-                          </h3>
+                    {/* Compressor Header */}
+                    <div
+                      className="p-6 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                      onClick={() =>
+                        toggleCompressorExpansion(cm.compressor.id)
+                      }
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          {expandedCompressors.has(cm.compressor.id) ? (
+                            <ChevronDown size={20} className="text-gray-500" />
+                          ) : (
+                            <ChevronRight size={20} className="text-gray-500" />
+                          )}
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {cm.compressor.alias}
+                            </h3>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                          {cm.maintenanceRecords.length} mantenimiento
-                          {cm.maintenanceRecords.length !== 1 ? "s" : ""}
-                        </span>
-                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                          {
-                            cm.maintenanceRecords.filter((r) => r.isActive)
-                              .length
-                          }{" "}
-                          activo
-                          {cm.maintenanceRecords.filter((r) => r.isActive)
-                            .length !== 1
-                            ? "s"
-                            : ""}
-                        </span>
-                        {(() => {
-                          const urgentCount = cm.maintenanceRecords.filter(
-                            (r) =>
-                              r.isActive &&
-                              isMaintenanceUrgent(
-                                r,
-                                r.id_mantenimiento &&
-                                  cm.compressor.id &&
-                                  semaforoData[Number(cm.compressor.id)]
-                                  ? semaforoData[Number(cm.compressor.id)][
-                                      Number(r.id_mantenimiento)
-                                    ]
-                                  : undefined
-                              )
-                          ).length;
-                          return urgentCount > 0 ? (
-                            <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-                              🔴 {urgentCount} urgente
-                              {urgentCount !== 1 ? "s" : ""}
-                            </span>
-                          ) : null;
-                        })()}
+                        <div className="flex items-center space-x-4">
+                          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                            {cm.maintenanceRecords.length} mantenimiento
+                            {cm.maintenanceRecords.length !== 1 ? "s" : ""}
+                          </span>
+                          <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                            {
+                              cm.maintenanceRecords.filter((r) => r.isActive)
+                                .length
+                            }{" "}
+                            activo
+                            {cm.maintenanceRecords.filter((r) => r.isActive)
+                              .length !== 1
+                              ? "s"
+                              : ""}
+                          </span>
+                          {(() => {
+                            const urgentCount = cm.maintenanceRecords.filter(
+                              (r) =>
+                                r.isActive &&
+                                isMaintenanceUrgent(
+                                  r,
+                                  r.id_mantenimiento &&
+                                    cm.compressor.id &&
+                                    semaforoData[Number(cm.compressor.id)]
+                                    ? semaforoData[Number(cm.compressor.id)][
+                                        Number(r.id_mantenimiento)
+                                      ]
+                                    : undefined
+                                )
+                            ).length;
+                            return urgentCount > 0 ? (
+                              <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                                🔴 {urgentCount} urgente
+                                {urgentCount !== 1 ? "s" : ""}
+                              </span>
+                            ) : null;
+                          })()}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Maintenance Records */}
-                  {expandedCompressors.has(cm.compressor.id) && (
-                    <div className="p-6">
-                      {cm.maintenanceRecords.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <Settings
-                            size={48}
-                            className="mx-auto mb-4 text-gray-300"
-                          />
-                          <p>
-                            No hay mantenimientos registrados para este
-                            compresor
-                          </p>
-                          <button
-                            onClick={() => setShowMaintenanceForm(true)}
-                            className="mt-2 text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            Agregar el primer mantenimiento
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="grid gap-4">
-                          {cm.maintenanceRecords.map((record) => (
-                            <div
-                              key={record.id}
-                              className="bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm"
+                    {/* Maintenance Records */}
+                    {expandedCompressors.has(cm.compressor.id) && (
+                      <div className="p-6">
+                        {cm.maintenanceRecords.length === 0 ? (
+                          <div className="text-center py-8 text-gray-500">
+                            <Settings
+                              size={48}
+                              className="mx-auto mb-4 text-gray-300"
+                            />
+                            <p>
+                              No hay mantenimientos registrados para este
+                              compresor
+                            </p>
+                            <button
+                              onClick={() => setShowMaintenanceForm(true)}
+                              className="mt-2 text-blue-600 hover:text-blue-800 font-medium"
                             >
-                              <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-3 mb-3">
-                                    <h4 className="font-semibold text-gray-900 text-lg">
-                                      {record.type}
-                                    </h4>
-                                    <span
-                                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                        record.isActive
-                                          ? "bg-green-100 text-green-800"
-                                          : "bg-gray-100 text-gray-600"
-                                      }`}
+                              Agregar el primer mantenimiento
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="grid gap-4">
+                            {cm.maintenanceRecords.map((record) => (
+                              <div
+                                key={record.id}
+                                className="bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm"
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-3">
+                                      <h4 className="font-semibold text-gray-900 text-lg">
+                                        {record.type}
+                                      </h4>
+                                      <span
+                                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                          record.isActive
+                                            ? "bg-green-100 text-green-800"
+                                            : "bg-gray-100 text-gray-600"
+                                        }`}
+                                      >
+                                        {record.isActive
+                                          ? "Activo"
+                                          : "Inactivo"}
+                                      </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                      <div className="flex items-center gap-2">
+                                        <Clock
+                                          size={16}
+                                          className="text-gray-400"
+                                        />
+                                        <span className="text-gray-600">
+                                          Frecuencia de Cambio:
+                                        </span>
+                                        <span className="font-medium">
+                                          {record.frequency} horas
+                                        </span>
+                                      </div>
+
+                                      <div className="flex items-center gap-2">
+                                        <Calendar
+                                          size={16}
+                                          className="text-gray-400"
+                                        />
+                                        <span className="text-gray-600">
+                                          Último Mantenimiento:
+                                        </span>
+                                        <span className="font-medium">
+                                          {record.lastMaintenanceDate ||
+                                            "No registrado"}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Contador por horas y semáforo */}
+                                    <MaintenanceTimer
+                                      lastMaintenanceDate={
+                                        record.lastMaintenanceDate
+                                      }
+                                      frequency={record.frequency}
+                                      horasTranscurridas={
+                                        record.id_mantenimiento &&
+                                        cm.compressor.id &&
+                                        semaforoData[Number(cm.compressor.id)]
+                                          ? semaforoData[
+                                              Number(cm.compressor.id)
+                                            ][Number(record.id_mantenimiento)]
+                                          : undefined
+                                      }
+                                    />
+
+                                    {record.description && (
+                                      <div className="mt-3 pt-3 border-t border-gray-100">
+                                        <p className="text-sm text-gray-600">
+                                          <strong>Observaciones:</strong>{" "}
+                                          {record.description}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {userRole === 2 && (
+                                    <button
+                                      onClick={() =>
+                                        handleEditMaintenance(record)
+                                      }
+                                      className="ml-4 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                                      title="Editar mantenimiento"
                                     >
-                                      {record.isActive ? "Activo" : "Inactivo"}
-                                    </span>
-                                  </div>
-
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                                    <div className="flex items-center gap-2">
-                                      <Clock
-                                        size={16}
-                                        className="text-gray-400"
-                                      />
-                                      <span className="text-gray-600">
-                                        Frecuencia de Cambio:
-                                      </span>
-                                      <span className="font-medium">
-                                        {record.frequency} horas
-                                      </span>
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                      <Calendar
-                                        size={16}
-                                        className="text-gray-400"
-                                      />
-                                      <span className="text-gray-600">
-                                        Último Mantenimiento:
-                                      </span>
-                                      <span className="font-medium">
-                                        {record.lastMaintenanceDate ||
-                                          "No registrado"}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {/* Contador por horas y semáforo */}
-                                  <MaintenanceTimer
-                                    lastMaintenanceDate={
-                                      record.lastMaintenanceDate
-                                    }
-                                    frequency={record.frequency}
-                                    horasTranscurridas={
-                                      record.id_mantenimiento &&
-                                      cm.compressor.id &&
-                                      semaforoData[Number(cm.compressor.id)]
-                                        ? semaforoData[
-                                            Number(cm.compressor.id)
-                                          ][Number(record.id_mantenimiento)]
-                                        : undefined
-                                    }
-                                  />
-
-                                  {record.description && (
-                                    <div className="mt-3 pt-3 border-t border-gray-100">
-                                      <p className="text-sm text-gray-600">
-                                        <strong>Observaciones:</strong>{" "}
-                                        {record.description}
-                                      </p>
-                                    </div>
+                                      <Edit size={18} />
+                                    </button>
                                   )}
                                 </div>
-
-                                {userRole === 2 && (
-                                  <button
-                                    onClick={() =>
-                                      handleEditMaintenance(record)
-                                    }
-                                    className="ml-4 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
-                                    title="Editar mantenimiento"
-                                  >
-                                    <Edit size={18} />
-                                  </button>
-                                )}
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-        </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+          </div>
+        )}
       </div>
 
       {/* Compressor Registration Modal */}

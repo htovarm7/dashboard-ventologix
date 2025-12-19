@@ -413,7 +413,10 @@ const Visitas = () => {
 
   if (clientsData.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center relative">
+        <div className="absolute top-4 left-4">
+          <BackButton />
+        </div>
         <div className="text-center">
           <p className="text-gray-600 text-lg">
             No hay datos de compresores disponibles
