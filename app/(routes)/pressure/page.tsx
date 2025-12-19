@@ -280,11 +280,6 @@ const PressureAnalysis = () => {
               <h1 className="text-3xl font-bold text-gray-900">
                 Análisis de Presión
               </h1>
-              {userData && (
-                <p className="text-lg text-gray-600 mt-2">
-                  Usuario: {userData.name}
-                </p>
-              )}
             </div>
           </div>
 
