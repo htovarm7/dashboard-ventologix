@@ -62,7 +62,7 @@ const Home = () => {
           <div className="group">
             <button
               className="w-full bg-white hover:bg-blue-50 border-2 border-blue-200 hover:border-blue-400 rounded-xl p-8 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-              onClick={() => router.push("/compressor-maintenance/maintenance")}
+              onClick={() => router.push("/features/compressor-maintenance/maintenance")}
             >
               <div className="text-center">
                 <div className="text-4xl mb-4">🔧</div>
@@ -80,7 +80,7 @@ const Home = () => {
           <div className="group">
             <button
               className="w-full bg-white hover:bg-green-50 border-2 border-green-200 hover:border-green-400 rounded-xl p-8 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-              onClick={() => router.push("/compressor-maintenance/views")}
+              onClick={() => router.push("/features/compressor-maintenance/views")}
             >
               <div className="text-center">
                 <div className="text-4xl mb-4">📅</div>
@@ -117,7 +117,7 @@ const Home = () => {
           <div className="group">
             <button
               className="w-full bg-white hover:bg-blue-50 border-2 border-blue-200 hover:border-blue-400 rounded-xl p-8 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-              onClick={() => router.push("/compressor-maintenance/maintenance")}
+              onClick={() => router.push("/features/compressor-maintenance/maintenance")}
             >
               <div className="text-center">
                 <div className="text-4xl mb-4">🔧</div>
@@ -135,7 +135,7 @@ const Home = () => {
           <div className="group">
             <button
               className="w-full bg-white hover:bg-green-50 border-2 border-green-200 hover:border-green-400 rounded-xl p-8 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-              onClick={() => router.push("/compressor-maintenance/views")}
+              onClick={() => router.push("/features/compressor-maintenance/views")}
             >
               <div className="text-center">
                 <div className="text-4xl mb-4">📅</div>
@@ -153,7 +153,7 @@ const Home = () => {
             <button
               className="w-full bg-white hover:bg-purple-50 border-2 border-purple-200 hover:border-purple-400 rounded-xl p-8 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               onClick={() =>
-                router.push("/compressor-maintenance/technician/reports")
+                router.push("/features/compressor-maintenance/technician/reports")
               }
             >
               <div className="text-center">

@@ -390,7 +390,7 @@ const Visitas = () => {
     );
 
     // Navegar al reporte
-    router.push(`/compressor-maintenance/views/generate-report`);
+    router.push(`/features/compressor-maintenance/views/generate-report`);
   };
 
   const handleViewReport = (visit: Visit) => {

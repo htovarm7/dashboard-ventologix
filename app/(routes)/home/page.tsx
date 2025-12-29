@@ -229,7 +229,7 @@ const Home = () => {
             <div className="grid grid-cols-1 sm:grid-cols-1 max-w-md gap-6 md:gap-8 mx-auto px-4">
               <button
                 className="w-full text-lg text-green-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-green-200 p-4 rounded-xl hover:bg-green-50 hover:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
-                onClick={() => router.push("/compressor-maintenance")}
+                onClick={() => router.push("/features/compressor-maintenance")}
                 style={{ WebkitTapHighlightColor: "transparent" }}
               >
                 <span className="font-medium">Sistema de Mantenimiento</span>
@@ -241,7 +241,7 @@ const Home = () => {
                 {secciones.includes("Prediccion") && (
                   <button
                     className="w-full text-lg text-violet-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-violet-200 p-4 rounded-xl hover:bg-violet-50 hover:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
-                    onClick={() => router.push("/prediction")}
+                    onClick={() => router.push("/features/prediction")}
                     style={{ WebkitTapHighlightColor: "transparent" }}
                   >
                     <span className="font-medium">
@@ -252,7 +252,7 @@ const Home = () => {
                 {secciones.includes("Presion") && (
                   <button
                     className="w-full text-lg text-pink-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-pink-200 p-4 rounded-xl hover:bg-pink-50 hover:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
-                    onClick={() => router.push("/pressure")}
+                    onClick={() => router.push("/features/pressure")}
                     style={{ WebkitTapHighlightColor: "transparent" }}
                   >
                     <span className="font-medium">Presión (BETA)</span>
@@ -261,7 +261,7 @@ const Home = () => {
                 {secciones.includes("Mantenimiento") && (
                   <button
                     className="w-full text-lg text-green-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-green-200 p-4 rounded-xl hover:bg-green-50 hover:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
-                    onClick={() => router.push("/compressor-maintenance")}
+                    onClick={() => router.push("/features/compressor-maintenance")}
                     style={{ WebkitTapHighlightColor: "transparent" }}
                   >
                     <span className="font-medium">
@@ -272,7 +272,7 @@ const Home = () => {
                 {secciones.includes("KWH") && (
                   <button
                     className="w-full text-xl text-blue-900 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-blue-200 p-4 rounded-xl hover:bg-blue-50 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
-                    onClick={() => router.push("/consumption-kwh")}
+                    onClick={() => router.push("/features/consumption-kwh")}
                     style={{ WebkitTapHighlightColor: "transparent" }}
                   >
                     <span className="font-medium">

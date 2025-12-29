@@ -21,13 +21,13 @@ const TypeReportes = () => {
 
           <div className="space-y-3">
             <Link
-              href="/compressor-maintenance/technician/reports/post"
+              href="/features/compressor-maintenance/technician/reports/post"
               className="block w-full px-4 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 transition text-center"
             >
               Ver Reportes
             </Link>
             <Link
-              href="/compressor-maintenance/technician/reports/post/form"
+              href="/features/compressor-maintenance/technician/reports/post/form"
               className="block w-full px-4 py-2 bg-blue-100 text-blue-600 font-medium rounded hover:bg-blue-200 transition text-center border border-blue-600"
             >
               Crear Reporte
@@ -43,13 +43,13 @@ const TypeReportes = () => {
 
           <div className="space-y-3">
             <Link
-              href="/compressor-maintenance/technician/reports/pre"
+              href="/features/compressor-maintenance/technician/reports/pre"
               className="block w-full px-4 py-2 bg-green-600 text-white font-medium rounded hover:bg-green-700 transition text-center"
             >
               Ver Reportes
             </Link>
             <Link
-              href="/compressor-maintenance/technician/reports/pre/form"
+              href="/features/compressor-maintenance/technician/reports/pre/form"
               className="block w-full px-4 py-2 bg-green-100 text-green-600 font-medium rounded hover:bg-green-200 transition text-center border border-green-600"
             >
               Crear Reporte

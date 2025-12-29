@@ -226,7 +226,7 @@ const SideBar: React.FC<SideBarProps> = ({
         {
           id: "prediction",
           title: "Consumo Predictivo",
-          route: "/prediction",
+          route: "/features/prediction",
           icon: (
             <svg
               className="w-4 h-4"
@@ -247,7 +247,7 @@ const SideBar: React.FC<SideBarProps> = ({
         {
           id: "pressure-prediction",
           title: "Presión",
-          route: "/pressure",
+          route: "/features/pressure",
           icon: (
             <svg
               className="w-4 h-4"
@@ -287,7 +287,7 @@ const SideBar: React.FC<SideBarProps> = ({
         </svg>
       ),
       requiresCompresor: false,
-      route: "/consumption-kwh",
+      route: "/features/consumption-kwh",
     },
     ...(rol === 0 || rol === 1 || rol === 2
       ? [
