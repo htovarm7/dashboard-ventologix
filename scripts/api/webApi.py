@@ -99,6 +99,26 @@ class AddCompressorRequest(BaseModel):
     segundosPorRegistro: Optional[int] = 30
     fecha_ultimo_mtto: Optional[str] = None
 
+class MaintenanceItem(BaseModel):
+    nombre: str
+    realizado: bool
+
+class UpdateMaintenanceReportRequest(BaseModel):
+    id: int
+    cliente: str
+    tipo: str
+    Alias: Optional[str] = None
+    hp: Optional[str] = None
+    voltaje: Optional[str] = None
+    compresor: str
+    anio: Optional[str] = None
+    numero_serie: str
+    tecnico: str
+    email: str
+    mantenimientos: List[MaintenanceItem]
+    comentarios_generales: Optional[str] = None
+    comentario_cliente: Optional[str] = None
+
 
 # Mapeo de columnas de BD a nombres de mantenimientos legibles
 MAINTENANCE_COLUMN_MAPPING = {
@@ -1808,6 +1828,136 @@ def get_maintenance_report_data_by_id(registro_id: str):
             cursor.close()
         if conn:
             conn.close()
+
+@web.put("/maintenance/update-report/{registro_id}", tags=["🛠️ Mantenimiento de Compresores"])
+def update_maintenance_report(registro_id: int, request: UpdateMaintenanceReportRequest):
+    """Actualiza los datos de un reporte de mantenimiento existente"""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor()
+
+        # Crear diccionario de mapeo inverso (nombre legible -> columna BD)
+        reverse_mapping = {v: k for k, v in MAINTENANCE_COLUMN_MAPPING.items()}
+
+        # Preparar valores de mantenimiento
+        maintenance_updates = {}
+        for item in request.mantenimientos:
+            column_name = reverse_mapping.get(item.nombre)
+            if column_name:
+                maintenance_updates[column_name] = "Sí" if item.realizado else "No"
+
+        # Construir query de actualización
+        update_fields = []
+        update_values = []
+
+        # Actualizar campos básicos
+        if request.cliente:
+            update_fields.append("cliente = %s")
+            update_values.append(request.cliente)
+        
+        if request.tipo:
+            update_fields.append("tipo = %s")
+            update_values.append(request.tipo)
+        
+        if request.compresor:
+            update_fields.append("compresor = %s")
+            update_values.append(request.compresor)
+        
+        if request.numero_serie:
+            update_fields.append("numero_serie = %s")
+            update_values.append(request.numero_serie)
+        
+        if request.tecnico:
+            update_fields.append("tecnico = %s")
+            update_values.append(request.tecnico)
+        
+        if request.email:
+            update_fields.append("email = %s")
+            update_values.append(request.email)
+        
+        if request.anio is not None:
+            update_fields.append("anio = %s")
+            update_values.append(request.anio)
+        
+        if request.comentarios_generales is not None:
+            update_fields.append("comentarios_generales = %s")
+            update_values.append(request.comentarios_generales)
+        
+        if request.comentario_cliente is not None:
+            update_fields.append("comentario_cliente = %s")
+            update_values.append(request.comentario_cliente)
+
+        # Agregar campos de mantenimiento
+        for column, value in maintenance_updates.items():
+            update_fields.append(f"{column} = %s")
+            update_values.append(value)
+
+        # Agregar ID al final para el WHERE
+        update_values.append(registro_id)
+
+        # Ejecutar actualización en registros_mantenimiento_tornillo
+        if update_fields:
+            query = f"""
+                UPDATE registros_mantenimiento_tornillo
+                SET {', '.join(update_fields)}
+                WHERE id = %s
+            """
+            cursor.execute(query, update_values)
+            conn.commit()
+
+        # Actualizar también la tabla compresores si hay campos relacionados
+        compressor_updates = []
+        compressor_values = []
+
+        if request.hp is not None:
+            compressor_updates.append("hp = %s")
+            compressor_values.append(request.hp)
+        
+        if request.voltaje is not None:
+            compressor_updates.append("voltaje = %s")
+            compressor_values.append(request.voltaje)
+        
+        if request.Alias is not None:
+            compressor_updates.append("Alias = %s")
+            compressor_values.append(request.Alias)
+        
+        if request.anio is not None:
+            compressor_updates.append("anio = %s")
+            compressor_values.append(request.anio)
+        
+        if request.compresor:
+            compressor_updates.append("marca = %s")
+            compressor_values.append(request.compresor)
+
+        # Agregar numero_serie al final para el WHERE
+        if compressor_updates and request.numero_serie:
+            compressor_values.append(request.numero_serie)
+            compressor_query = f"""
+                UPDATE compresores
+                SET {', '.join(compressor_updates)}
+                WHERE numero_serie = %s
+            """
+            cursor.execute(compressor_query, compressor_values)
+            conn.commit()
+
+        cursor.close()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": "Reporte actualizado exitosamente",
+            "registro_id": registro_id
+        }
+
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating maintenance report: {str(e)}")
 
 @web.get("/maintenance/report-data/{numero_serie}", tags=["🛠️ Mantenimiento de Compresores"])
 def get_maintenance_report_data(numero_serie: str):

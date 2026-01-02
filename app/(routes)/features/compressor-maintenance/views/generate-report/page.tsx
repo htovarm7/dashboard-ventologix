@@ -25,6 +25,10 @@ function ViewMaintenanceReportContent() {
     isOpen: false,
     imageSrc: "",
   });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedData, setEditedData] = useState<MaintenanceReportData | null>(
+    null
+  );
 
   // Cargar datos de la visita seleccionada si existen
   useEffect(() => {
@@ -132,6 +136,69 @@ function ViewMaintenanceReportContent() {
     }
   };
 
+  const handleEdit = () => {
+    setEditedData(JSON.parse(JSON.stringify(reportData))); // Deep copy
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditedData(null);
+    setIsEditing(false);
+  };
+
+  const handleSave = async () => {
+    if (!editedData) return;
+
+    try {
+      setLoading(true);
+      const API_BASE_URL =
+        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+      
+      const response = await fetch(
+        `${API_BASE_URL}/web/maintenance/update-report/${editedData.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(editedData),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Error al actualizar el reporte");
+      }
+
+      setReportData(editedData);
+      setIsEditing(false);
+      setEditedData(null);
+      alert("Reporte actualizado exitosamente");
+    } catch (err) {
+      console.error("Error updating report:", err);
+      alert("Error al actualizar el reporte");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFieldChange = (field: string, value: string) => {
+    if (!editedData) return;
+    setEditedData({ ...editedData, [field]: value });
+  };
+
+  const handleMaintenanceChange = (index: number, realizado: boolean) => {
+    if (!editedData) return;
+    const updatedMantenimientos = [...editedData.mantenimientos];
+    updatedMantenimientos[index] = {
+      ...updatedMantenimientos[index],
+      realizado,
+    };
+    setEditedData({ ...editedData, mantenimientos: updatedMantenimientos });
+  };
+
+  const currentData = isEditing ? editedData : reportData;
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="no-print">
@@ -145,7 +212,7 @@ function ViewMaintenanceReportContent() {
         )}
 
         {/* Reporte */}
-        {reportData && !loading && (
+        {currentData && !loading && (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
             <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white p-6">
               <div className="flex items-center justify-between">
@@ -163,11 +230,11 @@ function ViewMaintenanceReportContent() {
                     <p className="text-sm opacity-90">
                       REPORTE DE MANTENIMIENTO
                     </p>
-                    <p className="text-sm opacity-90">{reportData.cliente}</p>
+                    <p className="text-sm opacity-90">{currentData.cliente}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-xl font-bold">#{reportData.id}</p>
+                  <p className="text-xl font-bold">#{currentData.id}</p>
                   <p className="text-sm">ID Registro</p>
                 </div>
               </div>
@@ -182,52 +249,140 @@ function ViewMaintenanceReportContent() {
                 <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Cliente:</p>
-                    <p className="font-semibold">{reportData.cliente}</p>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={currentData.cliente}
+                        onChange={(e) =>
+                          handleFieldChange("cliente", e.target.value)
+                        }
+                        className="font-semibold w-full border border-gray-300 rounded px-2 py-1"
+                      />
+                    ) : (
+                      <p className="font-semibold">{currentData.cliente}</p>
+                    )}
                   </div>
                 </div>
                 <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Tipo:</p>
-                    <p className="font-semibold">{reportData.tipo}</p>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={currentData.tipo}
+                        onChange={(e) =>
+                          handleFieldChange("tipo", e.target.value)
+                        }
+                        className="font-semibold w-full border border-gray-300 rounded px-2 py-1"
+                      />
+                    ) : (
+                      <p className="font-semibold">{currentData.tipo}</p>
+                    )}
                   </div>
                 </div>
                 <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Alias:</p>
-                    <p className="font-semibold">{reportData.Alias || "N/A"}</p>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={currentData.Alias || ""}
+                        onChange={(e) =>
+                          handleFieldChange("Alias", e.target.value)
+                        }
+                        className="font-semibold w-full border border-gray-300 rounded px-2 py-1"
+                      />
+                    ) : (
+                      <p className="font-semibold">{currentData.Alias || "N/A"}</p>
+                    )}
                   </div>
                 </div>
                 <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">HP:</p>
-                    <p className="font-semibold">{reportData.hp || "N/A"}</p>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={currentData.hp || ""}
+                        onChange={(e) =>
+                          handleFieldChange("hp", e.target.value)
+                        }
+                        className="font-semibold w-full border border-gray-300 rounded px-2 py-1"
+                      />
+                    ) : (
+                      <p className="font-semibold">{currentData.hp || "N/A"}</p>
+                    )}
                   </div>
                 </div>
                 {/* Fila 2 */}
                 <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Voltaje:</p>
-                    <p className="font-semibold">
-                      {reportData.voltaje || "N/A"}
-                    </p>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={currentData.voltaje || ""}
+                        onChange={(e) =>
+                          handleFieldChange("voltaje", e.target.value)
+                        }
+                        className="font-semibold w-full border border-gray-300 rounded px-2 py-1"
+                      />
+                    ) : (
+                      <p className="font-semibold">
+                        {currentData.voltaje || "N/A"}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Marca:</p>
-                    <p className="font-semibold">{reportData.compresor}</p>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={currentData.compresor}
+                        onChange={(e) =>
+                          handleFieldChange("compresor", e.target.value)
+                        }
+                        className="font-semibold w-full border border-gray-300 rounded px-2 py-1"
+                      />
+                    ) : (
+                      <p className="font-semibold">{currentData.compresor}</p>
+                    )}
                   </div>
                 </div>
                 <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Año:</p>
-                    <p className="font-semibold">{reportData.anio || "N/A"}</p>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={currentData.anio || ""}
+                        onChange={(e) =>
+                          handleFieldChange("anio", e.target.value)
+                        }
+                        className="font-semibold w-full border border-gray-300 rounded px-2 py-1"
+                      />
+                    ) : (
+                      <p className="font-semibold">{currentData.anio || "N/A"}</p>
+                    )}
                   </div>
                 </div>
                 <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Número de Serie:</p>
-                    <p className="font-semibold">{reportData.numero_serie}</p>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={currentData.numero_serie}
+                        onChange={(e) =>
+                          handleFieldChange("numero_serie", e.target.value)
+                        }
+                        className="font-semibold w-full border border-gray-300 rounded px-2 py-1"
+                      />
+                    ) : (
+                      <p className="font-semibold">{currentData.numero_serie}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -243,11 +398,33 @@ function ViewMaintenanceReportContent() {
                 <div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Nombre del técnico:</p>
-                    <p className="font-semibold">{reportData.tecnico}</p>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={currentData.tecnico}
+                        onChange={(e) =>
+                          handleFieldChange("tecnico", e.target.value)
+                        }
+                        className="font-semibold w-full border border-gray-300 rounded px-2 py-1"
+                      />
+                    ) : (
+                      <p className="font-semibold">{currentData.tecnico}</p>
+                    )}
                   </div>
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Email del técnico:</p>
-                    <p className="font-semibold">{reportData.email}</p>
+                    {isEditing ? (
+                      <input
+                        type="email"
+                        value={currentData.email}
+                        onChange={(e) =>
+                          handleFieldChange("email", e.target.value)
+                        }
+                        className="font-semibold w-full border border-gray-300 rounded px-2 py-1"
+                      />
+                    ) : (
+                      <p className="font-semibold">{currentData.email}</p>
+                    )}
                   </div>
                 </div>
                 {/* Columna 2 */}
@@ -259,7 +436,7 @@ function ViewMaintenanceReportContent() {
                   <div className="mb-2">
                     <p className="text-sm text-gray-600">Fecha de la visita:</p>
                     <p className="font-semibold">
-                      {formatDate(reportData.timestamp)}
+                      {formatDate(currentData.timestamp)}
                     </p>
                   </div>
                 </div>
@@ -271,7 +448,7 @@ function ViewMaintenanceReportContent() {
                 MANTENIMIENTOS REALIZADOS
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {reportData.mantenimientos.map((item, index) => (
+                {currentData.mantenimientos.map((item, index) => (
                   <div
                     key={index}
                     className={`flex items-center justify-between p-3 rounded ${
@@ -281,13 +458,24 @@ function ViewMaintenanceReportContent() {
                     }`}
                   >
                     <span className="text-sm font-medium">{item.nombre}</span>
-                    <span
-                      className={`text-lg font-bold ${
-                        item.realizado ? "text-green-600" : "text-gray-400"
-                      }`}
-                    >
-                      {item.realizado ? "✓" : "✗"}
-                    </span>
+                    {isEditing ? (
+                      <input
+                        type="checkbox"
+                        checked={item.realizado}
+                        onChange={(e) =>
+                          handleMaintenanceChange(index, e.target.checked)
+                        }
+                        className="w-5 h-5 cursor-pointer"
+                      />
+                    ) : (
+                      <span
+                        className={`text-lg font-bold ${
+                          item.realizado ? "text-green-600" : "text-gray-400"
+                        }`}
+                      >
+                        {item.realizado ? "✓" : "✗"}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -299,34 +487,54 @@ function ViewMaintenanceReportContent() {
             </div>
 
             {/* Comentarios */}
-            {reportData.comentarios_generales && (
+            {currentData.comentarios_generales && (
               <div className="p-6 border-b">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
                   COMENTARIOS GENERALES
                 </h2>
                 <div className="bg-gray-50 p-4 rounded">
-                  <p className="text-lg whitespace-pre-wrap">
-                    {reportData.comentarios_generales}
-                  </p>
+                  {isEditing ? (
+                    <textarea
+                      value={currentData.comentarios_generales}
+                      onChange={(e) =>
+                        handleFieldChange("comentarios_generales", e.target.value)
+                      }
+                      className="w-full text-lg border border-gray-300 rounded px-3 py-2 min-h-[100px]"
+                    />
+                  ) : (
+                    <p className="text-lg whitespace-pre-wrap">
+                      {currentData.comentarios_generales}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
 
             {/* Comentario del Cliente */}
-            {reportData.comentario_cliente && (
+            {currentData.comentario_cliente && (
               <div className="p-6 border-b">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
                   COMENTARIO DEL CLIENTE
                 </h2>
                 <div className="bg-blue-50 p-4 rounded">
-                  <p className="text-lg whitespace-pre-wrap">
-                    {reportData.comentario_cliente}
-                  </p>
+                  {isEditing ? (
+                    <textarea
+                      value={currentData.comentario_cliente}
+                      onChange={(e) =>
+                        handleFieldChange("comentario_cliente", e.target.value)
+                      }
+                      className="w-full text-lg border border-gray-300 rounded px-3 py-2 min-h-[100px]"
+                    />
+                  ) : (
+                    <p className="text-lg whitespace-pre-wrap">
+                      {currentData.comentario_cliente}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
 
-            {reportData.fotos_drive?.length > 0 && (
+            {reportData?.fotos_drive && reportData.fotos_drive.length > 0 && (
               <div className="p-6 border-b">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
                   FOTOS DEL MANTENIMIENTO
@@ -380,13 +588,41 @@ function ViewMaintenanceReportContent() {
 
             {/* Botones de acción */}
             <div className="p-6 bg-gray-100 flex gap-4 no-print">
-              <button
-                onClick={handleViewPdf}
-                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
-              >
-                <span>📄</span>
-                Ver PDF Generado
-              </button>
+              {!isEditing ? (
+                <>
+                  <button
+                    onClick={handleEdit}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+                  >
+                    <span>✏️</span>
+                    Editar Reporte
+                  </button>
+                  <button
+                    onClick={handleViewPdf}
+                    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+                  >
+                    <span>📄</span>
+                    Ver PDF Generado
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleSave}
+                    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+                  >
+                    <span>💾</span>
+                    Guardar Cambios
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center gap-2"
+                  >
+                    <span>✕</span>
+                    Cancelar
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}

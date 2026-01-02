@@ -257,7 +257,7 @@ function MainContent() {
         setIsLoading(false);
       }
     },
-    []
+    [fetchDataWithRetry]
   );
 
   const searchParams = useSearchParams();
