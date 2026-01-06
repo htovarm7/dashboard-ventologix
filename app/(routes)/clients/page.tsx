@@ -7,7 +7,7 @@ import { URL_API } from "@/lib/global";
 const ShowClients = () => {
   const [clients, setClients] = useState<clientData[]>([]);
 
-  const fetchClients = async () => {
+  const fetchClients = async (): Promise<void> => {
     try {
       const res = await fetch(`${URL_API}/report/all-clients`);
       if (res.ok) {
@@ -46,11 +46,13 @@ const ShowClients = () => {
             <tbody>
               {clients.map((client, index) => (
                 <tr key={index} className="hover:bg-gray-100">
-                  {Object.values(client).map((value: any, i) => (
-                    <td key={i} className="border border-gray-300 p-2">
-                      {value}
-                    </td>
-                  ))}
+                  {Object.values(client).map(
+                    (value: string | number | boolean | null, i) => (
+                      <td key={i} className="border border-gray-300 p-2">
+                        {value}
+                      </td>
+                    )
+                  )}
                 </tr>
               ))}
             </tbody>

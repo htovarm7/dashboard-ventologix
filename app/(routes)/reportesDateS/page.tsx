@@ -93,7 +93,8 @@ function MainContent() {
               {
                 headers: {
                   accept: "application/json",
-                  "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                  "x-internal-api-key":
+                    process.env.NEXT_PUBLIC_API_SECRET || "",
                 },
               }
             );
@@ -105,7 +106,8 @@ function MainContent() {
               {
                 headers: {
                   accept: "application/json",
-                  "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                  "x-internal-api-key":
+                    process.env.NEXT_PUBLIC_API_SECRET || "",
                 },
               }
             );
@@ -117,7 +119,8 @@ function MainContent() {
               {
                 headers: {
                   accept: "application/json",
-                  "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                  "x-internal-api-key":
+                    process.env.NEXT_PUBLIC_API_SECRET || "",
                 },
               }
             );
@@ -129,7 +132,8 @@ function MainContent() {
               {
                 headers: {
                   accept: "application/json",
-                  "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                  "x-internal-api-key":
+                    process.env.NEXT_PUBLIC_API_SECRET || "",
                 },
               }
             );
@@ -141,7 +145,8 @@ function MainContent() {
               {
                 headers: {
                   accept: "application/json",
-                  "x-internal-api-key": process.env.NEXT_PUBLIC_API_SECRET || "",
+                  "x-internal-api-key":
+                    process.env.NEXT_PUBLIC_API_SECRET || "",
                 },
               }
             );
@@ -409,7 +414,7 @@ function MainContent() {
     ],
   };
 
-  const costoUSDOptions = {
+  const costokWhOptions = {
     tooltip: { show: true },
     series: [
       {
@@ -445,17 +450,17 @@ function MainContent() {
         splitLine: { show: false },
         pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
-          formatter: () => `$${clientData?.costoUSD || "0.00"}`,
+          formatter: () => `$${clientData?.costokWh || "0.00"}`,
           fontSize: 18,
           offsetCenter: [0, "30%"],
           color:
-            (clientData?.costoUSD ?? 0) <= 0.18
+            (clientData?.costokWh ?? 0) <= 0.18
               ? "green"
-              : (clientData?.costoUSD ?? 0) <= 0.22
+              : (clientData?.costokWh ?? 0) <= 0.22
               ? "yellow"
               : "red",
         },
-        data: [{ value: clientData?.costoUSD ?? 0 }],
+        data: [{ value: clientData?.costokWh ?? 0 }],
       },
     ],
   };
@@ -1032,7 +1037,7 @@ function MainContent() {
           <div className="flex flex-col items-center  mt-4 text-xl font-bold">
             <h1>Costo $USD por kWh*</h1>
             <ReactECharts
-              option={costoUSDOptions}
+              option={costokWhOptions}
               style={{ height: "280px", width: "350px" }}
               notMerge={true}
               lazyUpdate={true}
