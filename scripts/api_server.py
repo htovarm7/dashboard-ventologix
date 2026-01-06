@@ -3,15 +3,16 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
 
-from scripts.api.reportApi import report
-from scripts.api.webApi import web
+from scripts.api.report import report
+from scripts.api.web import web
+from scripts.api.client import client
+from scripts.api.compresores import compresores
 
 # Load environment variables
 load_dotenv()
 
 app = FastAPI()
 
-# Solo tu dashboard y entornos de prueba locales
 ALLOWED_ORIGINS = [
     "https://dashboard.ventologix.com",
     "http://localhost",
@@ -19,7 +20,6 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:8000",
 ]
 
-# Configuración de CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -28,12 +28,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Middleware de verificación de origen
 @app.middleware("http")
 async def restrict_public_access(request: Request, call_next):
     origin = request.headers.get("origin") or request.headers.get("referer")
     
-    # Permite llamadas locales (por ejemplo, scripts internos o PM2 en localhost)
     if origin is None:
         client_host = request.client.host
         if client_host not in ("127.0.0.1", "localhost"):
@@ -45,6 +43,7 @@ async def restrict_public_access(request: Request, call_next):
     response = await call_next(request)
     return response
 
-# Incluir routers
+app.include_router(client)
+app.include_router(compresores)
 app.include_router(report)
 app.include_router(web)

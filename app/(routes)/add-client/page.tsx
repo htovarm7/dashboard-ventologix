@@ -188,26 +188,10 @@ const AddClient = () => {
           Dar de Alta Cliente
         </h1>
 
-        {/* STEP 1: CLIENT FORM */}
         {step === "client" && (
           <div className="bg-white rounded-lg shadow-lg p-8">
             <form onSubmit={handleSubmitClient} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ID Cliente *
-                  </label>
-                  <input
-                    type="number"
-                    name="id_cliente"
-                    value={clientData.id_cliente}
-                    onChange={handleClientChange}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Ej: 1"
-                  />
-                </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Número de Cliente *

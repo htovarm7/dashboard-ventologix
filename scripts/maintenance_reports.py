@@ -65,7 +65,7 @@ def map_row_to_sql(row):
     """Mapea una fila de Google Sheets a formato SQL"""
     ts = row[0]
     # Intentar normalizar timestamp
-    for f in ["%d/%m/%Y %H:%M:%S", "%d/%m/%y %H:%M:%S", "%Y-%m-%d %H:%M:%S"]:
+    for f in ["%d/%m/%Y %H:%M:%S", "%d/%m/%y %H:%M:%S", "%Y-%m-%d %H:%M:%S", "%d/%m/%Y", "%d/%m/%y", "%Y-%m-%d"]:
         try:
             ts = datetime.strptime(row[0], f).strftime("%Y-%m-%d %H:%M:%S")
             break

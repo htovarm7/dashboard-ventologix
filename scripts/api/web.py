@@ -2346,16 +2346,26 @@ def add_client(request: AddClientRequest):
         )
         if cursor.fetchone():
             raise HTTPException(status_code=409, detail="El número de cliente ya existe")
+        cursor.fetchall()
+
+        # Obtener el siguiente id_cliente disponible
+        cursor.execute("""
+            SELECT MAX(id_cliente) as max_id
+            FROM clientes
+            WHERE id_cliente NOT IN (20000, 101010)
+        """)
+        result = cursor.fetchone()
+        next_id_cliente = (result['max_id'] or 0) + 1
         cursor.fetchall()  # Limpiar resultados
 
-        # Insertar nuevo cliente
+        # Insertar nuevo cliente con el id_cliente calculado
         cursor.execute(
             """INSERT INTO clientes 
                (id_cliente, numero_cliente, nombre_cliente, RFC, direccion, champion, 
                 id_compresor, CostokWh) 
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
             (
-                request.id_cliente,
+                next_id_cliente,
                 request.numero_cliente,
                 request.nombre_cliente,
                 request.RFC,
@@ -2371,7 +2381,7 @@ def add_client(request: AddClientRequest):
         return {
             "success": True,
             "message": "Cliente agregado exitosamente",
-            "id_cliente": request.id_cliente,
+            "id_cliente": next_id_cliente,
             "numero_cliente": request.numero_cliente,
             "nombre_cliente": request.nombre_cliente
         }

@@ -312,6 +312,27 @@ const SideBar: React.FC<SideBarProps> = ({
             requiresCompresor: false,
             route: "/add-client",
           },
+          {
+            id: "clients",
+            title: "Ver clientes",
+            icon: (
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4.354a4 4 0 110 8.646 4 4 0 010-8.646M3 20.394c0-1.657.895-3.207 2.35-4.043 2.666-1.644 7.265-1.644 9.933 0 1.455.836 2.35 2.386 2.35 4.043"
+                />
+              </svg>
+            ),
+            requiresCompresor: false,
+            route: "/clients",
+          },
         ]
       : []),
   ];

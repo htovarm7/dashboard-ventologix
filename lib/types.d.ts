@@ -1,9 +1,11 @@
 export type clientData = {
+    id_cliente: number;
     numero_cliente: number;
     nombre_cliente: string;
     RFC: string;
     direccion: string;
-    costoUSD: number;
+    champion: string;
+    costokWh: number;
     demoDiario: boolean;
     demoSemanal: boolean;
   };
