@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Path, HTTPException, APIRouter
 from fastapi.responses import JSONResponse
 
-from clases import Client
+from scripts.api.clases import Client
 
 import mysql.connector
 import os

@@ -153,7 +153,7 @@ function ViewMaintenanceReportContent() {
       setLoading(true);
       const API_BASE_URL =
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-      
+
       const response = await fetch(
         `${API_BASE_URL}/web/maintenance/update-report/${editedData.id}`,
         {
@@ -293,7 +293,9 @@ function ViewMaintenanceReportContent() {
                         className="font-semibold w-full border border-gray-300 rounded px-2 py-1"
                       />
                     ) : (
-                      <p className="font-semibold">{currentData.Alias || "N/A"}</p>
+                      <p className="font-semibold">
+                        {currentData.Alias || "N/A"}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -364,7 +366,9 @@ function ViewMaintenanceReportContent() {
                         className="font-semibold w-full border border-gray-300 rounded px-2 py-1"
                       />
                     ) : (
-                      <p className="font-semibold">{currentData.anio || "N/A"}</p>
+                      <p className="font-semibold">
+                        {currentData.anio || "N/A"}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -381,7 +385,9 @@ function ViewMaintenanceReportContent() {
                         className="font-semibold w-full border border-gray-300 rounded px-2 py-1"
                       />
                     ) : (
-                      <p className="font-semibold">{currentData.numero_serie}</p>
+                      <p className="font-semibold">
+                        {currentData.numero_serie}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -497,7 +503,10 @@ function ViewMaintenanceReportContent() {
                     <textarea
                       value={currentData.comentarios_generales}
                       onChange={(e) =>
-                        handleFieldChange("comentarios_generales", e.target.value)
+                        handleFieldChange(
+                          "comentarios_generales",
+                          e.target.value
+                        )
                       }
                       className="w-full text-lg border border-gray-300 rounded px-3 py-2 min-h-[100px]"
                     />
@@ -551,6 +560,7 @@ function ViewMaintenanceReportContent() {
                         src={fotoUrl}
                         width={400}
                         height={400}
+                        unoptimized
                         className="w-full h-full object-cover rounded-lg shadow hover:shadow-lg"
                         alt={`Foto ${index + 1}`}
                       />
