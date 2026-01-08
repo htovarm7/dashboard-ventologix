@@ -282,7 +282,6 @@ const Home = () => {
                 )}
               </div>
 
-              {/* Botones que aparecen solo cuando se selecciona un compresor */}
               {selectedCompresor && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 max-w-3xl gap-6 md:gap-8 mx-auto px-4 w-full">
                   {secciones.includes("ReporteDia") && (

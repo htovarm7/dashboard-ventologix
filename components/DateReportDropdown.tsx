@@ -124,6 +124,8 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
     };
   }, []);
 
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const currentWeek = getWeekNumber(new Date()) - 1;
   const [selectedWeek, setSelectedWeek] = useState<number>(
     Math.min(currentWeek, getWeekNumber(new Date()))
@@ -139,13 +141,19 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
     return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   }
 
-  function getWeekRange(weekNumber: number): { start: Date; end: Date } {
-    const currentYear = new Date().getFullYear();
-    const firstDayOfYear = new Date(currentYear, 0, 1);
+  function getWeeksInYear(year: number): number {
+    const lastDay = new Date(year, 11, 31);
+    const weekNum = getWeekNumber(lastDay);
+    // If the last week belongs to next year, return 52, otherwise return the week number
+    return weekNum === 1 ? 52 : weekNum;
+  }
+
+  function getWeekRange(weekNumber: number, year: number): { start: Date; end: Date } {
+    const firstDayOfYear = new Date(year, 0, 1);
     const firstWeekDay = firstDayOfYear.getDay();
 
     const daysToAdd = (weekNumber - 1) * 7 - firstWeekDay + 1;
-    const startDate = new Date(currentYear, 0, 1 + daysToAdd);
+    const startDate = new Date(year, 0, 1 + daysToAdd);
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + 6);
 
@@ -167,7 +175,7 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
       return;
     }
 
-    const dateToUse = getWeekRange(selectedWeek)
+    const dateToUse = getWeekRange(selectedWeek, selectedYear)
       .start.toISOString()
       .split("T")[0];
 
@@ -179,6 +187,7 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
         alias: selectedCompresor.alias,
         date: dateToUse,
         weekNumber: selectedWeek,
+        year: selectedYear,
       })
     );
 
@@ -321,33 +330,68 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
               {tipo === "SEMANAL" && (
                 <>
                   <div className="px-4 py-3 border-b border-gray-100 flex flex-col items-center">
-                    <label className="block text-xl font-medium text-gray-700 mb-2 text-center">
-                      📅 Seleccionar Semana:
+                    <label className="block text-xl font-medium text-gray-700 mb-3 text-center">
+                      📅 Seleccionar Año y Semana:
                     </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        value={selectedWeek}
-                        onChange={(e) =>
-                          setSelectedWeek(
-                            Math.min(
-                              Math.max(1, parseInt(e.target.value)),
-                              currentWeek
-                            )
-                          )
-                        }
-                        className="text-xl w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center font-semibold cursor-pointer hover:bg-blue-50 transition-colors"
-                        min="1"
-                        max={currentWeek}
-                      />
-                      <span className="text-gray-700 text-xl">
-                        / {currentWeek}
-                      </span>
+                    
+                    {/* Year Selector */}
+                    <div className="mb-4 w-full max-w-xs">
+                      <label className="block text-sm font-medium text-gray-600 mb-2 text-center">
+                        Año:
+                      </label>
+                      <select
+                        value={selectedYear}
+                        onChange={(e) => {
+                          const newYear = parseInt(e.target.value);
+                          setSelectedYear(newYear);
+                          // Reset week to 1 when changing year
+                          setSelectedWeek(1);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center font-semibold cursor-pointer hover:bg-purple-50 transition-colors"
+                      >
+                        {/* Generate years from 2023 to current year */}
+                        {Array.from({ length: currentYear - 2022 }, (_, i) => 2023 + i).map(year => (
+                          <option key={year} value={year}>
+                            {year}
+                          </option>
+                        ))}
+                      </select>
                     </div>
+
+                    {/* Week Selector */}
+                    <div className="w-full max-w-xs">
+                      <label className="block text-sm font-medium text-gray-600 mb-2 text-center">
+                        Semana:
+                      </label>
+                      <div className="flex items-center gap-2 justify-center">
+                        <input
+                          type="number"
+                          value={selectedWeek}
+                          onChange={(e) => {
+                            const maxWeeks = selectedYear === currentYear 
+                              ? currentWeek 
+                              : getWeeksInYear(selectedYear);
+                            setSelectedWeek(
+                              Math.min(
+                                Math.max(1, parseInt(e.target.value) || 1),
+                                maxWeeks
+                              )
+                            );
+                          }}
+                          className="text-xl w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center font-semibold cursor-pointer hover:bg-purple-50 transition-colors"
+                          min="1"
+                          max={selectedYear === currentYear ? currentWeek : getWeeksInYear(selectedYear)}
+                        />
+                        <span className="text-gray-700 text-xl">
+                          / {selectedYear === currentYear ? currentWeek : getWeeksInYear(selectedYear)}
+                        </span>
+                      </div>
+                    </div>
+                    
                     {selectedWeek && (
-                      <div className="mt-2 text-base text-gray-600 font-medium">
-                        {formatDateSpanish(getWeekRange(selectedWeek).start)} -{" "}
-                        {formatDateSpanish(getWeekRange(selectedWeek).end)}
+                      <div className="mt-3 text-base text-gray-600 font-medium text-center">
+                        {formatDateSpanish(getWeekRange(selectedWeek, selectedYear).start)} -{" "}
+                        {formatDateSpanish(getWeekRange(selectedWeek, selectedYear).end)}
                       </div>
                     )}
                   </div>
@@ -359,7 +403,7 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
                     >
                       Ver Reporte Semanal <br />
                       <span className="text-xl font-bold">
-                        Semana {selectedWeek}
+                        Semana {selectedWeek} - {selectedYear}
                       </span>
                     </button>
                   </div>
