@@ -566,8 +566,7 @@ function MainContent() {
     <main className="relative">
       <BackButton
         position="relative"
-        size="md"
-        variant="primary"
+        variant="normal"
         className="mt-4 ml-8"
       />
       <PrintPageButton reportType="reporte" />

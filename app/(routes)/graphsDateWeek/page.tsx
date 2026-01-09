@@ -1074,8 +1074,7 @@ function MainContent() {
       {/* Botón de regresar */}
       <BackButton
         position="fixed"
-        size="md"
-        variant="primary"
+        variant="normal"
         className="mt-6 ml-6 bg-blue-400"
       />
       <PrintPageButton reportType="reporte" />
