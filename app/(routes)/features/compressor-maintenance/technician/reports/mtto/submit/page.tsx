@@ -1,4 +1,4 @@
-const PostReport = () => {
+const SubmitMtto = () => {
   return (
     <div>
       <h1>Hola</h1>
@@ -6,4 +6,4 @@ const PostReport = () => {
   );
 };
 
-export default PostReport;
+export default SubmitMtto;

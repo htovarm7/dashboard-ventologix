@@ -111,7 +111,6 @@ const mensualChartOptions = {
   },
 };
 
-
 const diarioChartOptions = {
   responsive: true,
   maintainAspectRatio: false,
@@ -468,7 +467,8 @@ const ConsumptionKwH = () => {
                     {totalKwhMensual.toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
-                    })} kWh
+                    })}{" "}
+                    kWh
                   </p>
                 </div>
                 <div className="text-right">

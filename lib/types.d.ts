@@ -350,3 +350,114 @@ export type Visit = {
   cliente?: string;
   numero_cliente?: number;
 };
+
+export interface FormData {
+  // Datos iniciales
+  isExistingClient: boolean;
+  clientId?: string;
+  clientName?: string;
+  clientAddress?: string;
+  clientContact?: string;
+  clientPhone?: string;
+  reportDate: string;
+
+  // Información inicial
+  diagnosticType: string;
+  equipmentPowers: string;
+  displayPowers: string;
+
+  // Sección cuando equipo ENCIENDE
+  // Horas y alarmas
+  photo1?: File | null;
+  generalHours: string;
+  loadHours: string;
+  unloadHours: string;
+  photo2?: File | null;
+  maintenance2000: boolean;
+  maintenance4000: boolean;
+  maintenance6000: boolean;
+  maintenanceRequired: string;
+  otherMechanicalFailure: boolean;
+
+  // Temperaturas
+  compressionTempDisplay: string;
+  compressionTempLaser: string;
+  finalCompressionTemp: string;
+  airIntakeTemp: string;
+  intercoolerTemp: string;
+
+  // Mediciones eléctricas
+  supplyVoltage: string;
+  mainMotorAmperage: string;
+  fanAmperage: string;
+  photo3?: File | null;
+  powerFactorLoadOk: string;
+  powerFactorUnloadOk: string;
+
+  // Datos del compresor
+  photo4?: File | null;
+  brand: string;
+  serialNumber: string;
+  yearManufactured: string;
+  model: string;
+
+  // Sistema neumático
+  photo5?: File | null;
+  oilLeaks: string;
+  airLeaks: string;
+  intakeValveFunctioning: string;
+  intakeValveType: string;
+  pressureDifferential: string;
+  pressureControlMethod: string;
+  isMaster: string;
+  operatingPressure: string;
+  operatingSetPoint: string;
+  loadPressure: string;
+  unloadPressure: string;
+
+  // Wet Tank
+  photo6?: File | null;
+  wetTankExists: boolean;
+  wetTankLiters: string;
+  wetTankSafetyValve: boolean;
+  wetTankDrain: boolean;
+
+  // Dry Tank
+  photo7?: File | null;
+  dryTankExists: boolean;
+  dryTankLiters: string;
+  dryTankSafetyValve: boolean;
+  dryTankDrain: boolean;
+
+  // Condiciones ambientales
+  photo8?: File | null;
+  internalTemp: string;
+  location: string;
+  hotAirExpulsion: string;
+  highDustOperation: string;
+  specialConditions: string;
+
+  // Sección cuando equipo NO ENCIENDE
+  equipmentStatePhoto?: File | null;
+  completeElementsPhoto?: File | null;
+  motorCondition: string;
+  compressionUnitCondition: string;
+  coolingCoilCondition: string;
+  admissionValvesCondition: string;
+  otherCondition: string;
+
+  generalConditionsPhoto?: File | null;
+  excessDust: boolean;
+  hasManual: boolean;
+  electricalPanelPowers: boolean;
+  correctMotorRotation: boolean;
+  compressionUnitRotates: boolean;
+  fanMotorWorks: boolean;
+  maintenanceStopReasons: string;
+
+  installationsPhoto?: File | null;
+  electricalFeedConnected: boolean;
+  adequateBreaker: boolean;
+  dischargePipeConnectedTo: string;
+  compressorRoomConditions: string;
+}
