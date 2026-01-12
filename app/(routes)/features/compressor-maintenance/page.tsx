@@ -62,16 +62,17 @@ const Home = () => {
           <div className="group">
             <button
               className="w-full bg-white hover:bg-blue-50 border-2 border-blue-200 hover:border-blue-400 rounded-xl p-8 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-              onClick={() => router.push("/features/compressor-maintenance/maintenance")}
+              onClick={() =>
+                router.push("/features/compressor-maintenance/maintenance")
+              }
             >
               <div className="text-center">
                 <div className="text-4xl mb-4">🔧</div>
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  Tabla de Mantenimientos
+                  Mantenimientos
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  Gestiona y monitorea todos tus mantenimientos en tus
-                  compresores
+                  Visualiza los mantenimientos realizados en tus compresores.
                 </p>
               </div>
             </button>
@@ -80,16 +81,16 @@ const Home = () => {
           <div className="group">
             <button
               className="w-full bg-white hover:bg-green-50 border-2 border-green-200 hover:border-green-400 rounded-xl p-8 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-              onClick={() => router.push("/features/compressor-maintenance/views")}
+              onClick={() =>
+                router.push("/features/compressor-maintenance/views")
+              }
             >
               <div className="text-center">
                 <div className="text-4xl mb-4">📅</div>
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  Historial de Mantenimientos
+                  Mis Reportes
                 </h3>
-                <p className="text-gray-600 text-sm">
-                  Ver historial de mantenimientos
-                </p>
+                <p className="text-gray-600 text-sm">Mis Reportes</p>
               </div>
             </button>
           </div>
@@ -117,7 +118,9 @@ const Home = () => {
           <div className="group">
             <button
               className="w-full bg-white hover:bg-blue-50 border-2 border-blue-200 hover:border-blue-400 rounded-xl p-8 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-              onClick={() => router.push("/features/compressor-maintenance/maintenance")}
+              onClick={() =>
+                router.push("/features/compressor-maintenance/maintenance")
+              }
             >
               <div className="text-center">
                 <div className="text-4xl mb-4">🔧</div>
@@ -135,15 +138,17 @@ const Home = () => {
           <div className="group">
             <button
               className="w-full bg-white hover:bg-green-50 border-2 border-green-200 hover:border-green-400 rounded-xl p-8 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-              onClick={() => router.push("/features/compressor-maintenance/views")}
+              onClick={() =>
+                router.push("/features/compressor-maintenance/reports/")
+              }
             >
               <div className="text-center">
-                <div className="text-4xl mb-4">📅</div>
+                <div className="text-4xl mb-4">📄</div>
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  Visitas
+                  Reportes
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  Ver historial de visitas y generar reportes
+                  Ver historial de reportes generados.
                 </p>
               </div>
             </button>
@@ -153,7 +158,9 @@ const Home = () => {
             <button
               className="w-full bg-white hover:bg-purple-50 border-2 border-purple-200 hover:border-purple-400 rounded-xl p-8 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               onClick={() =>
-                router.push("/features/compressor-maintenance/technician/reports")
+                router.push(
+                  "/features/compressor-maintenance/technician/reports"
+                )
               }
             >
               <div className="text-center">

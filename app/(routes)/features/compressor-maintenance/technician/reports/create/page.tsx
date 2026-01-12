@@ -7,7 +7,7 @@ import BackButton from "@/components/BackButton";
 import Image from "next/image";
 import { FormData } from "@/lib/types";
 
-function FillPreReport() {
+function FillReport() {
   const { isAuthenticated, isLoading } = useAuth0();
   const router = useRouter();
 
@@ -445,12 +445,12 @@ function FillPreReport() {
   );
 }
 
-export default function DiagnosticReportPage() {
+export default function GenerateReport() {
   return (
     <Suspense
       fallback={<LoadingOverlay isVisible={true} message="Cargando..." />}
     >
-      <FillPreReport />
+      <FillReport />
     </Suspense>
   );
 }
