@@ -1,7 +1,7 @@
 "use client";
-import React, { useState, Suspense } from "react";
+import React, { useState, Suspense, useEffect } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import BackButton from "@/components/BackButton";
 import Image from "next/image";
@@ -10,6 +10,7 @@ import { FormData } from "@/lib/types";
 function FillReport() {
   const { isAuthenticated, isLoading } = useAuth0();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [formData, setFormData] = useState<FormData>({
     isExistingClient: true,
@@ -81,6 +82,39 @@ function FillReport() {
     compressorRoomConditions: "",
   });
 
+  // Load compressor data from URL parameters
+  useEffect(() => {
+    const compressorId = searchParams.get("compressorId");
+    const serialNumber = searchParams.get("serialNumber");
+    const clientId = searchParams.get("clientId");
+    const clientName = searchParams.get("clientName");
+    const brand = searchParams.get("brand");
+    const model = searchParams.get("model");
+    const hp = searchParams.get("hp");
+    const year = searchParams.get("year");
+    const tipo = searchParams.get("tipo");
+    const isEventual = searchParams.get("isEventual");
+
+    if (compressorId && serialNumber) {
+      setFormData((prev) => ({
+        ...prev,
+        compressorId,
+        serialNumber,
+        clientId: clientId || prev.clientId,
+        clientName: clientName || prev.clientName,
+        brand: brand || prev.brand,
+        model: model || prev.model,
+        yearManufactured: year || prev.yearManufactured,
+        isExistingClient: true,
+      }));
+    } else if (isEventual === "true") {
+      setFormData((prev) => ({
+        ...prev,
+        isExistingClient: false,
+      }));
+    }
+  }, [searchParams]);
+
   if (isLoading) {
     return <LoadingOverlay isVisible={true} message="Cargando..." />;
   }
@@ -127,38 +161,65 @@ function FillReport() {
         Información del Cliente
       </h2>
 
-      <div className="mb-4">
-        <label className="flex items-center space-x-3 cursor-pointer">
-          <input
-            type="checkbox"
-            name="isExistingClient"
-            checked={formData.isExistingClient}
-            onChange={handleInputChange}
-            className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-          />
-          <span className="text-gray-700 font-medium">
-            ¿Es cliente existente?
-          </span>
-        </label>
-      </div>
-
       {formData.isExistingClient ? (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Seleccionar Cliente *
-          </label>
-          <select
-            name="clientId"
-            value={formData.clientId || ""}
-            onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            required
-          >
-            <option value="">
-              -- Seleccionar cliente (fetch pendiente) --
-            </option>
-            {/* TODO: Fetch clients from backend */}
-          </select>
+          {formData.clientName ? (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                <h3 className="font-bold text-blue-900 mb-2">
+                  Cliente Seleccionado
+                </h3>
+                <p className="text-gray-800">
+                  <span className="font-medium">Nombre:</span>{" "}
+                  {formData.clientName}
+                </p>
+                <p className="text-gray-700 text-sm">
+                  <span className="font-medium">ID Cliente:</span>{" "}
+                  {formData.clientId}
+                </p>
+              </div>
+              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                <h3 className="font-bold text-green-900 mb-2">
+                  Compresor Seleccionado
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <p className="text-gray-800">
+                    <span className="font-medium">Serie:</span>{" "}
+                    {formData.serialNumber}
+                  </p>
+                  <p className="text-gray-800">
+                    <span className="font-medium">Marca:</span> {formData.brand}
+                  </p>
+                  <p className="text-gray-800">
+                    <span className="font-medium">Modelo:</span>{" "}
+                    {formData.model}
+                  </p>
+                  <p className="text-gray-800">
+                    <span className="font-medium">Año:</span>{" "}
+                    {formData.yearManufactured}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Seleccionar Cliente *
+              </label>
+              <select
+                name="clientId"
+                value={formData.clientId || ""}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="">
+                  -- Seleccionar cliente (fetch pendiente) --
+                </option>
+                {/* TODO: Fetch clients from backend */}
+              </select>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-4">

@@ -1,5 +1,12 @@
+import BackButton from "@/components/BackButton";
+
 const Reports = () => {
-  return <h1>Welcome to Reports, here you can see your own reports</h1>;
+  return (
+    <main>
+      <BackButton />
+      <h1> Hello</h1>
+    </main>
+  );
 };
 
 export default Reports;

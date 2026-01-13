@@ -60,7 +60,7 @@ def get_all_clients():
     except mysql.connector.Error as err:
         return{"error": str(err)}
 
-# Get data from a single client
+# Get data from a single client using numero de cliente
 @client.get("/{numero_cliente}")
 def get_client_data(numero_cliente: int = Path(...,description="Numero del Cliente")):
     try:
@@ -101,6 +101,49 @@ def get_client_data(numero_cliente: int = Path(...,description="Numero del Clien
         }
     except mysql.connector.Error as err:
         return{"error": str(err)}
+
+# Get data from a client based on the id_cliente
+@client.get("/by-id/{id_cliente}")
+def get_client_by_id(id_cliente: int = Path(...,description="ID del Cliente")):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT * FROM clientes WHERE id_cliente = %s",
+            (id_cliente,)
+        )
+        
+        res = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not res:
+            return {"error": "Cliente no encontrado"}
+        
+        client = {
+                "id_cliente": res[0],
+                "numero_cliente": res[1],
+                "nombre_cliente": res[2],
+                "RFC": res[3],
+                "direccion": res[4],
+                "champion": res[5],
+                "CostokWh": res[6],
+                "demoDiario": res[7],
+                "demoSemanal": res[8]
+                }
+
+        return{
+            "data": client
+        }
+    except mysql.connector.Error as err:
+        return{"error": str(err)}
+
 
 # Add Client
 @client.post("/")

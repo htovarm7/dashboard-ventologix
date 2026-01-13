@@ -45,9 +45,11 @@ const Home = () => {
 
   const ClientView = () => (
     <div className="flex-1 bg-gradient-to-br from-blue-50 to-indigo-100 p-8 flex items-center justify-center min-h-screen relative">
-      <div className="absolute top-4 left-4 z-20">
-        <BackButton />
-      </div>
+      {rol !== 2 && (
+        <div className="absolute top-4 left-4 z-20">
+          <BackButton />
+        </div>
+      )}
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-gray-800 mb-4">
@@ -101,9 +103,11 @@ const Home = () => {
 
   const VentologixView = () => (
     <div className="flex-1 bg-gradient-to-br from-blue-50 to-indigo-100 p-8 flex items-center justify-center min-h-screen relative">
-      <div className="absolute top-10 left-20 z-20">
-        <BackButton />
-      </div>
+      {rol !== 2 && (
+        <div className="absolute top-10 left-20 z-20">
+          <BackButton />
+        </div>
+      )}
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-gray-800 mb-4">
