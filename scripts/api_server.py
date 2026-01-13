@@ -7,6 +7,7 @@ from scripts.api.report import report
 from scripts.api.web import web
 from scripts.api.client import client
 from scripts.api.compresores import compresores
+from scripts.api.ordenes_servicio import ordenes
 
 # Load environment variables
 load_dotenv()
@@ -45,5 +46,6 @@ async def restrict_public_access(request: Request, call_next):
 
 app.include_router(client)
 app.include_router(compresores)
+app.include_router(ordenes)
 app.include_router(report)
 app.include_router(web)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import CompressorSearch from "@/components/CompressorSearch";
 import { URL_API } from "@/lib/global";
@@ -26,6 +26,27 @@ interface CompressorSearchResult {
   numero_cliente: number;
 }
 
+interface OrdenServicio {
+  folio: string;
+  id_cliente: number;
+  id_cliente_eventual: number;
+  nombre_cliente: string;
+  numero_cliente: number;
+  alias_compresor: string;
+  numero_serie: string;
+  hp: number;
+  tipo: string;
+  marca: string;
+  anio: number;
+  tipo_visita: string;
+  prioridad: string;
+  fecha_programada: string;
+  hora_programada: string;
+  estado: string;
+  fecha_creacion: string;
+  reporte_url: string;
+}
+
 interface TicketFormData {
   folio: string;
   clientName: string;
@@ -45,6 +66,7 @@ interface TicketFormData {
 
 const TypeReportes = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [draftReports, setDraftReports] = useState<DraftReport[]>([]);
   const [rol, setRol] = useState<number | null>(null);
   const [isClienteEventual, setIsClienteEventual] = useState(false);
@@ -55,6 +77,10 @@ const TypeReportes = () => {
     []
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const [ordenServicio, setOrdenServicio] = useState<OrdenServicio | null>(
+    null
+  );
+  const [loadingOrden, setLoadingOrden] = useState(false);
   const [ticketData, setTicketData] = useState<TicketFormData>({
     folio: "",
     clientName: "",
@@ -84,6 +110,39 @@ const TypeReportes = () => {
       }
     }
   }, []);
+
+  // Load orden de servicio from URL for VAST view (rol 2)
+  useEffect(() => {
+    const folio = searchParams.get("folio");
+    if (folio && rol === 2) {
+      fetchOrdenServicio(folio);
+    }
+  }, [searchParams, rol]);
+
+  // Fetch orden de servicio by folio
+  const fetchOrdenServicio = async (folio: string) => {
+    setLoadingOrden(true);
+    try {
+      const response = await fetch(`${URL_API}/ordenes/`);
+      const data = await response.json();
+
+      if (data.data) {
+        const orden = data.data.find((o: OrdenServicio) => o.folio === folio);
+        if (orden) {
+          setOrdenServicio(orden);
+        } else {
+          alert(
+            "No se encontró la orden de servicio con el folio especificado"
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching orden de servicio:", error);
+      alert("Error al cargar la orden de servicio");
+    } finally {
+      setLoadingOrden(false);
+    }
+  };
 
   // Load draft reports on mount
   useEffect(() => {
@@ -217,9 +276,89 @@ const TypeReportes = () => {
   // Submit ticket
   const handleSubmitTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement ticket submission to API
-    console.log("Ticket data:", ticketData);
-    alert("Funcionalidad de envío de ticket pendiente de implementación");
+
+    try {
+      // Prepare the data for the API
+      const ordenData = {
+        folio: ticketData.folio,
+        id_cliente: isClienteEventual ? 0 : selectedCompressor?.id_cliente || 0,
+        id_cliente_eventual: isClienteEventual ? 1 : 0,
+        nombre_cliente: ticketData.clientName,
+        numero_cliente: parseInt(ticketData.numeroCliente) || 0,
+        alias_compresor: ticketData.alias,
+        numero_serie: ticketData.serialNumber,
+        hp: parseInt(ticketData.hp) || 0,
+        tipo: ticketData.tipo,
+        marca: ticketData.marca,
+        anio: parseInt(ticketData.anio) || 0,
+        tipo_visita: ticketData.problemDescription,
+        prioridad: ticketData.priority,
+        fecha_programada:
+          ticketData.scheduledDate || new Date().toISOString().split("T")[0],
+        hora_programada:
+          ticketData.hora !== "no-aplica" ? ticketData.hora : "00:00:00",
+        estado: "no_iniciado",
+        fecha_creacion: new Date().toISOString(),
+        reporte_url: "",
+      };
+
+      console.log("Sending ticket data:", ordenData);
+
+      const response = await fetch(`${URL_API}/ordenes/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(ordenData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert(`✅ Ticket creado exitosamente con folio: ${ticketData.folio}`);
+        // Reset form
+        setSelectedCompressor(null);
+        setIsClienteEventual(false);
+        setSearchQuery("");
+        setShowResults(false);
+        setTicketData({
+          folio: "",
+          clientName: "",
+          numeroCliente: "",
+          alias: "",
+          serialNumber: "",
+          hp: "",
+          tipo: "",
+          marca: "",
+          anio: "",
+          problemDescription: "",
+          priority: "media",
+          scheduledDate: "",
+          hora: "no-aplica",
+          technician: "",
+        });
+      } else {
+        console.error("Error response:", result);
+
+        // Handle different error formats
+        let errorMessage = "Error desconocido";
+
+        if (typeof result.detail === "string") {
+          errorMessage = result.detail;
+        } else if (typeof result.detail === "object") {
+          errorMessage = JSON.stringify(result.detail);
+        } else if (result.message) {
+          errorMessage = result.message;
+        } else if (result.error) {
+          errorMessage = result.error;
+        }
+
+        alert(`❌ Error al crear el ticket: ${errorMessage}`);
+      }
+    } catch (error) {
+      console.error("Error submitting ticket:", error);
+      alert("❌ Error al enviar el ticket. Por favor, intente nuevamente.");
+    }
   };
 
   const deleteDraft = (draftId: string) => {
@@ -278,107 +417,327 @@ const TypeReportes = () => {
           <span className="text-lg font-medium">Atrás</span>
         </button>
 
-        {/* VISTA PARA ROL 2 (VAST) - Reportes en Progreso */}
+        {/* VISTA PARA ROL 2 (VAST) - Ver/Editar Orden de Servicio */}
         {rol === 2 && (
           <>
-            <div className="mt-24 mb-12 text-center">
-              <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-300 to-cyan-300 mb-3">
-                Reportes en Progreso
-              </h1>
-              <p className="text-cyan-200/80 text-xl">
-                Continúa trabajando en tus reportes guardados
-              </p>
-            </div>
-
-            {/* Draft Reports Section */}
-            <div className="relative">
-              <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 rounded-3xl opacity-30 blur-xl"></div>
-              <div className="relative bg-gradient-to-br from-slate-800/95 via-blue-900/95 to-slate-800/95 rounded-3xl shadow-2xl border border-cyan-500/30 p-8">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-3xl font-bold text-cyan-300 flex items-center gap-3">
-                    <span className="text-4xl">📝</span>
-                    Reportes en Borrador
-                  </h2>
-                  {draftReports.length > 0 && (
-                    <span className="px-5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full font-semibold text-sm shadow-lg">
-                      {draftReports.length}{" "}
-                      {draftReports.length === 1
-                        ? "reporte pendiente"
-                        : "reportes pendientes"}
-                    </span>
-                  )}
+            {/* VASTview - Mostrar orden de servicio desde URL */}
+            {ordenServicio ? (
+              <>
+                <div className="mt-24 mb-12 text-center">
+                  <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-300 to-cyan-300 mb-3">
+                    Orden de Servicio
+                  </h1>
+                  <p className="text-cyan-200/80 text-xl">
+                    Folio: {ordenServicio.folio}
+                  </p>
                 </div>
 
-                {draftReports.length === 0 ? (
-                  <div className="text-center py-16 text-cyan-300/60">
-                    <div className="text-8xl mb-6">📄</div>
-                    <p className="text-xl font-medium text-cyan-200">
-                      No hay reportes en borrador
-                    </p>
-                    <p className="text-sm mt-3 text-cyan-300/60">
-                      Los reportes guardados aparecerán aquí para continuar más
-                      tarde
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {draftReports.map((draft) => (
-                      <div
-                        key={draft.id}
-                        className="group relative p-5 rounded-2xl border-2 border-cyan-500/30 bg-gradient-to-br from-blue-800/40 to-cyan-800/40 hover:border-cyan-400/60 hover:shadow-xl hover:shadow-cyan-500/20 transition-all duration-300"
-                      >
-                        <div className="mb-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="px-3 py-1 bg-orange-500/90 text-white text-xs font-bold rounded-lg shadow">
-                              {draft.reportType || "Reporte"}
+                <div className="relative">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 rounded-3xl opacity-30 blur-xl"></div>
+                  <div className="relative bg-gradient-to-br from-slate-800/95 via-blue-900/95 to-slate-800/95 rounded-3xl shadow-2xl border border-cyan-500/30 p-8">
+                    {loadingOrden ? (
+                      <div className="text-center py-16">
+                        <div className="text-4xl mb-4">⏳</div>
+                        <p className="text-cyan-300">
+                          Cargando orden de servicio...
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="mb-6 p-4 bg-gradient-to-r from-purple-900/40 to-blue-900/40 rounded-xl border-2 border-purple-500/50">
+                          <div className="flex items-center gap-3">
+                            <span className="text-purple-300 font-semibold text-lg">
+                              ESTADO:
                             </span>
-                            <span className="text-xs text-cyan-300/70">
-                              {new Date(draft.lastModified).toLocaleDateString(
-                                "es-MX"
-                              )}
+                            <span
+                              className={`px-4 py-2 rounded-full font-bold ${
+                                ordenServicio.estado === "pendiente"
+                                  ? "bg-amber-500 text-white"
+                                  : ordenServicio.estado === "en_proceso"
+                                  ? "bg-blue-500 text-white"
+                                  : ordenServicio.estado === "completado"
+                                  ? "bg-green-500 text-white"
+                                  : "bg-gray-500 text-white"
+                              }`}
+                            >
+                              {ordenServicio.estado
+                                .toUpperCase()
+                                .replace("_", " ")}
                             </span>
                           </div>
-                          <p className="font-bold text-cyan-100 text-lg truncate">
-                            {draft.clientName}
-                          </p>
-                          <p className="text-sm text-cyan-200/80 mt-2">
-                            <span className="font-medium">Folio:</span>{" "}
-                            {draft.folio}
-                          </p>
-                          <p className="text-sm text-cyan-200/80">
-                            <span className="font-medium">Serie:</span>{" "}
-                            {draft.serialNumber}
-                          </p>
                         </div>
-                        <div className="flex gap-2">
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-4">
+                            <h3 className="text-2xl font-bold text-cyan-300 mb-4">
+                              Información del Cliente
+                            </h3>
+                            <div>
+                              <label className="block text-cyan-300/70 text-sm mb-1">
+                                Nombre del Cliente
+                              </label>
+                              <p className="text-cyan-100 text-lg font-semibold">
+                                {ordenServicio.nombre_cliente}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-cyan-300/70 text-sm mb-1">
+                                Número de Cliente
+                              </label>
+                              <p className="text-cyan-100 text-lg">
+                                {ordenServicio.numero_cliente}
+                              </p>
+                            </div>
+                            {ordenServicio.id_cliente_eventual && (
+                              <div className="p-3 bg-amber-500/20 border border-amber-500/50 rounded-lg">
+                                <p className="text-amber-300 font-semibold">
+                                  Cliente Eventual
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="space-y-4">
+                            <h3 className="text-2xl font-bold text-cyan-300 mb-4">
+                              Información del Compresor
+                            </h3>
+                            <div>
+                              <label className="block text-cyan-300/70 text-sm mb-1">
+                                Alias
+                              </label>
+                              <p className="text-cyan-100 text-lg font-semibold">
+                                {ordenServicio.alias_compresor}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-cyan-300/70 text-sm mb-1">
+                                Número de Serie
+                              </label>
+                              <p className="text-cyan-100 text-lg">
+                                {ordenServicio.numero_serie}
+                              </p>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                              <div>
+                                <label className="block text-cyan-300/70 text-sm mb-1">
+                                  HP
+                                </label>
+                                <p className="text-cyan-100 text-lg">
+                                  {ordenServicio.hp}
+                                </p>
+                              </div>
+                              <div>
+                                <label className="block text-cyan-300/70 text-sm mb-1">
+                                  Tipo
+                                </label>
+                                <p className="text-cyan-100 text-lg">
+                                  {ordenServicio.tipo}
+                                </p>
+                              </div>
+                              <div>
+                                <label className="block text-cyan-300/70 text-sm mb-1">
+                                  Marca
+                                </label>
+                                <p className="text-cyan-100 text-lg">
+                                  {ordenServicio.marca}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <h3 className="text-2xl font-bold text-cyan-300 mb-4">
+                              Detalles del Servicio
+                            </h3>
+                            <div>
+                              <label className="block text-cyan-300/70 text-sm mb-1">
+                                Tipo de Visita
+                              </label>
+                              <p className="text-cyan-100 text-lg">
+                                {ordenServicio.tipo_visita}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-cyan-300/70 text-sm mb-1">
+                                Prioridad
+                              </label>
+                              <span
+                                className={`px-3 py-1 rounded-full font-semibold ${
+                                  ordenServicio.prioridad === "urgente"
+                                    ? "bg-red-500 text-white"
+                                    : ordenServicio.prioridad === "alta"
+                                    ? "bg-orange-500 text-white"
+                                    : ordenServicio.prioridad === "media"
+                                    ? "bg-yellow-500 text-white"
+                                    : "bg-blue-500 text-white"
+                                }`}
+                              >
+                                {ordenServicio.prioridad.toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <label className="block text-cyan-300/70 text-sm mb-1">
+                                Fecha Programada
+                              </label>
+                              <p className="text-cyan-100 text-lg">
+                                {ordenServicio.fecha_programada} -{" "}
+                                {ordenServicio.hora_programada}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <h3 className="text-2xl font-bold text-cyan-300 mb-4">
+                              Información Adicional
+                            </h3>
+                            <div>
+                              <label className="block text-cyan-300/70 text-sm mb-1">
+                                Fecha de Creación
+                              </label>
+                              <p className="text-cyan-100 text-lg">
+                                {new Date(
+                                  ordenServicio.fecha_creacion
+                                ).toLocaleString("es-MX")}
+                              </p>
+                            </div>
+                            {ordenServicio.reporte_url && (
+                              <div>
+                                <label className="block text-cyan-300/70 text-sm mb-1">
+                                  Reporte
+                                </label>
+                                <a
+                                  href={ordenServicio.reporte_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-400 hover:text-blue-300 underline"
+                                >
+                                  Ver Reporte
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-8 flex gap-4">
                           <button
-                            onClick={() => loadDraft(draft)}
-                            className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all font-medium shadow-lg"
+                            onClick={() =>
+                              router.push(
+                                `/features/compressor-maintenance/technician/reports/create?folio=${ordenServicio.folio}`
+                              )
+                            }
+                            className="flex-1 px-8 py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all font-bold text-lg shadow-xl hover:shadow-emerald-500/50 border-2 border-emerald-400/50"
                           >
-                            Continuar
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (
-                                confirm(
-                                  "¿Estás seguro de eliminar este borrador?"
-                                )
-                              ) {
-                                deleteDraft(draft.id);
-                              }
-                            }}
-                            className="px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm rounded-xl hover:from-red-600 hover:to-red-700 transition-all shadow-lg"
-                            title="Eliminar"
-                          >
-                            🗑️
+                            Crear Reporte
                           </button>
                         </div>
-                      </div>
-                    ))}
+                      </>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
+              </>
+            ) : (
+              /* Fallback to draft reports view when no folio in URL */
+              <>
+                <div className="mt-24 mb-12 text-center">
+                  <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-300 to-cyan-300 mb-3">
+                    Reportes en Progreso
+                  </h1>
+                  <p className="text-cyan-200/80 text-xl">
+                    Continúa trabajando en tus reportes guardados
+                  </p>
+                </div>
+
+                {/* Draft Reports Section */}
+                <div className="relative">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 rounded-3xl opacity-30 blur-xl"></div>
+                  <div className="relative bg-gradient-to-br from-slate-800/95 via-blue-900/95 to-slate-800/95 rounded-3xl shadow-2xl border border-cyan-500/30 p-8">
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-3xl font-bold text-cyan-300 flex items-center gap-3">
+                        <span className="text-4xl">📝</span>
+                        Reportes en Borrador
+                      </h2>
+                      {draftReports.length > 0 && (
+                        <span className="px-5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full font-semibold text-sm shadow-lg">
+                          {draftReports.length}{" "}
+                          {draftReports.length === 1
+                            ? "reporte pendiente"
+                            : "reportes pendientes"}
+                        </span>
+                      )}
+                    </div>
+
+                    {draftReports.length === 0 ? (
+                      <div className="text-center py-16 text-cyan-300/60">
+                        <div className="text-8xl mb-6">📄</div>
+                        <p className="text-xl font-medium text-cyan-200">
+                          No hay reportes en borrador
+                        </p>
+                        <p className="text-sm mt-3 text-cyan-300/60">
+                          Los reportes guardados aparecerán aquí para continuar
+                          más tarde
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {draftReports.map((draft) => (
+                          <div
+                            key={draft.id}
+                            className="group relative p-5 rounded-2xl border-2 border-cyan-500/30 bg-gradient-to-br from-blue-800/40 to-cyan-800/40 hover:border-cyan-400/60 hover:shadow-xl hover:shadow-cyan-500/20 transition-all duration-300"
+                          >
+                            <div className="mb-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="px-3 py-1 bg-orange-500/90 text-white text-xs font-bold rounded-lg shadow">
+                                  {draft.reportType || "Reporte"}
+                                </span>
+                                <span className="text-xs text-cyan-300/70">
+                                  {new Date(
+                                    draft.lastModified
+                                  ).toLocaleDateString("es-MX")}
+                                </span>
+                              </div>
+                              <p className="font-bold text-cyan-100 text-lg truncate">
+                                {draft.clientName}
+                              </p>
+                              <p className="text-sm text-cyan-200/80 mt-2">
+                                <span className="font-medium">Folio:</span>{" "}
+                                {draft.folio}
+                              </p>
+                              <p className="text-sm text-cyan-200/80">
+                                <span className="font-medium">Serie:</span>{" "}
+                                {draft.serialNumber}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => loadDraft(draft)}
+                                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all font-medium shadow-lg"
+                              >
+                                Continuar
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (
+                                    confirm(
+                                      "¿Estás seguro de eliminar este borrador?"
+                                    )
+                                  ) {
+                                    deleteDraft(draft.id);
+                                  }
+                                }}
+                                className="px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm rounded-xl hover:from-red-600 hover:to-red-700 transition-all shadow-lg"
+                                title="Eliminar"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </>
         )}
 
@@ -584,8 +943,8 @@ const TypeReportes = () => {
                           className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
                         >
                           <option value="">Seleccionar tipo</option>
-                          <option value="Tornillo">Tornillo</option>
-                          <option value="Piston">Piston</option>
+                          <option value="tornillo">Tornillo</option>
+                          <option value="piston">Piston</option>
                         </select>
                       </div>
 
@@ -719,11 +1078,11 @@ const TypeReportes = () => {
                       </button>
                     </div>
 
-                    <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
-                      <p className="text-amber-300 text-sm">
-                        ⚠️ <strong>Nota:</strong> Algunos campos adicionales
-                        están pendientes de implementación y se agregarán en
-                        futuras actualizaciones.
+                    <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                      <p className="text-blue-300 text-sm">
+                        ℹ️ <strong>Info:</strong> El ticket se creará con estado
+                        "No Iniciado" y podrá ser asignado a un técnico
+                        posteriormente.
                       </p>
                     </div>
                   </form>
