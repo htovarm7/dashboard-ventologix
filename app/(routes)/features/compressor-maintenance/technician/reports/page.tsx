@@ -81,6 +81,8 @@ const TypeReportes = () => {
     null
   );
   const [loadingOrden, setLoadingOrden] = useState(false);
+  const [ordenesServicio, setOrdenesServicio] = useState<OrdenServicio[]>([]);
+  const [loadingOrdenes, setLoadingOrdenes] = useState(false);
   const [ticketData, setTicketData] = useState<TicketFormData>({
     folio: "",
     clientName: "",
@@ -116,8 +118,31 @@ const TypeReportes = () => {
     const folio = searchParams.get("folio");
     if (folio && rol === 2) {
       fetchOrdenServicio(folio);
+    } else if (rol === 2 && !folio) {
+      // Fetch all ordenes if no folio specified
+      fetchAllOrdenes();
     }
   }, [searchParams, rol]);
+
+  // Fetch all ordenes de servicio
+  const fetchAllOrdenes = async () => {
+    setLoadingOrdenes(true);
+    try {
+      const response = await fetch(`${URL_API}/ordenes/`);
+      const data = await response.json();
+
+      if (data.data) {
+        setOrdenesServicio(data.data);
+      } else {
+        setOrdenesServicio([]);
+      }
+    } catch (error) {
+      console.error("Error fetching ordenes de servicio:", error);
+      alert("Error al cargar las órdenes de servicio");
+    } finally {
+      setLoadingOrdenes(false);
+    }
+  };
 
   // Fetch orden de servicio by folio
   const fetchOrdenServicio = async (folio: string) => {
@@ -636,98 +661,132 @@ const TypeReportes = () => {
                 </div>
               </>
             ) : (
-              /* Fallback to draft reports view when no folio in URL */
+              /* Show list of all ordenes when no folio in URL */
               <>
                 <div className="mt-24 mb-12 text-center">
                   <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-300 to-cyan-300 mb-3">
-                    Reportes en Progreso
+                    Órdenes de Servicio
                   </h1>
                   <p className="text-cyan-200/80 text-xl">
-                    Continúa trabajando en tus reportes guardados
+                    Selecciona una orden para crear su reporte
                   </p>
                 </div>
 
-                {/* Draft Reports Section */}
+                {/* Ordenes List Section */}
                 <div className="relative">
                   <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 rounded-3xl opacity-30 blur-xl"></div>
                   <div className="relative bg-gradient-to-br from-slate-800/95 via-blue-900/95 to-slate-800/95 rounded-3xl shadow-2xl border border-cyan-500/30 p-8">
                     <div className="flex justify-between items-center mb-6">
                       <h2 className="text-3xl font-bold text-cyan-300 flex items-center gap-3">
-                        <span className="text-4xl">📝</span>
-                        Reportes en Borrador
+                        <span className="text-4xl">📋</span>
+                        Órdenes Pendientes
                       </h2>
-                      {draftReports.length > 0 && (
+                      {ordenesServicio.length > 0 && (
                         <span className="px-5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full font-semibold text-sm shadow-lg">
-                          {draftReports.length}{" "}
-                          {draftReports.length === 1
-                            ? "reporte pendiente"
-                            : "reportes pendientes"}
+                          {ordenesServicio.length}{" "}
+                          {ordenesServicio.length === 1 ? "orden" : "órdenes"}
                         </span>
                       )}
                     </div>
 
-                    {draftReports.length === 0 ? (
+                    {loadingOrdenes ? (
+                      <div className="text-center py-16">
+                        <div className="text-4xl mb-4">⏳</div>
+                        <p className="text-cyan-300">
+                          Cargando órdenes de servicio...
+                        </p>
+                      </div>
+                    ) : ordenesServicio.length === 0 ? (
                       <div className="text-center py-16 text-cyan-300/60">
                         <div className="text-8xl mb-6">📄</div>
                         <p className="text-xl font-medium text-cyan-200">
-                          No hay reportes en borrador
+                          No hay órdenes de servicio disponibles
                         </p>
                         <p className="text-sm mt-3 text-cyan-300/60">
-                          Los reportes guardados aparecerán aquí para continuar
-                          más tarde
+                          Las nuevas órdenes aparecerán aquí
                         </p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                        {draftReports.map((draft) => (
+                        {ordenesServicio.map((orden) => (
                           <div
-                            key={draft.id}
+                            key={orden.folio}
                             className="group relative p-5 rounded-2xl border-2 border-cyan-500/30 bg-gradient-to-br from-blue-800/40 to-cyan-800/40 hover:border-cyan-400/60 hover:shadow-xl hover:shadow-cyan-500/20 transition-all duration-300"
                           >
                             <div className="mb-4">
                               <div className="flex items-center justify-between mb-3">
-                                <span className="px-3 py-1 bg-orange-500/90 text-white text-xs font-bold rounded-lg shadow">
-                                  {draft.reportType || "Reporte"}
+                                <span
+                                  className={`px-3 py-1 text-white text-xs font-bold rounded-lg shadow ${
+                                    orden.estado === "no_iniciado"
+                                      ? "bg-gray-500"
+                                      : orden.estado === "en_proceso"
+                                      ? "bg-blue-500"
+                                      : orden.estado === "completado"
+                                      ? "bg-green-500"
+                                      : "bg-gray-500"
+                                  }`}
+                                >
+                                  {orden.estado.toUpperCase().replace("_", " ")}
                                 </span>
-                                <span className="text-xs text-cyan-300/70">
-                                  {new Date(
-                                    draft.lastModified
-                                  ).toLocaleDateString("es-MX")}
+                                <span
+                                  className={`px-2 py-1 text-xs font-semibold rounded ${
+                                    orden.prioridad === "urgente"
+                                      ? "bg-red-500 text-white"
+                                      : orden.prioridad === "alta"
+                                      ? "bg-orange-500 text-white"
+                                      : orden.prioridad === "media"
+                                      ? "bg-yellow-500 text-white"
+                                      : "bg-blue-500 text-white"
+                                  }`}
+                                >
+                                  {orden.prioridad.toUpperCase()}
                                 </span>
                               </div>
                               <p className="font-bold text-cyan-100 text-lg truncate">
-                                {draft.clientName}
+                                {orden.nombre_cliente}
                               </p>
                               <p className="text-sm text-cyan-200/80 mt-2">
                                 <span className="font-medium">Folio:</span>{" "}
-                                {draft.folio}
+                                {orden.folio}
+                              </p>
+                              <p className="text-sm text-cyan-200/80">
+                                <span className="font-medium">Compresor:</span>{" "}
+                                {orden.alias_compresor}
                               </p>
                               <p className="text-sm text-cyan-200/80">
                                 <span className="font-medium">Serie:</span>{" "}
-                                {draft.serialNumber}
+                                {orden.numero_serie}
+                              </p>
+                              <p className="text-sm text-cyan-200/80">
+                                <span className="font-medium">Tipo:</span>{" "}
+                                {orden.tipo_visita}
+                              </p>
+                              <p className="text-sm text-cyan-200/80 mt-2">
+                                <span className="font-medium">Programada:</span>{" "}
+                                {orden.fecha_programada} {orden.hora_programada}
                               </p>
                             </div>
                             <div className="flex gap-2">
                               <button
-                                onClick={() => loadDraft(draft)}
+                                onClick={() =>
+                                  router.push(
+                                    `/features/compressor-maintenance/technician/reports?folio=${orden.folio}`
+                                  )
+                                }
                                 className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all font-medium shadow-lg"
                               >
-                                Continuar
+                                Ver Detalles
                               </button>
                               <button
-                                onClick={() => {
-                                  if (
-                                    confirm(
-                                      "¿Estás seguro de eliminar este borrador?"
-                                    )
-                                  ) {
-                                    deleteDraft(draft.id);
-                                  }
-                                }}
-                                className="px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm rounded-xl hover:from-red-600 hover:to-red-700 transition-all shadow-lg"
-                                title="Eliminar"
+                                onClick={() =>
+                                  router.push(
+                                    `/features/compressor-maintenance/technician/reports/create?folio=${orden.folio}`
+                                  )
+                                }
+                                className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-sm rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all shadow-lg"
+                                title="Crear Reporte"
                               >
-                                🗑️
+                                📝
                               </button>
                             </div>
                           </div>

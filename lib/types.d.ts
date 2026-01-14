@@ -1,25 +1,25 @@
 export type clientData = {
-    id_cliente: number;
-    numero_cliente: number;
-    nombre_cliente: string;
-    RFC: string;
-    direccion: string;
-    champion: string;
-    costokWh: number;
-    demoDiario: boolean;
-    demoSemanal: boolean;
-  };
+  id_cliente: number;
+  numero_cliente: number;
+  nombre_cliente: string;
+  RFC: string;
+  direccion: string;
+  champion: string;
+  costokWh: number;
+  demoDiario: boolean;
+  demoSemanal: boolean;
+};
 
 export type compressorData = {
-    hp: number;
-    tipo: string;
-    voltaje: number;
-    marca: string;
-    numero_serie: number;
-    alias: string;
-    limite: number;
-    date: string;
-  };
+  hp: number;
+  tipo: string;
+  voltaje: number;
+  marca: string;
+  numero_serie: number;
+  alias: string;
+  limite: number;
+  date: string;
+};
 
 export interface Engineer {
   id: string;
@@ -34,7 +34,6 @@ export interface Engineer {
     monthly: boolean;
   };
 }
-
 
 export interface Compressor {
   id: string;
@@ -51,7 +50,12 @@ export interface UserData {
   id_cliente?: number;
   numero_cliente: number;
   rol: number;
-  compresores: { linea: string; proyecto: number; Alias: string, numero_cliente: string }[];
+  compresores: {
+    linea: string;
+    proyecto: number;
+    Alias: string;
+    numero_cliente: string;
+  }[];
   email: string;
   name: string;
   timestamp: number;
@@ -66,7 +70,6 @@ export interface UserResponse {
   email: string;
   name: string;
 }
-
 
 export interface UserInfo {
   email?: string;
@@ -84,27 +87,48 @@ export type EngineerFormData = {
   rol?: number; // 0 = SuperAdmin, 1 = Gerente VT, 2 = VAST, 3 = Gerente Cliente, 4 = Cliente
 };
 
+export interface OrdenServicio {
+  folio: string;
+  id_cliente: number;
+  id_cliente_eventual: number;
+  nombre_cliente: string;
+  numero_cliente: number;
+  alias_compresor: string;
+  numero_serie: string;
+  hp: number;
+  tipo: string;
+  marca: string;
+  anio: number;
+  tipo_visita: string;
+  prioridad: string;
+  fecha_programada: string;
+  hora_programada: string;
+  estado: string;
+  fecha_creacion: string;
+  reporte_url: string;
+}
+
 export type dayData = {
-    fecha: string;
-    inicio_funcionamiento: string;
-    fin_funcionamiento: string;
-    horas_trabajadas: number;
-    kWh: number;
-    horas_load: number;
-    horas_noload: number;
-    hp_nominal: number;
-    hp_equivalente: number;
-    ciclos: number;
-    promedio_ciclos_hora: number;
-    costo_usd: number;
-    comentario_ciclos: string;
-    comentario_hp_equivalente: string;
-  };
+  fecha: string;
+  inicio_funcionamiento: string;
+  fin_funcionamiento: string;
+  horas_trabajadas: number;
+  kWh: number;
+  horas_load: number;
+  horas_noload: number;
+  hp_nominal: number;
+  hp_equivalente: number;
+  ciclos: number;
+  promedio_ciclos_hora: number;
+  costo_usd: number;
+  comentario_ciclos: string;
+  comentario_hp_equivalente: string;
+};
 
 interface LineData {
-    time: string;
-    corriente: number;
-  }
+  time: string;
+  corriente: number;
+}
 
 export type chartData = [number, number, number];
 
