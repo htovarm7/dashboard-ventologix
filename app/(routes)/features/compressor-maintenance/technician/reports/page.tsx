@@ -645,11 +645,31 @@ const TypeReportes = () => {
 
                         <div className="mt-8 flex gap-4">
                           <button
-                            onClick={() =>
+                            onClick={() => {
+                              const params = new URLSearchParams({
+                                folio: ordenServicio.folio,
+                                clientId: ordenServicio.id_cliente.toString(),
+                                clientName: ordenServicio.nombre_cliente,
+                                numeroCliente:
+                                  ordenServicio.numero_cliente.toString(),
+                                compressorId: ordenServicio.numero_serie,
+                                serialNumber: ordenServicio.numero_serie,
+                                brand: ordenServicio.marca,
+                                model: ordenServicio.tipo,
+                                hp: ordenServicio.hp.toString(),
+                                year: ordenServicio.anio.toString(),
+                                tipo: ordenServicio.tipo,
+                                alias: ordenServicio.alias_compresor,
+                                tipoVisita: ordenServicio.tipo_visita,
+                                isEventual:
+                                  ordenServicio.id_cliente_eventual === 1
+                                    ? "true"
+                                    : "false",
+                              });
                               router.push(
-                                `/features/compressor-maintenance/technician/reports/create?folio=${ordenServicio.folio}`
-                              )
-                            }
+                                `/features/compressor-maintenance/technician/reports/create?${params.toString()}`
+                              );
+                            }}
                             className="flex-1 px-8 py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all font-bold text-lg shadow-xl hover:shadow-emerald-500/50 border-2 border-emerald-400/50"
                           >
                             Crear Reporte
@@ -778,11 +798,31 @@ const TypeReportes = () => {
                                 Ver Detalles
                               </button>
                               <button
-                                onClick={() =>
+                                onClick={() => {
+                                  const params = new URLSearchParams({
+                                    folio: orden.folio,
+                                    clientId: orden.id_cliente.toString(),
+                                    clientName: orden.nombre_cliente,
+                                    numeroCliente:
+                                      orden.numero_cliente.toString(),
+                                    compressorId: orden.numero_serie,
+                                    serialNumber: orden.numero_serie,
+                                    brand: orden.marca,
+                                    model: orden.tipo,
+                                    hp: orden.hp.toString(),
+                                    year: orden.anio.toString(),
+                                    tipo: orden.tipo,
+                                    alias: orden.alias_compresor,
+                                    tipoVisita: orden.tipo_visita,
+                                    isEventual:
+                                      orden.id_cliente_eventual === 1
+                                        ? "true"
+                                        : "false",
+                                  });
                                   router.push(
-                                    `/features/compressor-maintenance/technician/reports/create?folio=${orden.folio}`
-                                  )
-                                }
+                                    `/features/compressor-maintenance/technician/reports/create?${params.toString()}`
+                                  );
+                                }}
                                 className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-sm rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all shadow-lg"
                                 title="Crear Reporte"
                               >

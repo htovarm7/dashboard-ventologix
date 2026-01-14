@@ -375,9 +375,15 @@ export type Visit = {
   numero_cliente?: number;
 };
 
-export interface FormData {
+export interface ReportFormData {
   // Datos iniciales
   isExistingClient: boolean;
+  folio?: string;
+  compressorId?: string;
+  numeroCliente?: string;
+  equipmentHp?: string;
+  compressorType?: string;
+  compressorAlias?: string;
   clientId?: string;
   clientName?: string;
   clientAddress?: string;

@@ -5,14 +5,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import BackButton from "@/components/BackButton";
 import Image from "next/image";
-import { FormData } from "@/lib/types";
+import { ReportFormData } from "@/lib/types";
 
 function FillReport() {
   const { isAuthenticated, isLoading } = useAuth0();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<ReportFormData>({
     isExistingClient: true,
     reportDate: new Date().toISOString().split("T")[0],
     diagnosticType: "",
@@ -84,28 +84,38 @@ function FillReport() {
 
   // Load compressor data from URL parameters
   useEffect(() => {
+    const folio = searchParams.get("folio");
     const compressorId = searchParams.get("compressorId");
     const serialNumber = searchParams.get("serialNumber");
     const clientId = searchParams.get("clientId");
     const clientName = searchParams.get("clientName");
+    const numeroCliente = searchParams.get("numeroCliente");
     const brand = searchParams.get("brand");
     const model = searchParams.get("model");
     const hp = searchParams.get("hp");
     const year = searchParams.get("year");
     const tipo = searchParams.get("tipo");
+    const alias = searchParams.get("alias");
+    const tipoVisita = searchParams.get("tipoVisita");
     const isEventual = searchParams.get("isEventual");
 
     if (compressorId && serialNumber) {
       setFormData((prev) => ({
         ...prev,
+        folio: folio || prev.folio,
         compressorId,
         serialNumber,
         clientId: clientId || prev.clientId,
         clientName: clientName || prev.clientName,
+        numeroCliente: numeroCliente || prev.numeroCliente,
         brand: brand || prev.brand,
         model: model || prev.model,
         yearManufactured: year || prev.yearManufactured,
-        isExistingClient: true,
+        equipmentHp: hp || prev.equipmentHp,
+        compressorType: tipo || prev.compressorType,
+        compressorAlias: alias || prev.compressorAlias,
+        diagnosticType: tipoVisita || prev.diagnosticType,
+        isExistingClient: isEventual !== "true",
       }));
     } else if (isEventual === "true") {
       setFormData((prev) => ({
@@ -147,12 +157,118 @@ function FillReport() {
     setFormData((prev) => ({ ...prev, [fieldName]: file }));
   };
 
+  const handleSaveDraft = () => {
+    try {
+      // Get existing drafts
+      const existingDrafts = localStorage.getItem("draftReports");
+      const drafts = existingDrafts ? JSON.parse(existingDrafts) : [];
+
+      // Create draft object (excluding File objects)
+      const draftData = {
+        id: formData.folio || `draft-${Date.now()}`,
+        folio: formData.folio || "Sin folio",
+        clientName: formData.clientName || "Sin cliente",
+        serialNumber: formData.serialNumber || "Sin serie",
+        lastModified: new Date().toISOString(),
+        reportType: formData.diagnosticType || "Sin tipo",
+        formData: {
+          ...formData,
+          // Convert File objects to null for localStorage
+          photo1: null,
+          photo2: null,
+          photo3: null,
+          photo4: null,
+          photo5: null,
+          photo6: null,
+        },
+      };
+
+      // Check if draft already exists
+      const existingIndex = drafts.findIndex((d: any) => d.id === draftData.id);
+      if (existingIndex >= 0) {
+        drafts[existingIndex] = draftData;
+      } else {
+        drafts.push(draftData);
+      }
+
+      // Save to localStorage
+      localStorage.setItem("draftReports", JSON.stringify(drafts));
+      alert("💾 Borrador guardado localmente");
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      alert("❌ Error al guardar el borrador");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // TODO: Implementar lógica de envío al backend
-    console.log("Form data:", formData);
-    alert("Formulario enviado (pendiente implementación de backend)");
+    try {
+      // Create FormData for file uploads
+      const submitData = new FormData();
+
+      // Add all text fields
+      Object.entries(formData).forEach(([key, value]) => {
+        if (
+          value !== null &&
+          value !== undefined &&
+          typeof value !== "object"
+        ) {
+          submitData.append(key, value.toString());
+        }
+      });
+
+      // Add file uploads if they exist
+      if (formData.photo1) {
+        submitData.append("photo1", formData.photo1);
+      }
+      if (formData.photo2) {
+        submitData.append("photo2", formData.photo2);
+      }
+      if (formData.photo3) {
+        submitData.append("photo3", formData.photo3);
+      }
+      if (formData.photo4) {
+        submitData.append("photo4", formData.photo4);
+      }
+      if (formData.photo5) {
+        submitData.append("photo5", formData.photo5);
+      }
+      if (formData.photo6) {
+        submitData.append("photo6", formData.photo6);
+      }
+
+      // Send to backend API
+      const response = await fetch("http://localhost:8000/api/reportes/", {
+        method: "POST",
+        body: submitData,
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert("✅ Reporte guardado exitosamente");
+        // Remove draft if it exists
+        const existingDrafts = localStorage.getItem("draftReports");
+        if (existingDrafts) {
+          const drafts = JSON.parse(existingDrafts);
+          const filtered = drafts.filter((d: any) => d.id !== formData.folio);
+          localStorage.setItem("draftReports", JSON.stringify(filtered));
+        }
+        // Redirect back to reports list
+        router.push("/features/compressor-maintenance/technician/reports");
+      } else {
+        console.error("Error response:", result);
+        alert(
+          `❌ Error al guardar el reporte: ${
+            result.detail || result.message || "Error desconocido"
+          }`
+        );
+      }
+    } catch (error) {
+      console.error("Error submitting report:", error);
+      alert("❌ Error al enviar el reporte. Por favor, intente nuevamente.");
+    }
   };
 
   const renderClientSelection = () => (
@@ -492,10 +608,18 @@ function FillReport() {
                 Cancelar
               </button>
               <button
+                type="button"
+                onClick={handleSaveDraft}
+                className="px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium flex items-center gap-2"
+              >
+                <span>💾</span>
+                Guardar Borrador
+              </button>
+              <button
                 type="submit"
                 className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
               >
-                <span>💾</span>
+                <span>✅</span>
                 Guardar Diagnóstico
               </button>
             </div>
