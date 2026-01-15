@@ -3,29 +3,7 @@
 import { useEffect, useState } from "react";
 import { URL_API } from "@/lib/global";
 import BackButton from "@/components/BackButton";
-
-interface Client {
-  id_cliente: number;
-  numero_cliente: number;
-  nombre_cliente: string;
-  RFC: string;
-  direccion: string;
-  champion: string;
-  CostokWh: number;
-  demoDiario: number | null;
-  demoSemanal: number | null;
-}
-
-interface ClientFormData {
-  numero_cliente: number | string;
-  nombre_cliente: string;
-  RFC: string;
-  direccion: string;
-  champion: string;
-  CostokWh: number | string;
-  demoDiario: number | string;
-  demoSemanal: number | string;
-}
+import { Client, ClientFormData } from "@/lib/types";
 
 const ShowClients = () => {
   const [clients, setClients] = useState<Client[]>([]);

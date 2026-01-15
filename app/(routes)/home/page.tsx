@@ -4,6 +4,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
 import DateReportDropdown from "@/components/DateReportDropdown";
 import { Compressor } from "@/lib/types";
+import { URL_API } from "@/lib/global";
 
 const Home = () => {
   const { user, isAuthenticated, isLoading, logout } = useAuth0();
@@ -18,6 +19,14 @@ const Home = () => {
   const [selectedCompresor, setSelectedCompresor] = useState<Compressor | null>(
     null
   );
+  const [modulos, setModulos] = useState<{
+    mantenimiento: boolean;
+    reporteDia: boolean;
+    reporteSemana: boolean;
+    presion: boolean;
+    prediccion: boolean;
+    kwh: boolean;
+  } | null>(null);
 
   useEffect(() => {
     const verifyAndLoadUser = async () => {
@@ -53,6 +62,27 @@ const Home = () => {
             }
           }
 
+          // Fetch modulos from API
+          if (parsedData.numero_cliente) {
+            try {
+              const modulosRes = await fetch(
+                `${URL_API}/modulos/${parsedData.numero_cliente}`
+              );
+              if (modulosRes.ok) {
+                const modulosData = await modulosRes.json();
+                setModulos(modulosData.data);
+              } else {
+                console.log(
+                  "No modules found for client, using default secciones"
+                );
+                setModulos(null);
+              }
+            } catch (error) {
+              console.error("Error fetching modules:", error);
+              setModulos(null);
+            }
+          }
+
           setIsCheckingAuth(false);
           setHasCheckedAuth(true);
           return;
@@ -74,6 +104,31 @@ const Home = () => {
       verifyAndLoadUser();
     }
   }, [isAuthenticated, user, isLoading, router, hasCheckedAuth]);
+
+  // Helper function to check if a module is enabled
+  const isModuleEnabled = (moduleName: string): boolean => {
+    // If modulos data is available, use it
+    if (modulos) {
+      switch (moduleName) {
+        case "Mantenimiento":
+          return modulos.mantenimiento;
+        case "ReporteDia":
+          return modulos.reporteDia;
+        case "ReporteSemana":
+          return modulos.reporteSemana;
+        case "Presion":
+          return modulos.presion;
+        case "Prediccion":
+          return modulos.prediccion;
+        case "KWH":
+          return modulos.kwh;
+        default:
+          return false;
+      }
+    }
+    // Fallback to secciones array if modulos data is not available
+    return secciones.includes(moduleName);
+  };
 
   if (isLoading || isCheckingAuth) {
     return (
@@ -349,7 +404,7 @@ const Home = () => {
             ) : (
               <div className="flex flex-col gap-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 max-w-4xl gap-5 mx-auto w-full">
-                  {secciones.includes("Prediccion") && (
+                  {isModuleEnabled("Prediccion") && (
                     <button
                       className="group relative flex items-center justify-center gap-3 px-6 py-5 text-lg font-semibold rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105 shadow-xl border-2 border-violet-400/50"
                       onClick={() => router.push("/features/prediction")}
@@ -378,7 +433,7 @@ const Home = () => {
                       </span>
                     </button>
                   )}
-                  {secciones.includes("Presion") && (
+                  {isModuleEnabled("Presion") && (
                     <button
                       className="group relative flex items-center justify-center gap-3 px-6 py-5 text-lg font-semibold rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105 shadow-xl border-2 border-pink-400/50"
                       onClick={() => router.push("/features/pressure")}
@@ -405,7 +460,7 @@ const Home = () => {
                       </span>
                     </button>
                   )}
-                  {secciones.includes("Mantenimiento") && (
+                  {isModuleEnabled("Mantenimiento") && (
                     <button
                       className="group relative flex items-center justify-center gap-3 px-6 py-5 text-lg font-semibold rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105 shadow-xl border-2 border-emerald-400/50"
                       onClick={() =>
@@ -439,7 +494,7 @@ const Home = () => {
                       </span>
                     </button>
                   )}
-                  {secciones.includes("KWH") && (
+                  {isModuleEnabled("KWH") && (
                     <button
                       className="group relative flex items-center justify-center gap-3 px-6 py-5 text-lg font-semibold rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105 shadow-xl border-2 border-blue-400/50"
                       onClick={() => router.push("/features/consumption-kwh")}
@@ -469,7 +524,7 @@ const Home = () => {
 
                 {selectedCompresor && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 max-w-4xl gap-5 mx-auto w-full mt-6">
-                    {secciones.includes("ReporteDia") && (
+                    {isModuleEnabled("ReporteDia") && (
                       <div className="group relative flex items-center justify-center rounded-2xl transition-all duration-300 hover:scale-105 shadow-xl border-2 border-purple-400/50 min-h-[80px]">
                         <div className="absolute inset-0 bg-gradient-to-r from-purple-700 to-fuchsia-700 rounded-2xl pointer-events-none"></div>
                         <div className="absolute inset-0 bg-gradient-to-r from-fuchsia-700 to-purple-700 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-2xl pointer-events-none"></div>
@@ -488,7 +543,7 @@ const Home = () => {
                         </div>
                       </div>
                     )}
-                    {secciones.includes("ReporteSemana") && (
+                    {isModuleEnabled("ReporteSemana") && (
                       <div className="group relative flex items-center justify-center rounded-2xl transition-all duration-300 hover:scale-105 shadow-xl border-2 border-cyan-400/50 min-h-[80px]">
                         <div className="absolute inset-0 bg-gradient-to-r from-cyan-700 to-teal-700 rounded-2xl pointer-events-none"></div>
                         <div className="absolute inset-0 bg-gradient-to-r from-teal-700 to-cyan-700 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-2xl pointer-events-none"></div>

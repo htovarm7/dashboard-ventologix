@@ -60,6 +60,51 @@ def get_modulos():
     
     except mysql.connector.Error as err:
         return{"error": str(err)}
+
+@modulos_web.get("/{numero_cliente}")
+def get_modulos_by_cliente(numero_cliente: int = Path(..., description="Numero del cliente")):
+    try:
+        conn = mysql.connector.connect(
+            user=DB_USER,
+            host=DB_HOST,
+            database=DB_DATABASE,
+            password=DB_PASSWORD
+        )
+        
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """SELECT *
+               FROM modulos_web
+               WHERE numero_cliente = %s
+            """,
+            (numero_cliente,)
+        )
+
+        res = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        if not res:
+            raise HTTPException(status_code=404, detail="Cliente no encontrado en modulos_web")
+        
+        modulo = {
+            "numero_cliente": res[0],
+            "mantenimiento": res[1],
+            "reporteDia": res[2],
+            "reporteSemana": res[3],
+            "presion": res[4],
+            "prediccion": res[5],
+            "kwh": res[6]
+        }
+
+        return {
+            "data": modulo
+        }
+    
+    except mysql.connector.Error as err:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(err)}")
     
 @modulos_web.post("/")
 def submit_modulos_permission(request : Modulos):

@@ -5,7 +5,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { Compressor } from "@/lib/types";
 import { URL_API } from "@/lib/global";
 import Image from "next/image";
-import { Database, BookUser } from "lucide-react";
+import { Database, BookUser, UserPen } from "lucide-react";
 
 interface SideBarProps {
   compresores?: Compressor[];
@@ -28,7 +28,6 @@ interface NavigationItem {
   title: string;
   icon: React.ReactElement;
   route?: string;
-  requiresCompresor: boolean;
   isExpandable?: boolean;
   isExpanded?: boolean;
   setExpanded?: (expanded: boolean) => void;
@@ -174,29 +173,13 @@ const SideBar: React.FC<SideBarProps> = ({
         </svg>
       ),
       route: "/home",
-      requiresCompresor: false,
     },
     ...(rol === 3
       ? [
           {
             id: "admin view",
             title: "Administrador",
-            icon: (
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-3.31 0-6 2.69-6 6h12c0-3.31-2.69-6-6-6z"
-                />
-              </svg>
-            ),
-            requiresCompresor: false,
+            icon: <UserPen />,
             route: "/admin-view",
           },
         ]
@@ -207,15 +190,19 @@ const SideBar: React.FC<SideBarProps> = ({
             id: "clients",
             title: "Ver clientes",
             icon: <BookUser />,
-            requiresCompresor: false,
             route: "/clients",
           },
           {
             id: "compresors",
             title: "Ver compresores",
             icon: <Database />,
-            requiresCompresor: false,
             route: "/compresors",
+          },
+          {
+            id: "moduls",
+            title: "Habilitar modulos a cliente",
+            icon: <UserPen />,
+            route: "/modules",
           },
         ]
       : []),
@@ -232,11 +219,6 @@ const SideBar: React.FC<SideBarProps> = ({
 
   const isActiveRoute = (route: string) => {
     return pathname === route;
-  };
-
-  const canAccessRoute = (item: NavigationItem) => {
-    if (!item.requiresCompresor) return true;
-    return selectedCompresor !== null;
   };
 
   // Función para filtrar items según las secciones disponibles
@@ -457,18 +439,12 @@ const SideBar: React.FC<SideBarProps> = ({
                     className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-200 ${
                       item.route && isActiveRoute(item.route)
                         ? "bg-blue-600 text-white shadow-lg"
-                        : canAccessRoute(item)
-                        ? "hover:bg-slate-700 text-slate-200"
-                        : "text-slate-500 cursor-not-allowed"
-                    } ${
-                      !canAccessRoute(item) && item.requiresCompresor
-                        ? "opacity-50"
-                        : ""
+                        : "hover:bg-slate-700 text-slate-200"
                     }`}
                     onClick={() => {
                       if (item.isExpandable) {
                         item.setExpanded?.(!item.isExpanded);
-                      } else if (item.route && canAccessRoute(item)) {
+                      } else if (item.route) {
                         handleNavigation(item.route);
                       }
                     }}
@@ -543,12 +519,10 @@ const SideBar: React.FC<SideBarProps> = ({
                                     ? "bg-blue-500 text-white"
                                     : child.disabled
                                     ? "text-slate-500 cursor-not-allowed"
-                                    : canAccessRoute(item)
-                                    ? "hover:bg-slate-600 text-slate-300"
-                                    : "text-slate-500 cursor-not-allowed opacity-50"
+                                    : "hover:bg-slate-600 text-slate-300"
                                 }`}
                                 onClick={() => {
-                                  if (!child.disabled && canAccessRoute(item)) {
+                                  if (!child.disabled) {
                                     handleNavigation(child.route);
                                   }
                                 }}
@@ -578,12 +552,10 @@ const SideBar: React.FC<SideBarProps> = ({
                                     ? "bg-blue-500 text-white"
                                     : child.disabled
                                     ? "text-slate-500 cursor-not-allowed"
-                                    : canAccessRoute(item)
-                                    ? "hover:bg-slate-600 text-slate-300"
-                                    : "text-slate-500 cursor-not-allowed opacity-50"
+                                    : "hover:bg-slate-600 text-slate-300"
                                 }`}
                                 onClick={() => {
-                                  if (!child.disabled && canAccessRoute(item)) {
+                                  if (!child.disabled) {
                                     handleNavigation(child.route);
                                   }
                                 }}

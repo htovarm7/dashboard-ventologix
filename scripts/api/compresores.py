@@ -122,60 +122,6 @@ def get_compresores_cliente(numero_cliente: int = Path(...,description="Numero d
     except mysql.connector.Error as err:
         return{ "error": str(err)}
 
-@compresores.get("/{numero_cliente}")
-def get_compresores_cliente(numero_cliente: int = Path(...,description="Numero del Cliente")):
-    try:
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_DATABASE
-        )
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """SELECT c.* FROM compresores c
-                JOIN clientes c2 ON c2.id_cliente = c.id_cliente
-                WHERE c2.numero_cliente = %s
-            """,
-            (numero_cliente,)
-        )
-
-        res = cursor.fetchall()
-        cursor.close()
-        conn.close()
-
-        if not res:
-            return{"error": "Check connection to DB or the .env"}
-        
-        compresores = [
-            {
-                "id": row[0],
-                "hp": row[1],
-                "tipo": row[2],
-                "voltaje": row[3],
-                "marca": row[4],
-                "numero_serie": row[5],
-                "anio": row[6],
-                "id_cliente": row[7],
-                "Amp_Load": row[8],
-                "Amp_No_Load": row[9],
-                "proyecto": row[10],
-                "linea": row[11],
-                "LOAD_NO_LOAD": row[12],
-                "Alias": row[13],
-                "fecha_utlimo_mtto": row[14]
-            }
-            for row in res
-        ]
-
-        return {
-            "data": compresores
-        }
-    
-    except mysql.connector.Error as err:
-        return{ "error": str(err)}
-
 @compresores.get("/compresor-cliente/{query}")
 def search_compresores(query: str = Path(..., description="Número de serie o número de cliente")):
     try:
