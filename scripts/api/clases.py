@@ -51,3 +51,12 @@ class OrdenServicio(BaseModel):
     estado: Literal['no_iniciado','en_progreso','terminado','enviado']
     fecha_creacion: datetime
     reporte_url: Optional[str]
+
+class Modulos(BaseModel):
+    numero_cliente: int
+    mantenimiento: bool
+    reporteDia: bool
+    reporteSemana: bool
+    presion: bool
+    prediccion: bool
+    kwh: bool
