@@ -117,13 +117,23 @@ function FillReport() {
         diagnosticType: tipoVisita || prev.diagnosticType,
         isExistingClient: isEventual !== "true",
       }));
+
+      // Clean up URL to only show folio
+      if (folio) {
+        router.replace(`?folio=${folio}`, { scroll: false });
+      } else {
+        router.replace(window.location.pathname, { scroll: false });
+      }
     } else if (isEventual === "true") {
       setFormData((prev) => ({
         ...prev,
         isExistingClient: false,
       }));
+
+      // Clean up URL
+      router.replace(window.location.pathname, { scroll: false });
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   if (isLoading) {
     return <LoadingOverlay isVisible={true} message="Cargando..." />;

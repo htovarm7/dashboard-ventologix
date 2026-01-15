@@ -408,6 +408,66 @@ const TypeReportes = () => {
     }
   };
 
+  // Función para agrupar órdenes por fecha
+  const groupOrdensByDate = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const endOfWeek = new Date(today);
+    endOfWeek.setDate(endOfWeek.getDate() + (7 - today.getDay()));
+
+    const nextWeekEnd = new Date(endOfWeek);
+    nextWeekEnd.setDate(nextWeekEnd.getDate() + 7);
+
+    const groups: {
+      [key: string]: {
+        title: string;
+        orders: OrdenServicio[];
+        priority: number;
+      };
+    } = {
+      today: { title: "🔴 Hoy", orders: [], priority: 1 },
+      tomorrow: { title: "🟡 Mañana", orders: [], priority: 2 },
+      thisWeek: { title: "🟢 Esta Semana", orders: [], priority: 3 },
+      nextWeek: { title: "🔵 Próxima Semana", orders: [], priority: 4 },
+      later: { title: "⚪ Más Adelante", orders: [], priority: 5 },
+    };
+
+    ordenesServicio.forEach((orden) => {
+      const ordenDate = new Date(orden.fecha_programada);
+      ordenDate.setHours(0, 0, 0, 0);
+
+      if (ordenDate.getTime() === today.getTime()) {
+        groups.today.orders.push(orden);
+      } else if (ordenDate.getTime() === tomorrow.getTime()) {
+        groups.tomorrow.orders.push(orden);
+      } else if (ordenDate > tomorrow && ordenDate <= endOfWeek) {
+        groups.thisWeek.orders.push(orden);
+      } else if (ordenDate > endOfWeek && ordenDate <= nextWeekEnd) {
+        groups.nextWeek.orders.push(orden);
+      } else {
+        groups.later.orders.push(orden);
+      }
+    });
+
+    // Ordenar las órdenes dentro de cada grupo por hora programada
+    Object.values(groups).forEach((group) => {
+      group.orders.sort((a, b) => {
+        const timeA = a.hora_programada || "00:00:00";
+        const timeB = b.hora_programada || "00:00:00";
+        return timeA.localeCompare(timeB);
+      });
+    });
+
+    // Filtrar grupos vacíos y ordenar por prioridad
+    return Object.values(groups)
+      .filter((group) => group.orders.length > 0)
+      .sort((a, b) => a.priority - b.priority);
+  };
+
   return (
     <div className="min-h-screen p-8 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
       {/* Background grid */}
@@ -727,107 +787,139 @@ const TypeReportes = () => {
                         </p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                        {ordenesServicio.map((orden) => (
-                          <div
-                            key={orden.folio}
-                            className="group relative p-5 rounded-2xl border-2 border-cyan-500/30 bg-gradient-to-br from-blue-800/40 to-cyan-800/40 hover:border-cyan-400/60 hover:shadow-xl hover:shadow-cyan-500/20 transition-all duration-300"
-                          >
-                            <div className="mb-4">
-                              <div className="flex items-center justify-between mb-3">
-                                <span
-                                  className={`px-3 py-1 text-white text-xs font-bold rounded-lg shadow ${
-                                    orden.estado === "no_iniciado"
-                                      ? "bg-gray-500"
-                                      : orden.estado === "en_proceso"
-                                      ? "bg-blue-500"
-                                      : orden.estado === "completado"
-                                      ? "bg-green-500"
-                                      : "bg-gray-500"
-                                  }`}
-                                >
-                                  {orden.estado.toUpperCase().replace("_", " ")}
-                                </span>
-                                <span
-                                  className={`px-2 py-1 text-xs font-semibold rounded ${
-                                    orden.prioridad === "urgente"
-                                      ? "bg-red-500 text-white"
-                                      : orden.prioridad === "alta"
-                                      ? "bg-orange-500 text-white"
-                                      : orden.prioridad === "media"
-                                      ? "bg-yellow-500 text-white"
-                                      : "bg-blue-500 text-white"
-                                  }`}
-                                >
-                                  {orden.prioridad.toUpperCase()}
-                                </span>
-                              </div>
-                              <p className="font-bold text-cyan-100 text-lg truncate">
-                                {orden.nombre_cliente}
-                              </p>
-                              <p className="text-sm text-cyan-200/80 mt-2">
-                                <span className="font-medium">Folio:</span>{" "}
-                                {orden.folio}
-                              </p>
-                              <p className="text-sm text-cyan-200/80">
-                                <span className="font-medium">Compresor:</span>{" "}
-                                {orden.alias_compresor}
-                              </p>
-                              <p className="text-sm text-cyan-200/80">
-                                <span className="font-medium">Serie:</span>{" "}
-                                {orden.numero_serie}
-                              </p>
-                              <p className="text-sm text-cyan-200/80">
-                                <span className="font-medium">Tipo:</span>{" "}
-                                {orden.tipo_visita}
-                              </p>
-                              <p className="text-sm text-cyan-200/80 mt-2">
-                                <span className="font-medium">Programada:</span>{" "}
-                                {orden.fecha_programada} {orden.hora_programada}
-                              </p>
+                      <div className="space-y-8">
+                        {groupOrdensByDate().map((group) => (
+                          <div key={group.title} className="space-y-4">
+                            {/* Header de fecha */}
+                            <div className="flex items-center gap-4">
+                              <h3 className="text-2xl font-bold text-cyan-100 flex items-center gap-2">
+                                {group.title}
+                              </h3>
+                              <div className="flex-1 h-0.5 bg-gradient-to-r from-cyan-500/50 to-transparent"></div>
+                              <span className="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-sm font-semibold">
+                                {group.orders.length}{" "}
+                                {group.orders.length === 1
+                                  ? "orden"
+                                  : "órdenes"}
+                              </span>
                             </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() =>
-                                  router.push(
-                                    `/features/compressor-maintenance/technician/reports?folio=${orden.folio}`
-                                  )
-                                }
-                                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all font-medium shadow-lg"
-                              >
-                                Ver Detalles
-                              </button>
-                              <button
-                                onClick={() => {
-                                  const params = new URLSearchParams({
-                                    folio: orden.folio,
-                                    clientId: orden.id_cliente.toString(),
-                                    clientName: orden.nombre_cliente,
-                                    numeroCliente:
-                                      orden.numero_cliente.toString(),
-                                    compressorId: orden.numero_serie,
-                                    serialNumber: orden.numero_serie,
-                                    brand: orden.marca,
-                                    model: orden.tipo,
-                                    hp: orden.hp.toString(),
-                                    year: orden.anio.toString(),
-                                    tipo: orden.tipo,
-                                    alias: orden.alias_compresor,
-                                    tipoVisita: orden.tipo_visita,
-                                    isEventual:
-                                      orden.id_cliente_eventual === 1
-                                        ? "true"
-                                        : "false",
-                                  });
-                                  router.push(
-                                    `/features/compressor-maintenance/technician/reports/create?${params.toString()}`
-                                  );
-                                }}
-                                className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-sm rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all shadow-lg"
-                                title="Crear Reporte"
-                              >
-                                📝
-                              </button>
+
+                            {/* Grid de órdenes */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                              {group.orders.map((orden) => (
+                                <div
+                                  key={orden.folio}
+                                  className="group relative p-5 rounded-2xl border-2 border-cyan-500/30 bg-gradient-to-br from-blue-800/40 to-cyan-800/40 hover:border-cyan-400/60 hover:shadow-xl hover:shadow-cyan-500/20 transition-all duration-300"
+                                >
+                                  <div className="mb-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                      <span
+                                        className={`px-3 py-1 text-white text-xs font-bold rounded-lg shadow ${
+                                          orden.estado === "no_iniciado"
+                                            ? "bg-gray-500"
+                                            : orden.estado === "en_proceso"
+                                            ? "bg-blue-500"
+                                            : orden.estado === "completado"
+                                            ? "bg-green-500"
+                                            : "bg-gray-500"
+                                        }`}
+                                      >
+                                        {orden.estado
+                                          .toUpperCase()
+                                          .replace("_", " ")}
+                                      </span>
+                                      <span
+                                        className={`px-2 py-1 text-xs font-semibold rounded ${
+                                          orden.prioridad === "urgente"
+                                            ? "bg-red-500 text-white"
+                                            : orden.prioridad === "alta"
+                                            ? "bg-orange-500 text-white"
+                                            : orden.prioridad === "media"
+                                            ? "bg-yellow-500 text-white"
+                                            : "bg-blue-500 text-white"
+                                        }`}
+                                      >
+                                        {orden.prioridad.toUpperCase()}
+                                      </span>
+                                    </div>
+                                    <p className="font-bold text-cyan-100 text-lg truncate">
+                                      {orden.nombre_cliente}
+                                    </p>
+                                    <p className="text-sm text-cyan-200/80 mt-2">
+                                      <span className="font-medium">
+                                        Folio:
+                                      </span>{" "}
+                                      {orden.folio}
+                                    </p>
+                                    <p className="text-sm text-cyan-200/80">
+                                      <span className="font-medium">
+                                        Compresor:
+                                      </span>{" "}
+                                      {orden.alias_compresor}
+                                    </p>
+                                    <p className="text-sm text-cyan-200/80">
+                                      <span className="font-medium">
+                                        Serie:
+                                      </span>{" "}
+                                      {orden.numero_serie}
+                                    </p>
+                                    <p className="text-sm text-cyan-200/80">
+                                      <span className="font-medium">Tipo:</span>{" "}
+                                      {orden.tipo_visita}
+                                    </p>
+                                    <p className="text-sm text-cyan-200/80 mt-2">
+                                      <span className="font-medium">
+                                        Programada:
+                                      </span>{" "}
+                                      {orden.fecha_programada}{" "}
+                                      {orden.hora_programada}
+                                    </p>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() =>
+                                        router.push(
+                                          `/features/compressor-maintenance/technician/reports?folio=${orden.folio}`
+                                        )
+                                      }
+                                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all font-medium shadow-lg"
+                                    >
+                                      Ver Detalles
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const params = new URLSearchParams({
+                                          folio: orden.folio,
+                                          clientId: orden.id_cliente.toString(),
+                                          clientName: orden.nombre_cliente,
+                                          numeroCliente:
+                                            orden.numero_cliente.toString(),
+                                          compressorId: orden.numero_serie,
+                                          serialNumber: orden.numero_serie,
+                                          brand: orden.marca,
+                                          model: orden.tipo,
+                                          hp: orden.hp.toString(),
+                                          year: orden.anio.toString(),
+                                          tipo: orden.tipo,
+                                          alias: orden.alias_compresor,
+                                          tipoVisita: orden.tipo_visita,
+                                          isEventual:
+                                            orden.id_cliente_eventual === 1
+                                              ? "true"
+                                              : "false",
+                                        });
+                                        router.push(
+                                          `/features/compressor-maintenance/technician/reports/create?${params.toString()}`
+                                        );
+                                      }}
+                                      className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-sm rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all shadow-lg"
+                                      title="Crear Reporte"
+                                    >
+                                      📝
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
                         ))}

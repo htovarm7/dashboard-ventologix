@@ -9,6 +9,7 @@ const ModulosSheet = () => {
   const [modulos, setModulos] = useState<Modulos[]>([]);
   const [formData, setFormData] = useState<ModulosFormData>({
     numero_cliente: 0,
+    nombre_cliente: "",
     mantenimiento: false,
     reporteDia: false,
     reporteSemana: false,
@@ -49,6 +50,7 @@ const ModulosSheet = () => {
   const handleOpenCreateModal = () => {
     setFormData({
       numero_cliente: 0,
+      nombre_cliente: "",
       mantenimiento: false,
       reporteDia: false,
       reporteSemana: false,
@@ -66,6 +68,7 @@ const ModulosSheet = () => {
   const handleOpenEditModal = (client: Modulos) => {
     setFormData({
       numero_cliente: client.numero_cliente,
+      nombre_cliente: client.nombre_cliente || "",
       mantenimiento: client.mantenimiento,
       reporteDia: client.reporteDia,
       reporteSemana: client.reporteSemana,
@@ -182,7 +185,7 @@ const ModulosSheet = () => {
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="w-11/12 mx-auto">
         <div className="mb-8 flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-900">
             Gestión de Módulos de Clientes
@@ -218,6 +221,9 @@ const ModulosSheet = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Nombre del Cliente
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Cliente #
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -247,7 +253,7 @@ const ModulosSheet = () => {
                   {modulos.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={8}
+                        colSpan={9}
                         className="px-6 py-12 text-center text-gray-500"
                       >
                         No se encontraron clientes. Agrega un cliente para
@@ -260,6 +266,9 @@ const ModulosSheet = () => {
                         key={modulo.numero_cliente}
                         className="hover:bg-gray-50"
                       >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {modulo.nombre_cliente || "Sin nombre"}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {modulo.numero_cliente}
                         </td>
@@ -379,25 +388,43 @@ const ModulosSheet = () => {
                 )}
 
                 <form onSubmit={handleSubmit}>
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Numero de cliente
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.numero_cliente}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "numero_cliente",
-                          parseInt(e.target.value) || 0
-                        )
-                      }
-                      disabled={isEditMode}
-                      className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        isEditMode ? "bg-gray-100 cursor-not-allowed" : ""
-                      }`}
-                      required
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nombre del Cliente
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.nombre_cliente}
+                        onChange={(e) =>
+                          handleInputChange("nombre_cliente", e.target.value)
+                        }
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Nombre del cliente"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Número de Cliente
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.numero_cliente}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "numero_cliente",
+                            parseInt(e.target.value) || 0
+                          )
+                        }
+                        disabled={isEditMode}
+                        className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                          isEditMode ? "bg-gray-100 cursor-not-allowed" : ""
+                        }`}
+                        placeholder="Número de cliente"
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-4 mb-6">

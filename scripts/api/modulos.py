@@ -49,7 +49,8 @@ def get_modulos():
                 "reporteSemana": row[3],
                 "presion": row[4],
                 "prediccion": row[5],
-                "kwh": row[6]
+                "kwh": row[6],
+                "nombre_cliente": row[7]
             }
             for row in res
         ]
@@ -96,7 +97,8 @@ def get_modulos_by_cliente(numero_cliente: int = Path(..., description="Numero d
             "reporteSemana": res[3],
             "presion": res[4],
             "prediccion": res[5],
-            "kwh": res[6]
+            "kwh": res[6],
+            "nombre_cliente": res[7]
         }
 
         return {
@@ -120,7 +122,7 @@ def submit_modulos_permission(request : Modulos):
 
         cursor.execute(
             """INSERT into modulos_web
-                (numero_cliente, mantenimiento, reporteDia, reporteSemana, presion, prediccion, kwh)
+                (numero_cliente, mantenimiento, reporteDia, reporteSemana, presion, prediccion, kwh, nombre_cliente)
                 VALUES (%s,%s,%s,%s,%s,%s,%s)
             """,
             (
@@ -130,7 +132,8 @@ def submit_modulos_permission(request : Modulos):
                 request.reporteSemana,
                 request.presion,
                 request.prediccion,
-                request.kwh
+                request.kwh,
+                request.nombre_cliente
             )
         )
 

@@ -54,6 +54,7 @@ class OrdenServicio(BaseModel):
 
 class Modulos(BaseModel):
     numero_cliente: int
+    nombre_cliente: str
     mantenimiento: bool
     reporteDia: bool
     reporteSemana: bool

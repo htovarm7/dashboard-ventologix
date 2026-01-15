@@ -249,6 +249,7 @@ export interface ReportFormData {
 
 /* ===== Modulos Web ======= */
 export interface Modulos {
+  nombre_cliente?: string;
   numero_cliente?: number;
   mantenimiento?: boolean;
   reporteDia?: boolean;
@@ -260,6 +261,7 @@ export interface Modulos {
 
 export interface ModulosFormData {
   numero_cliente?: number;
+  nombre_cliente?: string;
   mantenimiento?: boolean;
   reporteDia?: boolean;
   reporteSemana?: boolean;
