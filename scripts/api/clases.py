@@ -14,6 +14,12 @@ class Client(BaseModel):
     demoDiario: Optional[bool] = None
     demoSemanal: Optional[bool] = None
 
+class ClienteEventual(BaseModel):
+    nombre_cliente: str
+    telefono: Optional[str] = None
+    email: Optional[str] = None
+    direccion: Optional[str] = None
+
 class Compresor(BaseModel):
     id: int
     hp: int
@@ -31,6 +37,24 @@ class Compresor(BaseModel):
     Alias: str
     segundosPorRegistro: Optional[int] = None 
     fecha_ultimo_mtto: Optional[datetime] = None
+
+class CompresorEventual(BaseModel):
+    hp: Optional[int] = None
+    tipo: Optional[str] = None
+    voltaje: Optional[int] = None
+    marca: Optional[str] = None
+    numero_serie: Optional[str] = None
+    anio: Optional[int] = None
+    id_cliente: int
+    Amp_Load: Optional[int] = None
+    Amp_No_Load: Optional[int] = None
+    proyecto: Optional[int] = None
+    linea: Optional[str] = None
+    LOAD_NO_LOAD: Optional[float] = None
+    Alias: Optional[str] = None
+    segundosPorRegistro: Optional[int] = 30
+    fecha_ultimo_mtto: Optional[datetime] = None
+    modelo: Optional[str] = None
 
 class OrdenServicio(BaseModel):
     folio: str

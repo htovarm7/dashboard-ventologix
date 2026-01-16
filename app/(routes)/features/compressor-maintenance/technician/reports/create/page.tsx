@@ -14,7 +14,6 @@ function FillReport() {
   const searchParams = useSearchParams();
 
   const [formData, setFormData] = useState<ReportFormData>({
-    isExistingClient: true,
     reportDate: new Date().toISOString().split("T")[0],
     diagnosticType: "",
     equipmentPowers: "",
@@ -88,8 +87,7 @@ function FillReport() {
     const folio = searchParams.get("folio");
 
     if (folio) {
-      // Fetch orden de servicio data from API
-      fetch(`{URL_API}/ordenes/${folio}`)
+      fetch(`${URL_API}/ordenes/${folio}`)
         .then((response) => response.json())
         .then((result) => {
           if (result.data && result.data.length > 0) {
@@ -113,7 +111,6 @@ function FillReport() {
               orderStatus: orden.estado || "",
               creationDate: orden.fecha_creacion || "",
               reportUrl: orden.reporte_url || "",
-              isExistingClient: orden.id_cliente_eventual > 0 ? false : true,
             }));
 
             // Clean up URL to only show folio
@@ -278,363 +275,130 @@ function FillReport() {
       <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
         INFORMACIÓN DEL CLIENTE Y ORDEN
       </h2>
-
-      {formData.isExistingClient ? (
-        <div>
-          {formData.clientName ? (
-            <div className="space-y-6">
-              {/* Sección Cliente */}
-              <div className="border-2 border-gray-200 rounded-lg p-4">
-                <h3 className="font-bold text-blue-900 mb-4 text-lg">
-                  INFORMACIÓN DEL CLIENTE
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Folio
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.folio || "Sin asignar"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      ID Cliente
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.clientId || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      ID Cliente Eventual
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.eventualClientId || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Nombre Cliente
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.clientName || "N/A"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Sección Compresor */}
-              <div className="border-2 border-gray-200 rounded-lg p-4">
-                <h3 className="font-bold text-blue-900 mb-4 text-lg">
-                  INFORMACIÓN DEL COMPRESOR
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Alias Compresor
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.compressorAlias || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Número de Serie
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.serialNumber || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      HP
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.equipmentHp || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Tipo
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.compressorType || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Marca
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.brand || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Año
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.yearManufactured || "N/A"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Sección Orden de Servicio */}
-              <div className="border-2 border-gray-200 rounded-lg p-4">
-                <h3 className="font-bold text-blue-900 mb-4 text-lg">
-                  INFORMACIÓN DE LA ORDEN DE SERVICIO
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Tipo de Visita
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.diagnosticType || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Tipo de Mantenimiento
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.maintenanceType || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Fecha Programada
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.scheduledDate || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Hora Programada
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.scheduledTime || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Estado
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.orderStatus || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Fecha de Creación
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.creationDate
-                        ? new Date(formData.creationDate).toLocaleString()
-                        : "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      URL del Reporte
-                    </label>
-                    <p className="text-gray-800 font-semibold text-xs break-all">
-                      {formData.reportUrl || "Sin reporte"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <label className="block text-sm font-medium text-blue-700 mb-2">
-                Seleccionar Cliente *
-              </label>
-              <select
-                name="clientId"
-                value={formData.clientId || ""}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="">
-                  -- Seleccionar cliente (fetch pendiente) --
-                </option>
-                {/* TODO: Fetch clients from backend */}
-              </select>
-            </div>
-          )}
-        </div>
-      ) : (
+      <div>
         <div className="space-y-6">
-          {/* Sección Cliente Eventual */}
-          <div className="border-2 border-gray-200 rounded-lg p-4">
+          <div className="p-4">
             <h3 className="font-bold text-blue-900 mb-4 text-lg">
               INFORMACIÓN DEL CLIENTE
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-2">
-                  Nombre del Cliente *
+                <label className="block text-sm font-medium text-blue-700 mb-1">
+                  Folio
                 </label>
-                <input
-                  type="text"
-                  name="clientName"
-                  value={formData.clientName || ""}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
+                <p className="text-gray-800 font-semibold">
+                  {formData.folio || "Sin asignar"}
+                </p>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-2">
-                  Teléfono
+                <label className="block text-sm font-medium text-blue-700 mb-1">
+                  Nombre Cliente
                 </label>
-                <input
-                  type="tel"
-                  name="clientPhone"
-                  value={formData.clientPhone || ""}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-blue-700 mb-2">
-                  Dirección
-                </label>
-                <input
-                  type="text"
-                  name="clientAddress"
-                  value={formData.clientAddress || ""}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-blue-700 mb-2">
-                  Contacto
-                </label>
-                <input
-                  type="text"
-                  name="clientContact"
-                  value={formData.clientContact || ""}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <p className="text-gray-800 font-semibold">
+                  {formData.clientName || "N/A"}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Sección Compresor Eventual */}
-          <div className="border-2 border-gray-200 rounded-lg p-4">
+          {/* Sección Compresor */}
+          <div className="p-4">
             <h3 className="font-bold text-blue-900 mb-4 text-lg">
               INFORMACIÓN DEL COMPRESOR
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-2">
-                  Número de Serie *
+                <label className="block text-sm font-medium text-blue-700 mb-1">
+                  Alias Compresor
                 </label>
-                <input
-                  type="text"
-                  name="serialNumber"
-                  value={formData.serialNumber || ""}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
+                <p className="text-gray-800 font-semibold">
+                  {formData.compressorAlias || "N/A"}
+                </p>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-2">
-                  Marca *
+                <label className="block text-sm font-medium text-blue-700 mb-1">
+                  Número de Serie
                 </label>
-                <input
-                  type="text"
-                  name="brand"
-                  value={formData.brand || ""}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
+                <p className="text-gray-800 font-semibold">
+                  {formData.serialNumber || "N/A"}
+                </p>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-2">
-                  Modelo
-                </label>
-                <input
-                  type="text"
-                  name="model"
-                  value={formData.model || ""}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-blue-700 mb-2">
-                  Año de Fabricación
-                </label>
-                <input
-                  type="number"
-                  name="yearManufactured"
-                  value={formData.yearManufactured || ""}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  min="1900"
-                  max="2100"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-blue-700 mb-2">
+                <label className="block text-sm font-medium text-blue-700 mb-1">
                   HP
                 </label>
-                <input
-                  type="number"
-                  name="equipmentHp"
-                  value={formData.equipmentHp || ""}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <p className="text-gray-800 font-semibold">
+                  {formData.equipmentHp || "N/A"}
+                </p>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-2">
-                  Alias/Identificador
+                <label className="block text-sm font-medium text-blue-700 mb-1">
+                  Tipo
                 </label>
-                <input
-                  type="text"
-                  name="compressorAlias"
-                  value={formData.compressorAlias || ""}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <p className="text-gray-800 font-semibold">
+                  {formData.compressorType || "N/A"}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-blue-700 mb-1">
+                  Marca
+                </label>
+                <p className="text-gray-800 font-semibold">
+                  {formData.brand || "N/A"}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-blue-700 mb-1">
+                  Año
+                </label>
+                <p className="text-gray-800 font-semibold">
+                  {formData.yearManufactured || "N/A"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Sección Orden de Servicio */}
+          <div className="p-4">
+            <h3 className="font-bold text-blue-900 mb-4 text-lg">
+              INFORMACIÓN DE LA ORDEN DE SERVICIO
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-blue-700 mb-1">
+                  Tipo de Visita
+                </label>
+                <p className="text-gray-800 font-semibold">
+                  {formData.diagnosticType || "N/A"}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-blue-700 mb-1">
+                  Tipo de Mantenimiento
+                </label>
+                <p className="text-gray-800 font-semibold">
+                  {formData.maintenanceType || "N/A"}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-blue-700 mb-1">
+                  Fecha Programada
+                </label>
+                <p className="text-gray-800 font-semibold">
+                  {formData.scheduledDate || "N/A"}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-blue-700 mb-1">
+                  Hora Programada
+                </label>
+                <p className="text-gray-800 font-semibold">
+                  {formData.scheduledTime || "N/A"}
+                </p>
               </div>
             </div>
           </div>
         </div>
-      )}
-
-      <div className="mt-4">
-        <label className="block text-sm font-medium text-blue-700 mb-2">
-          Fecha del Reporte *
-        </label>
-        <input
-          type="date"
-          name="reportDate"
-          value={formData.reportDate}
-          onChange={handleInputChange}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          required
-        />
       </div>
     </div>
   );
@@ -646,37 +410,6 @@ function FillReport() {
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-blue-700 mb-2">
-            Tipo de Visita *
-          </label>
-          {formData.isExistingClient && formData.diagnosticType ? (
-            <div className="border-2 border-gray-200 rounded-lg p-3">
-              <p className="text-gray-800 font-semibold">
-                {formData.diagnosticType}
-              </p>
-            </div>
-          ) : (
-            <select
-              name="diagnosticType"
-              value={formData.diagnosticType}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            >
-              <option value="">-- Seleccionar --</option>
-              <option value="1era visita COMERCIAL">
-                1era visita COMERCIAL
-              </option>
-              <option value="Mantenimiento preventivo">
-                Mantenimiento preventivo
-              </option>
-              <option value="Falla mecánica">Falla mecánica</option>
-              <option value="Revisión general">Revisión general</option>
-            </select>
-          )}
-        </div>
-
         <div>
           <label className="block text-sm font-medium text-blue-700 mb-2">
             ¿Equipo enciende? *
@@ -716,9 +449,7 @@ function FillReport() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold">VENTOLOGIX</h1>
-                <p className="text-sm opacity-90">
-                  FORMULARIO DE DIAGNÓSTICO PRE-MANTENIMIENTO
-                </p>
+                <p className="text-sm opacity-90">Reporte de Mantenimiento</p>
               </div>
             </div>
           </div>

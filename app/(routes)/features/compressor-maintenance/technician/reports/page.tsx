@@ -71,6 +71,10 @@ const TypeReportes = () => {
   const [draftReports, setDraftReports] = useState<DraftReport[]>([]);
   const [rol, setRol] = useState<number | null>(null);
   const [isClienteEventual, setIsClienteEventual] = useState(false);
+  const [isNewEventual, setIsNewEventual] = useState(true);
+  const [eventualClients, setEventualClients] = useState<any[]>([]);
+  const [selectedEventualClient, setSelectedEventualClient] =
+    useState<any>(null);
   const [selectedCompressor, setSelectedCompressor] =
     useState<CompressorSearchResult | null>(null);
   const [showResults, setShowResults] = useState(false);
@@ -101,10 +105,17 @@ const TypeReportes = () => {
     hora: "no-aplica",
     technician: "",
   });
+  const [eventualClientInfo, setEventualClientInfo] = useState({
+    telefono: "",
+    email: "",
+    direccion: "",
+    rfc: "",
+  });
   const [editingTicket, setEditingTicket] = useState<OrdenServicio | null>(
     null
   );
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showTicketsList, setShowTicketsList] = useState(false);
 
   // Load user role on mount
   useEffect(() => {
@@ -117,6 +128,24 @@ const TypeReportes = () => {
         console.error("Error parsing userData:", error);
       }
     }
+  }, []);
+
+  // Fetch eventual clients
+  const fetchEventualClients = async () => {
+    try {
+      const response = await fetch(`${URL_API}/clients/eventuales`);
+      const data = await response.json();
+      if (data.data) {
+        setEventualClients(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching eventual clients:", error);
+    }
+  };
+
+  // Load eventual clients when component mounts
+  useEffect(() => {
+    fetchEventualClients();
   }, []);
 
   // Load ordenes for roles 0 and 1
@@ -265,7 +294,9 @@ const TypeReportes = () => {
   // Toggle cliente eventual
   const handleClienteEventual = () => {
     setIsClienteEventual(true);
+    setIsNewEventual(true);
     setSelectedCompressor(null);
+    setSelectedEventualClient(null);
     setSearchQuery("");
     setShowResults(false);
     setTicketData({
@@ -284,6 +315,30 @@ const TypeReportes = () => {
       scheduledDate: "",
       hora: "no-aplica",
       technician: "",
+    });
+    setEventualClientInfo({
+      telefono: "",
+      email: "",
+      direccion: "",
+      rfc: "",
+    });
+    fetchEventualClients();
+  };
+
+  // Handle eventual client selection
+  const handleSelectEventualClient = (client: any) => {
+    setSelectedEventualClient(client);
+    setIsNewEventual(false);
+    setTicketData((prev) => ({
+      ...prev,
+      clientName: client.nombre_cliente,
+      numeroCliente: "EVENTUAL",
+    }));
+    setEventualClientInfo({
+      telefono: client.telefono || "",
+      email: client.email || "",
+      direccion: client.direccion || "",
+      rfc: "",
     });
   };
 
@@ -314,11 +369,98 @@ const TypeReportes = () => {
     e.preventDefault();
 
     try {
+      let eventualClientId = 0;
+
+      // If it's a new eventual client, create it first
+      if (isClienteEventual && isNewEventual) {
+        const eventualClientData = {
+          nombre_cliente: ticketData.clientName,
+          telefono: eventualClientInfo.telefono,
+          email: eventualClientInfo.email,
+          direccion: eventualClientInfo.direccion,
+        };
+
+        const eventualResponse = await fetch(`${URL_API}/clients/eventuales`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(eventualClientData),
+        });
+
+        const eventualResult = await eventualResponse.json();
+
+        if (eventualResponse.ok) {
+          eventualClientId = eventualResult.id;
+          console.log("Eventual client created with ID:", eventualClientId);
+        } else {
+          throw new Error(
+            `Error creating eventual client: ${
+              eventualResult.detail || eventualResult.error
+            }`
+          );
+        }
+      } else if (
+        isClienteEventual &&
+        !isNewEventual &&
+        selectedEventualClient
+      ) {
+        eventualClientId = selectedEventualClient.id;
+      }
+
+      // If it's an eventual client, also create the compressor
+      if (isClienteEventual && eventualClientId > 0) {
+        const eventualCompressorData = {
+          hp: ticketData.hp ? parseInt(ticketData.hp) : null,
+          tipo: ticketData.tipo || null,
+          voltaje: null,
+          marca: ticketData.marca || null,
+          numero_serie: ticketData.serialNumber || null,
+          anio: ticketData.anio ? parseInt(ticketData.anio) : null,
+          id_cliente: eventualClientId,
+          Amp_Load: null,
+          Amp_No_Load: null,
+          proyecto: null,
+          linea: null,
+          LOAD_NO_LOAD: null,
+          Alias: ticketData.alias || null,
+          segundosPorRegistro: 30,
+          fecha_ultimo_mtto: null,
+          modelo: null,
+        };
+
+        const compressorResponse = await fetch(
+          `${URL_API}/compresores/eventuales`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(eventualCompressorData),
+          }
+        );
+
+        const compressorResult = await compressorResponse.json();
+
+        if (compressorResponse.ok) {
+          console.log(
+            "Eventual compressor created with ID:",
+            compressorResult.id
+          );
+        } else {
+          throw new Error(
+            `Error creating eventual compressor: ${
+              compressorResult.detail || compressorResult.error
+            }`
+          );
+        }
+      }
+
       // Prepare the data for the API
       const ordenData = {
         folio: ticketData.folio,
         id_cliente: isClienteEventual ? 0 : selectedCompressor?.id_cliente || 0,
-        id_cliente_eventual: isClienteEventual ? 1 : 0,
+        id_cliente_eventual: isClienteEventual ? eventualClientId : 0,
         nombre_cliente: ticketData.clientName,
         numero_cliente: parseInt(ticketData.numeroCliente) || 0,
         alias_compresor: ticketData.alias,
@@ -374,6 +516,12 @@ const TypeReportes = () => {
           scheduledDate: "",
           hora: "no-aplica",
           technician: "",
+        });
+        setEventualClientInfo({
+          telefono: "",
+          email: "",
+          direccion: "",
+          rfc: "",
         });
         // Reload ordenes
         fetchAllOrdenes();
@@ -893,198 +1041,6 @@ const TypeReportes = () => {
               </div>
             </div>
 
-            {/* Tickets List */}
-            <div className="relative mb-8">
-              <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 rounded-3xl opacity-30 blur-xl"></div>
-              <div className="relative bg-gradient-to-br from-slate-800/95 via-blue-900/95 to-slate-800/95 rounded-3xl shadow-2xl border border-cyan-500/30 p-8">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-3xl font-bold text-cyan-300 flex items-center gap-3">
-                    <svg
-                      className="w-8 h-8"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                      />
-                    </svg>
-                    Tickets Existentes
-                  </h2>
-                  {ordenesServicio.length > 0 && (
-                    <span className="px-4 py-2 bg-cyan-500/20 text-cyan-300 rounded-full font-semibold">
-                      {ordenesServicio.length} ticket(s)
-                    </span>
-                  )}
-                </div>
-
-                {loadingOrdenes ? (
-                  <div className="text-center py-16">
-                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-cyan-500 mx-auto"></div>
-                    <p className="text-cyan-300/60 mt-4">Cargando tickets...</p>
-                  </div>
-                ) : ordenesServicio.length === 0 ? (
-                  <div className="text-center py-16 text-cyan-300/60">
-                    <svg
-                      className="w-24 h-24 mx-auto mb-4 opacity-50"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    <p className="text-xl">No hay tickets registrados</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {groupOrdensByDate().map((group) => (
-                      <div key={group.title}>
-                        <h3 className="text-xl font-bold text-cyan-400 mb-3 flex items-center gap-2">
-                          {group.title}
-                          <span className="text-sm font-normal text-cyan-300/60">
-                            ({group.orders.length})
-                          </span>
-                        </h3>
-                        <div className="space-y-3">
-                          {group.orders.map((orden) => (
-                            <div
-                              key={orden.folio}
-                              className="bg-slate-800/60 border border-cyan-500/30 rounded-xl p-5 hover:border-cyan-400/60 transition-all"
-                            >
-                              <div className="flex justify-between items-start mb-3">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <h4 className="text-lg font-bold text-cyan-200">
-                                      {orden.folio}
-                                    </h4>
-                                    <span
-                                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                        orden.estado === "completado"
-                                          ? "bg-green-500/20 text-green-300"
-                                          : orden.estado === "en_progreso"
-                                          ? "bg-yellow-500/20 text-yellow-300"
-                                          : "bg-gray-500/20 text-gray-300"
-                                      }`}
-                                    >
-                                      {orden.estado
-                                        .replace("_", " ")
-                                        .toUpperCase()}
-                                    </span>
-                                  </div>
-                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2 text-sm">
-                                    <div>
-                                      <span className="text-cyan-400/80">
-                                        Cliente:
-                                      </span>{" "}
-                                      <span className="text-cyan-100">
-                                        {orden.nombre_cliente}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <span className="text-cyan-400/80">
-                                        Compresor:
-                                      </span>{" "}
-                                      <span className="text-cyan-100">
-                                        {orden.alias_compresor}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <span className="text-cyan-400/80">
-                                        Serie:
-                                      </span>{" "}
-                                      <span className="text-cyan-100">
-                                        {orden.numero_serie}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <span className="text-cyan-400/80">
-                                        Fecha:
-                                      </span>{" "}
-                                      <span className="text-cyan-100">
-                                        {new Date(
-                                          orden.fecha_programada
-                                        ).toLocaleDateString("es-MX")}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <span className="text-cyan-400/80">
-                                        Hora:
-                                      </span>{" "}
-                                      <span className="text-cyan-100">
-                                        {orden.hora_programada}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <span className="text-cyan-400/80">
-                                        Tipo:
-                                      </span>{" "}
-                                      <span className="text-cyan-100">
-                                        {orden.tipo_visita}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex gap-2 ml-4">
-                                  <button
-                                    onClick={() => handleEditTicket(orden)}
-                                    className="p-2 bg-blue-600/80 hover:bg-blue-600 text-white rounded-lg transition-all"
-                                    title="Editar"
-                                  >
-                                    <svg
-                                      className="w-5 h-5"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                      />
-                                    </svg>
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteTicket(orden.folio)
-                                    }
-                                    className="p-2 bg-red-600/80 hover:bg-red-600 text-white rounded-lg transition-all"
-                                    title="Eliminar"
-                                  >
-                                    <svg
-                                      className="w-5 h-5"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                      />
-                                    </svg>
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Ticket Form */}
             {(selectedCompressor || isClienteEventual) && (
               <div className="relative">
@@ -1100,6 +1056,177 @@ const TypeReportes = () => {
                       </span>
                     )}
                   </div>
+
+                  {/* Eventual Client Selection */}
+                  {isClienteEventual && (
+                    <div className="mb-6 p-6 bg-gradient-to-r from-amber-900/40 to-orange-900/40 rounded-xl border-2 border-amber-500/50">
+                      <h3 className="text-xl font-bold text-amber-300 mb-4">
+                        Tipo de Cliente Eventual
+                      </h3>
+                      <div className="flex gap-4 mb-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsNewEventual(true);
+                            setSelectedEventualClient(null);
+                            setTicketData((prev) => ({
+                              ...prev,
+                              clientName: "",
+                            }));
+                          }}
+                          className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all ${
+                            isNewEventual
+                              ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg"
+                              : "bg-slate-700/50 text-cyan-300 hover:bg-slate-700"
+                          }`}
+                        >
+                          Nuevo Cliente
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsNewEventual(false);
+                            setSelectedEventualClient(null);
+                          }}
+                          className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all ${
+                            !isNewEventual
+                              ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg"
+                              : "bg-slate-700/50 text-cyan-300 hover:bg-slate-700"
+                          }`}
+                        >
+                          Cliente Existente
+                        </button>
+                      </div>
+
+                      {!isNewEventual && (
+                        <div>
+                          <label className="block text-amber-300 font-semibold mb-2">
+                            Seleccionar Cliente Eventual
+                          </label>
+                          <select
+                            value={selectedEventualClient?.id || ""}
+                            onChange={(e) => {
+                              const client = eventualClients.find(
+                                (c) => c.id === parseInt(e.target.value)
+                              );
+                              if (client) {
+                                handleSelectEventualClient(client);
+                              }
+                            }}
+                            className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-amber-500/50 rounded-xl focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/50 transition-all"
+                            required={!isNewEventual}
+                          >
+                            <option value="">-- Seleccionar cliente --</option>
+                            {eventualClients.map((client) => (
+                              <option key={client.id} value={client.id}>
+                                {client.nombre_cliente}
+                                {client.telefono && ` - ${client.telefono}`}
+                              </option>
+                            ))}
+                          </select>
+                          {selectedEventualClient && (
+                            <div className="mt-3 p-3 bg-slate-800/50 rounded-lg">
+                              <p className="text-cyan-200 text-sm">
+                                <span className="font-semibold">Teléfono:</span>{" "}
+                                {eventualClientInfo.telefono || "N/A"}
+                              </p>
+                              <p className="text-cyan-200 text-sm">
+                                <span className="font-semibold">Email:</span>{" "}
+                                {eventualClientInfo.email || "N/A"}
+                              </p>
+                              <p className="text-cyan-200 text-sm">
+                                <span className="font-semibold">
+                                  Dirección:
+                                </span>{" "}
+                                {eventualClientInfo.direccion || "N/A"}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Contact information fields for new eventual clients */}
+                      {isNewEventual && (
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                          <label className="block">
+                            <span className="text-amber-300 font-semibold mb-2 block">
+                              Teléfono *
+                            </span>
+                            <input
+                              type="tel"
+                              value={eventualClientInfo.telefono}
+                              onChange={(e) =>
+                                setEventualClientInfo((prev) => ({
+                                  ...prev,
+                                  telefono: e.target.value,
+                                }))
+                              }
+                              placeholder="555-1234-5678"
+                              required
+                              className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-amber-500/50 rounded-xl focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/50"
+                            />
+                          </label>
+
+                          <label className="block">
+                            <span className="text-amber-300 font-semibold mb-2 block">
+                              Email *
+                            </span>
+                            <input
+                              type="email"
+                              value={eventualClientInfo.email}
+                              onChange={(e) =>
+                                setEventualClientInfo((prev) => ({
+                                  ...prev,
+                                  email: e.target.value,
+                                }))
+                              }
+                              placeholder="cliente@ejemplo.com"
+                              required
+                              className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-amber-500/50 rounded-xl focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/50"
+                            />
+                          </label>
+
+                          <label className="block col-span-2">
+                            <span className="text-amber-300 font-semibold mb-2 block">
+                              Dirección *
+                            </span>
+                            <input
+                              type="text"
+                              value={eventualClientInfo.direccion}
+                              onChange={(e) =>
+                                setEventualClientInfo((prev) => ({
+                                  ...prev,
+                                  direccion: e.target.value,
+                                }))
+                              }
+                              placeholder="Calle, Número, Colonia, Ciudad"
+                              required
+                              className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-amber-500/50 rounded-xl focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/50"
+                            />
+                          </label>
+
+                          <label className="block col-span-2">
+                            <span className="text-amber-300 font-semibold mb-2 block">
+                              RFC (opcional)
+                            </span>
+                            <input
+                              type="text"
+                              value={eventualClientInfo.rfc}
+                              onChange={(e) =>
+                                setEventualClientInfo((prev) => ({
+                                  ...prev,
+                                  rfc: e.target.value.toUpperCase(),
+                                }))
+                              }
+                              placeholder="XAXX010101000"
+                              maxLength={13}
+                              className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-amber-500/50 rounded-xl focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/50"
+                            />
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Display Folio */}
                   {ticketData.folio && (
@@ -1128,7 +1255,12 @@ const TypeReportes = () => {
                           value={ticketData.clientName}
                           onChange={handleInputChange}
                           required
-                          className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
+                          disabled={
+                            isClienteEventual &&
+                            !isNewEventual &&
+                            !!selectedEventualClient
+                          }
+                          className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                           placeholder="Nombre del cliente"
                         />
                       </div>
@@ -1384,6 +1516,228 @@ const TypeReportes = () => {
                 </div>
               </div>
             )}
+
+            {/* Collapsible Tickets List - At the bottom */}
+            <div className="relative mt-8">
+              <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 rounded-3xl opacity-30 blur-xl"></div>
+              <div className="relative bg-gradient-to-br from-slate-800/95 via-blue-900/95 to-slate-800/95 rounded-3xl shadow-2xl border border-cyan-500/30 overflow-hidden">
+                {/* Collapsible Header */}
+                <button
+                  onClick={() => setShowTicketsList(!showTicketsList)}
+                  className="w-full p-6 flex justify-between items-center hover:bg-cyan-500/10 transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <svg
+                      className="w-8 h-8 text-cyan-300"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                      />
+                    </svg>
+                    <h2 className="text-3xl font-bold text-cyan-300">
+                      Tickets Existentes
+                    </h2>
+                    {ordenesServicio.length > 0 && (
+                      <span className="px-4 py-2 bg-cyan-500/20 text-cyan-300 rounded-full font-semibold text-sm">
+                        {ordenesServicio.length} ticket(s)
+                      </span>
+                    )}
+                  </div>
+                  <svg
+                    className={`w-6 h-6 text-cyan-300 transition-transform ${
+                      showTicketsList ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+
+                {/* Collapsible Content */}
+                {showTicketsList && (
+                  <div className="p-8 pt-0">
+                    {loadingOrdenes ? (
+                      <div className="text-center py-16">
+                        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-cyan-500 mx-auto"></div>
+                        <p className="text-cyan-300/60 mt-4">
+                          Cargando tickets...
+                        </p>
+                      </div>
+                    ) : ordenesServicio.length === 0 ? (
+                      <div className="text-center py-16 text-cyan-300/60">
+                        <svg
+                          className="w-24 h-24 mx-auto mb-4 opacity-50"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        <p className="text-xl">No hay tickets registrados</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {groupOrdensByDate().map((group) => (
+                          <div key={group.title}>
+                            <h3 className="text-xl font-bold text-cyan-400 mb-3 flex items-center gap-2">
+                              {group.title}
+                              <span className="text-sm font-normal text-cyan-300/60">
+                                ({group.orders.length})
+                              </span>
+                            </h3>
+                            <div className="space-y-3">
+                              {group.orders.map((orden) => (
+                                <div
+                                  key={orden.folio}
+                                  className="p-4 bg-blue-800/40 rounded-xl border-2 border-cyan-500/30 hover:border-cyan-400/60 transition-all"
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-3 mb-2">
+                                        <span className="px-3 py-1 bg-purple-500/30 text-purple-200 rounded-full text-sm font-mono font-bold">
+                                          {orden.folio}
+                                        </span>
+                                        <span
+                                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                            orden.estado === "no_iniciado"
+                                              ? "bg-gray-500/30 text-gray-200"
+                                              : orden.estado === "en_progreso"
+                                              ? "bg-blue-500/30 text-blue-200"
+                                              : "bg-green-500/30 text-green-200"
+                                          }`}
+                                        >
+                                          {orden.estado === "no_iniciado"
+                                            ? "No Iniciado"
+                                            : orden.estado === "en_progreso"
+                                            ? "En Progreso"
+                                            : "Completado"}
+                                        </span>
+                                        <span
+                                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                            orden.prioridad === "baja"
+                                              ? "bg-green-500/30 text-green-200"
+                                              : orden.prioridad === "media"
+                                              ? "bg-yellow-500/30 text-yellow-200"
+                                              : orden.prioridad === "alta"
+                                              ? "bg-orange-500/30 text-orange-200"
+                                              : "bg-red-500/30 text-red-200"
+                                          }`}
+                                        >
+                                          {orden.prioridad === "baja"
+                                            ? "🟢 Baja"
+                                            : orden.prioridad === "media"
+                                            ? "🟡 Media"
+                                            : orden.prioridad === "alta"
+                                            ? "🔴 Alta"
+                                            : "🚨 Urgente"}
+                                        </span>
+                                      </div>
+                                      <p className="text-cyan-100 font-semibold mb-1">
+                                        {orden.nombre_cliente} -{" "}
+                                        {orden.alias_compresor}
+                                      </p>
+                                      <p className="text-cyan-300/70 text-sm">
+                                        S/N: {orden.numero_serie}
+                                      </p>
+                                      <div className="flex gap-4 mt-2 text-sm">
+                                        <div>
+                                          <span className="text-cyan-400/80">
+                                            Fecha:
+                                          </span>{" "}
+                                          <span className="text-cyan-100">
+                                            {orden.fecha_programada}
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <span className="text-cyan-400/80">
+                                            Hora:
+                                          </span>{" "}
+                                          <span className="text-cyan-100">
+                                            {orden.hora_programada}
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <span className="text-cyan-400/80">
+                                            Tipo:
+                                          </span>{" "}
+                                          <span className="text-cyan-100">
+                                            {orden.tipo_visita}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-2 ml-4">
+                                      <button
+                                        onClick={() => handleEditTicket(orden)}
+                                        className="p-2 bg-blue-600/80 hover:bg-blue-600 text-white rounded-lg transition-all"
+                                        title="Editar"
+                                      >
+                                        <svg
+                                          className="w-5 h-5"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                          />
+                                        </svg>
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          handleDeleteTicket(orden.folio)
+                                        }
+                                        className="p-2 bg-red-600/80 hover:bg-red-600 text-white rounded-lg transition-all"
+                                        title="Eliminar"
+                                      >
+                                        <svg
+                                          className="w-5 h-5"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                          />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </>
         )}
 

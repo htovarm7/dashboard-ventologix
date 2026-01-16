@@ -133,7 +133,6 @@ export interface OrdenServicio {
 
 export interface ReportFormData {
   // Datos iniciales
-  isExistingClient: boolean;
   folio?: string;
   compressorId?: string;
   numeroCliente?: string;
