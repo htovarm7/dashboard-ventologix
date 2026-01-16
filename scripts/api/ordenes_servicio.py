@@ -52,13 +52,13 @@ def get_all_ordenes():
                 "marca": row[9],
                 "anio": row[10],
                 "tipo_visita": row[11],
-                "prioridad": row[12],
-                "fecha_programada": row[13],
-                "hora_programada": row[14],
-                "estado": row[15],
-                "fecha_creacion": row[16],
-                "reporte_url": row[17],
-
+                "tipo_mantenimiento": row[12],
+                "prioridad": row[13],
+                "fecha_programada": row[14],
+                "hora_programada": row[15],
+                "estado": row[16],
+                "fecha_creacion": row[17],
+                "reporte_url": row[18],
             }
             for row in res
         ]
@@ -107,12 +107,13 @@ def get_ordenes_by_folio(folio: str = Path(..., description="The folio of the or
                 "marca": row[9],
                 "anio": row[10],
                 "tipo_visita": row[11],
-                "prioridad": row[12],
-                "fecha_programada": row[13],
-                "hora_programada": row[14],
-                "estado": row[15],
-                "fecha_creacion": row[16],
-                "reporte_url": row[17],
+                "tipo_mantenimiento": row[12],
+                "prioridad": row[13],
+                "fecha_programada": row[14],
+                "hora_programada": row[15],
+                "estado": row[16],
+                "fecha_creacion": row[17],
+                "reporte_url": row[18],
 
             }
             for row in res
@@ -140,9 +141,9 @@ def create_orden_servicio(request: OrdenServicio):
             """INSERT INTO ordenes_servicio
             (folio, id_cliente, id_cliente_eventual, nombre_cliente, 
             numero_cliente, alias_compresor, numero_serie, hp, tipo, marca, anio,
-            tipo_visita, prioridad, fecha_programada, hora_programada,
+            tipo_visita, tipo_mantenimiento, prioridad, fecha_programada, hora_programada,
             estado, fecha_creacion, reporte_url)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """,
             (
             request.folio,
@@ -157,6 +158,7 @@ def create_orden_servicio(request: OrdenServicio):
             request.marca,
             request.anio,
             request.tipo_visita,
+            request.tipo_mantenimiento,
             request.prioridad,
             request.fecha_programada,
             request.hora_programada,
@@ -190,6 +192,52 @@ def create_orden_servicio(request: OrdenServicio):
         if conn:
             conn.close()
 
+@ordenes.patch("/{folio}/estado")
+def update_orden_estado(folio: str, estado: str):
+    try:
+        valid_estados = ['no_iniciado', 'en_progreso', 'terminado']
+        if estado not in valid_estados:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Estado inválido. Debe ser uno de: {', '.join(valid_estados)}"
+            )
+        
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT folio FROM ordenes_servicio WHERE folio = %s",
+            (folio,)
+        )
+
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Folio not found")
+        
+        cursor.execute(
+            "UPDATE ordenes_servicio SET estado = %s WHERE folio = %s",
+            (estado, folio)
+        )
+
+        conn.commit()
+        return {"success": True, "message": f"Estado actualizado a '{estado}' exitosamente"}
+    
+    except mysql.connector.Error as err:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(err)}")
+    except HTTPException:
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
 @ordenes.put("/{folio}")
 def update_orden_servicio(folio: str, request: OrdenServicio):
     try:
@@ -199,20 +247,22 @@ def update_orden_servicio(folio: str, request: OrdenServicio):
             password=DB_PASSWORD,
             database=DB_DATABASE
         )
-        cursor = conn.connect()
+        cursor = conn.cursor()
 
         cursor.execute(
-            "SELECT folio FROM ordenes_servicio WHERE folio = %s"
+            "SELECT folio FROM ordenes_servicio WHERE folio = %s",
             (folio,)
         )
 
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="Folio not found")
         
-        cursor.exectue(
+        cursor.execute(
             """UPDATE ordenes_servicio SET
-                id_cliente, id_cliente_eventual, nombre_cliente, numero_cliente, alias_compresor,
-                numero_serie, hp, tipo, marca, anio, tipo_visita, prioridad, fecha_programada, hora_programada
+                id_cliente = %s, id_cliente_eventual = %s, nombre_cliente = %s, numero_cliente = %s, 
+                alias_compresor = %s, numero_serie = %s, hp = %s, tipo = %s, marca = %s, anio = %s, 
+                tipo_visita = %s, tipo_mantenimiento = %s, prioridad = %s, fecha_programada = %s, 
+                hora_programada = %s, estado = %s, fecha_creacion = %s, reporte_url = %s
                 WHERE folio = %s
             """,
             (
@@ -227,21 +277,24 @@ def update_orden_servicio(folio: str, request: OrdenServicio):
                 request.marca,
                 request.anio,
                 request.tipo_visita,
+                request.tipo_mantenimiento,
                 request.prioridad,
                 request.fecha_programada,
                 request.hora_programada,
+                request.estado,
+                request.fecha_creacion,
+                request.reporte_url,
                 folio
-
             )
         )
 
         conn.commit()
-        return {"sucess": True, "message": "Folio updated"}
+        return {"success": True, "message": "Orden actualizada exitosamente"}
     
     except mysql.connector.Error as err:
         if conn:
             conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error : {str(err)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(err)}")
     finally:
         if cursor:
             cursor.close()

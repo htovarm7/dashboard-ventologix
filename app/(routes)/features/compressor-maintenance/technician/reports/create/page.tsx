@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import BackButton from "@/components/BackButton";
 import Image from "next/image";
+import { URL_API } from "@/lib/global";
 import { ReportFormData } from "@/lib/types";
 
 function FillReport() {
@@ -85,53 +86,44 @@ function FillReport() {
   // Load compressor data from URL parameters
   useEffect(() => {
     const folio = searchParams.get("folio");
-    const compressorId = searchParams.get("compressorId");
-    const serialNumber = searchParams.get("serialNumber");
-    const clientId = searchParams.get("clientId");
-    const clientName = searchParams.get("clientName");
-    const numeroCliente = searchParams.get("numeroCliente");
-    const brand = searchParams.get("brand");
-    const model = searchParams.get("model");
-    const hp = searchParams.get("hp");
-    const year = searchParams.get("year");
-    const tipo = searchParams.get("tipo");
-    const alias = searchParams.get("alias");
-    const tipoVisita = searchParams.get("tipoVisita");
-    const isEventual = searchParams.get("isEventual");
 
-    if (compressorId && serialNumber) {
-      setFormData((prev) => ({
-        ...prev,
-        folio: folio || prev.folio,
-        compressorId,
-        serialNumber,
-        clientId: clientId || prev.clientId,
-        clientName: clientName || prev.clientName,
-        numeroCliente: numeroCliente || prev.numeroCliente,
-        brand: brand || prev.brand,
-        model: model || prev.model,
-        yearManufactured: year || prev.yearManufactured,
-        equipmentHp: hp || prev.equipmentHp,
-        compressorType: tipo || prev.compressorType,
-        compressorAlias: alias || prev.compressorAlias,
-        diagnosticType: tipoVisita || prev.diagnosticType,
-        isExistingClient: isEventual !== "true",
-      }));
+    if (folio) {
+      // Fetch orden de servicio data from API
+      fetch(`{URL_API}/ordenes/${folio}`)
+        .then((response) => response.json())
+        .then((result) => {
+          if (result.data && result.data.length > 0) {
+            const orden = result.data[0];
+            setFormData((prev) => ({
+              ...prev,
+              folio: orden.folio,
+              clientId: orden.id_cliente?.toString() || "",
+              eventualClientId: orden.id_cliente_eventual?.toString() || "",
+              clientName: orden.nombre_cliente || "",
+              compressorAlias: orden.alias_compresor || "",
+              serialNumber: orden.numero_serie || "",
+              equipmentHp: orden.hp?.toString() || "",
+              compressorType: orden.tipo || "",
+              brand: orden.marca || "",
+              yearManufactured: orden.anio?.toString() || "",
+              diagnosticType: orden.tipo_visita || "",
+              maintenanceType: orden.tipo_mantenimiento || "",
+              scheduledDate: orden.fecha_programada || "",
+              scheduledTime: orden.hora_programada || "",
+              orderStatus: orden.estado || "",
+              creationDate: orden.fecha_creacion || "",
+              reportUrl: orden.reporte_url || "",
+              isExistingClient: orden.id_cliente_eventual > 0 ? false : true,
+            }));
 
-      // Clean up URL to only show folio
-      if (folio) {
-        router.replace(`?folio=${folio}`, { scroll: false });
-      } else {
-        router.replace(window.location.pathname, { scroll: false });
-      }
-    } else if (isEventual === "true") {
-      setFormData((prev) => ({
-        ...prev,
-        isExistingClient: false,
-      }));
-
-      // Clean up URL
-      router.replace(window.location.pathname, { scroll: false });
+            // Clean up URL to only show folio
+            router.replace(`?folio=${folio}`, { scroll: false });
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching orden de servicio:", error);
+          alert("❌ Error al cargar la información de la orden de servicio");
+        });
     }
   }, [searchParams, router]);
 
@@ -299,26 +291,34 @@ function FillReport() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Nombre
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.clientName}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      N° Cliente
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.numeroCliente}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
                       Folio
                     </label>
                     <p className="text-gray-800 font-semibold">
                       {formData.folio || "Sin asignar"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-blue-700 mb-1">
+                      ID Cliente
+                    </label>
+                    <p className="text-gray-800 font-semibold">
+                      {formData.clientId || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-blue-700 mb-1">
+                      ID Cliente Eventual
+                    </label>
+                    <p className="text-gray-800 font-semibold">
+                      {formData.eventualClientId || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-blue-700 mb-1">
+                      Nombre Cliente
+                    </label>
+                    <p className="text-gray-800 font-semibold">
+                      {formData.clientName || "N/A"}
                     </p>
                   </div>
                 </div>
@@ -332,34 +332,18 @@ function FillReport() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Serie
+                      Alias Compresor
                     </label>
                     <p className="text-gray-800 font-semibold">
-                      {formData.serialNumber}
+                      {formData.compressorAlias || "N/A"}
                     </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Marca
+                      Número de Serie
                     </label>
                     <p className="text-gray-800 font-semibold">
-                      {formData.brand}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Modelo
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.model}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Año
-                    </label>
-                    <p className="text-gray-800 font-semibold">
-                      {formData.yearManufactured}
+                      {formData.serialNumber || "N/A"}
                     </p>
                   </div>
                   <div>
@@ -367,15 +351,98 @@ function FillReport() {
                       HP
                     </label>
                     <p className="text-gray-800 font-semibold">
-                      {formData.equipmentHp}
+                      {formData.equipmentHp || "N/A"}
                     </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-blue-700 mb-1">
-                      Alias
+                      Tipo
                     </label>
                     <p className="text-gray-800 font-semibold">
-                      {formData.compressorAlias}
+                      {formData.compressorType || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-blue-700 mb-1">
+                      Marca
+                    </label>
+                    <p className="text-gray-800 font-semibold">
+                      {formData.brand || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-blue-700 mb-1">
+                      Año
+                    </label>
+                    <p className="text-gray-800 font-semibold">
+                      {formData.yearManufactured || "N/A"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sección Orden de Servicio */}
+              <div className="border-2 border-gray-200 rounded-lg p-4">
+                <h3 className="font-bold text-blue-900 mb-4 text-lg">
+                  INFORMACIÓN DE LA ORDEN DE SERVICIO
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-blue-700 mb-1">
+                      Tipo de Visita
+                    </label>
+                    <p className="text-gray-800 font-semibold">
+                      {formData.diagnosticType || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-blue-700 mb-1">
+                      Tipo de Mantenimiento
+                    </label>
+                    <p className="text-gray-800 font-semibold">
+                      {formData.maintenanceType || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-blue-700 mb-1">
+                      Fecha Programada
+                    </label>
+                    <p className="text-gray-800 font-semibold">
+                      {formData.scheduledDate || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-blue-700 mb-1">
+                      Hora Programada
+                    </label>
+                    <p className="text-gray-800 font-semibold">
+                      {formData.scheduledTime || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-blue-700 mb-1">
+                      Estado
+                    </label>
+                    <p className="text-gray-800 font-semibold">
+                      {formData.orderStatus || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-blue-700 mb-1">
+                      Fecha de Creación
+                    </label>
+                    <p className="text-gray-800 font-semibold">
+                      {formData.creationDate
+                        ? new Date(formData.creationDate).toLocaleString()
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-blue-700 mb-1">
+                      URL del Reporte
+                    </label>
+                    <p className="text-gray-800 font-semibold text-xs break-all">
+                      {formData.reportUrl || "Sin reporte"}
                     </p>
                   </div>
                 </div>

@@ -45,6 +45,7 @@ class OrdenServicio(BaseModel):
     marca: str
     anio: Optional[int] = None
     tipo_visita: Literal['1era Visita comercial','Diagnostico','Mantenimiento']
+    tipo_mantenimiento: Optional[str] = None
     prioridad: Literal['baja','media','alta','urgente']
     fecha_programada: datetime
     hora_programada: time

@@ -175,7 +175,7 @@ const Home = () => {
       </div>
 
       {/* Header with logout button */}
-      <div className="absolute top-4 right-4 z-10 max-w-[calc(100vw-2rem)]">
+      <div className="absolute top-4 right-4 z-50 max-w-[calc(100vw-2rem)]">
         <button
           onClick={async () => {
             if (confirm("¿Estás seguro que deseas cerrar sesión?")) {
@@ -192,7 +192,7 @@ const Home = () => {
               }
             }
           }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:shadow-red-500/50 border border-red-500/30 text-sm sm:text-base font-medium"
+          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:shadow-red-500/50 border border-red-500/30 text-sm sm:text-base font-medium cursor-pointer"
         >
           <svg
             className="w-5 h-5"

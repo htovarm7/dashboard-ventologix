@@ -128,6 +128,7 @@ export interface OrdenServicio {
   estado: string;
   fecha_creacion: string;
   reporte_url: string;
+  tipo_mantenimiento: string;
 }
 
 export interface ReportFormData {
@@ -145,6 +146,15 @@ export interface ReportFormData {
   clientContact?: string;
   clientPhone?: string;
   reportDate: string;
+
+  // Nuevos campos de Orden de Servicio
+  eventualClientId?: string;
+  maintenanceType?: string;
+  scheduledDate?: string;
+  scheduledTime?: string;
+  orderStatus?: string;
+  creationDate?: string;
+  reportUrl?: string;
 
   // Información inicial
   diagnosticType: string;
