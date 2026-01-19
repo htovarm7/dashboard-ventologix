@@ -65,6 +65,30 @@ interface TicketFormData {
   technician: string;
 }
 
+// Helper function to format date to DD/MM/YYYY
+const formatDate = (dateString: string) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+// Helper function to format time to HH:MM
+const formatTime = (timeString: string) => {
+  if (!timeString) return "";
+  // If already in HH:MM format, return as is
+  if (/^\d{2}:\d{2}$/.test(timeString)) {
+    return timeString;
+  }
+  // If in HH:MM:SS format, extract HH:MM
+  if (/^\d{2}:\d{2}:\d{2}$/.test(timeString)) {
+    return timeString.substring(0, 5);
+  }
+  return timeString;
+};
+
 const TypeReportes = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -79,11 +103,11 @@ const TypeReportes = () => {
     useState<CompressorSearchResult | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState<CompressorSearchResult[]>(
-    []
+    [],
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [ordenServicio, setOrdenServicio] = useState<OrdenServicio | null>(
-    null
+    null,
   );
   const [loadingOrden, setLoadingOrden] = useState(false);
   const [ordenesServicio, setOrdenesServicio] = useState<OrdenServicio[]>([]);
@@ -112,7 +136,7 @@ const TypeReportes = () => {
     rfc: "",
   });
   const [editingTicket, setEditingTicket] = useState<OrdenServicio | null>(
-    null
+    null,
   );
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTicketsList, setShowTicketsList] = useState(false);
@@ -195,7 +219,7 @@ const TypeReportes = () => {
           setOrdenServicio(orden);
         } else {
           alert(
-            "No se encontró la orden de servicio con el folio especificado"
+            "No se encontró la orden de servicio con el folio especificado",
           );
         }
       }
@@ -230,7 +254,7 @@ const TypeReportes = () => {
 
     try {
       const response = await fetch(
-        `${URL_API}/compresores/compresor-cliente/${encodeURIComponent(query)}`
+        `${URL_API}/compresores/compresor-cliente/${encodeURIComponent(query)}`,
       );
       const data = await response.json();
 
@@ -251,7 +275,7 @@ const TypeReportes = () => {
   // Generate folio: id_cliente-last4digits-YYYYMMDD-HHMM
   const generateFolio = (
     idCliente: number | string,
-    serialNumber: string
+    serialNumber: string,
   ): string => {
     const clientId =
       idCliente === "EVENTUAL" ? "00" : String(idCliente).padStart(2, "0");
@@ -346,7 +370,7 @@ const TypeReportes = () => {
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value } = e.target;
     setTicketData((prev) => {
@@ -397,7 +421,7 @@ const TypeReportes = () => {
           throw new Error(
             `Error creating eventual client: ${
               eventualResult.detail || eventualResult.error
-            }`
+            }`,
           );
         }
       } else if (
@@ -437,7 +461,7 @@ const TypeReportes = () => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify(eventualCompressorData),
-          }
+          },
         );
 
         const compressorResult = await compressorResponse.json();
@@ -445,13 +469,13 @@ const TypeReportes = () => {
         if (compressorResponse.ok) {
           console.log(
             "Eventual compressor created with ID:",
-            compressorResult.id
+            compressorResult.id,
           );
         } else {
           throw new Error(
             `Error creating eventual compressor: ${
               compressorResult.detail || compressorResult.error
-            }`
+            }`,
           );
         }
       }
@@ -569,7 +593,7 @@ const TypeReportes = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(editingTicket),
-        }
+        },
       );
 
       const result = await response.json();
@@ -586,7 +610,7 @@ const TypeReportes = () => {
             result.message ||
             result.error ||
             "Error desconocido"
-          }`
+          }`,
         );
       }
     } catch (error) {
@@ -616,7 +640,7 @@ const TypeReportes = () => {
             result.message ||
             result.error ||
             "Error desconocido"
-          }`
+          }`,
         );
       }
     } catch (error) {
@@ -634,7 +658,7 @@ const TypeReportes = () => {
   const loadDraft = (draft: DraftReport) => {
     // Navigate to create page with draft data
     router.push(
-      `/features/compressor-maintenance/technician/reports/create?draftId=${draft.id}`
+      `/features/compressor-maintenance/technician/reports/create?draftId=${draft.id}`,
     );
   };
 
@@ -654,7 +678,7 @@ const TypeReportes = () => {
         `${URL_API}/ordenes/${orden.folio}/estado?estado=en_progreso`,
         {
           method: "PATCH",
-        }
+        },
       );
 
       if (response.ok) {
@@ -663,7 +687,7 @@ const TypeReportes = () => {
           folio: orden.folio,
         });
         router.push(
-          `/features/compressor-maintenance/technician/reports/create?${params.toString()}`
+          `/features/compressor-maintenance/technician/reports/create?${params.toString()}`,
         );
       } else {
         const result = await response.json();
@@ -788,7 +812,7 @@ const TypeReportes = () => {
               d="M15 19l-7-7 7-7"
             />
           </svg>
-          <span className="text-lg font-medium">Atrás</span>
+          <span className="text-lg font-bold">Atrás</span>
         </button>
 
         {/* VISTA PARA ROL 2 (VAST) - Ver Órdenes de Servicio */}
@@ -867,10 +891,10 @@ const TypeReportes = () => {
                                       orden.estado === "no_iniciado"
                                         ? "bg-gray-500"
                                         : orden.estado === "en_proceso"
-                                        ? "bg-blue-500"
-                                        : orden.estado === "completado"
-                                        ? "bg-green-500"
-                                        : "bg-gray-500"
+                                          ? "bg-blue-500"
+                                          : orden.estado === "completado"
+                                            ? "bg-green-500"
+                                            : "bg-gray-500"
                                     }`}
                                   >
                                     {orden.estado
@@ -882,59 +906,57 @@ const TypeReportes = () => {
                                       orden.prioridad === "urgente"
                                         ? "bg-red-500 text-white"
                                         : orden.prioridad === "alta"
-                                        ? "bg-orange-500 text-white"
-                                        : orden.prioridad === "media"
-                                        ? "bg-yellow-500 text-white"
-                                        : "bg-blue-500 text-white"
+                                          ? "bg-orange-500 text-white"
+                                          : orden.prioridad === "media"
+                                            ? "bg-yellow-500 text-white"
+                                            : "bg-blue-500 text-white"
                                     }`}
                                   >
                                     {orden.prioridad.toUpperCase()}
                                   </span>
                                 </div>
-                                <p className="font-bold text-cyan-100 text-lg truncate">
+                                <p className="font-bold text-white text-xl truncate">
                                   {orden.nombre_cliente}
                                 </p>
-                                <p className="text-sm text-cyan-200/80 mt-2">
-                                  <span className="font-medium">Folio:</span>{" "}
+                                <p className="text-sm text-white mt-2">
+                                  <span className="font-bold">Folio:</span>{" "}
                                   {orden.folio}
                                 </p>
-                                <p className="text-sm text-cyan-200/80">
-                                  <span className="font-medium">
-                                    Compresor:
-                                  </span>{" "}
+                                <p className="text-sm text-white">
+                                  <span className="font-bold">Compresor:</span>{" "}
                                   {orden.alias_compresor}
                                 </p>
-                                <p className="text-sm text-cyan-200/80">
-                                  <span className="font-medium">Serie:</span>{" "}
+                                <p className="text-sm text-white">
+                                  <span className="font-bold">Serie:</span>{" "}
                                   {orden.numero_serie}
                                 </p>
-                                <p className="text-sm text-cyan-200/80">
-                                  <span className="font-medium">Marca:</span>{" "}
+                                <p className="text-sm text-white">
+                                  <span className="font-bold">Marca:</span>{" "}
                                   {orden.marca}
                                 </p>
-                                <p className="text-sm text-cyan-200/80">
-                                  <span className="font-medium">Modelo:</span>{" "}
+                                <p className="text-sm text-white">
+                                  <span className="font-bold">Modelo:</span>{" "}
                                   {orden.tipo}
                                 </p>
-                                <p className="text-sm text-cyan-200/80">
-                                  <span className="font-medium">
+                                <p className="text-sm text-white">
+                                  <span className="font-bold">
                                     Tipo Visita:
                                   </span>{" "}
                                   {orden.tipo_visita}
                                 </p>
-                                <p className="text-sm text-cyan-200/80">
-                                  <span className="font-medium">
+                                <p className="text-sm text-white">
+                                  <span className="font-bold">
                                     Mantenimiento:
                                   </span>{" "}
                                   {orden.tipo_mantenimiento ||
                                     "No especificado"}
                                 </p>
-                                <p className="text-sm text-cyan-200/80 mt-2">
-                                  <span className="font-medium">
-                                    Programada:
+                                <p className="text-sm text-white mt-2">
+                                  <span className="font-bold">
+                                    Programado para:
                                   </span>{" "}
-                                  {orden.fecha_programada}{" "}
-                                  {orden.hora_programada}
+                                  {formatDate(orden.fecha_programada)}{" "}
+                                  {formatTime(orden.hora_programada)}
                                 </p>
                               </div>
                               <div className="flex">
@@ -965,7 +987,7 @@ const TypeReportes = () => {
               <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-300 to-cyan-300 mb-3">
                 Crear Ticket de Servicio
               </h1>
-              <p className="text-cyan-200/80 text-xl">
+              <p className="text-white text-xl">
                 Registra una nueva solicitud de mantenimiento
               </p>
             </div>
@@ -1107,7 +1129,7 @@ const TypeReportes = () => {
                             value={selectedEventualClient?.id || ""}
                             onChange={(e) => {
                               const client = eventualClients.find(
-                                (c) => c.id === parseInt(e.target.value)
+                                (c) => c.id === parseInt(e.target.value),
                               );
                               if (client) {
                                 handleSelectEventualClient(client);
@@ -1620,34 +1642,34 @@ const TypeReportes = () => {
                                             orden.estado === "no_iniciado"
                                               ? "bg-gray-500/30 text-gray-200"
                                               : orden.estado === "en_progreso"
-                                              ? "bg-blue-500/30 text-blue-200"
-                                              : "bg-green-500/30 text-green-200"
+                                                ? "bg-blue-500/30 text-blue-200"
+                                                : "bg-green-500/30 text-green-200"
                                           }`}
                                         >
                                           {orden.estado === "no_iniciado"
                                             ? "No Iniciado"
                                             : orden.estado === "en_progreso"
-                                            ? "En Progreso"
-                                            : "Completado"}
+                                              ? "En Progreso"
+                                              : "Completado"}
                                         </span>
                                         <span
                                           className={`px-3 py-1 rounded-full text-xs font-semibold ${
                                             orden.prioridad === "baja"
                                               ? "bg-green-500/30 text-green-200"
                                               : orden.prioridad === "media"
-                                              ? "bg-yellow-500/30 text-yellow-200"
-                                              : orden.prioridad === "alta"
-                                              ? "bg-orange-500/30 text-orange-200"
-                                              : "bg-red-500/30 text-red-200"
+                                                ? "bg-yellow-500/30 text-yellow-200"
+                                                : orden.prioridad === "alta"
+                                                  ? "bg-orange-500/30 text-orange-200"
+                                                  : "bg-red-500/30 text-red-200"
                                           }`}
                                         >
                                           {orden.prioridad === "baja"
                                             ? "🟢 Baja"
                                             : orden.prioridad === "media"
-                                            ? "🟡 Media"
-                                            : orden.prioridad === "alta"
-                                            ? "🔴 Alta"
-                                            : "🚨 Urgente"}
+                                              ? "🟡 Media"
+                                              : orden.prioridad === "alta"
+                                                ? "🔴 Alta"
+                                                : "🚨 Urgente"}
                                         </span>
                                       </div>
                                       <p className="text-cyan-100 font-semibold mb-1">
@@ -1663,7 +1685,7 @@ const TypeReportes = () => {
                                             Fecha:
                                           </span>{" "}
                                           <span className="text-cyan-100">
-                                            {orden.fecha_programada}
+                                            {formatDate(orden.fecha_programada)}
                                           </span>
                                         </div>
                                         <div>
@@ -1671,7 +1693,7 @@ const TypeReportes = () => {
                                             Hora:
                                           </span>{" "}
                                           <span className="text-cyan-100">
-                                            {orden.hora_programada}
+                                            {formatTime(orden.hora_programada)}
                                           </span>
                                         </div>
                                         <div>
@@ -1878,26 +1900,6 @@ const TypeReportes = () => {
                         <option value="media">🟡 Media</option>
                         <option value="alta">🔴 Alta</option>
                         <option value="urgente">🚨 Urgente</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-cyan-300 font-semibold mb-2">
-                        Estado
-                      </label>
-                      <select
-                        value={editingTicket.estado}
-                        onChange={(e) =>
-                          setEditingTicket({
-                            ...editingTicket,
-                            estado: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
-                      >
-                        <option value="no_iniciado">No Iniciado</option>
-                        <option value="en_progreso">En Progreso</option>
-                        <option value="completado">Completado</option>
                       </select>
                     </div>
 

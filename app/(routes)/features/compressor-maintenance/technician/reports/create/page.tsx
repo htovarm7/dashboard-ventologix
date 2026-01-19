@@ -136,7 +136,7 @@ function FillReport() {
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    >,
   ) => {
     const { name, value, type } = e.target;
 
@@ -150,7 +150,7 @@ function FillReport() {
 
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    fieldName: string
+    fieldName: string,
   ) => {
     const file = e.target.files?.[0] || null;
     setFormData((prev) => ({ ...prev, [fieldName]: file }));
@@ -261,7 +261,7 @@ function FillReport() {
         alert(
           `❌ Error al guardar el reporte: ${
             result.detail || result.message || "Error desconocido"
-          }`
+          }`,
         );
       }
     } catch (error) {
@@ -283,7 +283,7 @@ function FillReport() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-1">
+                <label className="block text-sm font-medium text-blue-800 mb-1">
                   Folio
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -291,7 +291,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-1">
+                <label className="block text-sm font-medium text-blue-800 mb-1">
                   Nombre Cliente
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -308,7 +308,7 @@ function FillReport() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-1">
+                <label className="block text-sm font-medium text-blue-800 mb-1">
                   Alias Compresor
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -316,7 +316,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-1">
+                <label className="block text-sm font-medium text-blue-800 mb-1">
                   Número de Serie
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -324,7 +324,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-1">
+                <label className="block text-sm font-medium text-blue-800 mb-1">
                   HP
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -332,7 +332,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-1">
+                <label className="block text-sm font-medium text-blue-800 mb-1">
                   Tipo
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -340,7 +340,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-1">
+                <label className="block text-sm font-medium text-blue-800 mb-1">
                   Marca
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -348,7 +348,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-1">
+                <label className="block text-sm font-medium text-blue-800 mb-1">
                   Año
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -365,7 +365,7 @@ function FillReport() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-1">
+                <label className="block text-sm font-medium text-blue-800 mb-1">
                   Tipo de Visita
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -373,7 +373,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-1">
+                <label className="block text-sm font-medium text-blue-800 mb-1">
                   Tipo de Mantenimiento
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -381,7 +381,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-1">
+                <label className="block text-sm font-medium text-blue-800 mb-1">
                   Fecha Programada
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -389,7 +389,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-1">
+                <label className="block text-sm font-medium text-blue-800 mb-1">
                   Hora Programada
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -411,7 +411,7 @@ function FillReport() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-blue-700 mb-2">
+          <label className="block text-sm font-medium text-blue-800 mb-2">
             ¿Equipo enciende? *
           </label>
           <select
@@ -459,25 +459,23 @@ function FillReport() {
           {renderClientSelection()}
           {renderInitialInfo()}
 
-          {/* Contenido condicional basado en si el equipo enciende */}
           {formData.equipmentPowers === "Sí" && (
             <>
-              {/* SECCIÓN: INFORMACIÓN DEL DISPLAY Y HORAS */}
+              {/* SECCIÓN 1: Display y Horas de Trabajo */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  INFORMACIÓN DEL DISPLAY Y HORAS DE TRABAJO
+                  📊 DISPLAY Y HORAS DE TRABAJO
                 </h2>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       ¿Display enciende? *
                     </label>
                     <select
                       name="displayPowers"
                       value={formData.displayPowers}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                       required
                     >
                       <option value="">-- Seleccionar --</option>
@@ -485,16 +483,15 @@ function FillReport() {
                       <option value="No">No</option>
                     </select>
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Foto de Horas Generales de trabajo
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      📸 Foto Horas Generales de Trabajo
                     </label>
                     <input
                       type="file"
                       accept="image/*"
                       onChange={(e) => handleFileChange(e, "photo1")}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     />
                     {formData.photo1 && (
                       <p className="text-sm text-green-600 mt-1">
@@ -502,185 +499,396 @@ function FillReport() {
                       </p>
                     )}
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                   <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Horas Generales de Trabajo
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Horas Totales
                     </label>
                     <input
                       type="number"
                       name="generalHours"
                       value={formData.generalHours}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       placeholder="0"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Horas de Carga
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Horas en Carga
                     </label>
                     <input
                       type="number"
                       name="loadHours"
                       value={formData.loadHours}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       placeholder="0"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Horas de Descarga
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Horas en Descarga
                     </label>
                     <input
                       type="number"
                       name="unloadHours"
                       value={formData.unloadHours}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       placeholder="0"
                     />
                   </div>
-                </div>
-              </div>
-
-              {/* SECCIÓN: MANTENIMIENTO */}
-              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  MANTENIMIENTO
-                </h2>
-
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-6">
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        name="maintenance2000"
-                        checked={formData.maintenance2000}
-                        onChange={handleInputChange}
-                        className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                      />
-                      <span className="text-sm font-medium text-blue-700">
-                        Mantenimiento 2000 hrs
-                      </span>
-                    </label>
-
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        name="maintenance4000"
-                        checked={formData.maintenance4000}
-                        onChange={handleInputChange}
-                        className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                      />
-                      <span className="text-sm font-medium text-blue-700">
-                        Mantenimiento 4000 hrs
-                      </span>
-                    </label>
-
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        name="maintenance6000"
-                        checked={formData.maintenance6000}
-                        onChange={handleInputChange}
-                        className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                      />
-                      <span className="text-sm font-medium text-blue-700">
-                        Mantenimiento 6000 hrs
-                      </span>
-                    </label>
-
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        name="otherMechanicalFailure"
-                        checked={formData.otherMechanicalFailure}
-                        onChange={handleInputChange}
-                        className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                      />
-                      <span className="text-sm font-medium text-blue-700">
-                        Otra falla mecánica
-                      </span>
-                    </label>
-                  </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Mantenimiento Requerido
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      📸 Foto Alarmas del Sistema
                     </label>
-                    <textarea
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e, "photo2")}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    />
+                    {formData.photo2 && (
+                      <p className="text-sm text-green-600 mt-1">
+                        ✓ {formData.photo2.name}
+                      </p>
+                    )}
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Condición de Próximo Mantenimiento
+                    </label>
+                    <select
                       name="maintenanceRequired"
                       value={formData.maintenanceRequired}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      rows={3}
-                      placeholder="Describa el mantenimiento requerido..."
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="2,000 Hrs - Filtro Aire + Filtro Aceite">
+                        2,000 Hrs - Filtro Aire + Filtro Aceite
+                      </option>
+                      <option value="4,000 hrs - Filtro Aire + Filtro Aceite + Separador Aceite">
+                        4,000 hrs - Filtro Aire + Filtro Aceite + Separador
+                        Aceite
+                      </option>
+                      <option value="6,000 Hrs - Filtro Aire + Filtro Aceite">
+                        6,000 Hrs - Filtro Aire + Filtro Aceite
+                      </option>
+                      <option value="8,000 Hrs - Filtro Aire + Filtro Aceite + Separador Aceite + Aceite">
+                        8,000 Hrs - Filtro Aire + Filtro Aceite + Separador
+                        Aceite + Aceite
+                      </option>
+                      <option value="Otro">Otro (especificar)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 2: Placas del Equipo */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  🏷️ PLACAS DEL EQUIPO
+                </h2>
+                <div className="space-y-6">
+                  {/* Placa del Compresor */}
+                  <div className="p-4">
+                    <h3 className="font-bold text-blue-900 mb-4 text-lg">
+                      Placa del Compresor
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          📸 Foto Placa del Compresor
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(e, "photo3")}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                        />
+                        {formData.photo3 && (
+                          <p className="text-sm text-green-600 mt-1">
+                            ✓ {formData.photo3.name}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Compresor es Master / Slave
+                        </label>
+                        <select
+                          name="isMaster"
+                          value={formData.isMaster}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                        >
+                          <option value="Master">Master</option>
+                          <option value="Slave">Slave</option>
+                          <option value="Otro">Otro</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Placa del Motor */}
+                  <div className="p-4">
+                    <h3 className="font-bold text-blue-900 mb-4 text-lg">
+                      Placa del Motor
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          📸 Foto Placa del Motor
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(e, "photo4")}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                        />
+                        {formData.photo4 && (
+                          <p className="text-sm text-green-600 mt-1">
+                            ✓ {formData.photo4.name}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          AMP Máximo
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          name="mainMotorAmperage"
+                          value={formData.mainMotorAmperage}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                          placeholder="0.0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 3: Condiciones Ambientales */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  🌡️ CONDICIONES AMBIENTALES
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      📸 Foto Condiciones Ambientales
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e, "photo5")}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    />
+                    {formData.photo5 && (
+                      <p className="text-sm text-green-600 mt-1">
+                        ✓ {formData.photo5.name}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ubicación del Compresor
+                    </label>
+                    <select
+                      name="location"
+                      value={formData.location}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="Intemperie">Intemperie</option>
+                      <option value="Dentro de cuarto">Dentro de cuarto</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Método Expulsión Aire Caliente
+                    </label>
+                    <select
+                      name="hotAirExpulsion"
+                      value={formData.hotAirExpulsion}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="Ducto directo al exterior">
+                        Ducto directo al exterior
+                      </option>
+                      <option value="Interno al cuarto">
+                        Interno al cuarto
+                      </option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Operación con muchos polvos?
+                    </label>
+                    <select
+                      name="highDustOperation"
+                      value={formData.highDustOperation}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="Sí">Sí</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Compresor bien instalado?
+                    </label>
+                    <select
+                      name="compressorRoomConditions"
+                      value={formData.compressorRoomConditions}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="Sí">Sí</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Otra condición especial de operación
+                    </label>
+                    <textarea
+                      name="specialConditions"
+                      value={formData.specialConditions}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      rows={2}
+                      placeholder="Describa..."
                     />
                   </div>
                 </div>
               </div>
 
-              {/* SECCIÓN: TEMPERATURAS */}
+              {/* SECCIÓN 4: Voltajes y Amperajes */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  TEMPERATURAS
+                  ⚡ VOLTAJES Y AMPERAJES
                 </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Temp. Compresión Display (°C)
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      VOLTAJE de Alimentación Equipo (V)
                     </label>
                     <input
                       type="number"
                       step="0.1"
-                      name="compressionTempDisplay"
-                      value={formData.compressionTempDisplay}
+                      name="supplyVoltage"
+                      value={formData.supplyVoltage}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       placeholder="0.0"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Temp. Compresión Laser (°C)
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      AMPERAJE Motor en CARGA (A)
                     </label>
                     <input
                       type="number"
                       step="0.1"
-                      name="compressionTempLaser"
-                      value={formData.compressionTempLaser}
+                      name="mainMotorAmperage"
+                      value={formData.mainMotorAmperage}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       placeholder="0.0"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Temp. Final Compresión (°C)
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      AMPERAJE de Ventilador (A)
                     </label>
                     <input
                       type="number"
                       step="0.1"
-                      name="finalCompressionTemp"
-                      value={formData.finalCompressionTemp}
+                      name="fanAmperage"
+                      value={formData.fanAmperage}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       placeholder="0.0"
                     />
                   </div>
+                </div>
+              </div>
 
+              {/* SECCIÓN 5: Aceite */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  🛢️ ACEITE
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      📸 Foto Separador Aire-Aceite
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e, "photo6")}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    />
+                    {formData.photo6 && (
+                      <p className="text-sm text-green-600 mt-1">
+                        ✓ {formData.photo6.name}
+                      </p>
+                    )}
+                  </div>
                   <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Temp. Admisión Aire (°C)
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      ¿Existen fugas de aceite visibles?
+                    </label>
+                    <select
+                      name="oilLeaks"
+                      value={formData.oilLeaks}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="Sí">Sí</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      ¿Existen fugas de aire audibles?
+                    </label>
+                    <select
+                      name="airLeaks"
+                      value={formData.airLeaks}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="Sí">Sí</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 6: Temperaturas */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  🌡️ TEMPERATURAS
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Temp. Ambiente (°C)
                     </label>
                     <input
                       type="number"
@@ -688,28 +896,54 @@ function FillReport() {
                       name="airIntakeTemp"
                       value={formData.airIntakeTemp}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       placeholder="0.0"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Temp. Interenfriador (°C)
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Temp. Final Compresión Display (°C)
                     </label>
                     <input
                       type="number"
                       step="0.1"
-                      name="intercoolerTemp"
-                      value={formData.intercoolerTemp}
+                      name="compressionTempDisplay"
+                      value={formData.compressionTempDisplay}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       placeholder="0.0"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Temp. Final Compresión Laser (°C)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="compressionTempLaser"
+                      value={formData.compressionTempLaser}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Temp. Separador Aire-Aceite (°C)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="finalCompressionTemp"
+                      value={formData.finalCompressionTemp}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Temp. Interna Cuarto (°C)
                     </label>
                     <input
@@ -718,184 +952,21 @@ function FillReport() {
                       name="internalTemp"
                       value={formData.internalTemp}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       placeholder="0.0"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* SECCIÓN: PARÁMETROS ELÉCTRICOS */}
+              {/* SECCIÓN 7: Mediciones de Presión */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  PARÁMETROS ELÉCTRICOS
+                  📏 MEDICIONES DE PRESIÓN
                 </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Voltaje de Alimentación (V)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      name="supplyVoltage"
-                      value={formData.supplyVoltage}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="0.0"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Amperaje Motor Principal (A)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      name="mainMotorAmperage"
-                      value={formData.mainMotorAmperage}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="0.0"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Amperaje Ventilador (A)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      name="fanAmperage"
-                      value={formData.fanAmperage}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="0.0"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Factor de Potencia en Carga
-                    </label>
-                    <select
-                      name="powerFactorLoadOk"
-                      value={formData.powerFactorLoadOk}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">-- Seleccionar --</option>
-                      <option value="OK">OK</option>
-                      <option value="No OK">No OK</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Factor de Potencia en Descarga
-                    </label>
-                    <select
-                      name="powerFactorUnloadOk"
-                      value={formData.powerFactorUnloadOk}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">-- Seleccionar --</option>
-                      <option value="OK">OK</option>
-                      <option value="No OK">No OK</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* SECCIÓN: DATOS DEL EQUIPO */}
-              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  DATOS DEL EQUIPO
-                </h2>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Fugas de Aceite
-                    </label>
-                    <select
-                      name="oilLeaks"
-                      value={formData.oilLeaks}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">-- Seleccionar --</option>
-                      <option value="Sí">Sí</option>
-                      <option value="No">No</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Fugas de Aire
-                    </label>
-                    <select
-                      name="airLeaks"
-                      value={formData.airLeaks}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">-- Seleccionar --</option>
-                      <option value="Sí">Sí</option>
-                      <option value="No">No</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Funcionamiento Válvula Admisión
-                    </label>
-                    <select
-                      name="intakeValveFunctioning"
-                      value={formData.intakeValveFunctioning}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">-- Seleccionar --</option>
-                      <option value="OK">OK</option>
-                      <option value="No OK">No OK</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Tipo de Válvula Admisión
-                    </label>
-                    <input
-                      type="text"
-                      name="intakeValveType"
-                      value={formData.intakeValveType}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Ingrese tipo de válvula"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Diferencial de Presión
-                    </label>
-                    <input
-                      type="text"
-                      name="pressureDifferential"
-                      value={formData.pressureDifferential}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Ingrese diferencial"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Método de Control de Presión
                     </label>
                     <input
@@ -903,68 +974,13 @@ function FillReport() {
                       name="pressureControlMethod"
                       value={formData.pressureControlMethod}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Ingrese método"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="Ej: Abierto, VSD, etc."
                     />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Configuración
-                    </label>
-                    <select
-                      name="isMaster"
-                      value={formData.isMaster}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="Master">Master</option>
-                      <option value="Esclavo">Esclavo</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* SECCIÓN: PRESIONES */}
-              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  PRESIONES
-                </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Presión Operación (PSI)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      name="operatingPressure"
-                      value={formData.operatingPressure}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="0.0"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Set Point Operación (PSI)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      name="operatingSetPoint"
-                      value={formData.operatingSetPoint}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="0.0"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Presión Carga (PSI)
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Presión CARGA (PSI o Bar)
                     </label>
                     <input
                       type="number"
@@ -972,14 +988,13 @@ function FillReport() {
                       name="loadPressure"
                       value={formData.loadPressure}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       placeholder="0.0"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Presión Descarga (PSI)
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Presión DESCARGA (PSI o Bar)
                     </label>
                     <input
                       type="number"
@@ -987,43 +1002,93 @@ function FillReport() {
                       name="unloadPressure"
                       value={formData.unloadPressure}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       placeholder="0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Diferencial de Presión
+                    </label>
+                    <input
+                      type="text"
+                      name="pressureDifferential"
+                      value={formData.pressureDifferential}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="Ingrese diferencial"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* SECCIÓN: TANQUES */}
+              {/* SECCIÓN 8: Válvulas */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  TANQUES
+                  🔧 VÁLVULAS
                 </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tipo de Válvula de Admisión
+                    </label>
+                    <input
+                      type="text"
+                      name="intakeValveType"
+                      value={formData.intakeValveType}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="Tipo de válvula"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Funcionamiento Válvula Admisión
+                    </label>
+                    <select
+                      name="intakeValveFunctioning"
+                      value={formData.intakeValveFunctioning}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="OK">OK</option>
+                      <option value="No OK">No OK</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Tanque Húmedo */}
-                  <div className="border-2 border-blue-200 rounded-lg p-4">
+              {/* SECCIÓN 9: Tanques de Almacenamiento */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  🗄️ TANQUES DE ALMACENAMIENTO
+                </h2>
+                <div className="space-y-6">
+                  {/* Wet Tank */}
+                  <div className="p-4">
                     <h3 className="font-bold text-blue-900 mb-4">
-                      Tanque Húmedo
+                      Wet Tank (Tanque Húmedo)
                     </h3>
-                    <div className="space-y-4">
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          name="wetTankExists"
-                          checked={formData.wetTankExists}
-                          onChange={handleInputChange}
-                          className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                        />
-                        <span className="text-sm font-medium text-blue-700">
-                          ¿Existe tanque húmedo?
-                        </span>
-                      </label>
-
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            name="wetTankExists"
+                            checked={formData.wetTankExists}
+                            onChange={handleInputChange}
+                            className="w-5 h-5"
+                          />
+                          <span className="text-sm font-medium text-gray-700">
+                            ¿Existe?
+                          </span>
+                        </label>
+                      </div>
                       {formData.wetTankExists && (
                         <>
                           <div>
-                            <label className="block text-sm font-medium text-blue-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
                               Capacidad (Litros)
                             </label>
                             <input
@@ -1031,64 +1096,67 @@ function FillReport() {
                               name="wetTankLiters"
                               value={formData.wetTankLiters}
                               onChange={handleInputChange}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                               placeholder="0"
                             />
                           </div>
-
-                          <label className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              name="wetTankSafetyValve"
-                              checked={formData.wetTankSafetyValve}
-                              onChange={handleInputChange}
-                              className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                            />
-                            <span className="text-sm font-medium text-blue-700">
-                              Válvula de Seguridad
-                            </span>
-                          </label>
-
-                          <label className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              name="wetTankDrain"
-                              checked={formData.wetTankDrain}
-                              onChange={handleInputChange}
-                              className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                            />
-                            <span className="text-sm font-medium text-blue-700">
-                              Purga/Drenaje
-                            </span>
-                          </label>
+                          <div>
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                name="wetTankSafetyValve"
+                                checked={formData.wetTankSafetyValve}
+                                onChange={handleInputChange}
+                                className="w-5 h-5"
+                              />
+                              <span className="text-sm font-medium text-gray-700">
+                                Válvula de Seguridad Funciona
+                              </span>
+                            </label>
+                          </div>
+                          <div>
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                name="wetTankDrain"
+                                checked={formData.wetTankDrain}
+                                onChange={handleInputChange}
+                                className="w-5 h-5"
+                              />
+                              <span className="text-sm font-medium text-gray-700">
+                                Dren Funciona
+                              </span>
+                            </label>
+                          </div>
                         </>
                       )}
                     </div>
                   </div>
 
-                  {/* Tanque Seco */}
-                  <div className="border-2 border-blue-200 rounded-lg p-4">
+                  {/* Dry Tank */}
+                  <div className="p-4">
                     <h3 className="font-bold text-blue-900 mb-4">
-                      Tanque Seco
+                      Dry Tank (Tanque Seco)
                     </h3>
-                    <div className="space-y-4">
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          name="dryTankExists"
-                          checked={formData.dryTankExists}
-                          onChange={handleInputChange}
-                          className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                        />
-                        <span className="text-sm font-medium text-blue-700">
-                          ¿Existe tanque seco?
-                        </span>
-                      </label>
-
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            name="dryTankExists"
+                            checked={formData.dryTankExists}
+                            onChange={handleInputChange}
+                            className="w-5 h-5"
+                          />
+                          <span className="text-sm font-medium text-gray-700">
+                            ¿Existe?
+                          </span>
+                        </label>
+                      </div>
                       {formData.dryTankExists && (
                         <>
                           <div>
-                            <label className="block text-sm font-medium text-blue-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
                               Capacidad (Litros)
                             </label>
                             <input
@@ -1096,450 +1164,41 @@ function FillReport() {
                               name="dryTankLiters"
                               value={formData.dryTankLiters}
                               onChange={handleInputChange}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                               placeholder="0"
                             />
                           </div>
-
-                          <label className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              name="dryTankSafetyValve"
-                              checked={formData.dryTankSafetyValve}
-                              onChange={handleInputChange}
-                              className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                            />
-                            <span className="text-sm font-medium text-blue-700">
-                              Válvula de Seguridad
-                            </span>
-                          </label>
-
-                          <label className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              name="dryTankDrain"
-                              checked={formData.dryTankDrain}
-                              onChange={handleInputChange}
-                              className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                            />
-                            <span className="text-sm font-medium text-blue-700">
-                              Purga/Drenaje
-                            </span>
-                          </label>
+                          <div>
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                name="dryTankSafetyValve"
+                                checked={formData.dryTankSafetyValve}
+                                onChange={handleInputChange}
+                                className="w-5 h-5"
+                              />
+                              <span className="text-sm font-medium text-gray-700">
+                                Válvula de Seguridad Funciona
+                              </span>
+                            </label>
+                          </div>
+                          <div>
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                name="dryTankDrain"
+                                checked={formData.dryTankDrain}
+                                onChange={handleInputChange}
+                                className="w-5 h-5"
+                              />
+                              <span className="text-sm font-medium text-gray-700">
+                                Dren Funciona
+                              </span>
+                            </label>
+                          </div>
                         </>
                       )}
                     </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* SECCIÓN: CONDICIONES AMBIENTALES */}
-              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  CONDICIONES AMBIENTALES Y UBICACIÓN
-                </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Ubicación del Equipo
-                    </label>
-                    <input
-                      type="text"
-                      name="location"
-                      value={formData.location}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Ej: Interior, Exterior, Cuarto de máquinas"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Expulsión Aire Caliente
-                    </label>
-                    <select
-                      name="hotAirExpulsion"
-                      value={formData.hotAirExpulsion}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">-- Seleccionar --</option>
-                      <option value="Adecuada">Adecuada</option>
-                      <option value="Inadecuada">Inadecuada</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Operación con Polvo Alto
-                    </label>
-                    <select
-                      name="highDustOperation"
-                      value={formData.highDustOperation}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">-- Seleccionar --</option>
-                      <option value="Sí">Sí</option>
-                      <option value="No">No</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Condiciones Especiales
-                    </label>
-                    <input
-                      type="text"
-                      name="specialConditions"
-                      value={formData.specialConditions}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Describa condiciones especiales"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* SECCIÓN: ESTADO DE COMPONENTES */}
-              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  ESTADO DE COMPONENTES
-                </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Condición del Motor
-                    </label>
-                    <select
-                      name="motorCondition"
-                      value={formData.motorCondition}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">-- Seleccionar --</option>
-                      <option value="Bueno">Bueno</option>
-                      <option value="Regular">Regular</option>
-                      <option value="Malo">Malo</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Condición Unidad de Compresión
-                    </label>
-                    <select
-                      name="compressionUnitCondition"
-                      value={formData.compressionUnitCondition}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">-- Seleccionar --</option>
-                      <option value="Bueno">Bueno</option>
-                      <option value="Regular">Regular</option>
-                      <option value="Malo">Malo</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Condición Serpentín de Enfriamiento
-                    </label>
-                    <select
-                      name="coolingCoilCondition"
-                      value={formData.coolingCoilCondition}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">-- Seleccionar --</option>
-                      <option value="Bueno">Bueno</option>
-                      <option value="Regular">Regular</option>
-                      <option value="Malo">Malo</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Condición Válvulas de Admisión
-                    </label>
-                    <select
-                      name="admissionValvesCondition"
-                      value={formData.admissionValvesCondition}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">-- Seleccionar --</option>
-                      <option value="Bueno">Bueno</option>
-                      <option value="Regular">Regular</option>
-                      <option value="Malo">Malo</option>
-                    </select>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Otras Condiciones
-                    </label>
-                    <textarea
-                      name="otherCondition"
-                      value={formData.otherCondition}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      rows={3}
-                      placeholder="Describa otras condiciones..."
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* SECCIÓN: VERIFICACIONES ADICIONALES */}
-              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  VERIFICACIONES ADICIONALES
-                </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      name="excessDust"
-                      checked={formData.excessDust}
-                      onChange={handleInputChange}
-                      className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-blue-700">
-                      Exceso de Polvo
-                    </span>
-                  </label>
-
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      name="hasManual"
-                      checked={formData.hasManual}
-                      onChange={handleInputChange}
-                      className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-blue-700">
-                      Cuenta con Manual
-                    </span>
-                  </label>
-
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      name="electricalPanelPowers"
-                      checked={formData.electricalPanelPowers}
-                      onChange={handleInputChange}
-                      className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-blue-700">
-                      Panel Eléctrico Enciende
-                    </span>
-                  </label>
-
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      name="correctMotorRotation"
-                      checked={formData.correctMotorRotation}
-                      onChange={handleInputChange}
-                      className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-blue-700">
-                      Rotación Correcta del Motor
-                    </span>
-                  </label>
-
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      name="compressionUnitRotates"
-                      checked={formData.compressionUnitRotates}
-                      onChange={handleInputChange}
-                      className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-blue-700">
-                      Unidad de Compresión Gira
-                    </span>
-                  </label>
-
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      name="fanMotorWorks"
-                      checked={formData.fanMotorWorks}
-                      onChange={handleInputChange}
-                      className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-blue-700">
-                      Motor del Ventilador Funciona
-                    </span>
-                  </label>
-
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      name="electricalFeedConnected"
-                      checked={formData.electricalFeedConnected}
-                      onChange={handleInputChange}
-                      className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-blue-700">
-                      Alimentación Eléctrica Conectada
-                    </span>
-                  </label>
-
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      name="adequateBreaker"
-                      checked={formData.adequateBreaker}
-                      onChange={handleInputChange}
-                      className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-blue-700">
-                      Breaker Adecuado
-                    </span>
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Razones de Paro de Mantenimiento
-                    </label>
-                    <textarea
-                      name="maintenanceStopReasons"
-                      value={formData.maintenanceStopReasons}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      rows={3}
-                      placeholder="Describa las razones..."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Tubería de Descarga Conectada A
-                    </label>
-                    <input
-                      type="text"
-                      name="dischargePipeConnectedTo"
-                      value={formData.dischargePipeConnectedTo}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Ej: Red principal, tanque, etc."
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Condiciones del Cuarto de Compresores
-                    </label>
-                    <textarea
-                      name="compressorRoomConditions"
-                      value={formData.compressorRoomConditions}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      rows={3}
-                      placeholder="Describa las condiciones..."
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* SECCIÓN: FOTOGRAFÍAS */}
-              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  FOTOGRAFÍAS ADICIONALES
-                </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Fotografía 2
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange(e, "photo2")}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    {formData.photo2 && (
-                      <p className="text-sm text-green-600 mt-1">
-                        ✓ {formData.photo2.name}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Fotografía 3
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange(e, "photo3")}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    {formData.photo3 && (
-                      <p className="text-sm text-green-600 mt-1">
-                        ✓ {formData.photo3.name}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Fotografía 4
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange(e, "photo4")}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    {formData.photo4 && (
-                      <p className="text-sm text-green-600 mt-1">
-                        ✓ {formData.photo4.name}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Fotografía 5
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange(e, "photo5")}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    {formData.photo5 && (
-                      <p className="text-sm text-green-600 mt-1">
-                        ✓ {formData.photo5.name}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Fotografía 6
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange(e, "photo6")}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    {formData.photo6 && (
-                      <p className="text-sm text-green-600 mt-1">
-                        ✓ {formData.photo6.name}
-                      </p>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1548,16 +1207,489 @@ function FillReport() {
 
           {formData.equipmentPowers === "No" && (
             <>
-              {/* Aquí van las secciones cuando el equipo NO ENCIENDE */}
-              <div className="bg-red-100 border-l-4 border-red-500 p-4 mb-6">
-                <p className="text-red-800 font-medium">
-                  ⚠️ SECCIONES PARA EQUIPO QUE NO ENCIENDE - Programación
-                  pendiente
-                </p>
-                <p className="text-sm text-red-700 mt-1">
-                  (Estado del equipo, elementos completos, condiciones
-                  generales, instalaciones del equipo, etc.)
-                </p>
+              {/* SECCIÓN 1: Estado del Equipo */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-900 px-4 py-2 rounded font-bold mb-4">
+                  ⚠️ ESTADO DEL EQUIPO
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      📸 Foto Elementos Completos
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e, "photo1")}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        name="correctMotorRotation"
+                        checked={formData.correctMotorRotation}
+                        onChange={handleInputChange}
+                        className="w-5 h-5"
+                      />
+                      <span className="text-sm">Motor</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        name="compressionUnitRotates"
+                        checked={formData.compressionUnitRotates}
+                        onChange={handleInputChange}
+                        className="w-5 h-5"
+                      />
+                      <span className="text-sm">Unidad Compresión</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        name="fanMotorWorks"
+                        checked={formData.fanMotorWorks}
+                        onChange={handleInputChange}
+                        className="w-5 h-5"
+                      />
+                      <span className="text-sm">Serpentín Enfriamiento</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 2: Condiciones Generales */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-900 px-4 py-2 rounded font-bold mb-4">
+                  📋 CONDICIONES GENERALES
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      📸 Foto Condiciones Generales
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e, "photo2")}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        name="excessDust"
+                        checked={formData.excessDust}
+                        onChange={handleInputChange}
+                        className="w-5 h-5"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Exceso de polvo y suciedad
+                      </span>
+                    </label>
+                  </div>
+                  <div>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        name="hasManual"
+                        checked={formData.hasManual}
+                        onChange={handleInputChange}
+                        className="w-5 h-5"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        ¿Hay manual?
+                      </span>
+                    </label>
+                  </div>
+                  <div>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        name="electricalPanelPowers"
+                        checked={formData.electricalPanelPowers}
+                        onChange={handleInputChange}
+                        className="w-5 h-5"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Tablero eléctrico enciende
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 3: Revisión Mecánica */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-900 px-4 py-2 rounded font-bold mb-4">
+                  🔧 REVISIÓN MECÁNICA (Equipo Apagado)
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        name="correctMotorRotation"
+                        checked={formData.correctMotorRotation}
+                        onChange={handleInputChange}
+                        className="w-5 h-5"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Giro correcto del motor
+                      </span>
+                    </label>
+                  </div>
+                  <div>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        name="compressionUnitRotates"
+                        checked={formData.compressionUnitRotates}
+                        onChange={handleInputChange}
+                        className="w-5 h-5"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Unidad de compresión gira
+                      </span>
+                    </label>
+                  </div>
+                  <div>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        name="fanMotorWorks"
+                        checked={formData.fanMotorWorks}
+                        onChange={handleInputChange}
+                        className="w-5 h-5"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Motor ventilador funciona
+                      </span>
+                    </label>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Razones de paro según equipo de mantenimiento
+                    </label>
+                    <textarea
+                      name="maintenanceStopReasons"
+                      value={formData.maintenanceStopReasons}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      rows={3}
+                      placeholder="Describa las razones..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 4: Instalaciones */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-900 px-4 py-2 rounded font-bold mb-4">
+                  🏗️ INSTALACIONES DEL EQUIPO
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      📸 Foto Instalaciones
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e, "photo3")}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        name="electricalFeedConnected"
+                        checked={formData.electricalFeedConnected}
+                        onChange={handleInputChange}
+                        className="w-5 h-5"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Alimentación eléctrica conectada
+                      </span>
+                    </label>
+                  </div>
+                  <div>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        name="adequateBreaker"
+                        checked={formData.adequateBreaker}
+                        onChange={handleInputChange}
+                        className="w-5 h-5"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Pastilla adecuada para amperajes
+                      </span>
+                    </label>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tubería de descarga conectada a
+                    </label>
+                    <select
+                      name="dischargePipeConnectedTo"
+                      value={formData.dischargePipeConnectedTo}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="Red de la planta">Red de la planta</option>
+                      <option value="Aire libre">Aire libre</option>
+                      <option value="Otro">Otro</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ventilación cuarto compresores
+                    </label>
+                    <select
+                      name="compressorRoomConditions"
+                      value={formData.compressorRoomConditions}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="Correcta">Correcta</option>
+                      <option value="Incorrecta">Incorrecta</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 5: Placas del Equipo */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-900 px-4 py-2 rounded font-bold mb-4">
+                  🏷️ PLACAS DEL EQUIPO
+                </h2>
+                <div className="space-y-6">
+                  {/* Placa Motor */}
+                  <div className="p-4">
+                    <h3 className="font-bold text-blue-900 mb-4">
+                      Placa del Motor
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          📸 Foto Placa del Motor
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(e, "photo4")}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Placa Compresor */}
+                  <div className="p-4">
+                    <h3 className="font-bold text-blue-900 mb-4">
+                      Placa del Compresor
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          📸 Foto Placa del Compresor
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(e, "photo5")}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 6: Aceite */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-900 px-4 py-2 rounded font-bold mb-4">
+                  🛢️ ACEITE
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      📸 Foto Nivel de Aceite
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e, "photo6")}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Fugas de aceite visibles
+                    </label>
+                    <select
+                      name="oilLeaks"
+                      value={formData.oilLeaks}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="Sí">Sí</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Fugas de aire visibles
+                    </label>
+                    <select
+                      name="airLeaks"
+                      value={formData.airLeaks}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="Sí">Sí</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 7: Tanques */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-900 px-4 py-2 rounded font-bold mb-4">
+                  🗄️ TANQUES DE ALMACENAMIENTO
+                </h2>
+                <div className="space-y-6">
+                  {/* Wet Tank */}
+                  <div className="p-4">
+                    <h3 className="font-bold text-blue-900 mb-4">Wet Tank</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            name="wetTankExists"
+                            checked={formData.wetTankExists}
+                            onChange={handleInputChange}
+                            className="w-5 h-5"
+                          />
+                          <span className="text-sm font-medium">¿Existe?</span>
+                        </label>
+                      </div>
+                      {formData.wetTankExists && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Litros
+                            </label>
+                            <input
+                              type="number"
+                              name="wetTankLiters"
+                              value={formData.wetTankLiters}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                            />
+                          </div>
+                          <div>
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                name="wetTankSafetyValve"
+                                checked={formData.wetTankSafetyValve}
+                                onChange={handleInputChange}
+                                className="w-5 h-5"
+                              />
+                              <span className="text-sm">
+                                Válvula seguridad funciona
+                              </span>
+                            </label>
+                          </div>
+                          <div>
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                name="wetTankDrain"
+                                checked={formData.wetTankDrain}
+                                onChange={handleInputChange}
+                                className="w-5 h-5"
+                              />
+                              <span className="text-sm">Dren funciona</span>
+                            </label>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Dry Tank */}
+                  <div className="p-4">
+                    <h3 className="font-bold text-blue-900 mb-4">Dry Tank</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            name="dryTankExists"
+                            checked={formData.dryTankExists}
+                            onChange={handleInputChange}
+                            className="w-5 h-5"
+                          />
+                          <span className="text-sm font-medium">¿Existe?</span>
+                        </label>
+                      </div>
+                      {formData.dryTankExists && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Litros
+                            </label>
+                            <input
+                              type="number"
+                              name="dryTankLiters"
+                              value={formData.dryTankLiters}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                            />
+                          </div>
+                          <div>
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                name="dryTankSafetyValve"
+                                checked={formData.dryTankSafetyValve}
+                                onChange={handleInputChange}
+                                className="w-5 h-5"
+                              />
+                              <span className="text-sm">
+                                Válvula seguridad funciona
+                              </span>
+                            </label>
+                          </div>
+                          <div>
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                name="dryTankDrain"
+                                checked={formData.dryTankDrain}
+                                onChange={handleInputChange}
+                                className="w-5 h-5"
+                              />
+                              <span className="text-sm">Dren funciona</span>
+                            </label>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </>
           )}
@@ -1582,7 +1714,7 @@ function FillReport() {
               </button>
               <button
                 type="submit"
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-800 transition-colors font-medium flex items-center gap-2"
               >
                 <span>✅</span>
                 Guardar Diagnóstico
