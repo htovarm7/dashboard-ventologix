@@ -103,11 +103,11 @@ const TypeReportes = () => {
     useState<CompressorSearchResult | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState<CompressorSearchResult[]>(
-    [],
+    []
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [ordenServicio, setOrdenServicio] = useState<OrdenServicio | null>(
-    null,
+    null
   );
   const [loadingOrden, setLoadingOrden] = useState(false);
   const [ordenesServicio, setOrdenesServicio] = useState<OrdenServicio[]>([]);
@@ -136,7 +136,7 @@ const TypeReportes = () => {
     rfc: "",
   });
   const [editingTicket, setEditingTicket] = useState<OrdenServicio | null>(
-    null,
+    null
   );
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTicketsList, setShowTicketsList] = useState(false);
@@ -219,7 +219,7 @@ const TypeReportes = () => {
           setOrdenServicio(orden);
         } else {
           alert(
-            "No se encontró la orden de servicio con el folio especificado",
+            "No se encontró la orden de servicio con el folio especificado"
           );
         }
       }
@@ -254,7 +254,7 @@ const TypeReportes = () => {
 
     try {
       const response = await fetch(
-        `${URL_API}/compresores/compresor-cliente/${encodeURIComponent(query)}`,
+        `${URL_API}/compresores/compresor-cliente/${encodeURIComponent(query)}`
       );
       const data = await response.json();
 
@@ -275,7 +275,7 @@ const TypeReportes = () => {
   // Generate folio: id_cliente-last4digits-YYYYMMDD-HHMM
   const generateFolio = (
     idCliente: number | string,
-    serialNumber: string,
+    serialNumber: string
   ): string => {
     const clientId =
       idCliente === "EVENTUAL" ? "00" : String(idCliente).padStart(2, "0");
@@ -370,7 +370,7 @@ const TypeReportes = () => {
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
+    >
   ) => {
     const { name, value } = e.target;
     setTicketData((prev) => {
@@ -421,7 +421,7 @@ const TypeReportes = () => {
           throw new Error(
             `Error creating eventual client: ${
               eventualResult.detail || eventualResult.error
-            }`,
+            }`
           );
         }
       } else if (
@@ -461,7 +461,7 @@ const TypeReportes = () => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify(eventualCompressorData),
-          },
+          }
         );
 
         const compressorResult = await compressorResponse.json();
@@ -469,13 +469,13 @@ const TypeReportes = () => {
         if (compressorResponse.ok) {
           console.log(
             "Eventual compressor created with ID:",
-            compressorResult.id,
+            compressorResult.id
           );
         } else {
           throw new Error(
             `Error creating eventual compressor: ${
               compressorResult.detail || compressorResult.error
-            }`,
+            }`
           );
         }
       }
@@ -593,7 +593,7 @@ const TypeReportes = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(editingTicket),
-        },
+        }
       );
 
       const result = await response.json();
@@ -610,7 +610,7 @@ const TypeReportes = () => {
             result.message ||
             result.error ||
             "Error desconocido"
-          }`,
+          }`
         );
       }
     } catch (error) {
@@ -640,7 +640,7 @@ const TypeReportes = () => {
             result.message ||
             result.error ||
             "Error desconocido"
-          }`,
+          }`
         );
       }
     } catch (error) {
@@ -658,7 +658,7 @@ const TypeReportes = () => {
   const loadDraft = (draft: DraftReport) => {
     // Navigate to create page with draft data
     router.push(
-      `/features/compressor-maintenance/technician/reports/create?draftId=${draft.id}`,
+      `/features/compressor-maintenance/technician/reports/create?draftId=${draft.id}`
     );
   };
 
@@ -678,7 +678,7 @@ const TypeReportes = () => {
         `${URL_API}/ordenes/${orden.folio}/estado?estado=en_progreso`,
         {
           method: "PATCH",
-        },
+        }
       );
 
       if (response.ok) {
@@ -687,7 +687,7 @@ const TypeReportes = () => {
           folio: orden.folio,
         });
         router.push(
-          `/features/compressor-maintenance/technician/reports/create?${params.toString()}`,
+          `/features/compressor-maintenance/technician/reports/create?${params.toString()}`
         );
       } else {
         const result = await response.json();
@@ -1129,7 +1129,7 @@ const TypeReportes = () => {
                             value={selectedEventualClient?.id || ""}
                             onChange={(e) => {
                               const client = eventualClients.find(
-                                (c) => c.id === parseInt(e.target.value),
+                                (c) => c.id === parseInt(e.target.value)
                               );
                               if (client) {
                                 handleSelectEventualClient(client);
@@ -1434,20 +1434,33 @@ const TypeReportes = () => {
                             className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
                           >
                             <option value="no-aplica">No aplica</option>
-                            <option value="09:00">06:00</option>
-                            <option value="09:00">07:00</option>
-                            <option value="09:00">08:00</option>
+                            <option value="06:00">06:00</option>
+                            <option value="06:30">06:30</option>
+                            <option value="07:00">07:00</option>
+                            <option value="07:30">07:30</option>
+                            <option value="08:00">08:00</option>
+                            <option value="08:30">08:30</option>
                             <option value="09:00">09:00</option>
+                            <option value="09:30">09:30</option>
                             <option value="10:00">10:00</option>
+                            <option value="10:30">10:30</option>
                             <option value="11:00">11:00</option>
+                            <option value="11:30">11:30</option>
                             <option value="12:00">12:00</option>
+                            <option value="12:30">12:30</option>
                             <option value="13:00">13:00</option>
+                            <option value="13:30">13:30</option>
                             <option value="14:00">14:00</option>
+                            <option value="14:30">14:30</option>
                             <option value="15:00">15:00</option>
+                            <option value="15:30">15:30</option>
                             <option value="16:00">16:00</option>
+                            <option value="16:30">16:30</option>
                             <option value="17:00">17:00</option>
+                            <option value="17:30">17:30</option>
                             <option value="18:00">18:00</option>
-                            <option value="18:00">19:00</option>
+                            <option value="18:30">18:30</option>
+                            <option value="19:00">19:00</option>
                           </select>
                         </div>
                       </div>

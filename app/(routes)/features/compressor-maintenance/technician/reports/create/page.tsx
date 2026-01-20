@@ -679,17 +679,12 @@ function FillReport() {
                   />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold">VENTOLOGIX</h1>
-                  <p className="text-sm opacity-90">
-                    Sistema de Gestión de Mantenimiento
-                  </p>
+                  <h1 className="text-3xl font-bold">VENTOLOGIX</h1>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm opacity-90">Folio</p>
-                <p className="text-2xl font-bold">
-                  {formData.folio || "Sin asignar"}
-                </p>
+                <p className="text-xl font-bold">Folio</p>
+                <p className="text-2xl">{formData.folio || "Sin asignar"}</p>
               </div>
             </div>
           </div>
