@@ -7,6 +7,7 @@ import BackButton from "@/components/BackButton";
 import Image from "next/image";
 import { URL_API } from "@/lib/global";
 import { ReportFormData } from "@/lib/types";
+import { usePreMantenimiento } from "@/hooks/usePreMantenimiento";
 
 interface MaintenanceItem {
   nombre: string;
@@ -35,6 +36,8 @@ function FillReport() {
   const { isAuthenticated, isLoading } = useAuth0();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { savePreMantenimiento, loading: savingPreMaintenance } =
+    usePreMantenimiento();
 
   const [showMaintenanceSection, setShowMaintenanceSection] = useState(false);
   const [maintenanceData, setMaintenanceData] = useState({
@@ -117,6 +120,83 @@ function FillReport() {
     compressorRoomConditions: "",
   });
 
+  // Load previously saved pre-maintenance data from backend
+  const loadPreMaintenanceData = async (folio: string) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8000/api/reporte_mtto/pre-mtto/${folio}`
+      );
+      const result = await response.json();
+
+      if (result.data) {
+        const savedData = result.data;
+        console.log("✅ Loaded pre-maintenance data:", savedData);
+
+        // Map database fields back to form fields
+        setFormData((prev) => ({
+          ...prev,
+          equipmentPowers: savedData.equipo_enciende || "",
+          displayPowers: savedData.display_enciende || "",
+          generalHours: savedData.horas_totales?.toString() || "",
+          loadHours: savedData.horas_carga?.toString() || "",
+          unloadHours: savedData.horas_descarga?.toString() || "",
+          maintenanceRequired: savedData.mantenimiento_proximo || "",
+          isMaster: savedData.compresor_es_master || "Master",
+          mainMotorAmperage: savedData.amperaje_maximo_motor?.toString() || "",
+          location: savedData.ubicacion_compresor || "",
+          hotAirExpulsion: savedData.expulsion_aire_caliente || "",
+          highDustOperation: savedData.operacion_muchos_polvos || "",
+          compressorRoomConditions: savedData.compresor_bien_instalado || "",
+          specialConditions: savedData.condiciones_especiales || "",
+          supplyVoltage: savedData.voltaje_alimentacion?.toString() || "",
+          fanAmperage: savedData.amperaje_ventilador?.toString() || "",
+          oilLeaks: savedData.fugas_aceite_visibles || "",
+          airLeaks: savedData.fugas_aire_audibles || "",
+          aceiteOscuro: savedData.aceite_oscuro_degradado || "",
+          compressionTempDisplay:
+            savedData.temp_compresion_display?.toString() || "",
+          compressionTempLaser:
+            savedData.temp_compresion_laser?.toString() || "",
+          finalCompressionTemp:
+            savedData.temp_separador_aceite?.toString() || "",
+          internalTemp: savedData.temp_interna_cuarto?.toString() || "",
+          deltaTAceite: savedData.delta_t_enfriador_aceite?.toString() || "",
+          tempMotor: savedData.temp_motor_electrico?.toString() || "",
+          pressureControlMethod: savedData.metodo_control_presion || "",
+          loadPressure: savedData.presion_carga?.toString() || "",
+          unloadPressure: savedData.presion_descarga?.toString() || "",
+          pressureDifferential: savedData.diferencial_presion || "",
+          deltaPSeparador: savedData.delta_p_separador?.toString() || "",
+          intakeValveType: savedData.tipo_valvula_admision || "",
+          intakeValveFunctioning:
+            savedData.funcionamiento_valvula_admision || "",
+          wetTankExists: savedData.wet_tank_existe || false,
+          wetTankLiters: savedData.wet_tank_litros?.toString() || "",
+          wetTankSafetyValve: savedData.wet_tank_valvula_seguridad || false,
+          wetTankDrain: savedData.wet_tank_dren || false,
+          dryTankExists: savedData.dry_tank_existe || false,
+          dryTankLiters: savedData.dry_tank_litros?.toString() || "",
+          dryTankSafetyValve: savedData.dry_tank_valvula_seguridad || false,
+          dryTankDrain: savedData.dry_tank_dren || false,
+          excessDust: savedData.exceso_polvo_suciedad || false,
+          hasManual: savedData.hay_manual || false,
+          electricalPanelPowers: savedData.tablero_electrico_enciende || false,
+          correctMotorRotation: savedData.giro_correcto_motor || false,
+          compressionUnitRotates: savedData.unidad_compresion_gira || false,
+          fanMotorWorks: savedData.motor_ventilador_funciona || false,
+          maintenanceStopReasons: savedData.razon_paro_mantenimiento || "",
+          electricalFeedConnected:
+            savedData.alimentacion_electrica_conectada || false,
+          adequateBreaker: savedData.pastilla_adecuada_amperajes || false,
+          dischargePipeConnectedTo:
+            savedData.tuberia_descarga_conectada_a || "",
+        }));
+      }
+    } catch (error) {
+      console.error("Error loading pre-maintenance data:", error);
+    }
+  };
+
   // Load compressor data from URL parameters
   useEffect(() => {
     const folio = searchParams.get("folio");
@@ -147,6 +227,9 @@ function FillReport() {
               creationDate: orden.fecha_creacion || "",
               reportUrl: orden.reporte_url || "",
             }));
+
+            // Load previously saved pre-maintenance data
+            loadPreMaintenanceData(orden.folio);
 
             // Clean up URL to only show folio
             router.replace(`?folio=${folio}`, { scroll: false });
@@ -202,50 +285,153 @@ function FillReport() {
     setFormData((prev) => ({ ...prev, [fieldName]: file }));
   };
 
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
     try {
-      // Get existing drafts
-      const existingDrafts = localStorage.getItem("draftReports");
-      const drafts = existingDrafts ? JSON.parse(existingDrafts) : [];
+      // Save to database instead of localStorage
+      const result = await savePreMaintenanceData();
 
-      // Create draft object (excluding File objects)
-      const draftData = {
-        id: formData.folio || `draft-${Date.now()}`,
-        folio: formData.folio || "Sin folio",
-        clientName: formData.clientName || "Sin cliente",
-        serialNumber: formData.serialNumber || "Sin serie",
-        lastModified: new Date().toISOString(),
-        reportType: formData.diagnosticType || "Sin tipo",
-        formData: {
-          ...formData,
-          // Convert File objects to null for localStorage
-          photo1: null,
-          photo2: null,
-          photo3: null,
-          photo4: null,
-          photo5: null,
-          photo6: null,
-        },
-      };
-
-      // Check if draft already exists
-      const existingIndex = drafts.findIndex((d: any) => d.id === draftData.id);
-      if (existingIndex >= 0) {
-        drafts[existingIndex] = draftData;
+      if (result?.success) {
+        alert("💾 Borrador guardado en base de datos");
       } else {
-        drafts.push(draftData);
+        alert(`❌ Error al guardar: ${result?.error || "Error desconocido"}`);
       }
-
-      // Save to localStorage
-      localStorage.setItem("draftReports", JSON.stringify(drafts));
-      alert("💾 Borrador guardado localmente");
     } catch (error) {
+      const errorMsg =
+        error instanceof Error ? error.message : "Error desconocido";
       console.error("Error saving draft:", error);
-      alert("❌ Error al guardar el borrador");
+      alert(`❌ Error al guardar el borrador: ${errorMsg}`);
     }
   };
 
-  const handleNextSection = () => {
+  // Helper function to convert form data to pre-maintenance format
+  const buildPreMantenimientoData = () => {
+    return {
+      folio: formData.folio || "",
+      equipo_enciende: formData.equipmentPowers || undefined,
+      display_enciende: formData.displayPowers || undefined,
+      horas_totales: formData.generalHours
+        ? parseFloat(formData.generalHours)
+        : undefined,
+      horas_carga: formData.loadHours
+        ? parseFloat(formData.loadHours)
+        : undefined,
+      horas_descarga: formData.unloadHours
+        ? parseFloat(formData.unloadHours)
+        : undefined,
+      mantenimiento_proximo: formData.maintenanceRequired || undefined,
+      compresor_es_master: formData.isMaster || undefined,
+      amperaje_maximo_motor: formData.mainMotorAmperage
+        ? parseFloat(formData.mainMotorAmperage)
+        : undefined,
+      ubicacion_compresor: formData.location || undefined,
+      expulsion_aire_caliente: formData.hotAirExpulsion || undefined,
+      operacion_muchos_polvos: formData.highDustOperation || undefined,
+      compresor_bien_instalado: formData.compressorRoomConditions || undefined,
+      condiciones_especiales: formData.specialConditions || undefined,
+      voltaje_alimentacion: formData.supplyVoltage
+        ? parseFloat(formData.supplyVoltage)
+        : undefined,
+      amperaje_motor_carga: formData.mainMotorAmperage
+        ? parseFloat(formData.mainMotorAmperage)
+        : undefined,
+      amperaje_ventilador: formData.fanAmperage
+        ? parseFloat(formData.fanAmperage)
+        : undefined,
+      fugas_aceite_visibles: formData.oilLeaks || undefined,
+      fugas_aire_audibles: formData.airLeaks || undefined,
+      aceite_oscuro_degradado: formData.aceiteOscuro || undefined,
+      temp_compresion_display: formData.compressionTempDisplay
+        ? parseFloat(formData.compressionTempDisplay)
+        : undefined,
+      temp_compresion_laser: formData.compressionTempLaser
+        ? parseFloat(formData.compressionTempLaser)
+        : undefined,
+      temp_separador_aceite: formData.finalCompressionTemp
+        ? parseFloat(formData.finalCompressionTemp)
+        : undefined,
+      temp_interna_cuarto: formData.internalTemp
+        ? parseFloat(formData.internalTemp)
+        : undefined,
+      delta_t_enfriador_aceite: formData.deltaTAceite
+        ? parseFloat(formData.deltaTAceite)
+        : undefined,
+      temp_motor_electrico: formData.tempMotor
+        ? parseFloat(formData.tempMotor)
+        : undefined,
+      metodo_control_presion: formData.pressureControlMethod || undefined,
+      presion_carga: formData.loadPressure
+        ? parseFloat(formData.loadPressure)
+        : undefined,
+      presion_descarga: formData.unloadPressure
+        ? parseFloat(formData.unloadPressure)
+        : undefined,
+      diferencial_presion: formData.pressureDifferential || undefined,
+      delta_p_separador: formData.deltaPSeparador
+        ? parseFloat(formData.deltaPSeparador)
+        : undefined,
+      tipo_valvula_admision: formData.intakeValveType || undefined,
+      funcionamiento_valvula_admision:
+        formData.intakeValveFunctioning || undefined,
+      wet_tank_existe: formData.wetTankExists || undefined,
+      wet_tank_litros: formData.wetTankLiters
+        ? parseInt(formData.wetTankLiters)
+        : undefined,
+      wet_tank_valvula_seguridad: formData.wetTankSafetyValve || undefined,
+      wet_tank_dren: formData.wetTankDrain || undefined,
+      dry_tank_existe: formData.dryTankExists || undefined,
+      dry_tank_litros: formData.dryTankLiters
+        ? parseInt(formData.dryTankLiters)
+        : undefined,
+      dry_tank_valvula_seguridad: formData.dryTankSafetyValve || undefined,
+      dry_tank_dren: formData.dryTankDrain || undefined,
+      exceso_polvo_suciedad: formData.excessDust || undefined,
+      hay_manual: formData.hasManual || undefined,
+      tablero_electrico_enciende: formData.electricalPanelPowers || undefined,
+      giro_correcto_motor: formData.correctMotorRotation || undefined,
+      unidad_compresion_gira: formData.compressionUnitRotates || undefined,
+      motor_ventilador_funciona: formData.fanMotorWorks || undefined,
+      razon_paro_mantenimiento: formData.maintenanceStopReasons || undefined,
+      alimentacion_electrica_conectada:
+        formData.electricalFeedConnected || undefined,
+      pastilla_adecuada_amperajes: formData.adequateBreaker || undefined,
+      tuberia_descarga_conectada_a:
+        formData.dischargePipeConnectedTo || undefined,
+    };
+  };
+
+  // Save pre-maintenance data to backend
+  const savePreMaintenanceData = async () => {
+    if (!formData.folio) {
+      console.warn("No folio available for saving pre-maintenance data");
+      return { success: false, error: "No folio available" };
+    }
+
+    try {
+      const preMaintenanceData = buildPreMantenimientoData();
+      console.log("📤 Sending data:", preMaintenanceData);
+
+      const result = await savePreMantenimiento(preMaintenanceData);
+      console.log("📥 API Response:", result);
+
+      if (result?.success) {
+        console.log("✅ Pre-maintenance data saved:", result);
+        return result;
+      } else {
+        const errorMsg = result?.error || result?.message || "Unknown error";
+        console.error("❌ Error saving pre-maintenance data:", errorMsg);
+        return { success: false, error: errorMsg };
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      console.error("❌ Exception saving pre-maintenance data:", errorMsg);
+      return { success: false, error: errorMsg };
+    }
+  };
+
+  const handleNextSection = async () => {
+    // Save pre-maintenance data to backend before proceeding
+    await savePreMaintenanceData();
+
     setShowMaintenanceSection(true);
     // Scroll to maintenance section after a brief delay
     setTimeout(() => {
@@ -513,7 +699,7 @@ function FillReport() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-blue-800 mb-1">
+                <label className="block text-m font-medium text-blue-800 mb-1">
                   Folio
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -521,7 +707,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-800 mb-1">
+                <label className="block text-m font-medium text-blue-800 mb-1">
                   Nombre Cliente
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -538,7 +724,7 @@ function FillReport() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-blue-800 mb-1">
+                <label className="block text-m font-medium text-blue-800 mb-1">
                   Alias Compresor
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -546,7 +732,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-800 mb-1">
+                <label className="block text-m font-medium text-blue-800 mb-1">
                   Número de Serie
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -554,7 +740,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-800 mb-1">
+                <label className="block text-m font-medium text-blue-800 mb-1">
                   HP
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -562,7 +748,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-800 mb-1">
+                <label className="block text-m font-medium text-blue-800 mb-1">
                   Tipo
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -570,7 +756,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-800 mb-1">
+                <label className="block text-m font-medium text-blue-800 mb-1">
                   Marca
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -578,7 +764,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-800 mb-1">
+                <label className="block text-m font-medium text-blue-800 mb-1">
                   Año
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -595,7 +781,7 @@ function FillReport() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-blue-800 mb-1">
+                <label className="block text-m font-medium text-blue-800 mb-1">
                   Tipo de Visita
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -603,7 +789,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-800 mb-1">
+                <label className="block text-m font-medium text-blue-800 mb-1">
                   Tipo de Mantenimiento
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -611,7 +797,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-800 mb-1">
+                <label className="block text-m font-medium text-blue-800 mb-1">
                   Fecha Programada
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -619,7 +805,7 @@ function FillReport() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-blue-800 mb-1">
+                <label className="block text-m font-medium text-blue-800 mb-1">
                   Hora Programada
                 </label>
                 <p className="text-gray-800 font-semibold">
@@ -635,13 +821,13 @@ function FillReport() {
 
   const renderInitialInfo = () => (
     <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-      <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-        INFORMACIÓN INICIAL
+      <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+        INFORMACIÓN INICIAL - PRE-MANTENIMIENTO
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-blue-800 mb-2">
+          <label className="block text-m font-medium text-purple-800 mb-2">
             ¿Equipo enciende? *
           </label>
           <select
@@ -690,27 +876,29 @@ function FillReport() {
           </div>
         </div>
 
-        {/* Header Reporte de Mantenimiento */}
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
-          <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white p-4">
-            <h2 className="text-xl font-bold text-center">PRE-MANTENIMIENTO</h2>
-          </div>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-6">
           {renderClientSelection()}
+          {/* Header Reporte de Mantenimiento */}
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
+            <div className="bg-gradient-to-r from-purple-800 to-purple-900 text-white p-4">
+              <h2 className="text-xl font-bold text-center">
+                PRE-MANTENIMIENTO
+              </h2>
+            </div>
+          </div>
+
           {renderInitialInfo()}
 
           {formData.equipmentPowers === "Sí" && (
             <>
               {/* SECCIÓN 1: Display y Horas de Trabajo */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  DISPLAY Y HORAS DE TRABAJO
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  DISPLAY Y HORAS DE TRABAJO - PRE-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       ¿Display enciende? *
                     </label>
                     <select
@@ -726,8 +914,8 @@ function FillReport() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Foto Horas Generales de Trabajo
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      📷 Foto Horas Generales de Trabajo
                     </label>
                     <input
                       type="file"
@@ -736,13 +924,13 @@ function FillReport() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     />
                     {formData.photo1 && (
-                      <p className="text-sm text-green-600 mt-1">
+                      <p className="text-m text-green-600 mt-1">
                         ✓ {formData.photo1.name}
                       </p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Horas Totales
                     </label>
                     <input
@@ -755,7 +943,7 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Horas en Carga
                     </label>
                     <input
@@ -768,7 +956,7 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Horas en Descarga
                     </label>
                     <input
@@ -781,8 +969,8 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Foto Alarmas del Sistema
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      📷 Foto Alarmas del Sistema
                     </label>
                     <input
                       type="file"
@@ -791,13 +979,13 @@ function FillReport() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     />
                     {formData.photo2 && (
-                      <p className="text-sm text-green-600 mt-1">
+                      <p className="text-m text-green-600 mt-1">
                         ✓ {formData.photo2.name}
                       </p>
                     )}
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Condición de Próximo Mantenimiento
                     </label>
                     <select
@@ -829,19 +1017,19 @@ function FillReport() {
 
               {/* SECCIÓN 2: Placas del Equipo */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  PLACAS DEL EQUIPO
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  PLACAS DEL EQUIPO - PRE-MANTENIMIENTO
                 </h2>
                 <div className="space-y-6">
                   {/* Placa del Compresor */}
                   <div className="p-4">
-                    <h3 className="font-bold text-blue-900 mb-4 text-lg">
+                    <h3 className="font-bold text-purple-900 mb-4 text-lg">
                       Placa del Compresor
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Foto Placa del Compresor
+                        <label className="block text-m font-medium text-gray-700 mb-2">
+                          📷 Foto Placa del Compresor
                         </label>
                         <input
                           type="file"
@@ -850,13 +1038,13 @@ function FillReport() {
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                         />
                         {formData.photo3 && (
-                          <p className="text-sm text-green-600 mt-1">
+                          <p className="text-m text-green-600 mt-1">
                             ✓ {formData.photo3.name}
                           </p>
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-m font-medium text-gray-700 mb-2">
                           Compresor es Master / Slave
                         </label>
                         <select
@@ -875,13 +1063,13 @@ function FillReport() {
 
                   {/* Placa del Motor */}
                   <div className="p-4">
-                    <h3 className="font-bold text-blue-900 mb-4 text-lg">
+                    <h3 className="font-bold text-purple-900 text-lg">
                       Placa del Motor
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Foto Placa del Motor
+                        <label className="block text-m font-medium text-gray-700 mb-2">
+                          📷 Foto Placa del Motor
                         </label>
                         <input
                           type="file"
@@ -890,13 +1078,13 @@ function FillReport() {
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                         />
                         {formData.photo4 && (
-                          <p className="text-sm text-green-600 mt-1">
+                          <p className="text-m text-green-600 mt-1">
                             {formData.photo4.name}
                           </p>
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-m font-medium text-gray-700 mb-2">
                           AMP Máximo
                         </label>
                         <input
@@ -916,13 +1104,13 @@ function FillReport() {
 
               {/* SECCIÓN 3: Condiciones Ambientales */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  CONDICIONES AMBIENTALES
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  CONDICIONES AMBIENTALES - PRE-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Foto Condiciones Ambientales
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      📷 Foto Condiciones Ambientales
                     </label>
                     <input
                       type="file"
@@ -931,13 +1119,13 @@ function FillReport() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     />
                     {formData.photo5 && (
-                      <p className="text-sm text-green-600 mt-1">
+                      <p className="text-m text-green-600 mt-1">
                         ✓ {formData.photo5.name}
                       </p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Ubicación del Compresor
                     </label>
                     <select
@@ -952,7 +1140,7 @@ function FillReport() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Método Expulsión Aire Caliente
                     </label>
                     <select
@@ -971,7 +1159,7 @@ function FillReport() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Operación con muchos polvos?
                     </label>
                     <select
@@ -986,7 +1174,7 @@ function FillReport() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Compresor bien instalado?
                     </label>
                     <select
@@ -1001,7 +1189,7 @@ function FillReport() {
                     </select>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Otra condición especial de operación
                     </label>
                     <textarea
@@ -1018,12 +1206,12 @@ function FillReport() {
 
               {/* SECCIÓN 4: Voltajes y Amperajes */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  VOLTAJES Y AMPERAJES
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  VOLTAJES Y AMPERAJES - PRE-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       VOLTAJE de Alimentación Equipo (V)
                     </label>
                     <input
@@ -1037,7 +1225,7 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       AMPERAJE Motor en CARGA (A)
                     </label>
                     <input
@@ -1051,7 +1239,7 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       AMPERAJE de Ventilador (A)
                     </label>
                     <input
@@ -1069,13 +1257,13 @@ function FillReport() {
 
               {/* SECCIÓN 5: Aceite */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  ACEITE
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  ACEITE - PRE-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Foto Separador Aire-Aceite
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      📷 Foto Separador Aire-Aceite
                     </label>
                     <input
                       type="file"
@@ -1084,13 +1272,13 @@ function FillReport() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     />
                     {formData.photo6 && (
-                      <p className="text-sm text-green-600 mt-1">
+                      <p className="text-m text-green-600 mt-1">
                         ✓ {formData.photo6.name}
                       </p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       ¿Existen fugas de aceite visibles?
                     </label>
                     <select
@@ -1105,7 +1293,7 @@ function FillReport() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       ¿Existen fugas de aire audibles?
                     </label>
                     <select
@@ -1120,7 +1308,7 @@ function FillReport() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       ¿Aceite está oscuro o degradado?
                     </label>
                     <select
@@ -1134,17 +1322,30 @@ function FillReport() {
                       <option value="No">No</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Describa situación del aceite
+                    </label>
+                    <textarea
+                      name="aceiteOscuro"
+                      value={formData.aceiteOscuro}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      rows={3}
+                      placeholder="Describa el estado del aceite (color, nivel, degradación, etc.)"
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* SECCIÓN 6: Temperaturas */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  TEMPERATURAS
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  TEMPERATURAS - PRE-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Temp. Ambiente (°C)
                     </label>
                     <input
@@ -1158,7 +1359,7 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Temp. Final Compresión Display (°C)
                     </label>
                     <input
@@ -1172,7 +1373,7 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Temp. Final Compresión Laser (°C)
                     </label>
                     <input
@@ -1186,7 +1387,7 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Temp. Separador Aire-Aceite (°C)
                     </label>
                     <input
@@ -1200,7 +1401,7 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Temp. Interna Cuarto (°C)
                     </label>
                     <input
@@ -1214,7 +1415,7 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Delta T Enfriador Aceite (°C)
                     </label>
                     <input
@@ -1228,7 +1429,7 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Temp. Motor Eléctrico (°C)
                     </label>
                     <input
@@ -1246,12 +1447,12 @@ function FillReport() {
 
               {/* SECCIÓN 7: Mediciones de Presión */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  MEDICIONES DE PRESIÓN
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  MEDICIONES DE PRESIÓN - PRE-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Método de Control de Presión
                     </label>
                     <input
@@ -1264,7 +1465,7 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Presión CARGA (PSI o Bar)
                     </label>
                     <input
@@ -1278,8 +1479,8 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Presión DESCARGA (PSI o Bar)
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Presión DESCARGA (PSI)
                     </label>
                     <input
                       type="number"
@@ -1292,7 +1493,7 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Diferencial de Presión
                     </label>
                     <input
@@ -1305,7 +1506,7 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Delta P Separador (Bar)
                     </label>
                     <input
@@ -1323,12 +1524,12 @@ function FillReport() {
 
               {/* SECCIÓN 8: Válvulas */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  VÁLVULAS
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  VÁLVULAS - PRE-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Tipo de Válvula de Admisión
                     </label>
                     <input
@@ -1341,7 +1542,7 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Funcionamiento Válvula Admisión
                     </label>
                     <select
@@ -1360,8 +1561,8 @@ function FillReport() {
 
               {/* SECCIÓN 9: Tanques de Almacenamiento */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  TANQUES DE ALMACENAMIENTO
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  TANQUES DE ALMACENAMIENTO - PRE-MANTENIMIENTO
                 </h2>
                 <div className="space-y-6">
                   {/* Wet Tank */}
@@ -1379,7 +1580,7 @@ function FillReport() {
                             onChange={handleInputChange}
                             className="w-5 h-5"
                           />
-                          <span className="text-sm font-medium text-gray-700">
+                          <span className="text-m font-medium text-gray-700">
                             ¿Existe?
                           </span>
                         </label>
@@ -1387,7 +1588,7 @@ function FillReport() {
                       {formData.wetTankExists && (
                         <>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-m font-medium text-gray-700 mb-2">
                               Capacidad (Litros)
                             </label>
                             <input
@@ -1408,7 +1609,7 @@ function FillReport() {
                                 onChange={handleInputChange}
                                 className="w-5 h-5"
                               />
-                              <span className="text-sm font-medium text-gray-700">
+                              <span className="text-m font-medium text-gray-700">
                                 Válvula de Seguridad Funciona
                               </span>
                             </label>
@@ -1422,7 +1623,7 @@ function FillReport() {
                                 onChange={handleInputChange}
                                 className="w-5 h-5"
                               />
-                              <span className="text-sm font-medium text-gray-700">
+                              <span className="text-m font-medium text-gray-700">
                                 Dren Funciona
                               </span>
                             </label>
@@ -1447,7 +1648,7 @@ function FillReport() {
                             onChange={handleInputChange}
                             className="w-5 h-5"
                           />
-                          <span className="text-sm font-medium text-gray-700">
+                          <span className="text-m font-medium text-gray-700">
                             ¿Existe?
                           </span>
                         </label>
@@ -1455,7 +1656,7 @@ function FillReport() {
                       {formData.dryTankExists && (
                         <>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-m font-medium text-gray-700 mb-2">
                               Capacidad (Litros)
                             </label>
                             <input
@@ -1476,7 +1677,7 @@ function FillReport() {
                                 onChange={handleInputChange}
                                 className="w-5 h-5"
                               />
-                              <span className="text-sm font-medium text-gray-700">
+                              <span className="text-m font-medium text-gray-700">
                                 Válvula de Seguridad Funciona
                               </span>
                             </label>
@@ -1490,7 +1691,7 @@ function FillReport() {
                                 onChange={handleInputChange}
                                 className="w-5 h-5"
                               />
-                              <span className="text-sm font-medium text-gray-700">
+                              <span className="text-m font-medium text-gray-700">
                                 Dren Funciona
                               </span>
                             </label>
@@ -1504,8 +1705,8 @@ function FillReport() {
 
               {/* SECCIÓN 10: Resumen de Diagnóstico Automático */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  RESUMEN DE DIAGNÓSTICO AUTOMÁTICO
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  RESUMEN DE DIAGNÓSTICO AUTOMÁTICO - PRE-MANTENIMIENTO
                 </h2>
                 {(() => {
                   const diagnostico = generateDiagnostico();
@@ -1605,13 +1806,13 @@ function FillReport() {
             <>
               {/* SECCIÓN 1: Estado del Equipo */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  ESTADO DEL EQUIPO
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  ESTADO DEL EQUIPO - PRE-MANTENIMIENTO
                 </h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Foto Elementos Completos
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      📷 Foto Elementos Completos
                     </label>
                     <input
                       type="file"
@@ -1629,7 +1830,7 @@ function FillReport() {
                         onChange={handleInputChange}
                         className="w-5 h-5"
                       />
-                      <span className="text-sm">Motor</span>
+                      <span className="text-m">Motor</span>
                     </label>
                     <label className="flex items-center space-x-2">
                       <input
@@ -1639,7 +1840,7 @@ function FillReport() {
                         onChange={handleInputChange}
                         className="w-5 h-5"
                       />
-                      <span className="text-sm">Unidad Compresión</span>
+                      <span className="text-m">Unidad Compresión</span>
                     </label>
                     <label className="flex items-center space-x-2">
                       <input
@@ -1649,7 +1850,7 @@ function FillReport() {
                         onChange={handleInputChange}
                         className="w-5 h-5"
                       />
-                      <span className="text-sm">Serpentín Enfriamiento</span>
+                      <span className="text-m">Serpentín Enfriamiento</span>
                     </label>
                   </div>
                 </div>
@@ -1657,13 +1858,13 @@ function FillReport() {
 
               {/* SECCIÓN 2: Condiciones Generales */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  CONDICIONES GENERALES
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  CONDICIONES GENERALES - PRE-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Foto Condiciones Generales
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      📷 Foto Condiciones Generales
                     </label>
                     <input
                       type="file"
@@ -1681,7 +1882,7 @@ function FillReport() {
                         onChange={handleInputChange}
                         className="w-5 h-5"
                       />
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-m font-medium text-gray-700">
                         Exceso de polvo y suciedad
                       </span>
                     </label>
@@ -1695,7 +1896,7 @@ function FillReport() {
                         onChange={handleInputChange}
                         className="w-5 h-5"
                       />
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-m font-medium text-gray-700">
                         ¿Hay manual?
                       </span>
                     </label>
@@ -1709,7 +1910,7 @@ function FillReport() {
                         onChange={handleInputChange}
                         className="w-5 h-5"
                       />
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-m font-medium text-gray-700">
                         Tablero eléctrico enciende
                       </span>
                     </label>
@@ -1719,8 +1920,8 @@ function FillReport() {
 
               {/* SECCIÓN 3: Revisión Mecánica */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  REVISIÓN MECÁNICA (Equipo Apagado)
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  REVISIÓN MECÁNICA (Equipo Apagado) - PRE-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -1732,7 +1933,7 @@ function FillReport() {
                         onChange={handleInputChange}
                         className="w-5 h-5"
                       />
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-m font-medium text-gray-700">
                         Giro correcto del motor
                       </span>
                     </label>
@@ -1746,7 +1947,7 @@ function FillReport() {
                         onChange={handleInputChange}
                         className="w-5 h-5"
                       />
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-m font-medium text-gray-700">
                         Unidad de compresión gira
                       </span>
                     </label>
@@ -1760,13 +1961,13 @@ function FillReport() {
                         onChange={handleInputChange}
                         className="w-5 h-5"
                       />
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-m font-medium text-gray-700">
                         Motor ventilador funciona
                       </span>
                     </label>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Razones de paro según equipo de mantenimiento
                     </label>
                     <textarea
@@ -1783,13 +1984,13 @@ function FillReport() {
 
               {/* SECCIÓN 4: Instalaciones */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  INSTALACIONES DEL EQUIPO
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  INSTALACIONES DEL EQUIPO - PRE-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Foto Instalaciones
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      📷 Foto Instalaciones
                     </label>
                     <input
                       type="file"
@@ -1807,7 +2008,7 @@ function FillReport() {
                         onChange={handleInputChange}
                         className="w-5 h-5"
                       />
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-m font-medium text-gray-700">
                         Alimentación eléctrica conectada
                       </span>
                     </label>
@@ -1821,13 +2022,13 @@ function FillReport() {
                         onChange={handleInputChange}
                         className="w-5 h-5"
                       />
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-m font-medium text-gray-700">
                         Pastilla adecuada para amperajes
                       </span>
                     </label>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Tubería de descarga conectada a
                     </label>
                     <select
@@ -1843,7 +2044,7 @@ function FillReport() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Ventilación cuarto compresores
                     </label>
                     <select
@@ -1862,8 +2063,8 @@ function FillReport() {
 
               {/* SECCIÓN 5: Placas del Equipo */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  PLACAS DEL EQUIPO
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  PLACAS DEL EQUIPO - PRE-MANTENIMIENTO
                 </h2>
                 <div className="space-y-6">
                   {/* Placa Motor */}
@@ -1873,8 +2074,8 @@ function FillReport() {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Foto Placa del Motor
+                        <label className="block text-m font-medium text-gray-700 mb-2">
+                          📷 Foto Placa del Motor
                         </label>
                         <input
                           type="file"
@@ -1893,8 +2094,8 @@ function FillReport() {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Foto Placa del Compresor
+                        <label className="block text-m font-medium text-gray-700 mb-2">
+                          📷 Foto Placa del Compresor
                         </label>
                         <input
                           type="file"
@@ -1910,13 +2111,13 @@ function FillReport() {
 
               {/* SECCIÓN 6: Aceite */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  ACEITE
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  ACEITE - PRE-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Foto Nivel de Aceite
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      📷 Foto Nivel de Aceite
                     </label>
                     <input
                       type="file"
@@ -1926,7 +2127,7 @@ function FillReport() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Fugas de aceite visibles
                     </label>
                     <select
@@ -1941,7 +2142,7 @@ function FillReport() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-m font-medium text-gray-700 mb-2">
                       Fugas de aire visibles
                     </label>
                     <select
@@ -1960,8 +2161,8 @@ function FillReport() {
 
               {/* SECCIÓN 7: Tanques */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  TANQUES DE ALMACENAMIENTO
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  TANQUES DE ALMACENAMIENTO - PRE-MANTENIMIENTO
                 </h2>
                 <div className="space-y-6">
                   {/* Wet Tank */}
@@ -1977,13 +2178,13 @@ function FillReport() {
                             onChange={handleInputChange}
                             className="w-5 h-5"
                           />
-                          <span className="text-sm font-medium">¿Existe?</span>
+                          <span className="text-m font-medium">¿Existe?</span>
                         </label>
                       </div>
                       {formData.wetTankExists && (
                         <>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-m font-medium text-gray-700 mb-2">
                               Litros
                             </label>
                             <input
@@ -2003,7 +2204,7 @@ function FillReport() {
                                 onChange={handleInputChange}
                                 className="w-5 h-5"
                               />
-                              <span className="text-sm">
+                              <span className="text-m">
                                 Válvula seguridad funciona
                               </span>
                             </label>
@@ -2017,7 +2218,7 @@ function FillReport() {
                                 onChange={handleInputChange}
                                 className="w-5 h-5"
                               />
-                              <span className="text-sm">Dren funciona</span>
+                              <span className="text-m">Dren funciona</span>
                             </label>
                           </div>
                         </>
@@ -2038,13 +2239,13 @@ function FillReport() {
                             onChange={handleInputChange}
                             className="w-5 h-5"
                           />
-                          <span className="text-sm font-medium">¿Existe?</span>
+                          <span className="text-m font-medium">¿Existe?</span>
                         </label>
                       </div>
                       {formData.dryTankExists && (
                         <>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-m font-medium text-gray-700 mb-2">
                               Litros
                             </label>
                             <input
@@ -2064,7 +2265,7 @@ function FillReport() {
                                 onChange={handleInputChange}
                                 className="w-5 h-5"
                               />
-                              <span className="text-sm">
+                              <span className="text-m">
                                 Válvula seguridad funciona
                               </span>
                             </label>
@@ -2078,7 +2279,7 @@ function FillReport() {
                                 onChange={handleInputChange}
                                 className="w-5 h-5"
                               />
-                              <span className="text-sm">Dren funciona</span>
+                              <span className="text-m">Dren funciona</span>
                             </label>
                           </div>
                         </>
@@ -2090,12 +2291,11 @@ function FillReport() {
             </>
           )}
 
-          {/* SECCIÓN DE MANTENIMIENTO - Aparece cuando se hace clic en "Siguiente Sección" */}
           {showMaintenanceSection && (
             <div id="maintenance-section">
               {/* Header Mantenimiento */}
               <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
-                <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white p-4">
+                <div className="bg-gradient-to-r from-teal-600 to-green-800 text-white p-4">
                   <h2 className="text-xl font-bold text-center">
                     MANTENIMIENTO
                   </h2>
@@ -2104,8 +2304,8 @@ function FillReport() {
 
               {/* Mantenimientos Realizados */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  MANTENIMIENTOS REALIZADOS
+                <h2 className="text-white bg-teal-800 px-4 py-2 rounded font-bold mb-4">
+                  MANTENIMIENTOS REALIZADOS - MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {maintenanceData.mantenimientos.map((item, index) => (
@@ -2113,12 +2313,12 @@ function FillReport() {
                       key={index}
                       className={`flex items-center justify-between p-3 rounded cursor-pointer transition-colors ${
                         item.realizado
-                          ? "bg-green-50 border-2 border-green-200 hover:bg-green-100"
+                          ? "bg-blue-800 text-white border-2 border-blue-900 hover:bg-blue-900"
                           : "bg-gray-50 border-2 border-gray-200 hover:bg-gray-100"
                       }`}
                       onClick={() => handleMaintenanceToggle(index)}
                     >
-                      <span className="text-sm font-medium">{item.nombre}</span>
+                      <span className="text-m font-medium">{item.nombre}</span>
                       <div className="flex items-center gap-2">
                         <input
                           type="checkbox"
@@ -2129,7 +2329,7 @@ function FillReport() {
                         />
                         <span
                           className={`text-lg font-bold ${
-                            item.realizado ? "text-green-600" : "text-gray-400"
+                            item.realizado ? "text-white" : "text-gray-400"
                           }`}
                         >
                           {item.realizado ? "✓" : "✗"}
@@ -2138,7 +2338,7 @@ function FillReport() {
                     </div>
                   ))}
                 </div>
-                <div className="mt-4 text-sm text-gray-600">
+                <div className="mt-4 text-m text-gray-600">
                   <span className="font-bold text-green-600">✓</span> = Se
                   realizó cambio, <span className="font-bold">✗</span> = Se
                   mantuvo igual
@@ -2147,8 +2347,8 @@ function FillReport() {
 
               {/* Comentarios Generales */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  COMENTARIOS GENERALES
+                <h2 className="text-white bg-teal-800 px-4 py-2 rounded font-bold mb-4">
+                  COMENTARIOS GENERALES - MANTENIMIENTO
                 </h2>
                 <textarea
                   value={maintenanceData.comentarios_generales}
@@ -2158,7 +2358,7 @@ function FillReport() {
                       e.target.value
                     )
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   rows={6}
                   placeholder="Describa las observaciones, hallazgos y trabajos realizados durante el mantenimiento..."
                 />
@@ -2166,8 +2366,8 @@ function FillReport() {
 
               {/* Comentarios del Cliente */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  COMENTARIOS DEL CLIENTE
+                <h2 className="text-white bg-teal-800 px-4 py-2 rounded font-bold mb-4">
+                  COMENTARIOS DEL CLIENTE - MANTENIMIENTO
                 </h2>
                 <textarea
                   value={maintenanceData.comentario_cliente}
@@ -2177,7 +2377,7 @@ function FillReport() {
                       e.target.value
                     )
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   rows={4}
                   placeholder="Comentarios o solicitudes del cliente..."
                 />
@@ -2185,8 +2385,8 @@ function FillReport() {
 
               {/* Fotos del Mantenimiento */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  FOTOS DEL MANTENIMIENTO
+                <h2 className="text-white bg-teal-800 px-4 py-2 rounded font-bold mb-4">
+                  FOTOS DEL MANTENIMIENTO - MANTENIMIENTO
                 </h2>
                 <div className="mb-4">
                   <input
@@ -2202,7 +2402,7 @@ function FillReport() {
                     {maintenanceData.fotos.map((foto, index) => (
                       <div key={index} className="relative">
                         <div className="border border-gray-300 rounded-lg p-2">
-                          <p className="text-sm text-gray-600 truncate">
+                          <p className="text-m text-gray-600 truncate">
                             {foto.name}
                           </p>
                           <button
@@ -2243,9 +2443,12 @@ function FillReport() {
                   <button
                     type="button"
                     onClick={handleNextSection}
-                    className="px-6 py-3 bg-blue-800 text-white rounded-lg hover:bg-blue-900 transition-colors font-medium flex items-center gap-2"
+                    disabled={savingPreMaintenance}
+                    className="px-6 py-3 bg-blue-800 text-white rounded-lg hover:bg-blue-900 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Siguiente Sección
+                    {savingPreMaintenance
+                      ? "Guardando..."
+                      : "Siguiente Sección"}
                   </button>
                 )}
               </div>

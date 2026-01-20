@@ -1,9 +1,13 @@
-from fastapi import FastAPI, Path, HTTPException, APIRouter
+from fastapi import FastAPI, Path, HTTPException, APIRouter, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from typing import Optional, List
+from decimal import Decimal
 
 import mysql.connector
 import os
 from dotenv import load_dotenv
+from datetime import datetime
 
 from .clases import Modulos
 
@@ -24,7 +28,7 @@ def get_reporte_status():
             database=DB_DATABASE,
             host=DB_HOST
         )
-        cursor = conn.connect()
+        cursor = conn.cursor()
 
         cursor.execute(
             """SELECT * 
@@ -57,9 +61,175 @@ def get_reporte_status():
         return{"error": str(err)}
 
 @reportes_mtto.get("/pre-mtto/{folio}")
-def get_pre_answers(folio: str = Path(...,description="Folio del reporte"))
+def get_pre_answers(folio: str = Path(..., description="Folio del reporte")):
     try:
+        conn = mysql.connector.connect(
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE,
+            host=DB_HOST
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute(
+            """SELECT * 
+            FROM reportes_pre_mantenimiento
+            WHERE folio = %s
+            ORDER BY fecha_creacion DESC
+            LIMIT 1;
+            """,
+            (folio,)
+        )
+
+        res = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not res:
+            return {"data": None}
         
-        return {}
+        return {"data": res}
     except mysql.connector.Error as err:
-        return{"error": str(err)}
+        return {"error": str(err)}
+
+
+# Pydantic models for validation
+class PreMantenimientoRequest(BaseModel):
+    folio: str
+    reporte_id: Optional[int] = None
+    equipo_enciende: Optional[str] = None
+    display_enciende: Optional[str] = None
+    horas_totales: Optional[Decimal] = None
+    horas_carga: Optional[Decimal] = None
+    horas_descarga: Optional[Decimal] = None
+    mantenimiento_proximo: Optional[str] = None
+    compresor_es_master: Optional[str] = None
+    amperaje_maximo_motor: Optional[Decimal] = None
+    ubicacion_compresor: Optional[str] = None
+    expulsion_aire_caliente: Optional[str] = None
+    operacion_muchos_polvos: Optional[str] = None
+    compresor_bien_instalado: Optional[str] = None
+    condiciones_especiales: Optional[str] = None
+    voltaje_alimentacion: Optional[Decimal] = None
+    amperaje_motor_carga: Optional[Decimal] = None
+    amperaje_ventilador: Optional[Decimal] = None
+    fugas_aceite_visibles: Optional[str] = None
+    fugas_aire_audibles: Optional[str] = None
+    aceite_oscuro_degradado: Optional[str] = None
+    temp_ambiente: Optional[Decimal] = None
+    temp_compresion_display: Optional[Decimal] = None
+    temp_compresion_laser: Optional[Decimal] = None
+    temp_separador_aceite: Optional[Decimal] = None
+    temp_interna_cuarto: Optional[Decimal] = None
+    delta_t_enfriador_aceite: Optional[Decimal] = None
+    temp_motor_electrico: Optional[Decimal] = None
+    metodo_control_presion: Optional[str] = None
+    presion_carga: Optional[Decimal] = None
+    presion_descarga: Optional[Decimal] = None
+    diferencial_presion: Optional[str] = None
+    delta_p_separador: Optional[Decimal] = None
+    tipo_valvula_admision: Optional[str] = None
+    funcionamiento_valvula_admision: Optional[str] = None
+    wet_tank_existe: Optional[bool] = None
+    wet_tank_litros: Optional[int] = None
+    wet_tank_valvula_seguridad: Optional[bool] = None
+    wet_tank_dren: Optional[bool] = None
+    dry_tank_existe: Optional[bool] = None
+    dry_tank_litros: Optional[int] = None
+    dry_tank_valvula_seguridad: Optional[bool] = None
+    dry_tank_dren: Optional[bool] = None
+    exceso_polvo_suciedad: Optional[bool] = None
+    hay_manual: Optional[bool] = None
+    tablero_electrico_enciende: Optional[bool] = None
+    giro_correcto_motor: Optional[bool] = None
+    unidad_compresion_gira: Optional[bool] = None
+    motor_ventilador_funciona: Optional[bool] = None
+    razon_paro_mantenimiento: Optional[str] = None
+    alimentacion_electrica_conectada: Optional[bool] = None
+    pastilla_adecuada_amperajes: Optional[bool] = None
+    tuberia_descarga_conectada_a: Optional[str] = None
+
+
+@reportes_mtto.post("/pre-mtto")
+def save_pre_mantenimiento(data: PreMantenimientoRequest):
+    """
+    Save pre-maintenance data for a compressor report
+    """
+    try:
+        conn = mysql.connector.connect(
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE,
+            host=DB_HOST
+        )
+        cursor = conn.cursor()
+
+        # Check if pre-maintenance record exists for this folio
+        cursor.execute(
+            """SELECT id FROM reportes_pre_mantenimiento WHERE folio = %s""",
+            (data.folio,)
+        )
+        existing = cursor.fetchone()
+
+        # Build the insert/update query dynamically
+        fields = []
+        values = []
+        
+        for key, value in data.dict().items():
+            if value is not None and key not in ("folio", "reporte_id"):
+                fields.append(f"`{key}`")
+                values.append(value)
+
+        if existing:
+            # Update existing record
+            set_clause = ", ".join([f"`{k}` = %s" for k in fields if k != "`folio`"])
+            query = f"""
+                UPDATE reportes_pre_mantenimiento 
+                SET {set_clause}, `fecha_actualizacion` = NOW()
+                WHERE folio = %s
+            """
+            values.append(data.folio)
+            cursor.execute(query, values)
+            record_id = existing[0]
+        else:
+            # Insert new record
+            fields.append("`folio`")
+            values.append(data.folio)
+            
+            placeholders = ", ".join(["%s"] * len(values))
+            field_names = ", ".join(fields)
+            
+            query = f"""
+                INSERT INTO reportes_pre_mantenimiento ({field_names})
+                VALUES ({placeholders})
+            """
+            cursor.execute(query, values)
+            record_id = cursor.lastrowid
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": "Pre-maintenance data saved successfully",
+            "id": record_id,
+            "folio": data.folio
+        }
+
+    except mysql.connector.Error as err:
+        if conn:
+            conn.rollback()
+        return {
+            "success": False,
+            "error": f"Database error: {str(err)}",
+            "details": str(err)
+        }
+    except Exception as err:
+        if conn:
+            conn.rollback()
+        return {
+            "success": False,
+            "error": f"Unexpected error: {str(err)}",
+            "details": str(err)
+        }
