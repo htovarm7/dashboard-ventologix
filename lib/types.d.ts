@@ -230,6 +230,12 @@ export interface ReportFormData {
   hotAirExpulsion: string;
   highDustOperation: string;
   specialConditions: string;
+  
+  // Campos adicionales para diagnóstico
+  deltaTAceite: string;
+  deltaPSeparador: string;
+  tempMotor: string;
+  aceiteOscuro: string;
 
   // Sección cuando equipo NO ENCIENDE
   equipmentStatePhoto?: File | null;

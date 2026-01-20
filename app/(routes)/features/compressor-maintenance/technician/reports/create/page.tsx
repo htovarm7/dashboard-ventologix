@@ -8,10 +8,41 @@ import Image from "next/image";
 import { URL_API } from "@/lib/global";
 import { ReportFormData } from "@/lib/types";
 
+interface MaintenanceItem {
+  nombre: string;
+  realizado: boolean;
+}
+
+const defaultMaintenanceItems: MaintenanceItem[] = [
+  { nombre: "Cambio de aceite", realizado: false },
+  { nombre: "Cambio de filtro de aceite", realizado: false },
+  { nombre: "Cambio de filtro de aire", realizado: false },
+  { nombre: "Cambio de separador de aceite", realizado: false },
+  { nombre: "Revisión de válvula de admisión", realizado: false },
+  { nombre: "Revisión de válvula de descarga", realizado: false },
+  { nombre: "Limpieza de radiador", realizado: false },
+  { nombre: "Revisión de bandas/correas", realizado: false },
+  { nombre: "Revisión de fugas de aire", realizado: false },
+  { nombre: "Revisión de fugas de aceite", realizado: false },
+  { nombre: "Revisión de conexiones eléctricas", realizado: false },
+  { nombre: "Revisión de presostato", realizado: false },
+  { nombre: "Revisión de manómetros", realizado: false },
+  { nombre: "Lubricación general", realizado: false },
+  { nombre: "Limpieza general del equipo", realizado: false },
+];
+
 function FillReport() {
   const { isAuthenticated, isLoading } = useAuth0();
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const [showMaintenanceSection, setShowMaintenanceSection] = useState(false);
+  const [maintenanceData, setMaintenanceData] = useState({
+    mantenimientos: defaultMaintenanceItems,
+    comentarios_generales: "",
+    comentario_cliente: "",
+    fotos: [] as File[],
+  });
 
   const [formData, setFormData] = useState<ReportFormData>({
     reportDate: new Date().toISOString().split("T")[0],
@@ -65,6 +96,10 @@ function FillReport() {
     highDustOperation: "",
     specialConditions: "",
     motorCondition: "",
+    deltaTAceite: "",
+    deltaPSeparador: "",
+    tempMotor: "",
+    aceiteOscuro: "",
     compressionUnitCondition: "",
     coolingCoilCondition: "",
     admissionValvesCondition: "",
@@ -122,6 +157,17 @@ function FillReport() {
           alert("❌ Error al cargar la información de la orden de servicio");
         });
     }
+
+    // Restore form data if coming back from maintenance section
+    const storedFormData = sessionStorage.getItem("reportFormData");
+    if (storedFormData && !folio) {
+      try {
+        const data = JSON.parse(storedFormData);
+        setFormData(data);
+      } catch (error) {
+        console.error("Error restoring form data:", error);
+      }
+    }
   }, [searchParams, router]);
 
   if (isLoading) {
@@ -136,7 +182,7 @@ function FillReport() {
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
+    >
   ) => {
     const { name, value, type } = e.target;
 
@@ -150,7 +196,7 @@ function FillReport() {
 
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    fieldName: string,
+    fieldName: string
   ) => {
     const file = e.target.files?.[0] || null;
     setFormData((prev) => ({ ...prev, [fieldName]: file }));
@@ -199,6 +245,51 @@ function FillReport() {
     }
   };
 
+  const handleNextSection = () => {
+    setShowMaintenanceSection(true);
+    // Scroll to maintenance section after a brief delay
+    setTimeout(() => {
+      const maintenanceSection = document.getElementById("maintenance-section");
+      if (maintenanceSection) {
+        maintenanceSection.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }, 100);
+  };
+
+  const handleMaintenanceToggle = (index: number) => {
+    const updatedMantenimientos = [...maintenanceData.mantenimientos];
+    updatedMantenimientos[index].realizado =
+      !updatedMantenimientos[index].realizado;
+    setMaintenanceData({
+      ...maintenanceData,
+      mantenimientos: updatedMantenimientos,
+    });
+  };
+
+  const handleMaintenanceInputChange = (field: string, value: string) => {
+    setMaintenanceData({ ...maintenanceData, [field]: value });
+  };
+
+  const handleMaintenanceFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      setMaintenanceData({
+        ...maintenanceData,
+        fotos: [...maintenanceData.fotos, ...filesArray],
+      });
+    }
+  };
+
+  const removeMaintenancePhoto = (index: number) => {
+    const updatedFotos = maintenanceData.fotos.filter((_, i) => i !== index);
+    setMaintenanceData({ ...maintenanceData, fotos: updatedFotos });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -237,6 +328,27 @@ function FillReport() {
         submitData.append("photo6", formData.photo6);
       }
 
+      // Add maintenance data if section is shown
+      if (showMaintenanceSection) {
+        submitData.append(
+          "mantenimientos",
+          JSON.stringify(maintenanceData.mantenimientos)
+        );
+        submitData.append(
+          "comentarios_generales",
+          maintenanceData.comentarios_generales
+        );
+        submitData.append(
+          "comentario_cliente",
+          maintenanceData.comentario_cliente
+        );
+
+        // Add maintenance photos
+        maintenanceData.fotos.forEach((foto, index) => {
+          submitData.append(`foto_mantenimiento_${index}`, foto);
+        });
+      }
+
       // Send to backend API
       const response = await fetch("http://localhost:8000/api/reportes/", {
         method: "POST",
@@ -261,13 +373,131 @@ function FillReport() {
         alert(
           `❌ Error al guardar el reporte: ${
             result.detail || result.message || "Error desconocido"
-          }`,
+          }`
         );
       }
     } catch (error) {
       console.error("Error submitting report:", error);
       alert("❌ Error al enviar el reporte. Por favor, intente nuevamente.");
     }
+  };
+
+  // Función para generar diagnóstico automático
+  const generateDiagnostico = () => {
+    const positivos: string[] = [];
+    const causas: string[] = [];
+    const acciones: string[] = [];
+    const consecuencias: { [key: string]: number } = {};
+
+    const agregar_consecuencia = (desc: string, grav: number) => {
+      if (consecuencias[desc]) {
+        consecuencias[desc] = Math.max(consecuencias[desc], grav);
+      } else {
+        consecuencias[desc] = grav;
+      }
+    };
+
+    // Temperatura de compresión
+    const tempComp = parseFloat(
+      formData.compressionTempDisplay || formData.compressionTempLaser || "0"
+    );
+    if (tempComp >= 80 && tempComp <= 95) {
+      positivos.push("Temperatura de compresión dentro de rango óptimo");
+    } else if (tempComp > 95 && tempComp <= 105) {
+      positivos.push(
+        "Temperatura de compresión aceptable para operación continua"
+      );
+    } else if (tempComp > 0) {
+      causas.push("Temperatura de compresión fuera de rango");
+      agregar_consecuencia("Riesgo de paro por alta temperatura", 3);
+      agregar_consecuencia("Degradación acelerada del aceite", 2);
+      acciones.push("Revisar enfriadores, ventilación y aceite");
+    }
+
+    // Temperatura del separador
+    const tempSep = parseFloat(formData.finalCompressionTemp || "0");
+    if (tempSep > 0 && tempSep <= 90) {
+      positivos.push("Temperatura del separador aire-aceite adecuada");
+    } else if (tempSep <= 95) {
+      positivos.push(
+        "Temperatura del separador cercana al límite, pero aceptable"
+      );
+    } else if (tempSep > 95) {
+      causas.push("Separador aire-aceite sobrecalentado");
+      agregar_consecuencia("Arrastre de aceite a la red", 3);
+      acciones.push("Revisar estado del separador y retorno de aceite");
+    }
+
+    // Delta T enfriador de aceite
+    const deltaT = parseFloat(formData.deltaTAceite || "0");
+    if (deltaT >= 15) {
+      positivos.push(
+        "Enfriador de aceite operando con buena eficiencia térmica"
+      );
+    } else if (deltaT >= 10 && deltaT < 15) {
+      positivos.push("Enfriador de aceite con eficiencia térmica aceptable");
+    } else if (deltaT > 0) {
+      causas.push("Baja eficiencia del enfriador de aceite");
+      agregar_consecuencia("Alta temperatura interna del compresor", 2);
+      acciones.push("Limpiar enfriador y revisar ventilador");
+    }
+
+    // Diferencial de presión del separador
+    const deltaP = parseFloat(formData.deltaPSeparador || "0");
+    if (deltaP > 0 && deltaP <= 0.2) {
+      positivos.push("Separador aire-aceite en condición óptima");
+    } else if (deltaP <= 0.7) {
+      positivos.push("Separador aire-aceite en condición aceptable");
+    } else if (deltaP > 0.7) {
+      causas.push("Separador aire-aceite saturado");
+      agregar_consecuencia("Incremento en consumo eléctrico", 1);
+      agregar_consecuencia("Sobrecarga térmica del compresor", 2);
+      acciones.push("Reemplazar separador aire-aceite");
+    }
+
+    // Temperatura del motor
+    const tempMotor = parseFloat(formData.tempMotor || "0");
+    if (tempMotor > 0 && tempMotor <= 85) {
+      positivos.push("Temperatura del motor eléctrico dentro de rango normal");
+    } else if (tempMotor <= 90) {
+      positivos.push("Temperatura del motor elevada pero aceptable");
+    } else if (tempMotor > 90) {
+      causas.push("Sobrecalentamiento del motor eléctrico");
+      agregar_consecuencia("Disparo de protecciones térmicas", 3);
+      agregar_consecuencia("Reducción de vida útil del motor", 2);
+      acciones.push("Revisar amperajes, voltaje y presión");
+    }
+
+    // Condiciones ambientales
+    const polvo = formData.highDustOperation === "Sí";
+    const ventDeficiente = formData.hotAirExpulsion === "Interno al cuarto";
+    if (!polvo && !ventDeficiente) {
+      positivos.push("Condiciones ambientales y ventilación adecuadas");
+    } else {
+      causas.push("Condiciones ambientales desfavorables");
+      agregar_consecuencia("Ensuciamiento acelerado de enfriadores", 1);
+      acciones.push("Mejorar limpieza y ventilación del cuarto");
+    }
+
+    // Condición del aceite
+    if (formData.aceiteOscuro === "No") {
+      positivos.push("Aceite en buen estado visual");
+    } else if (formData.aceiteOscuro === "Sí") {
+      causas.push("Aceite degradado");
+      agregar_consecuencia("Lubricación deficiente del tornillo", 3);
+      acciones.push("Cambio de aceite y revisión térmica");
+    }
+
+    const gravedadGlobal = Math.max(...Object.values(consecuencias), 0);
+    const estadoEquipo =
+      {
+        0: "CONDICIÓN GENERAL BUENA",
+        1: "CONDICIÓN ACEPTABLE",
+        2: "REQUIERE ATENCIÓN",
+        3: "CONDICIÓN CRÍTICA",
+      }[gravedadGlobal] || "Sin diagnóstico";
+
+    return { positivos, causas, acciones, consecuencias, estadoEquipo };
   };
 
   const renderClientSelection = () => (
@@ -435,23 +665,40 @@ function FillReport() {
       <BackButton />
 
       <div className="max-w-7xl mx-auto mt-4">
-        {/* Header */}
+        {/* Header Principal */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
           <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white p-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center">
-                <Image
-                  src="/Ventologix_05.png"
-                  alt="Ventologix Logo"
-                  width={64}
-                  height={64}
-                />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center">
+                  <Image
+                    src="/Ventologix_05.png"
+                    alt="Ventologix Logo"
+                    width={64}
+                    height={64}
+                  />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold">VENTOLOGIX</h1>
+                  <p className="text-sm opacity-90">
+                    Sistema de Gestión de Mantenimiento
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold">VENTOLOGIX</h1>
-                <p className="text-sm opacity-90">Reporte de Mantenimiento</p>
+              <div className="text-right">
+                <p className="text-sm opacity-90">Folio</p>
+                <p className="text-2xl font-bold">
+                  {formData.folio || "Sin asignar"}
+                </p>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Header Reporte de Mantenimiento */}
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
+          <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white p-4">
+            <h2 className="text-xl font-bold text-center">PRE-MANTENIMIENTO</h2>
           </div>
         </div>
 
@@ -464,7 +711,7 @@ function FillReport() {
               {/* SECCIÓN 1: Display y Horas de Trabajo */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  📊 DISPLAY Y HORAS DE TRABAJO
+                  DISPLAY Y HORAS DE TRABAJO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -485,7 +732,7 @@ function FillReport() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      📸 Foto Horas Generales de Trabajo
+                      Foto Horas Generales de Trabajo
                     </label>
                     <input
                       type="file"
@@ -540,7 +787,7 @@ function FillReport() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      📸 Foto Alarmas del Sistema
+                      Foto Alarmas del Sistema
                     </label>
                     <input
                       type="file"
@@ -588,7 +835,7 @@ function FillReport() {
               {/* SECCIÓN 2: Placas del Equipo */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  🏷️ PLACAS DEL EQUIPO
+                  PLACAS DEL EQUIPO
                 </h2>
                 <div className="space-y-6">
                   {/* Placa del Compresor */}
@@ -599,7 +846,7 @@ function FillReport() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          📸 Foto Placa del Compresor
+                          Foto Placa del Compresor
                         </label>
                         <input
                           type="file"
@@ -639,7 +886,7 @@ function FillReport() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          📸 Foto Placa del Motor
+                          Foto Placa del Motor
                         </label>
                         <input
                           type="file"
@@ -649,7 +896,7 @@ function FillReport() {
                         />
                         {formData.photo4 && (
                           <p className="text-sm text-green-600 mt-1">
-                            ✓ {formData.photo4.name}
+                            {formData.photo4.name}
                           </p>
                         )}
                       </div>
@@ -675,12 +922,12 @@ function FillReport() {
               {/* SECCIÓN 3: Condiciones Ambientales */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  🌡️ CONDICIONES AMBIENTALES
+                  CONDICIONES AMBIENTALES
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      📸 Foto Condiciones Ambientales
+                      Foto Condiciones Ambientales
                     </label>
                     <input
                       type="file"
@@ -777,7 +1024,7 @@ function FillReport() {
               {/* SECCIÓN 4: Voltajes y Amperajes */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  ⚡ VOLTAJES Y AMPERAJES
+                  VOLTAJES Y AMPERAJES
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div>
@@ -828,12 +1075,12 @@ function FillReport() {
               {/* SECCIÓN 5: Aceite */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  🛢️ ACEITE
+                  ACEITE
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      📸 Foto Separador Aire-Aceite
+                      Foto Separador Aire-Aceite
                     </label>
                     <input
                       type="file"
@@ -877,13 +1124,28 @@ function FillReport() {
                       <option value="No">No</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      ¿Aceite está oscuro o degradado?
+                    </label>
+                    <select
+                      name="aceiteOscuro"
+                      value={formData.aceiteOscuro}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="Sí">Sí</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
               {/* SECCIÓN 6: Temperaturas */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  🌡️ TEMPERATURAS
+                  TEMPERATURAS
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div>
@@ -956,13 +1218,41 @@ function FillReport() {
                       placeholder="0.0"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Delta T Enfriador Aceite (°C)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="deltaTAceite"
+                      value={formData.deltaTAceite}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Temp. Motor Eléctrico (°C)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="tempMotor"
+                      value={formData.tempMotor}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.0"
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* SECCIÓN 7: Mediciones de Presión */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  📏 MEDICIONES DE PRESIÓN
+                  MEDICIONES DE PRESIÓN
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -1019,13 +1309,27 @@ function FillReport() {
                       placeholder="Ingrese diferencial"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Delta P Separador (Bar)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="deltaPSeparador"
+                      value={formData.deltaPSeparador}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.00"
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* SECCIÓN 8: Válvulas */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  🔧 VÁLVULAS
+                  VÁLVULAS
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -1062,7 +1366,7 @@ function FillReport() {
               {/* SECCIÓN 9: Tanques de Almacenamiento */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
-                  🗄️ TANQUES DE ALMACENAMIENTO
+                  TANQUES DE ALMACENAMIENTO
                 </h2>
                 <div className="space-y-6">
                   {/* Wet Tank */}
@@ -1202,6 +1506,103 @@ function FillReport() {
                   </div>
                 </div>
               </div>
+
+              {/* SECCIÓN 10: Resumen de Diagnóstico Automático */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  RESUMEN DE DIAGNÓSTICO AUTOMÁTICO
+                </h2>
+                {(() => {
+                  const diagnostico = generateDiagnostico();
+                  return (
+                    <div className="space-y-4">
+                      {/* Estado General */}
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <h3 className="font-bold text-lg mb-2">
+                          Estado General del Equipo
+                        </h3>
+                        <p className="text-xl font-bold">
+                          {diagnostico.estadoEquipo}
+                        </p>
+                      </div>
+
+                      {/* Aspectos Positivos */}
+                      {diagnostico.positivos.length > 0 && (
+                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                          <h3 className="font-bold text-green-900 mb-3">
+                            ✔️ Aspectos Positivos Detectados
+                          </h3>
+                          <ul className="space-y-2">
+                            {diagnostico.positivos.map((item, idx) => (
+                              <li key={idx} className="flex items-start">
+                                <span className="text-green-600 mr-2">✔️</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Causas Detectadas */}
+                      {diagnostico.causas.length > 0 && (
+                        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <h3 className="font-bold text-yellow-900 mb-3">
+                            ⚠️ Causas Detectadas
+                          </h3>
+                          <ul className="space-y-2">
+                            {diagnostico.causas.map((item, idx) => (
+                              <li key={idx} className="flex items-start">
+                                <span className="text-yellow-600 mr-2">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Consecuencias Probables */}
+                      {Object.keys(diagnostico.consecuencias).length > 0 && (
+                        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                          <h3 className="font-bold text-orange-900 mb-3">
+                            ⚠️ Consecuencias Probables
+                          </h3>
+                          <ul className="space-y-2">
+                            {Object.entries(diagnostico.consecuencias).map(
+                              ([cons, grav], idx) => {
+                                const icono =
+                                  { 1: "🟡", 2: "🟠", 3: "🔴" }[grav] || "⚠️";
+                                return (
+                                  <li key={idx} className="flex items-start">
+                                    <span className="mr-2">{icono}</span>
+                                    <span>{cons}</span>
+                                  </li>
+                                );
+                              }
+                            )}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Acciones Recomendadas */}
+                      {diagnostico.acciones.length > 0 && (
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <h3 className="font-bold text-blue-900 mb-3">
+                            🔧 Acciones Recomendadas
+                          </h3>
+                          <ul className="space-y-2">
+                            {diagnostico.acciones.map((item, idx) => (
+                              <li key={idx} className="flex items-start">
+                                <span className="text-blue-600 mr-2">➤</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
             </>
           )}
 
@@ -1209,13 +1610,13 @@ function FillReport() {
             <>
               {/* SECCIÓN 1: Estado del Equipo */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-900 px-4 py-2 rounded font-bold mb-4">
-                  ⚠️ ESTADO DEL EQUIPO
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  ESTADO DEL EQUIPO
                 </h2>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      📸 Foto Elementos Completos
+                      Foto Elementos Completos
                     </label>
                     <input
                       type="file"
@@ -1261,13 +1662,13 @@ function FillReport() {
 
               {/* SECCIÓN 2: Condiciones Generales */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-900 px-4 py-2 rounded font-bold mb-4">
-                  📋 CONDICIONES GENERALES
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  CONDICIONES GENERALES
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      📸 Foto Condiciones Generales
+                      Foto Condiciones Generales
                     </label>
                     <input
                       type="file"
@@ -1323,8 +1724,8 @@ function FillReport() {
 
               {/* SECCIÓN 3: Revisión Mecánica */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-900 px-4 py-2 rounded font-bold mb-4">
-                  🔧 REVISIÓN MECÁNICA (Equipo Apagado)
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  REVISIÓN MECÁNICA (Equipo Apagado)
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -1387,13 +1788,13 @@ function FillReport() {
 
               {/* SECCIÓN 4: Instalaciones */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-900 px-4 py-2 rounded font-bold mb-4">
-                  🏗️ INSTALACIONES DEL EQUIPO
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  INSTALACIONES DEL EQUIPO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      📸 Foto Instalaciones
+                      Foto Instalaciones
                     </label>
                     <input
                       type="file"
@@ -1466,8 +1867,8 @@ function FillReport() {
 
               {/* SECCIÓN 5: Placas del Equipo */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-900 px-4 py-2 rounded font-bold mb-4">
-                  🏷️ PLACAS DEL EQUIPO
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  PLACAS DEL EQUIPO
                 </h2>
                 <div className="space-y-6">
                   {/* Placa Motor */}
@@ -1478,7 +1879,7 @@ function FillReport() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          📸 Foto Placa del Motor
+                          Foto Placa del Motor
                         </label>
                         <input
                           type="file"
@@ -1498,7 +1899,7 @@ function FillReport() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          📸 Foto Placa del Compresor
+                          Foto Placa del Compresor
                         </label>
                         <input
                           type="file"
@@ -1514,13 +1915,13 @@ function FillReport() {
 
               {/* SECCIÓN 6: Aceite */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-900 px-4 py-2 rounded font-bold mb-4">
-                  🛢️ ACEITE
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  ACEITE
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      📸 Foto Nivel de Aceite
+                      Foto Nivel de Aceite
                     </label>
                     <input
                       type="file"
@@ -1564,8 +1965,8 @@ function FillReport() {
 
               {/* SECCIÓN 7: Tanques */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-blue-900 px-4 py-2 rounded font-bold mb-4">
-                  🗄️ TANQUES DE ALMACENAMIENTO
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  TANQUES DE ALMACENAMIENTO
                 </h2>
                 <div className="space-y-6">
                   {/* Wet Tank */}
@@ -1694,31 +2095,165 @@ function FillReport() {
             </>
           )}
 
+          {/* SECCIÓN DE MANTENIMIENTO - Aparece cuando se hace clic en "Siguiente Sección" */}
+          {showMaintenanceSection && (
+            <div id="maintenance-section">
+              {/* Header Mantenimiento */}
+              <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
+                <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white p-4">
+                  <h2 className="text-xl font-bold text-center">
+                    MANTENIMIENTO
+                  </h2>
+                </div>
+              </div>
+
+              {/* Mantenimientos Realizados */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  MANTENIMIENTOS REALIZADOS
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {maintenanceData.mantenimientos.map((item, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-center justify-between p-3 rounded cursor-pointer transition-colors ${
+                        item.realizado
+                          ? "bg-green-50 border-2 border-green-200 hover:bg-green-100"
+                          : "bg-gray-50 border-2 border-gray-200 hover:bg-gray-100"
+                      }`}
+                      onClick={() => handleMaintenanceToggle(index)}
+                    >
+                      <span className="text-sm font-medium">{item.nombre}</span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={item.realizado}
+                          onChange={() => handleMaintenanceToggle(index)}
+                          className="w-5 h-5 cursor-pointer"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <span
+                          className={`text-lg font-bold ${
+                            item.realizado ? "text-green-600" : "text-gray-400"
+                          }`}
+                        >
+                          {item.realizado ? "✓" : "✗"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 text-sm text-gray-600">
+                  <span className="font-bold text-green-600">✓</span> = Se
+                  realizó cambio, <span className="font-bold">✗</span> = Se
+                  mantuvo igual
+                </div>
+              </div>
+
+              {/* Comentarios Generales */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  COMENTARIOS GENERALES
+                </h2>
+                <textarea
+                  value={maintenanceData.comentarios_generales}
+                  onChange={(e) =>
+                    handleMaintenanceInputChange(
+                      "comentarios_generales",
+                      e.target.value
+                    )
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={6}
+                  placeholder="Describa las observaciones, hallazgos y trabajos realizados durante el mantenimiento..."
+                />
+              </div>
+
+              {/* Comentarios del Cliente */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  COMENTARIOS DEL CLIENTE
+                </h2>
+                <textarea
+                  value={maintenanceData.comentario_cliente}
+                  onChange={(e) =>
+                    handleMaintenanceInputChange(
+                      "comentario_cliente",
+                      e.target.value
+                    )
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={4}
+                  placeholder="Comentarios o solicitudes del cliente..."
+                />
+              </div>
+
+              {/* Fotos del Mantenimiento */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-blue-800 px-4 py-2 rounded font-bold mb-4">
+                  FOTOS DEL MANTENIMIENTO
+                </h2>
+                <div className="mb-4">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleMaintenanceFileChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                {maintenanceData.fotos.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {maintenanceData.fotos.map((foto, index) => (
+                      <div key={index} className="relative">
+                        <div className="border border-gray-300 rounded-lg p-2">
+                          <p className="text-sm text-gray-600 truncate">
+                            {foto.name}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => removeMaintenancePhoto(index)}
+                            className="mt-2 w-full px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Botones de acción */}
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex gap-4 justify-end">
+            <div className="flex gap-4 justify-between">
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
               >
                 Cancelar
               </button>
-              <button
-                type="button"
-                onClick={handleSaveDraft}
-                className="px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium flex items-center gap-2"
-              >
-                <span>💾</span>
-                Guardar Borrador
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-800 transition-colors font-medium flex items-center gap-2"
-              >
-                <span>✅</span>
-                Guardar Diagnóstico
-              </button>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={handleSaveDraft}
+                  className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium"
+                >
+                  Guardar Borrador
+                </button>
+                {!showMaintenanceSection && (
+                  <button
+                    type="button"
+                    onClick={handleNextSection}
+                    className="px-6 py-3 bg-blue-800 text-white rounded-lg hover:bg-blue-900 transition-colors font-medium flex items-center gap-2"
+                  >
+                    Siguiente Sección
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </form>
