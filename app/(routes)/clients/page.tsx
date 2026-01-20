@@ -212,9 +212,6 @@ const ShowClients = () => {
                 <thead>
                   <tr className="bg-blue-600 text-white">
                     <th className="border border-gray-300 p-3 text-left font-semibold">
-                      #
-                    </th>
-                    <th className="border border-gray-300 p-3 text-left font-semibold">
                       Núm. Cliente
                     </th>
                     <th className="border border-gray-300 p-3 text-left font-semibold">
@@ -243,9 +240,6 @@ const ShowClients = () => {
                       key={client.id_cliente}
                       className="hover:bg-blue-50 transition-colors"
                     >
-                      <td className="border border-gray-300 p-3 text-gray-700">
-                        {index + 1}
-                      </td>
                       <td className="border border-gray-300 p-3 font-medium text-gray-800">
                         {client.numero_cliente}
                       </td>

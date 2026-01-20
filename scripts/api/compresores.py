@@ -57,7 +57,8 @@ def get_all_compresores():
                 "LOAD_NO_LOAD": row[12],
                 "Alias": row[13],
                 "fecha_utlimo_mtto": row[15],
-                "nombre_cliente": row[16]
+                "modelo": row[16],
+                "nombre_cliente": row[17]
             }
             for row in res
         ]

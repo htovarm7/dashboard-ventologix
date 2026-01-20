@@ -28,7 +28,9 @@ def get_all_clients():
         cursor = conn.cursor()
 
         cursor.execute(
-            "SELECT * FROM clientes"
+            """SELECT DISTINCT numero_cliente, nombre_cliente, RFC, direccion, champion, CostokWh, demoDiario, demoSemanal
+                FROM clientes;
+            """
         )
 
         res = cursor.fetchall()
@@ -40,15 +42,14 @@ def get_all_clients():
         
         clients = [
             {
-                "id_cliente": row[0],
-                "numero_cliente": row[1],
-                "nombre_cliente": row[2],
-                "RFC": row[3],
-                "direccion": row[4],
-                "champion": row[5],
-                "CostokWh": row[6],
-                "demoDiario": row[7],
-                "demoSemanal": row[8]
+                "numero_cliente": row[0],
+                "nombre_cliente": row[1],
+                "RFC": row[2],
+                "direccion": row[3],
+                "champion": row[4],
+                "CostokWh": row[5],
+                "demoDiario": row[6],
+                "demoSemanal": row[7]
 
             }
             for row in res
