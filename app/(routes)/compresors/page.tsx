@@ -46,7 +46,7 @@ const Compresors = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateMode, setIsCreateMode] = useState(true);
   const [selectedCompresor, setSelectedCompresor] = useState<Compresor | null>(
-    null
+    null,
   );
   const [formData, setFormData] = useState<CompresorFormData>({
     hp: "",
@@ -78,7 +78,7 @@ const Compresors = () => {
         console.error(
           "Failed to fetch compresores",
           res.status,
-          res.statusText
+          res.statusText,
         );
       }
     } catch (error) {
@@ -144,7 +144,7 @@ const Compresors = () => {
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    >,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -194,7 +194,7 @@ const Compresors = () => {
         alert(
           isCreateMode
             ? "Compresor creado exitosamente"
-            : "Compresor actualizado exitosamente"
+            : "Compresor actualizado exitosamente",
         );
         handleCloseModal();
         fetchCompresores();
@@ -211,7 +211,7 @@ const Compresors = () => {
   const handleDelete = async (compresorId: number) => {
     if (
       !confirm(
-        `¿Estás seguro de eliminar el compresor #${compresorId}? Esta acción no se puede deshacer.`
+        `¿Estás seguro de eliminar el compresor #${compresorId}? Esta acción no se puede deshacer.`,
       )
     ) {
       return;
@@ -375,7 +375,7 @@ const Compresors = () => {
                 No hay compresores registrados
               </p>
               <p className="text-sm mt-2">
-                Haz clic en "Nuevo Compresor" para agregar uno
+                Haz clic en &quot;Nuevo Compresor&quot; para agregar uno
               </p>
             </div>
           )}

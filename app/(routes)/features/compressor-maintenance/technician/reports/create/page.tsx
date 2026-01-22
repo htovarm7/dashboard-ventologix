@@ -40,18 +40,13 @@ function FillReport() {
   const searchParams = useSearchParams();
   const { savePreMantenimiento, loading: savingPreMaintenance } =
     usePreMantenimiento();
-  const {
-    uploadPhotos,
-    uploading: uploadingPhotos,
-    uploadProgress,
-  } = usePhotoUpload();
+  const { uploadPhotos } = usePhotoUpload();
 
   const [showMaintenanceSection, setShowMaintenanceSection] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Organize photos by category
   const [photosByCategory, setPhotosByCategory] = useState<{
     [category: string]: File[];
   }>({
@@ -65,6 +60,12 @@ function FillReport() {
     MANTENIMIENTO: [],
     OTROS: [],
   });
+
+  interface PhotoResults {
+    [category: string]: Record<string, unknown>;
+  }
+
+  const [photoResults, setPhotoResults] = useState<PhotoResults>({});
 
   const [maintenanceData, setMaintenanceData] = useState({
     mantenimientos: defaultMaintenanceItems,
@@ -333,19 +334,7 @@ function FillReport() {
         console.error("Error restoring form data:", error);
       }
     }
-  }, [searchParams, router]);
-
-  // Auto-save every 30 seconds
-  useEffect(() => {
-    if (!formData.folio || !hasUnsavedChanges) return;
-
-    const autoSaveInterval = setInterval(() => {
-      console.log("🔄 Auto-guardando borrador...");
-      handleSaveDraft(false); // false = no mostrar alerta
-    }, 30000); // 30 segundos
-
-    return () => clearInterval(autoSaveInterval);
-  }, [formData.folio, hasUnsavedChanges]);
+  }, [router]);
 
   // Warn before leaving page with unsaved changes
   useEffect(() => {
@@ -447,7 +436,7 @@ function FillReport() {
         console.log(`  ${category}: ${files.length} photo(s)`);
       });
 
-      const results: any = {};
+      const results: Record<string, Record<string, unknown>> = {};
       let totalUploaded = 0;
       let totalFailed = 0;
       let hasPhotos = false;
@@ -465,7 +454,7 @@ function FillReport() {
 
           if (result.success) {
             totalUploaded += files.length;
-            results[category] = result;
+            results[category] = result as unknown as Record<string, unknown>;
             console.log(`✅ ${category} upload successful`);
           } else {
             totalFailed += files.length;
@@ -507,7 +496,7 @@ function FillReport() {
           console.log("💾 Saving maintenance data to database...");
 
           // Convert maintenance items to database format (Sí/No)
-          const mantenimientoDbData: any = {
+          const mantenimientoDbData: Record<string, string | boolean> = {
             folio: formData.folio,
             comentarios_generales: maintenanceData.comentarios_generales,
             comentario_cliente: maintenanceData.comentario_cliente,
@@ -606,6 +595,18 @@ function FillReport() {
       setIsSaving(false);
     }
   };
+
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    if (!formData.folio || !hasUnsavedChanges) return;
+
+    const autoSaveInterval = setInterval(() => {
+      console.log("🔄 Auto-guardando borrador...");
+      handleSaveDraft(false); // false = no mostrar alerta
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(autoSaveInterval);
+  }, [formData.folio, hasUnsavedChanges, handleSaveDraft]);
 
   // Helper function to convert form data to pre-maintenance format
   const buildPreMantenimientoData = () => {
@@ -871,7 +872,7 @@ function FillReport() {
           console.log("💾 Saving maintenance data to database...");
 
           // Convert maintenance items to database format (Sí/No)
-          const mantenimientoDbData: any = {
+          const mantenimientoDbData: Record<string, unknown> = {
             folio: formData.folio,
             comentarios_generales: maintenanceData.comentarios_generales,
             comentario_cliente: maintenanceData.comentario_cliente,
@@ -938,7 +939,9 @@ function FillReport() {
         const existingDrafts = localStorage.getItem("draftReports");
         if (existingDrafts) {
           const drafts = JSON.parse(existingDrafts);
-          const filtered = drafts.filter((d: any) => d.id !== formData.folio);
+          const filtered = drafts.filter(
+            (d: { id: string }) => d.id !== formData.folio,
+          );
           localStorage.setItem("draftReports", JSON.stringify(filtered));
         }
         // Redirect back to reports list

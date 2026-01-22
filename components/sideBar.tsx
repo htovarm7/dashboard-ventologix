@@ -35,16 +35,11 @@ interface NavigationItem {
   children?: NavigationChild[];
 }
 
-const SideBar: React.FC<SideBarProps> = ({
-  selectedCompresor,
-  rol,
-  secciones = [],
-}) => {
+const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
   const router = useRouter();
   const pathname = usePathname();
   const { logout, user } = useAuth0();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isBetaExpanded, setIsBetaExpanded] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
@@ -87,7 +82,7 @@ const SideBar: React.FC<SideBarProps> = ({
             email: user.email,
             nuevo_numero_cliente: parseInt(newClientNumber),
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -115,7 +110,7 @@ const SideBar: React.FC<SideBarProps> = ({
     } catch (error) {
       console.error("Error updating client number:", error);
       setUpdateError(
-        "Error al actualizar el número de cliente. Inténtelo nuevamente."
+        "Error al actualizar el número de cliente. Inténtelo nuevamente.",
       );
     } finally {
       setIsUpdating(false);
@@ -458,8 +453,8 @@ const SideBar: React.FC<SideBarProps> = ({
                             item.badge === "BETA"
                               ? "bg-purple-600 text-white"
                               : item.badge === "NUEVO"
-                              ? "bg-green-600 text-white"
-                              : "bg-yellow-600 text-white"
+                                ? "bg-green-600 text-white"
+                                : "bg-yellow-600 text-white"
                           }`}
                         >
                           {item.badge}
@@ -518,8 +513,8 @@ const SideBar: React.FC<SideBarProps> = ({
                                   isActiveRoute(child.route)
                                     ? "bg-blue-500 text-white"
                                     : child.disabled
-                                    ? "text-slate-500 cursor-not-allowed"
-                                    : "hover:bg-slate-600 text-slate-300"
+                                      ? "text-slate-500 cursor-not-allowed"
+                                      : "hover:bg-slate-600 text-slate-300"
                                 }`}
                                 onClick={() => {
                                   if (!child.disabled) {
@@ -551,8 +546,8 @@ const SideBar: React.FC<SideBarProps> = ({
                                   isActiveRoute(child.route)
                                     ? "bg-blue-500 text-white"
                                     : child.disabled
-                                    ? "text-slate-500 cursor-not-allowed"
-                                    : "hover:bg-slate-600 text-slate-300"
+                                      ? "text-slate-500 cursor-not-allowed"
+                                      : "hover:bg-slate-600 text-slate-300"
                                 }`}
                                 onClick={() => {
                                   if (!child.disabled) {

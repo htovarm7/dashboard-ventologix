@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/BackButton";
-import { URL_API } from "@/lib/global";
 
 const Home = () => {
   const { user, isAuthenticated, isLoading } = useAuth0();

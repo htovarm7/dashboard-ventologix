@@ -91,7 +91,10 @@ const ModulosSheet = () => {
     setSuccess(null);
   };
 
-  const handleInputChange = (field: keyof ModulosFormData, value: any) => {
+  const handleInputChange = (
+    field: keyof ModulosFormData,
+    value: string | number | boolean,
+  ) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -114,7 +117,7 @@ const ModulosSheet = () => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify(formData),
-          }
+          },
         );
 
         const data = await res.json();
@@ -414,7 +417,7 @@ const ModulosSheet = () => {
                         onChange={(e) =>
                           handleInputChange(
                             "numero_cliente",
-                            parseInt(e.target.value) || 0
+                            parseInt(e.target.value) || 0,
                           )
                         }
                         disabled={isEditMode}

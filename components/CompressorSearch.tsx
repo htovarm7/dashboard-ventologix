@@ -20,7 +20,7 @@ export default function CompressorSearch() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<CompressorSearchResult[]>(
-    []
+    [],
   );
   const [showSearchResults, setShowSearchResults] = useState(false);
 
@@ -36,7 +36,7 @@ export default function CompressorSearch() {
 
     try {
       const response = await fetch(
-        `${URL_API}/compresores/compresor-cliente/${encodeURIComponent(query)}`
+        `${URL_API}/compresores/compresor-cliente/${encodeURIComponent(query)}`,
       );
       const data = await response.json();
 
@@ -69,7 +69,7 @@ export default function CompressorSearch() {
     });
 
     router.push(
-      `/features/compressor-maintenance/technician/reports/create?${params.toString()}`
+      `/features/compressor-maintenance/technician/reports/create?${params.toString()}`,
     );
   };
 
@@ -166,7 +166,7 @@ export default function CompressorSearch() {
           searchQuery.length >= 2 && (
             <div className="absolute z-50 w-full max-w-7xl mt-2 bg-white border-2 border-gray-200 rounded-lg shadow-xl p-4">
               <p className="text-gray-600 text-center">
-                No se encontraron resultados para "{searchQuery}"
+                No se encontraron resultados para &quot;{searchQuery}&quot;
               </p>
             </div>
           )}
@@ -187,7 +187,7 @@ export default function CompressorSearch() {
           <button
             onClick={() =>
               router.push(
-                "/features/compressor-maintenance/technician/reports/create?isEventual=true"
+                "/features/compressor-maintenance/technician/reports/create?isEventual=true",
               )
             }
             className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center gap-2 shadow-md hover:shadow-lg"

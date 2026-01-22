@@ -1,17 +1,8 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { URL_API } from "@/lib/global";
-
-interface DraftReport {
-  id: string;
-  folio: string;
-  clientName: string;
-  serialNumber: string;
-  lastModified: string;
-  reportType: string;
-}
 
 interface CompressorSearchResult {
   hp: number;
@@ -91,25 +82,23 @@ const formatTime = (timeString: string) => {
 
 const TypeReportes = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [draftReports, setDraftReports] = useState<DraftReport[]>([]);
   const [rol, setRol] = useState<number | null>(null);
   const [isClienteEventual, setIsClienteEventual] = useState(false);
   const [isNewEventual, setIsNewEventual] = useState(true);
-  const [eventualClients, setEventualClients] = useState<any[]>([]);
-  const [selectedEventualClient, setSelectedEventualClient] =
-    useState<any>(null);
+  const [eventualClients, setEventualClients] = useState<
+    Record<string, unknown>[]
+  >([]);
+  const [selectedEventualClient, setSelectedEventualClient] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [selectedCompressor, setSelectedCompressor] =
     useState<CompressorSearchResult | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState<CompressorSearchResult[]>(
-    []
+    [],
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [ordenServicio, setOrdenServicio] = useState<OrdenServicio | null>(
-    null
-  );
-  const [loadingOrden, setLoadingOrden] = useState(false);
   const [ordenesServicio, setOrdenesServicio] = useState<OrdenServicio[]>([]);
   const [loadingOrdenes, setLoadingOrdenes] = useState(false);
   const [ticketData, setTicketData] = useState<TicketFormData>({
@@ -136,7 +125,7 @@ const TypeReportes = () => {
     rfc: "",
   });
   const [editingTicket, setEditingTicket] = useState<OrdenServicio | null>(
-    null
+    null,
   );
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTicketsList, setShowTicketsList] = useState(false);
@@ -206,37 +195,13 @@ const TypeReportes = () => {
     }
   };
 
-  // Fetch orden de servicio by folio
-  const fetchOrdenServicio = async (folio: string) => {
-    setLoadingOrden(true);
-    try {
-      const response = await fetch(`${URL_API}/ordenes/`);
-      const data = await response.json();
-
-      if (data.data) {
-        const orden = data.data.find((o: OrdenServicio) => o.folio === folio);
-        if (orden) {
-          setOrdenServicio(orden);
-        } else {
-          alert(
-            "No se encontró la orden de servicio con el folio especificado"
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching orden de servicio:", error);
-      alert("Error al cargar la orden de servicio");
-    } finally {
-      setLoadingOrden(false);
-    }
-  };
-
   // Load draft reports on mount
   useEffect(() => {
     const loadDraftReports = () => {
       const drafts = localStorage.getItem("draftReports");
       if (drafts) {
-        setDraftReports(JSON.parse(drafts));
+        // Draft reports loaded but not used currently
+        // JSON.parse(drafts);
       }
     };
     loadDraftReports();
@@ -254,7 +219,7 @@ const TypeReportes = () => {
 
     try {
       const response = await fetch(
-        `${URL_API}/compresores/compresor-cliente/${encodeURIComponent(query)}`
+        `${URL_API}/compresores/compresor-cliente/${encodeURIComponent(query)}`,
       );
       const data = await response.json();
 
@@ -275,7 +240,7 @@ const TypeReportes = () => {
   // Generate folio: id_cliente-last4digits-YYYYMMDD-HHMM
   const generateFolio = (
     idCliente: number | string,
-    serialNumber: string
+    serialNumber: string,
   ): string => {
     const clientId =
       idCliente === "EVENTUAL" ? "00" : String(idCliente).padStart(2, "0");
@@ -350,18 +315,18 @@ const TypeReportes = () => {
   };
 
   // Handle eventual client selection
-  const handleSelectEventualClient = (client: any) => {
+  const handleSelectEventualClient = (client: Record<string, unknown>) => {
     setSelectedEventualClient(client);
     setIsNewEventual(false);
     setTicketData((prev) => ({
       ...prev,
-      clientName: client.nombre_cliente,
+      clientName: String(client.nombre_cliente || ""),
       numeroCliente: "EVENTUAL",
     }));
     setEventualClientInfo({
-      telefono: client.telefono || "",
-      email: client.email || "",
-      direccion: client.direccion || "",
+      telefono: String(client.telefono || ""),
+      email: String(client.email || ""),
+      direccion: String(client.direccion || ""),
       rfc: "",
     });
   };
@@ -370,7 +335,7 @@ const TypeReportes = () => {
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value } = e.target;
     setTicketData((prev) => {
@@ -421,7 +386,7 @@ const TypeReportes = () => {
           throw new Error(
             `Error creating eventual client: ${
               eventualResult.detail || eventualResult.error
-            }`
+            }`,
           );
         }
       } else if (
@@ -429,7 +394,7 @@ const TypeReportes = () => {
         !isNewEventual &&
         selectedEventualClient
       ) {
-        eventualClientId = selectedEventualClient.id;
+        eventualClientId = Number(selectedEventualClient.id) || 0;
       }
 
       // If it's an eventual client, also create the compressor
@@ -461,7 +426,7 @@ const TypeReportes = () => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify(eventualCompressorData),
-          }
+          },
         );
 
         const compressorResult = await compressorResponse.json();
@@ -469,13 +434,13 @@ const TypeReportes = () => {
         if (compressorResponse.ok) {
           console.log(
             "Eventual compressor created with ID:",
-            compressorResult.id
+            compressorResult.id,
           );
         } else {
           throw new Error(
             `Error creating eventual compressor: ${
               compressorResult.detail || compressorResult.error
-            }`
+            }`,
           );
         }
       }
@@ -593,7 +558,7 @@ const TypeReportes = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(editingTicket),
-        }
+        },
       );
 
       const result = await response.json();
@@ -610,7 +575,7 @@ const TypeReportes = () => {
             result.message ||
             result.error ||
             "Error desconocido"
-          }`
+          }`,
         );
       }
     } catch (error) {
@@ -640,26 +605,13 @@ const TypeReportes = () => {
             result.message ||
             result.error ||
             "Error desconocido"
-          }`
+          }`,
         );
       }
     } catch (error) {
       console.error("Error deleting ticket:", error);
       alert("❌ Error al eliminar el ticket. Por favor, intente nuevamente.");
     }
-  };
-
-  const deleteDraft = (draftId: string) => {
-    const updatedDrafts = draftReports.filter((d) => d.id !== draftId);
-    setDraftReports(updatedDrafts);
-    localStorage.setItem("draftReports", JSON.stringify(updatedDrafts));
-  };
-
-  const loadDraft = (draft: DraftReport) => {
-    // Navigate to create page with draft data
-    router.push(
-      `/features/compressor-maintenance/technician/reports/create?draftId=${draft.id}`
-    );
   };
 
   // Función para ir atrás
@@ -678,7 +630,7 @@ const TypeReportes = () => {
         `${URL_API}/ordenes/${orden.folio}/estado?estado=en_progreso`,
         {
           method: "PATCH",
-        }
+        },
       );
 
       if (response.ok) {
@@ -687,7 +639,7 @@ const TypeReportes = () => {
           folio: orden.folio,
         });
         router.push(
-          `/features/compressor-maintenance/technician/reports/create?${params.toString()}`
+          `/features/compressor-maintenance/technician/reports/create?${params.toString()}`,
         );
       } else {
         const result = await response.json();
@@ -1126,10 +1078,11 @@ const TypeReportes = () => {
                             Seleccionar Cliente Eventual
                           </label>
                           <select
-                            value={selectedEventualClient?.id || ""}
+                            value={String(selectedEventualClient?.id || "")}
                             onChange={(e) => {
                               const client = eventualClients.find(
-                                (c) => c.id === parseInt(e.target.value)
+                                (c) =>
+                                  Number(c.id) === parseInt(e.target.value),
                               );
                               if (client) {
                                 handleSelectEventualClient(client);
@@ -1140,9 +1093,14 @@ const TypeReportes = () => {
                           >
                             <option value="">-- Seleccionar cliente --</option>
                             {eventualClients.map((client) => (
-                              <option key={client.id} value={client.id}>
-                                {client.nombre_cliente}
-                                {client.telefono && ` - ${client.telefono}`}
+                              <option
+                                key={String(client.id)}
+                                value={String(client.id)}
+                              >
+                                {String(client.nombre_cliente || "")}
+                                {client.telefono
+                                  ? ` - ${String(client.telefono || "")}`
+                                  : ""}
                               </option>
                             ))}
                           </select>
@@ -1543,8 +1501,8 @@ const TypeReportes = () => {
                     <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
                       <p className="text-blue-300 text-sm">
                         ℹ️ <strong>Info:</strong> El ticket se creará con estado
-                        "No Iniciado" y podrá ser asignado a un técnico
-                        posteriormente.
+                        &quot;No Iniciado&quot; y podrá ser asignado a un
+                        técnico posteriormente.
                       </p>
                     </div>
                   </form>
