@@ -38,7 +38,7 @@ export default function Page() {
         }
 
         const url = `${URL_API}/web/usuarios/${encodeURIComponent(
-          userIdentifier
+          userIdentifier,
         )}`;
 
         const response = await fetch(url, {
@@ -60,7 +60,7 @@ export default function Page() {
             throw new Error(`Usuario no encontrado: ${userIdentifier}`);
           }
           throw new Error(
-            `HTTP error! status: ${response.status} - ${errorText}`
+            `HTTP error! status: ${response.status} - ${errorText}`,
           );
         }
 
@@ -103,7 +103,7 @@ export default function Page() {
         setHasChecked(true);
       }
     },
-    [router]
+    [router],
   );
 
   useEffect(() => {
@@ -170,7 +170,7 @@ export default function Page() {
     }%0D%0A%0D%0APor favor, podrías autorizar mi acceso al sistema.%0D%0A%0D%0AGracias,%0D%0A[Tu nombre]`;
 
     const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&to=hector.tovar@ventologix.com&su=${encodeURIComponent(
-      "Solicitud de autorización de acceso"
+      "Solicitud de autorización de acceso",
     )}&body=${errorDetails}`;
 
     return (
@@ -249,28 +249,28 @@ export default function Page() {
 
       {/* Main container - solid with gradient */}
       <div className="relative z-10 flex flex-col items-center rounded-3xl p-12 shadow-2xl max-w-2xl w-full mx-4 transition-all duration-500 hover:scale-[1.02] overflow-hidden">
-        {/* Solid gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a1628] via-[#0d2847] to-[#0a1628] opacity-95"></div>
+        {/* Solid white background */}
+        <div className="absolute inset-0 bg-white opacity-95"></div>
 
-        {/* Animated glowing border */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 rounded-3xl opacity-75 blur-lg"></div>
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-3xl animate-pulse"></div>
+        {/* Subtle blue border */}
+        <div className="absolute -inset-1 bg-gradient-to-r from-blue-200 via-blue-300 to-blue-200 rounded-3xl opacity-40 blur-lg"></div>
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-300 via-blue-400 to-blue-300 rounded-3xl animate-pulse opacity-20"></div>
 
-        {/* Inner border glow */}
-        <div className="absolute inset-0 rounded-3xl border-2 border-blue-400/30 shadow-[0_0_30px_rgba(59,130,246,0.5)]"></div>
+        {/* Subtle inner border */}
+        <div className="absolute inset-0 rounded-3xl border-2 border-blue-300/40 shadow-[0_0_20px_rgba(59,130,246,0.2)]"></div>
 
         <div className="relative z-10">
           {/* Title with gradient */}
-          <h2 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-300 to-cyan-300 mb-3 text-center">
+          <h2 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 mb-3 text-center">
             Ventologix Dashboard
           </h2>
 
           {/* Animated underline */}
           <div className="flex justify-center mb-6">
-            <div className="h-1 w-64 bg-gradient-to-r from-transparent via-cyan-400 to-transparent rounded-full shadow-[0_0_10px_rgba(34,211,238,0.7)]"></div>
+            <div className="h-1 w-64 bg-gradient-to-r from-transparent via-blue-400 to-transparent rounded-full shadow-[0_0_10px_rgba(96,165,250,0.4)]"></div>
           </div>
 
-          <p className="text-xl text-cyan-100 mb-10 text-center font-light tracking-wide">
+          <p className="text-xl text-gray-700 mb-10 text-center font-light tracking-wide">
             Plataforma de monitoreo y análisis en tiempo real
           </p>
 
@@ -278,10 +278,10 @@ export default function Page() {
             <div className="flex flex-col items-center space-y-8">
               {/* Security shield icon */}
               <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 blur-3xl opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
-                <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-blue-800 to-cyan-900 flex items-center justify-center border-4 border-cyan-400/30 shadow-2xl shadow-cyan-500/50">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-300 to-blue-400 blur-3xl opacity-40 group-hover:opacity-50 transition-opacity duration-300"></div>
+                <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center border-4 border-blue-400/40 shadow-2xl shadow-blue-300/30">
                   <svg
-                    className="w-16 h-16 text-cyan-300"
+                    className="w-16 h-16 text-blue-600"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -295,12 +295,12 @@ export default function Page() {
                   </svg>
                 </div>
                 {/* Pulsing rings */}
-                <div className="absolute inset-0 rounded-full border-2 border-cyan-400/20 animate-ping"></div>
+                <div className="absolute inset-0 rounded-full border-2 border-blue-400/20 animate-ping"></div>
               </div>
 
               {/* Futuristic login button */}
               <button
-                className="group relative px-12 py-5 text-white text-xl font-bold rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/60 border-2 border-cyan-400/50"
+                className="group relative px-12 py-5 text-white text-xl font-bold rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-400/40 border-2 border-blue-300/50"
                 onClick={() =>
                   loginWithRedirect({
                     authorizationParams: {
@@ -310,8 +310,8 @@ export default function Page() {
                 }
               >
                 {/* Button gradient background */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 transition-all duration-300"></div>
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-600 to-cyan-500 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500 transition-all duration-300"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
 
                 {/* Shine effect */}
                 <div
@@ -358,9 +358,9 @@ export default function Page() {
               {/* Feature indicators */}
               <div className="flex gap-10 mt-10">
                 <div className="flex flex-col items-center gap-3 group cursor-default">
-                  <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-700 to-cyan-800 border-2 border-cyan-400/30 group-hover:border-cyan-400/60 transition-all duration-300 shadow-lg shadow-blue-500/30 group-hover:shadow-cyan-500/50">
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-100 to-blue-200 border-2 border-blue-400/40 group-hover:border-blue-400/60 transition-all duration-300 shadow-lg shadow-blue-300/20 group-hover:shadow-blue-400/30">
                     <svg
-                      className="w-7 h-7 text-cyan-300"
+                      className="w-7 h-7 text-blue-600"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -373,14 +373,14 @@ export default function Page() {
                       />
                     </svg>
                   </div>
-                  <span className="text-sm font-semibold text-cyan-200">
+                  <span className="text-sm font-semibold text-gray-700">
                     Análisis
                   </span>
                 </div>
                 <div className="flex flex-col items-center gap-3 group cursor-default">
-                  <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-700 to-cyan-800 border-2 border-cyan-400/30 group-hover:border-cyan-400/60 transition-all duration-300 shadow-lg shadow-blue-500/30 group-hover:shadow-cyan-500/50">
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-100 to-blue-200 border-2 border-blue-400/40 group-hover:border-blue-400/60 transition-all duration-300 shadow-lg shadow-blue-300/20 group-hover:shadow-blue-400/30">
                     <svg
-                      className="w-7 h-7 text-cyan-300"
+                      className="w-7 h-7 text-blue-600"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -393,14 +393,14 @@ export default function Page() {
                       />
                     </svg>
                   </div>
-                  <span className="text-sm font-semibold text-cyan-200">
+                  <span className="text-sm font-semibold text-gray-700">
                     Tiempo Real
                   </span>
                 </div>
                 <div className="flex flex-col items-center gap-3 group cursor-default">
-                  <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-700 to-cyan-800 border-2 border-cyan-400/30 group-hover:border-cyan-400/60 transition-all duration-300 shadow-lg shadow-blue-500/30 group-hover:shadow-cyan-500/50">
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-100 to-blue-200 border-2 border-blue-400/40 group-hover:border-blue-400/60 transition-all duration-300 shadow-lg shadow-blue-300/20 group-hover:shadow-blue-400/30">
                     <svg
-                      className="w-7 h-7 text-cyan-300"
+                      className="w-7 h-7 text-blue-600"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -413,7 +413,7 @@ export default function Page() {
                       />
                     </svg>
                   </div>
-                  <span className="text-sm font-semibold text-cyan-200">
+                  <span className="text-sm font-semibold text-gray-700">
                     Seguro
                   </span>
                 </div>
@@ -423,8 +423,8 @@ export default function Page() {
             <div className="text-white text-center space-y-6">
               <div className="flex items-center justify-center gap-4 mb-6">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 blur-2xl opacity-60 animate-pulse"></div>
-                  <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-3xl font-bold border-2 border-cyan-400/50 shadow-2xl shadow-cyan-500/50">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-300 to-blue-400 blur-2xl opacity-40 animate-pulse"></div>
+                  <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-300 to-blue-400 flex items-center justify-center text-3xl font-bold border-2 border-blue-500/40 shadow-2xl shadow-blue-300/30 text-white">
                     {(user?.name ||
                       user?.nickname ||
                       user?.username ||
@@ -433,27 +433,27 @@ export default function Page() {
                   </div>
                 </div>
               </div>
-              <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-300">
+              <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-500">
                 ¡Bienvenido de nuevo!
               </p>
-              <p className="text-xl text-cyan-100/80">
+              <p className="text-xl text-gray-700">
                 {user?.name || user?.nickname || user?.username || user?.email}
               </p>
               <div className="flex items-center justify-center gap-3 mt-8">
-                <div className="w-3 h-3 bg-cyan-400 rounded-full animate-bounce shadow-[0_0_10px_rgba(34,211,238,1)]"></div>
+                <div className="w-3 h-3 bg-blue-400 rounded-full animate-bounce shadow-[0_0_10px_rgba(96,165,250,0.5)]"></div>
                 <div
-                  className="w-3 h-3 bg-blue-400 rounded-full animate-bounce shadow-[0_0_10px_rgba(59,130,246,1)]"
+                  className="w-3 h-3 bg-blue-300 rounded-full animate-bounce shadow-[0_0_10px_rgba(147,197,253,0.5)]"
                   style={{ animationDelay: "0.1s" }}
                 ></div>
                 <div
-                  className="w-3 h-3 bg-cyan-400 rounded-full animate-bounce shadow-[0_0_10px_rgba(34,211,238,1)]"
+                  className="w-3 h-3 bg-blue-400 rounded-full animate-bounce shadow-[0_0_10px_rgba(96,165,250,0.5)]"
                   style={{ animationDelay: "0.2s" }}
                 ></div>
               </div>
-              <p className="text-lg text-cyan-200/70 font-semibold">
+              <p className="text-lg text-gray-700 font-semibold">
                 Accediendo al dashboard...
               </p>
-              <p className="text-lg text-cyan-200/70 font-semibold">
+              <p className="text-lg text-gray-700 font-semibold">
                 Accediendo al dashboard...
               </p>
             </div>
@@ -468,10 +468,10 @@ export default function Page() {
             key={i}
             className={`absolute rounded-full ${
               i % 3 === 0
-                ? "bg-cyan-400/40"
+                ? "bg-blue-300/30"
                 : i % 3 === 1
-                ? "bg-blue-400/40"
-                : "bg-white/30"
+                  ? "bg-blue-200/30"
+                  : "bg-gray-300/20"
             } ${i % 4 === 0 ? "w-2 h-2" : "w-1 h-1"}`}
             style={{
               left: `${Math.random() * 100}%`,
@@ -482,10 +482,10 @@ export default function Page() {
               animationDelay: `${Math.random() * 5}s`,
               boxShadow:
                 i % 3 === 0
-                  ? "0 0 10px rgba(34,211,238,0.8)"
+                  ? "0 0 10px rgba(96,165,250,0.4)"
                   : i % 3 === 1
-                  ? "0 0 10px rgba(59,130,246,0.8)"
-                  : "none",
+                    ? "0 0 10px rgba(147,197,253,0.4)"
+                    : "none",
             }}
           />
         ))}
