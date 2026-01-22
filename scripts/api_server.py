@@ -24,16 +24,14 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:8000",
 ]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["*"],
-)
-
+# Apply custom access restriction middleware FIRST (before CORS)
 @app.middleware("http")
 async def restrict_public_access(request: Request, call_next):
+    # Allow preflight requests to pass through for CORS
+    if request.method == "OPTIONS":
+        response = await call_next(request)
+        return response
+    
     origin = request.headers.get("origin") or request.headers.get("referer")
     
     if origin is None:
@@ -46,6 +44,15 @@ async def restrict_public_access(request: Request, call_next):
 
     response = await call_next(request)
     return response
+
+# Apply CORS middleware AFTER custom middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 app.include_router(client)
 app.include_router(compresores)
