@@ -40,6 +40,9 @@ function FillReport() {
     usePreMantenimiento();
 
   const [showMaintenanceSection, setShowMaintenanceSection] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [maintenanceData, setMaintenanceData] = useState({
     mantenimientos: defaultMaintenanceItems,
     comentarios_generales: "",
@@ -124,7 +127,7 @@ function FillReport() {
   const loadPreMaintenanceData = async (folio: string) => {
     try {
       const response = await fetch(
-        `http://localhost:8000/api/reporte_mtto/pre-mtto/${folio}`
+        `http://localhost:8000/api/reporte_mtto/pre-mtto/${folio}`,
       );
       const result = await response.json();
 
@@ -253,6 +256,31 @@ function FillReport() {
     }
   }, [searchParams, router]);
 
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    if (!formData.folio || !hasUnsavedChanges) return;
+
+    const autoSaveInterval = setInterval(() => {
+      console.log("🔄 Auto-guardando borrador...");
+      handleSaveDraft(false); // false = no mostrar alerta
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(autoSaveInterval);
+  }, [formData.folio, hasUnsavedChanges]);
+
+  // Warn before leaving page with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   if (isLoading) {
     return <LoadingOverlay isVisible={true} message="Cargando..." />;
   }
@@ -265,7 +293,7 @@ function FillReport() {
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    >,
   ) => {
     const { name, value, type } = e.target;
 
@@ -275,31 +303,43 @@ function FillReport() {
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
+    setHasUnsavedChanges(true);
   };
 
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    fieldName: string
+    fieldName: string,
   ) => {
     const file = e.target.files?.[0] || null;
     setFormData((prev) => ({ ...prev, [fieldName]: file }));
   };
 
-  const handleSaveDraft = async () => {
+  const handleSaveDraft = async (showAlert: boolean = true) => {
     try {
+      setIsSaving(true);
       // Save to database instead of localStorage
       const result = await savePreMaintenanceData();
 
       if (result?.success) {
-        alert("💾 Borrador guardado en base de datos");
+        setLastSaved(new Date());
+        setHasUnsavedChanges(false);
+        if (showAlert) {
+          alert("💾 Borrador guardado exitosamente");
+        }
       } else {
-        alert(`❌ Error al guardar: ${result?.error || "Error desconocido"}`);
+        if (showAlert) {
+          alert(`❌ Error al guardar: ${result?.error || "Error desconocido"}`);
+        }
       }
     } catch (error) {
       const errorMsg =
         error instanceof Error ? error.message : "Error desconocido";
       console.error("Error saving draft:", error);
-      alert(`❌ Error al guardar el borrador: ${errorMsg}`);
+      if (showAlert) {
+        alert(`❌ Error al guardar el borrador: ${errorMsg}`);
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -460,7 +500,7 @@ function FillReport() {
   };
 
   const handleMaintenanceFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
@@ -518,15 +558,15 @@ function FillReport() {
       if (showMaintenanceSection) {
         submitData.append(
           "mantenimientos",
-          JSON.stringify(maintenanceData.mantenimientos)
+          JSON.stringify(maintenanceData.mantenimientos),
         );
         submitData.append(
           "comentarios_generales",
-          maintenanceData.comentarios_generales
+          maintenanceData.comentarios_generales,
         );
         submitData.append(
           "comentario_cliente",
-          maintenanceData.comentario_cliente
+          maintenanceData.comentario_cliente,
         );
 
         // Add maintenance photos
@@ -559,7 +599,7 @@ function FillReport() {
         alert(
           `❌ Error al guardar el reporte: ${
             result.detail || result.message || "Error desconocido"
-          }`
+          }`,
         );
       }
     } catch (error) {
@@ -585,13 +625,13 @@ function FillReport() {
 
     // Temperatura de compresión
     const tempComp = parseFloat(
-      formData.compressionTempDisplay || formData.compressionTempLaser || "0"
+      formData.compressionTempDisplay || formData.compressionTempLaser || "0",
     );
     if (tempComp >= 80 && tempComp <= 95) {
       positivos.push("Temperatura de compresión dentro de rango óptimo");
     } else if (tempComp > 95 && tempComp <= 105) {
       positivos.push(
-        "Temperatura de compresión aceptable para operación continua"
+        "Temperatura de compresión aceptable para operación continua",
       );
     } else if (tempComp > 0) {
       causas.push("Temperatura de compresión fuera de rango");
@@ -606,7 +646,7 @@ function FillReport() {
       positivos.push("Temperatura del separador aire-aceite adecuada");
     } else if (tempSep <= 95) {
       positivos.push(
-        "Temperatura del separador cercana al límite, pero aceptable"
+        "Temperatura del separador cercana al límite, pero aceptable",
       );
     } else if (tempSep > 95) {
       causas.push("Separador aire-aceite sobrecalentado");
@@ -618,7 +658,7 @@ function FillReport() {
     const deltaT = parseFloat(formData.deltaTAceite || "0");
     if (deltaT >= 15) {
       positivos.push(
-        "Enfriador de aceite operando con buena eficiencia térmica"
+        "Enfriador de aceite operando con buena eficiencia térmica",
       );
     } else if (deltaT >= 10 && deltaT < 15) {
       positivos.push("Enfriador de aceite con eficiencia térmica aceptable");
@@ -1773,7 +1813,7 @@ function FillReport() {
                                     <span>{cons}</span>
                                   </li>
                                 );
-                              }
+                              },
                             )}
                           </ul>
                         </div>
@@ -2355,7 +2395,7 @@ function FillReport() {
                   onChange={(e) =>
                     handleMaintenanceInputChange(
                       "comentarios_generales",
-                      e.target.value
+                      e.target.value,
                     )
                   }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -2374,7 +2414,7 @@ function FillReport() {
                   onChange={(e) =>
                     handleMaintenanceInputChange(
                       "comentario_cliente",
-                      e.target.value
+                      e.target.value,
                     )
                   }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -2423,32 +2463,118 @@ function FillReport() {
 
           {/* Botones de acción */}
           <div className="bg-white rounded-lg shadow-lg p-6">
+            {/* Indicador de estado de guardado */}
+            <div className="mb-4 flex items-center justify-end gap-2 text-sm">
+              {isSaving ? (
+                <span className="text-blue-600 flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Guardando...
+                </span>
+              ) : hasUnsavedChanges ? (
+                <span className="text-orange-600 flex items-center gap-2">
+                  <svg
+                    className="h-4 w-4"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Cambios sin guardar
+                </span>
+              ) : lastSaved ? (
+                <span className="text-green-600 flex items-center gap-2">
+                  <svg
+                    className="h-4 w-4"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Guardado {lastSaved.toLocaleTimeString()}
+                </span>
+              ) : null}
+            </div>
+
             <div className="flex gap-4 justify-between">
               <button
                 type="button"
-                onClick={() => router.back()}
-                className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                onClick={() => {
+                  if (hasUnsavedChanges) {
+                    if (confirm("¿Salir sin guardar los cambios?")) {
+                      router.back();
+                    }
+                  } else {
+                    router.back();
+                  }
+                }}
+                className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
               >
                 Cancelar
               </button>
               <div className="flex gap-4">
                 <button
                   type="button"
-                  onClick={handleSaveDraft}
-                  className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium"
+                  onClick={() => handleSaveDraft(true)}
+                  disabled={isSaving}
+                  className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  Guardar Borrador
+                  {isSaving ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Guardando...
+                    </>
+                  ) : (
+                    <>💾 Guardar Borrador</>
+                  )}
                 </button>
                 {!showMaintenanceSection && (
                   <button
                     type="button"
                     onClick={handleNextSection}
-                    disabled={savingPreMaintenance}
+                    disabled={savingPreMaintenance || isSaving}
                     className="px-6 py-3 bg-blue-800 text-white rounded-lg hover:bg-blue-900 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {savingPreMaintenance
                       ? "Guardando..."
-                      : "Siguiente Sección"}
+                      : "Siguiente Sección →"}
                   </button>
                 )}
               </div>
