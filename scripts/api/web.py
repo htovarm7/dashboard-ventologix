@@ -23,8 +23,6 @@ from googleapiclient.http import MediaFileUpload
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-
-
 # Agregar el directorio de scripts al path para importar maintenance_reports
 SCRIPT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SCRIPT_DIR))

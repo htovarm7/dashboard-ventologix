@@ -113,7 +113,7 @@ function MaintenanceFormContent() {
 
   const handleInputChange = (
     field: keyof MaintenanceFormData,
-    value: string
+    value: string,
   ) => {
     setFormData({ ...formData, [field]: value });
   };
@@ -147,11 +147,11 @@ function MaintenanceFormContent() {
       // Add maintenance data
       submitData.append(
         "mantenimientos",
-        JSON.stringify(formData.mantenimientos)
+        JSON.stringify(formData.mantenimientos),
       );
       submitData.append(
         "comentarios_generales",
-        formData.comentarios_generales
+        formData.comentarios_generales,
       );
       submitData.append("comentario_cliente", formData.comentario_cliente);
 
@@ -161,13 +161,10 @@ function MaintenanceFormContent() {
       });
 
       // Send to backend API
-      const response = await fetch(
-        "http://localhost:8000/api/maintenance-reports/",
-        {
-          method: "POST",
-          body: submitData,
-        }
-      );
+      const response = await fetch(`${URL}/maintenance-reports/`, {
+        method: "POST",
+        body: submitData,
+      });
 
       const result = await response.json();
 
@@ -182,13 +179,13 @@ function MaintenanceFormContent() {
         alert(
           `❌ Error al guardar el mantenimiento: ${
             result.detail || result.message || "Error desconocido"
-          }`
+          }`,
         );
       }
     } catch (error) {
       console.error("Error submitting maintenance:", error);
       alert(
-        "❌ Error al enviar el mantenimiento. Por favor, intente nuevamente."
+        "❌ Error al enviar el mantenimiento. Por favor, intente nuevamente.",
       );
     }
   };

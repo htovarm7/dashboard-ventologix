@@ -8,6 +8,8 @@ import Image from "next/image";
 import { URL_API } from "@/lib/global";
 import { ReportFormData } from "@/lib/types";
 import { usePreMantenimiento } from "@/hooks/usePreMantenimiento";
+import { usePhotoUpload } from "@/hooks/usePhotoUpload";
+import { PhotoUploadSection } from "@/components/PhotoUploadSection";
 
 interface MaintenanceItem {
   nombre: string;
@@ -38,11 +40,32 @@ function FillReport() {
   const searchParams = useSearchParams();
   const { savePreMantenimiento, loading: savingPreMaintenance } =
     usePreMantenimiento();
+  const {
+    uploadPhotos,
+    uploading: uploadingPhotos,
+    uploadProgress,
+  } = usePhotoUpload();
 
   const [showMaintenanceSection, setShowMaintenanceSection] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Organize photos by category
+  const [photosByCategory, setPhotosByCategory] = useState<{
+    [category: string]: File[];
+  }>({
+    ACEITE: [],
+    CONDICIONES_AMBIENTALES: [],
+    DISPLAY_HORAS: [],
+    PLACAS_EQUIPO: [],
+    TEMPERATURAS: [],
+    PRESIONES: [],
+    TANQUES: [],
+    MANTENIMIENTO: [],
+    OTROS: [],
+  });
+
   const [maintenanceData, setMaintenanceData] = useState({
     mantenimientos: defaultMaintenanceItems,
     comentarios_generales: "",
@@ -126,9 +149,7 @@ function FillReport() {
   // Load previously saved pre-maintenance data from backend
   const loadPreMaintenanceData = async (folio: string) => {
     try {
-      const response = await fetch(
-        `http://localhost:8000/api/reporte_mtto/pre-mtto/${folio}`,
-      );
+      const response = await fetch(`${URL_API}/reporte_mtto/pre-mtto/${folio}`);
       const result = await response.json();
 
       if (result.data) {
@@ -312,15 +333,135 @@ function FillReport() {
   ) => {
     const file = e.target.files?.[0] || null;
     setFormData((prev) => ({ ...prev, [fieldName]: file }));
+    setHasUnsavedChanges(true);
+  };
+
+  // Handle categorized photo uploads
+  const handleCategorizedPhotoChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    category: string,
+  ) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const fileArray = Array.from(files);
+      console.log(
+        `📸 Adding ${fileArray.length} photo(s) to category: ${category}`,
+      );
+      fileArray.forEach((file, idx) => {
+        console.log(
+          `   Photo ${idx + 1}: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`,
+        );
+      });
+
+      setPhotosByCategory((prev) => ({
+        ...prev,
+        [category]: [...prev[category], ...fileArray],
+      }));
+      setHasUnsavedChanges(true);
+    } else {
+      console.warn(`⚠️ No files selected for category: ${category}`);
+    }
+  };
+
+  // Remove photo from category
+  const removeCategorizedPhoto = (category: string, index: number) => {
+    console.log(
+      `🗑️ Removing photo at index ${index} from category: ${category}`,
+    );
+    setPhotosByCategory((prev) => ({
+      ...prev,
+      [category]: prev[category].filter((_, i) => i !== index),
+    }));
+    setHasUnsavedChanges(true);
+  };
+
+  // Upload all photos to Google Drive
+  const uploadAllPhotos = async () => {
+    if (!formData.folio || !formData.clientName) {
+      alert("⚠️ Falta información del cliente o folio");
+      return { success: false };
+    }
+
+    try {
+      // Log all photo categories for debugging
+      console.log("📋 Photo categories status:");
+      Object.entries(photosByCategory).forEach(([category, files]) => {
+        console.log(`  ${category}: ${files.length} photo(s)`);
+      });
+
+      const results: any = {};
+      let totalUploaded = 0;
+      let totalFailed = 0;
+      let hasPhotos = false;
+
+      for (const [category, files] of Object.entries(photosByCategory)) {
+        if (files.length > 0) {
+          hasPhotos = true;
+          console.log(`📤 Uploading ${files.length} photo(s) to ${category}`);
+          const result = await uploadPhotos(
+            formData.folio,
+            formData.clientName,
+            category,
+            files,
+          );
+
+          if (result.success) {
+            totalUploaded += files.length;
+            results[category] = result;
+            console.log(`✅ ${category} upload successful`);
+          } else {
+            totalFailed += files.length;
+            console.error(`❌ Failed to upload ${category}:`, result.error);
+          }
+        }
+      }
+
+      if (!hasPhotos) {
+        console.log("ℹ️ No photos to upload (all categories empty)");
+        return { success: true, results: {} };
+      }
+
+      if (totalFailed > 0) {
+        alert(`⚠️ ${totalUploaded} fotos subidas, ${totalFailed} fallaron`);
+      } else if (totalUploaded > 0) {
+        console.log(`✅ Successfully uploaded ${totalUploaded} photo(s)`);
+        alert(`✅ ${totalUploaded} fotos subidas exitosamente`);
+      }
+
+      return { success: totalFailed === 0, results };
+    } catch (error) {
+      console.error("Error uploading photos:", error);
+      return { success: false, error };
+    }
   };
 
   const handleSaveDraft = async (showAlert: boolean = true) => {
     try {
       setIsSaving(true);
-      // Save to database instead of localStorage
+
+      // First, save pre-maintenance data to database
+      console.log("💾 Saving pre-maintenance data...");
       const result = await savePreMaintenanceData();
 
       if (result?.success) {
+        // Then, upload categorized photos to Google Drive
+        const hasPhotosToUpload = Object.values(photosByCategory).some(
+          (photos) => photos.length > 0,
+        );
+
+        if (hasPhotosToUpload) {
+          console.log("📸 Uploading photos to Google Drive...");
+          const photoUploadResult = await uploadAllPhotos();
+
+          if (!photoUploadResult.success) {
+            console.warn(
+              "⚠️ Some photos failed to upload, but draft was saved",
+            );
+          } else {
+            console.log("✅ Photos uploaded successfully");
+          }
+        }
+
         setLastSaved(new Date());
         setHasUnsavedChanges(false);
         if (showAlert) {
@@ -520,6 +661,23 @@ function FillReport() {
     e.preventDefault();
 
     try {
+      // First, upload categorized photos to Google Drive
+      const hasPhotosToUpload = Object.values(photosByCategory).some(
+        (photos) => photos.length > 0,
+      );
+
+      if (hasPhotosToUpload) {
+        console.log("📸 Starting photo upload to Google Drive...");
+        const photoUploadResult = await uploadAllPhotos();
+
+        if (!photoUploadResult.success) {
+          console.warn(
+            "⚠️ Photo upload had failures, but continuing with form submission",
+          );
+          // Don't block the form submission if photos fail
+        }
+      }
+
       // Create FormData for file uploads
       const submitData = new FormData();
 
@@ -576,7 +734,8 @@ function FillReport() {
       }
 
       // Send to backend API
-      const response = await fetch("http://localhost:8000/api/reportes/", {
+      console.log("📤 Submitting main report data...");
+      const response = await fetch(`${URL_API}/reporte_mtto/`, {
         method: "POST",
         body: submitData,
       });
@@ -953,22 +1112,13 @@ function FillReport() {
                       <option value="No">No</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-m font-medium text-gray-700 mb-2">
-                      📷 Foto Horas Generales de Trabajo
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange(e, "photo1")}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    />
-                    {formData.photo1 && (
-                      <p className="text-m text-green-600 mt-1">
-                        ✓ {formData.photo1.name}
-                      </p>
-                    )}
-                  </div>
+                  <PhotoUploadSection
+                    category="DISPLAY_HORAS"
+                    label="Fotos Horas Generales de Trabajo"
+                    photos={photosByCategory.DISPLAY_HORAS}
+                    onPhotoAdd={handleCategorizedPhotoChange}
+                    onPhotoRemove={removeCategorizedPhoto}
+                  />
                   <div>
                     <label className="block text-m font-medium text-gray-700 mb-2">
                       Horas Totales

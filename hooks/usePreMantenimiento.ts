@@ -1,10 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 interface PreMantenimientoData {
   folio: string;
-  reporte_id?: number;
   equipo_enciende?: string;
   display_enciende?: string;
   horas_totales?: number;
@@ -61,7 +60,6 @@ interface PreMantenimientoData {
 interface SaveResponse {
   success: boolean;
   message?: string;
-  id?: number;
   folio?: string;
   error?: string;
   details?: string;
@@ -77,10 +75,10 @@ export function usePreMantenimiento() {
       setError(null);
 
       try {
-        const response = await fetch(`${API_URL}/api/reporte_mtto/pre-mtto`, {
-          method: 'POST',
+        const response = await fetch(`${API_URL}/reporte_mtto/pre-mtto`, {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(data),
         });
@@ -88,48 +86,47 @@ export function usePreMantenimiento() {
         const result = await response.json();
 
         if (!response.ok) {
-          const errorMsg = result.error || result.message || 'Error al guardar los datos';
+          const errorMsg =
+            result.error || result.message || "Error al guardar los datos";
           setError(errorMsg);
           return null;
         }
 
         return result;
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Error desconocido';
+        const errorMsg =
+          err instanceof Error ? err.message : "Error desconocido";
         setError(errorMsg);
         return null;
       } finally {
         setLoading(false);
       }
     },
-    []
+    [],
   );
 
-  const getPreMantenimiento = useCallback(
-    async (folio: string) => {
-      setLoading(true);
-      setError(null);
+  const getPreMantenimiento = useCallback(async (folio: string) => {
+    setLoading(true);
+    setError(null);
 
-      try {
-        const response = await fetch(`${API_URL}/api/reporte_mtto/pre-mtto/${folio}`);
+    try {
+      const response = await fetch(`${API_URL}/reporte_mtto/pre-mtto/${folio}`);
 
-        if (!response.ok) {
-          setError('Error al obtener los datos');
-          return null;
-        }
-
-        const result = await response.json();
-        return result.data;
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Error desconocido';
-        setError(errorMsg);
+      if (!response.ok) {
+        setError("Error al obtener los datos");
         return null;
-      } finally {
-        setLoading(false);
       }
-    },
-    []
-  );
+
+      const result = await response.json();
+      return result.data;
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Error desconocido";
+      setError(errorMsg);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   return {
     savePreMantenimiento,
