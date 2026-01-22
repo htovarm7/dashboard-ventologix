@@ -7,6 +7,10 @@ from scripts.api.report import report
 from scripts.api.web import web
 from scripts.api.client import client
 from scripts.api.compresores import compresores
+from scripts.api.ordenes_servicio import ordenes
+from scripts.api.modulos import modulos_web
+from scripts.api.reportes_mtto import reportes_mtto
+from scripts.api.mantenimiento import router as mantenimiento_router
 
 # Load environment variables
 load_dotenv()
@@ -45,5 +49,10 @@ async def restrict_public_access(request: Request, call_next):
 
 app.include_router(client)
 app.include_router(compresores)
+app.include_router(ordenes)
+app.include_router(modulos_web)
+app.include_router(reportes_mtto)
+app.include_router(mantenimiento_router)
+
 app.include_router(report)
 app.include_router(web)

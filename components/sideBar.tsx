@@ -5,6 +5,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { Compressor } from "@/lib/types";
 import { URL_API } from "@/lib/global";
 import Image from "next/image";
+import { Database, BookUser, UserPen } from "lucide-react";
 
 interface SideBarProps {
   compresores?: Compressor[];
@@ -27,7 +28,6 @@ interface NavigationItem {
   title: string;
   icon: React.ReactElement;
   route?: string;
-  requiresCompresor: boolean;
   isExpandable?: boolean;
   isExpanded?: boolean;
   setExpanded?: (expanded: boolean) => void;
@@ -173,165 +173,36 @@ const SideBar: React.FC<SideBarProps> = ({
         </svg>
       ),
       route: "/home",
-      requiresCompresor: false,
     },
     ...(rol === 3
       ? [
           {
             id: "admin view",
             title: "Administrador",
-            icon: (
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-3.31 0-6 2.69-6 6h12c0-3.31-2.69-6-6-6z"
-                />
-              </svg>
-            ),
-            requiresCompresor: false,
+            icon: <UserPen />,
             route: "/admin-view",
           },
         ]
       : []),
-    {
-      id: "beta",
-      title: "BETA",
-      icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M13 10V3L4 14h7v7l9-11h-7z"
-          />
-        </svg>
-      ),
-      isExpandable: true,
-      isExpanded: isBetaExpanded,
-      setExpanded: setIsBetaExpanded,
-      requiresCompresor: false,
-      children: [
-        {
-          id: "prediction",
-          title: "Consumo Predictivo",
-          route: "/features/prediction",
-          icon: (
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-              />
-            </svg>
-          ),
-          badge: "NUEVO",
-        },
-        {
-          id: "pressure-prediction",
-          title: "Presión",
-          route: "/features/pressure",
-          icon: (
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-              />
-            </svg>
-          ),
-          badge: "NUEVO",
-          disabled: false,
-        },
-      ],
-    },
-    {
-      id: "consumption-kwh",
-      title: "Consumo kWh",
-      icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M13 10V3L4 14h7v7l9-11h-7z"
-          />
-        </svg>
-      ),
-      requiresCompresor: false,
-      route: "/features/consumption-kwh",
-    },
     ...(rol === 0 || rol === 1 || rol === 2
       ? [
           {
-            id: "add-client",
-            title: "Dar de Alta Cliente",
-            icon: (
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                />
-              </svg>
-            ),
-            requiresCompresor: false,
-            route: "/add-client",
-          },
-          {
             id: "clients",
             title: "Ver clientes",
-            icon: (
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4.354a4 4 0 110 8.646 4 4 0 010-8.646M3 20.394c0-1.657.895-3.207 2.35-4.043 2.666-1.644 7.265-1.644 9.933 0 1.455.836 2.35 2.386 2.35 4.043"
-                />
-              </svg>
-            ),
-            requiresCompresor: false,
+            icon: <BookUser />,
             route: "/clients",
+          },
+          {
+            id: "compresors",
+            title: "Ver compresores",
+            icon: <Database />,
+            route: "/compresors",
+          },
+          {
+            id: "moduls",
+            title: "Habilitar modulos a cliente",
+            icon: <UserPen />,
+            route: "/modules",
           },
         ]
       : []),
@@ -348,11 +219,6 @@ const SideBar: React.FC<SideBarProps> = ({
 
   const isActiveRoute = (route: string) => {
     return pathname === route;
-  };
-
-  const canAccessRoute = (item: NavigationItem) => {
-    if (!item.requiresCompresor) return true;
-    return selectedCompresor !== null;
   };
 
   // Función para filtrar items según las secciones disponibles
@@ -458,7 +324,7 @@ const SideBar: React.FC<SideBarProps> = ({
         </svg>
       </button>
 
-      {!isExpanded && (
+      {/* {!isExpanded && (
         <div
           className="fixed left-0 top-1/2 transform -translate-y-1/2 z-40 hidden md:block"
           data-exclude-pdf="true"
@@ -502,7 +368,7 @@ const SideBar: React.FC<SideBarProps> = ({
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       <div
         className="fixed left-0 top-0 w-6 h-full z-40 bg-transparent hidden md:block"
@@ -573,18 +439,12 @@ const SideBar: React.FC<SideBarProps> = ({
                     className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-200 ${
                       item.route && isActiveRoute(item.route)
                         ? "bg-blue-600 text-white shadow-lg"
-                        : canAccessRoute(item)
-                        ? "hover:bg-slate-700 text-slate-200"
-                        : "text-slate-500 cursor-not-allowed"
-                    } ${
-                      !canAccessRoute(item) && item.requiresCompresor
-                        ? "opacity-50"
-                        : ""
+                        : "hover:bg-slate-700 text-slate-200"
                     }`}
                     onClick={() => {
                       if (item.isExpandable) {
                         item.setExpanded?.(!item.isExpanded);
-                      } else if (item.route && canAccessRoute(item)) {
+                      } else if (item.route) {
                         handleNavigation(item.route);
                       }
                     }}
@@ -659,12 +519,10 @@ const SideBar: React.FC<SideBarProps> = ({
                                     ? "bg-blue-500 text-white"
                                     : child.disabled
                                     ? "text-slate-500 cursor-not-allowed"
-                                    : canAccessRoute(item)
-                                    ? "hover:bg-slate-600 text-slate-300"
-                                    : "text-slate-500 cursor-not-allowed opacity-50"
+                                    : "hover:bg-slate-600 text-slate-300"
                                 }`}
                                 onClick={() => {
-                                  if (!child.disabled && canAccessRoute(item)) {
+                                  if (!child.disabled) {
                                     handleNavigation(child.route);
                                   }
                                 }}
@@ -694,12 +552,10 @@ const SideBar: React.FC<SideBarProps> = ({
                                     ? "bg-blue-500 text-white"
                                     : child.disabled
                                     ? "text-slate-500 cursor-not-allowed"
-                                    : canAccessRoute(item)
-                                    ? "hover:bg-slate-600 text-slate-300"
-                                    : "text-slate-500 cursor-not-allowed opacity-50"
+                                    : "hover:bg-slate-600 text-slate-300"
                                 }`}
                                 onClick={() => {
-                                  if (!child.disabled && canAccessRoute(item)) {
+                                  if (!child.disabled) {
                                     handleNavigation(child.route);
                                   }
                                 }}
@@ -728,15 +584,6 @@ const SideBar: React.FC<SideBarProps> = ({
               ))}
             </div>
           </nav>
-
-          {!selectedCompresor && (
-            <div className="p-4 border-t border-slate-700">
-              <div className="text-xs text-slate-400 text-center">
-                Seleccione un compresor en el inicio para acceder a todas las
-                funciones
-              </div>
-            </div>
-          )}
 
           {/* Botón SuperAdmin para rol 0 */}
           {rol === 0 && (

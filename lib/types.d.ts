@@ -1,26 +1,51 @@
-export type clientData = {
-    id_cliente: number;
-    numero_cliente: number;
-    nombre_cliente: string;
-    RFC: string;
-    direccion: string;
-    champion: string;
-    costokWh: number;
-    demoDiario: boolean;
-    demoSemanal: boolean;
-  };
+/* ===== Clientes ======= */
+export interface Client {
+  id_cliente: number;
+  numero_cliente: number;
+  nombre_cliente: string;
+  RFC: string;
+  direccion: string;
+  champion: string;
+  CostokWh: number;
+  demoDiario: number | null;
+  demoSemanal: number | null;
+}
 
+export interface ClientFormData {
+  numero_cliente: number | string;
+  nombre_cliente: string;
+  RFC: string;
+  direccion: string;
+  champion: string;
+  CostokWh: number | string;
+  demoDiario: number | string;
+  demoSemanal: number | string;
+}
+
+/* ===== Compresores ======= */
 export type compressorData = {
-    hp: number;
-    tipo: string;
-    voltaje: number;
-    marca: string;
-    numero_serie: number;
-    alias: string;
-    limite: number;
-    date: string;
-  };
+  hp: number;
+  tipo: string;
+  voltaje: number;
+  marca: string;
+  numero_serie: number;
+  alias: string;
+  limite: number;
+  date: string;
+};
 
+export interface Compressor {
+  id: string;
+  id_cliente: number;
+  linea: string;
+  alias: string;
+  tipo: string;
+  numero_serie: string;
+  numero_cliente: number;
+  nombre_cliente?: string;
+}
+
+/* ===== Usuarios ======= */
 export interface Engineer {
   id: string;
   name: string;
@@ -35,23 +60,23 @@ export interface Engineer {
   };
 }
 
-
-export interface Compressor {
-  id: string;
-  id_cliente: number;
-  linea: string;
-  alias: string;
-  tipo: string;
-  numero_serie: string;
-  numero_cliente: number;
-  nombre_cliente?: string;
-}
+export type EngineerData = {
+  id: number;
+  nombre: string;
+  email: string;
+  activo: boolean;
+};
 
 export interface UserData {
   id_cliente?: number;
   numero_cliente: number;
   rol: number;
-  compresores: { linea: string; proyecto: number; Alias: string, numero_cliente: string }[];
+  compresores: {
+    linea: string;
+    proyecto: number;
+    Alias: string;
+    numero_cliente: string;
+  }[];
   email: string;
   name: string;
   timestamp: number;
@@ -66,7 +91,6 @@ export interface UserResponse {
   email: string;
   name: string;
 }
-
 
 export interface UserInfo {
   email?: string;
@@ -84,27 +108,205 @@ export type EngineerFormData = {
   rol?: number; // 0 = SuperAdmin, 1 = Gerente VT, 2 = VAST, 3 = Gerente Cliente, 4 = Cliente
 };
 
+/* ===== Ordenes de Servicio ======= */
+export interface OrdenServicio {
+  folio: string;
+  id_cliente: number;
+  id_cliente_eventual: number;
+  nombre_cliente: string;
+  numero_cliente: number;
+  alias_compresor: string;
+  numero_serie: string;
+  hp: number;
+  tipo: string;
+  marca: string;
+  anio: number;
+  tipo_visita: string;
+  prioridad: string;
+  fecha_programada: string;
+  hora_programada: string;
+  estado: string;
+  fecha_creacion: string;
+  reporte_url: string;
+  tipo_mantenimiento: string;
+}
+
+export interface ReportFormData {
+  // Datos iniciales
+  folio?: string;
+  compressorId?: string;
+  numeroCliente?: string;
+  equipmentHp?: string;
+  compressorType?: string;
+  compressorAlias?: string;
+  clientId?: string;
+  clientName?: string;
+  clientAddress?: string;
+  clientContact?: string;
+  clientPhone?: string;
+  reportDate: string;
+
+  // Nuevos campos de Orden de Servicio
+  eventualClientId?: string;
+  maintenanceType?: string;
+  scheduledDate?: string;
+  scheduledTime?: string;
+  orderStatus?: string;
+  creationDate?: string;
+  reportUrl?: string;
+
+  // Información inicial
+  diagnosticType: string;
+  equipmentPowers: string;
+  displayPowers: string;
+
+  // Sección cuando equipo ENCIENDE
+  // Horas y alarmas
+  photo1?: File | null;
+  generalHours: string;
+  loadHours: string;
+  unloadHours: string;
+  photo2?: File | null;
+  maintenance2000: boolean;
+  maintenance4000: boolean;
+  maintenance6000: boolean;
+  maintenanceRequired: string;
+  otherMechanicalFailure: boolean;
+
+  // Temperaturas
+  compressionTempDisplay: string;
+  compressionTempLaser: string;
+  finalCompressionTemp: string;
+  airIntakeTemp: string;
+  intercoolerTemp: string;
+
+  // Mediciones eléctricas
+  supplyVoltage: string;
+  mainMotorAmperage: string;
+  fanAmperage: string;
+  photo3?: File | null;
+  powerFactorLoadOk: string;
+  powerFactorUnloadOk: string;
+
+  // Datos del compresor
+  photo4?: File | null;
+  brand: string;
+  serialNumber: string;
+  yearManufactured: string;
+  model: string;
+
+  // Sistema neumático
+  photo5?: File | null;
+  oilLeaks: string;
+  airLeaks: string;
+  intakeValveFunctioning: string;
+  intakeValveType: string;
+  pressureDifferential: string;
+  pressureControlMethod: string;
+  isMaster: string;
+  operatingPressure: string;
+  operatingSetPoint: string;
+  loadPressure: string;
+  unloadPressure: string;
+
+  // Wet Tank
+  photo6?: File | null;
+  wetTankExists: boolean;
+  wetTankLiters: string;
+  wetTankSafetyValve: boolean;
+  wetTankDrain: boolean;
+
+  // Dry Tank
+  photo7?: File | null;
+  dryTankExists: boolean;
+  dryTankLiters: string;
+  dryTankSafetyValve: boolean;
+  dryTankDrain: boolean;
+
+  // Condiciones ambientales
+  photo8?: File | null;
+  internalTemp: string;
+  location: string;
+  hotAirExpulsion: string;
+  highDustOperation: string;
+  specialConditions: string;
+  
+  // Campos adicionales para diagnóstico
+  deltaTAceite: string;
+  deltaPSeparador: string;
+  tempMotor: string;
+  aceiteOscuro: string;
+
+  // Sección cuando equipo NO ENCIENDE
+  equipmentStatePhoto?: File | null;
+  completeElementsPhoto?: File | null;
+  motorCondition: string;
+  compressionUnitCondition: string;
+  coolingCoilCondition: string;
+  admissionValvesCondition: string;
+  otherCondition: string;
+
+  generalConditionsPhoto?: File | null;
+  excessDust: boolean;
+  hasManual: boolean;
+  electricalPanelPowers: boolean;
+  correctMotorRotation: boolean;
+  compressionUnitRotates: boolean;
+  fanMotorWorks: boolean;
+  maintenanceStopReasons: string;
+
+  installationsPhoto?: File | null;
+  electricalFeedConnected: boolean;
+  adequateBreaker: boolean;
+  dischargePipeConnectedTo: string;
+  compressorRoomConditions: string;
+}
+
+/* ===== Modulos Web ======= */
+export interface Modulos {
+  nombre_cliente?: string;
+  numero_cliente?: number;
+  mantenimiento?: boolean;
+  reporteDia?: boolean;
+  reporteSemana?: boolean;
+  presion?: boolean;
+  prediccion?: boolean;
+  kwh?: boolean;
+}
+
+export interface ModulosFormData {
+  numero_cliente?: number;
+  nombre_cliente?: string;
+  mantenimiento?: boolean;
+  reporteDia?: boolean;
+  reporteSemana?: boolean;
+  presion?: boolean;
+  prediccion?: boolean;
+  kwh?: boolean;
+}
+
+/* ===== Datos de Graficas ======= */
 export type dayData = {
-    fecha: string;
-    inicio_funcionamiento: string;
-    fin_funcionamiento: string;
-    horas_trabajadas: number;
-    kWh: number;
-    horas_load: number;
-    horas_noload: number;
-    hp_nominal: number;
-    hp_equivalente: number;
-    ciclos: number;
-    promedio_ciclos_hora: number;
-    costo_usd: number;
-    comentario_ciclos: string;
-    comentario_hp_equivalente: string;
-  };
+  fecha: string;
+  inicio_funcionamiento: string;
+  fin_funcionamiento: string;
+  horas_trabajadas: number;
+  kWh: number;
+  horas_load: number;
+  horas_noload: number;
+  hp_nominal: number;
+  hp_equivalente: number;
+  ciclos: number;
+  promedio_ciclos_hora: number;
+  costo_usd: number;
+  comentario_ciclos: string;
+  comentario_hp_equivalente: string;
+};
 
 interface LineData {
-    time: string;
-    corriente: number;
-  }
+  time: string;
+  corriente: number;
+}
 
 export type chartData = [number, number, number];
 
@@ -159,13 +361,6 @@ export type SummaryData = {
     promedio_hp_equivalente: number;
     horas_trabajadas_anteriores: number;
   };
-};
-
-export type EngineerData = {
-  id: number;
-  nombre: string;
-  email: string;
-  activo: boolean;
 };
 
 export interface MaintenanceRecord {
@@ -350,114 +545,3 @@ export type Visit = {
   cliente?: string;
   numero_cliente?: number;
 };
-
-export interface FormData {
-  // Datos iniciales
-  isExistingClient: boolean;
-  clientId?: string;
-  clientName?: string;
-  clientAddress?: string;
-  clientContact?: string;
-  clientPhone?: string;
-  reportDate: string;
-
-  // Información inicial
-  diagnosticType: string;
-  equipmentPowers: string;
-  displayPowers: string;
-
-  // Sección cuando equipo ENCIENDE
-  // Horas y alarmas
-  photo1?: File | null;
-  generalHours: string;
-  loadHours: string;
-  unloadHours: string;
-  photo2?: File | null;
-  maintenance2000: boolean;
-  maintenance4000: boolean;
-  maintenance6000: boolean;
-  maintenanceRequired: string;
-  otherMechanicalFailure: boolean;
-
-  // Temperaturas
-  compressionTempDisplay: string;
-  compressionTempLaser: string;
-  finalCompressionTemp: string;
-  airIntakeTemp: string;
-  intercoolerTemp: string;
-
-  // Mediciones eléctricas
-  supplyVoltage: string;
-  mainMotorAmperage: string;
-  fanAmperage: string;
-  photo3?: File | null;
-  powerFactorLoadOk: string;
-  powerFactorUnloadOk: string;
-
-  // Datos del compresor
-  photo4?: File | null;
-  brand: string;
-  serialNumber: string;
-  yearManufactured: string;
-  model: string;
-
-  // Sistema neumático
-  photo5?: File | null;
-  oilLeaks: string;
-  airLeaks: string;
-  intakeValveFunctioning: string;
-  intakeValveType: string;
-  pressureDifferential: string;
-  pressureControlMethod: string;
-  isMaster: string;
-  operatingPressure: string;
-  operatingSetPoint: string;
-  loadPressure: string;
-  unloadPressure: string;
-
-  // Wet Tank
-  photo6?: File | null;
-  wetTankExists: boolean;
-  wetTankLiters: string;
-  wetTankSafetyValve: boolean;
-  wetTankDrain: boolean;
-
-  // Dry Tank
-  photo7?: File | null;
-  dryTankExists: boolean;
-  dryTankLiters: string;
-  dryTankSafetyValve: boolean;
-  dryTankDrain: boolean;
-
-  // Condiciones ambientales
-  photo8?: File | null;
-  internalTemp: string;
-  location: string;
-  hotAirExpulsion: string;
-  highDustOperation: string;
-  specialConditions: string;
-
-  // Sección cuando equipo NO ENCIENDE
-  equipmentStatePhoto?: File | null;
-  completeElementsPhoto?: File | null;
-  motorCondition: string;
-  compressionUnitCondition: string;
-  coolingCoilCondition: string;
-  admissionValvesCondition: string;
-  otherCondition: string;
-
-  generalConditionsPhoto?: File | null;
-  excessDust: boolean;
-  hasManual: boolean;
-  electricalPanelPowers: boolean;
-  correctMotorRotation: boolean;
-  compressionUnitRotates: boolean;
-  fanMotorWorks: boolean;
-  maintenanceStopReasons: string;
-
-  installationsPhoto?: File | null;
-  electricalFeedConnected: boolean;
-  adequateBreaker: boolean;
-  dischargePipeConnectedTo: string;
-  compressorRoomConditions: string;
-}
