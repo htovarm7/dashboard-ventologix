@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, Suspense, useEffect } from "react";
+import React, { useState, Suspense, useEffect, useCallback } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LoadingOverlay from "@/components/LoadingOverlay";
@@ -60,12 +60,6 @@ function FillReport() {
     MANTENIMIENTO: [],
     OTROS: [],
   });
-
-  interface PhotoResults {
-    [category: string]: Record<string, unknown>;
-  }
-
-  const [photoResults, setPhotoResults] = useState<PhotoResults>({});
 
   const [maintenanceData, setMaintenanceData] = useState({
     mantenimientos: defaultMaintenanceItems,
@@ -334,7 +328,7 @@ function FillReport() {
         console.error("Error restoring form data:", error);
       }
     }
-  }, [router]);
+  }, [router, searchParams]);
 
   // Warn before leaving page with unsaved changes
   useEffect(() => {
@@ -348,15 +342,6 @@ function FillReport() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
-
-  if (isLoading) {
-    return <LoadingOverlay isVisible={true} message="Cargando..." />;
-  }
-
-  if (!isAuthenticated) {
-    router.push("/");
-    return null;
-  }
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -422,8 +407,136 @@ function FillReport() {
     setHasUnsavedChanges(true);
   };
 
+  // Save pre-maintenance data to backend
+  const savePreMaintenanceData = useCallback(async () => {
+    if (!formData.folio) {
+      console.warn("No folio available for saving pre-maintenance data");
+      return { success: false, error: "No folio available" };
+    }
+
+    try {
+      // Helper function to convert form data to pre-maintenance format
+      const buildPreMantenimientoData = () => {
+        return {
+          folio: formData.folio || "",
+          equipo_enciende: formData.equipmentPowers || undefined,
+          display_enciende: formData.displayPowers || undefined,
+          horas_totales: formData.generalHours
+            ? parseFloat(formData.generalHours)
+            : undefined,
+          horas_carga: formData.loadHours
+            ? parseFloat(formData.loadHours)
+            : undefined,
+          horas_descarga: formData.unloadHours
+            ? parseFloat(formData.unloadHours)
+            : undefined,
+          mantenimiento_proximo: formData.maintenanceRequired || undefined,
+          compresor_es_master: formData.isMaster || undefined,
+          amperaje_maximo_motor: formData.mainMotorAmperage
+            ? parseFloat(formData.mainMotorAmperage)
+            : undefined,
+          ubicacion_compresor: formData.location || undefined,
+          expulsion_aire_caliente: formData.hotAirExpulsion || undefined,
+          operacion_muchos_polvos: formData.highDustOperation || undefined,
+          compresor_bien_instalado:
+            formData.compressorRoomConditions || undefined,
+          condiciones_especiales: formData.specialConditions || undefined,
+          voltaje_alimentacion: formData.supplyVoltage
+            ? parseFloat(formData.supplyVoltage)
+            : undefined,
+          amperaje_motor_carga: formData.mainMotorAmperage
+            ? parseFloat(formData.mainMotorAmperage)
+            : undefined,
+          amperaje_ventilador: formData.fanAmperage
+            ? parseFloat(formData.fanAmperage)
+            : undefined,
+          fugas_aceite_visibles: formData.oilLeaks || undefined,
+          fugas_aire_audibles: formData.airLeaks || undefined,
+          aceite_oscuro_degradado: formData.aceiteOscuro || undefined,
+          temp_compresion_display: formData.compressionTempDisplay
+            ? parseFloat(formData.compressionTempDisplay)
+            : undefined,
+          temp_compresion_laser: formData.compressionTempLaser
+            ? parseFloat(formData.compressionTempLaser)
+            : undefined,
+          temp_separador_aceite: formData.finalCompressionTemp
+            ? parseFloat(formData.finalCompressionTemp)
+            : undefined,
+          temp_interna_cuarto: formData.internalTemp
+            ? parseFloat(formData.internalTemp)
+            : undefined,
+          delta_t_enfriador_aceite: formData.deltaTAceite
+            ? parseFloat(formData.deltaTAceite)
+            : undefined,
+          temp_motor_electrico: formData.tempMotor
+            ? parseFloat(formData.tempMotor)
+            : undefined,
+          metodo_control_presion: formData.pressureControlMethod || undefined,
+          presion_carga: formData.loadPressure
+            ? parseFloat(formData.loadPressure)
+            : undefined,
+          presion_descarga: formData.unloadPressure
+            ? parseFloat(formData.unloadPressure)
+            : undefined,
+          diferencial_presion: formData.pressureDifferential || undefined,
+          delta_p_separador: formData.deltaPSeparador
+            ? parseFloat(formData.deltaPSeparador)
+            : undefined,
+          tipo_valvula_admision: formData.intakeValveType || undefined,
+          funcionamiento_valvula_admision:
+            formData.intakeValveFunctioning || undefined,
+          wet_tank_existe: formData.wetTankExists || undefined,
+          wet_tank_litros: formData.wetTankLiters
+            ? parseInt(formData.wetTankLiters)
+            : undefined,
+          wet_tank_valvula_seguridad: formData.wetTankSafetyValve || undefined,
+          wet_tank_dren: formData.wetTankDrain || undefined,
+          dry_tank_existe: formData.dryTankExists || undefined,
+          dry_tank_litros: formData.dryTankLiters
+            ? parseInt(formData.dryTankLiters)
+            : undefined,
+          dry_tank_valvula_seguridad: formData.dryTankSafetyValve || undefined,
+          dry_tank_dren: formData.dryTankDrain || undefined,
+          exceso_polvo_suciedad: formData.excessDust || undefined,
+          hay_manual: formData.hasManual || undefined,
+          tablero_electrico_enciende:
+            formData.electricalPanelPowers || undefined,
+          giro_correcto_motor: formData.correctMotorRotation || undefined,
+          unidad_compresion_gira: formData.compressionUnitRotates || undefined,
+          motor_ventilador_funciona: formData.fanMotorWorks || undefined,
+          razon_paro_mantenimiento:
+            formData.maintenanceStopReasons || undefined,
+          alimentacion_electrica_conectada:
+            formData.electricalFeedConnected || undefined,
+          pastilla_adecuada_amperajes: formData.adequateBreaker || undefined,
+          tuberia_descarga_conectada_a:
+            formData.dischargePipeConnectedTo || undefined,
+        };
+      };
+
+      const preMaintenanceData = buildPreMantenimientoData();
+      console.log("📤 Sending data:", preMaintenanceData);
+
+      const result = await savePreMantenimiento(preMaintenanceData);
+      console.log("📥 API Response:", result);
+
+      if (result?.success) {
+        console.log("✅ Pre-maintenance data saved:", result);
+        return result;
+      } else {
+        const errorMsg = result?.error || result?.message || "Unknown error";
+        console.error("❌ Error saving pre-maintenance data:", errorMsg);
+        return { success: false, error: errorMsg };
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      console.error("❌ Exception saving pre-maintenance data:", errorMsg);
+      return { success: false, error: errorMsg };
+    }
+  }, [formData, savePreMantenimiento]);
+
   // Upload all photos to Google Drive
-  const uploadAllPhotos = async () => {
+  const uploadAllPhotos = useCallback(async () => {
     if (!formData.folio || !formData.clientName) {
       alert("⚠️ Falta información del cliente o folio");
       return { success: false };
@@ -480,121 +593,133 @@ function FillReport() {
       console.error("Error uploading photos:", error);
       return { success: false, error };
     }
-  };
+  }, [formData.folio, formData.clientName, photosByCategory, uploadPhotos]);
 
-  const handleSaveDraft = async (showAlert: boolean = true) => {
-    try {
-      setIsSaving(true);
+  const handleSaveDraft = useCallback(
+    async (showAlert: boolean = true) => {
+      try {
+        setIsSaving(true);
 
-      // First, save pre-maintenance data to database
-      console.log("💾 Saving pre-maintenance data...");
-      const result = await savePreMaintenanceData();
+        // First, save pre-maintenance data to database
+        console.log("💾 Saving pre-maintenance data...");
+        const result = await savePreMaintenanceData();
 
-      if (result?.success) {
-        // Save maintenance data if section is shown
-        if (showMaintenanceSection && formData.folio) {
-          console.log("💾 Saving maintenance data to database...");
+        if (result?.success) {
+          // Save maintenance data if section is shown
+          if (showMaintenanceSection && formData.folio) {
+            console.log("💾 Saving maintenance data to database...");
 
-          // Convert maintenance items to database format (Sí/No)
-          const mantenimientoDbData: Record<string, string | boolean> = {
-            folio: formData.folio,
-            comentarios_generales: maintenanceData.comentarios_generales,
-            comentario_cliente: maintenanceData.comentario_cliente,
-          };
+            // Convert maintenance items to database format (Sí/No)
+            const mantenimientoDbData: Record<string, string | boolean> = {
+              folio: formData.folio,
+              comentarios_generales: maintenanceData.comentarios_generales,
+              comentario_cliente: maintenanceData.comentario_cliente,
+            };
 
-          // Map maintenance items to database fields
-          const itemFieldMap: { [key: string]: string } = {
-            "Cambio de aceite": "cambio_aceite",
-            "Cambio de filtro de aceite": "cambio_filtro_aceite",
-            "Cambio de filtro de aire": "cambio_filtro_aire",
-            "Cambio de separador de aceite": "cambio_separador_aceite",
-            "Revisión de válvula de admisión": "revision_valvula_admision",
-            "Revisión de válvula de descarga": "revision_valvula_descarga",
-            "Limpieza de radiador": "limpieza_radiador",
-            "Revisión de bandas/correas": "revision_bandas_correas",
-            "Revisión de fugas de aire": "revision_fugas_aire",
-            "Revisión de fugas de aceite": "revision_fugas_aceite",
-            "Revisión de conexiones eléctricas":
-              "revision_conexiones_electricas",
-            "Revisión de presostato": "revision_presostato",
-            "Revisión de manómetros": "revision_manometros",
-            "Lubricación general": "lubricacion_general",
-            "Limpieza general del equipo": "limpieza_general",
-          };
+            // Map maintenance items to database fields
+            const itemFieldMap: { [key: string]: string } = {
+              "Cambio de aceite": "cambio_aceite",
+              "Cambio de filtro de aceite": "cambio_filtro_aceite",
+              "Cambio de filtro de aire": "cambio_filtro_aire",
+              "Cambio de separador de aceite": "cambio_separador_aceite",
+              "Revisión de válvula de admisión": "revision_valvula_admision",
+              "Revisión de válvula de descarga": "revision_valvula_descarga",
+              "Limpieza de radiador": "limpieza_radiador",
+              "Revisión de bandas/correas": "revision_bandas_correas",
+              "Revisión de fugas de aire": "revision_fugas_aire",
+              "Revisión de fugas de aceite": "revision_fugas_aceite",
+              "Revisión de conexiones eléctricas":
+                "revision_conexiones_electricas",
+              "Revisión de presostato": "revision_presostato",
+              "Revisión de manómetros": "revision_manometros",
+              "Lubricación general": "lubricacion_general",
+              "Limpieza general del equipo": "limpieza_general",
+            };
 
-          // Add maintenance items to the data object
-          maintenanceData.mantenimientos.forEach((item) => {
-            const dbField = itemFieldMap[item.nombre];
-            if (dbField) {
-              mantenimientoDbData[dbField] = item.realizado ? "Sí" : "No";
-            }
-          });
+            // Add maintenance items to the data object
+            maintenanceData.mantenimientos.forEach((item) => {
+              const dbField = itemFieldMap[item.nombre];
+              if (dbField) {
+                mantenimientoDbData[dbField] = item.realizado ? "Sí" : "No";
+              }
+            });
 
-          try {
-            const maintenanceResponse = await fetch(
-              `${URL_API}/reporte_mantenimiento/`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
+            try {
+              const maintenanceResponse = await fetch(
+                `${URL_API}/reporte_mantenimiento/`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify(mantenimientoDbData),
                 },
-                body: JSON.stringify(mantenimientoDbData),
-              },
-            );
-
-            const maintenanceResult = await maintenanceResponse.json();
-            if (maintenanceResponse.ok) {
-              console.log("✅ Maintenance data saved:", maintenanceResult);
-            } else {
-              console.error(
-                "⚠️ Error saving maintenance data:",
-                maintenanceResult,
               );
+
+              const maintenanceResult = await maintenanceResponse.json();
+              if (maintenanceResponse.ok) {
+                console.log("✅ Maintenance data saved:", maintenanceResult);
+              } else {
+                console.error(
+                  "⚠️ Error saving maintenance data:",
+                  maintenanceResult,
+                );
+              }
+            } catch (mttoError) {
+              console.error("❌ Error saving maintenance data:", mttoError);
             }
-          } catch (mttoError) {
-            console.error("❌ Error saving maintenance data:", mttoError);
           }
-        }
 
-        // Then, upload categorized photos to Google Drive
-        const hasPhotosToUpload = Object.values(photosByCategory).some(
-          (photos) => photos.length > 0,
-        );
+          // Then, upload categorized photos to Google Drive
+          const hasPhotosToUpload = Object.values(photosByCategory).some(
+            (photos) => photos.length > 0,
+          );
 
-        if (hasPhotosToUpload) {
-          console.log("📸 Uploading photos to Google Drive...");
-          const photoUploadResult = await uploadAllPhotos();
+          if (hasPhotosToUpload) {
+            console.log("📸 Uploading photos to Google Drive...");
+            const photoUploadResult = await uploadAllPhotos();
 
-          if (!photoUploadResult.success) {
-            console.warn(
-              "⚠️ Some photos failed to upload, but draft was saved",
+            if (!photoUploadResult.success) {
+              console.warn(
+                "⚠️ Some photos failed to upload, but draft was saved",
+              );
+            } else {
+              console.log("✅ Photos uploaded successfully");
+            }
+          }
+
+          setLastSaved(new Date());
+          setHasUnsavedChanges(false);
+          if (showAlert) {
+            alert("💾 Borrador guardado exitosamente");
+          }
+        } else {
+          if (showAlert) {
+            alert(
+              `❌ Error al guardar: ${result?.error || "Error desconocido"}`,
             );
-          } else {
-            console.log("✅ Photos uploaded successfully");
           }
         }
-
-        setLastSaved(new Date());
-        setHasUnsavedChanges(false);
+      } catch (error) {
+        const errorMsg =
+          error instanceof Error ? error.message : "Error desconocido";
+        console.error("Error saving draft:", error);
         if (showAlert) {
-          alert("💾 Borrador guardado exitosamente");
+          alert(`❌ Error al guardar el borrador: ${errorMsg}`);
         }
-      } else {
-        if (showAlert) {
-          alert(`❌ Error al guardar: ${result?.error || "Error desconocido"}`);
-        }
+      } finally {
+        setIsSaving(false);
       }
-    } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : "Error desconocido";
-      console.error("Error saving draft:", error);
-      if (showAlert) {
-        alert(`❌ Error al guardar el borrador: ${errorMsg}`);
-      }
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    },
+    [
+      showMaintenanceSection,
+      maintenanceData,
+      photosByCategory,
+      uploadAllPhotos,
+      savePreMaintenanceData,
+      formData.folio,
+    ],
+  );
 
   // Auto-save every 30 seconds
   useEffect(() => {
@@ -607,131 +732,6 @@ function FillReport() {
 
     return () => clearInterval(autoSaveInterval);
   }, [formData.folio, hasUnsavedChanges, handleSaveDraft]);
-
-  // Helper function to convert form data to pre-maintenance format
-  const buildPreMantenimientoData = () => {
-    return {
-      folio: formData.folio || "",
-      equipo_enciende: formData.equipmentPowers || undefined,
-      display_enciende: formData.displayPowers || undefined,
-      horas_totales: formData.generalHours
-        ? parseFloat(formData.generalHours)
-        : undefined,
-      horas_carga: formData.loadHours
-        ? parseFloat(formData.loadHours)
-        : undefined,
-      horas_descarga: formData.unloadHours
-        ? parseFloat(formData.unloadHours)
-        : undefined,
-      mantenimiento_proximo: formData.maintenanceRequired || undefined,
-      compresor_es_master: formData.isMaster || undefined,
-      amperaje_maximo_motor: formData.mainMotorAmperage
-        ? parseFloat(formData.mainMotorAmperage)
-        : undefined,
-      ubicacion_compresor: formData.location || undefined,
-      expulsion_aire_caliente: formData.hotAirExpulsion || undefined,
-      operacion_muchos_polvos: formData.highDustOperation || undefined,
-      compresor_bien_instalado: formData.compressorRoomConditions || undefined,
-      condiciones_especiales: formData.specialConditions || undefined,
-      voltaje_alimentacion: formData.supplyVoltage
-        ? parseFloat(formData.supplyVoltage)
-        : undefined,
-      amperaje_motor_carga: formData.mainMotorAmperage
-        ? parseFloat(formData.mainMotorAmperage)
-        : undefined,
-      amperaje_ventilador: formData.fanAmperage
-        ? parseFloat(formData.fanAmperage)
-        : undefined,
-      fugas_aceite_visibles: formData.oilLeaks || undefined,
-      fugas_aire_audibles: formData.airLeaks || undefined,
-      aceite_oscuro_degradado: formData.aceiteOscuro || undefined,
-      temp_compresion_display: formData.compressionTempDisplay
-        ? parseFloat(formData.compressionTempDisplay)
-        : undefined,
-      temp_compresion_laser: formData.compressionTempLaser
-        ? parseFloat(formData.compressionTempLaser)
-        : undefined,
-      temp_separador_aceite: formData.finalCompressionTemp
-        ? parseFloat(formData.finalCompressionTemp)
-        : undefined,
-      temp_interna_cuarto: formData.internalTemp
-        ? parseFloat(formData.internalTemp)
-        : undefined,
-      delta_t_enfriador_aceite: formData.deltaTAceite
-        ? parseFloat(formData.deltaTAceite)
-        : undefined,
-      temp_motor_electrico: formData.tempMotor
-        ? parseFloat(formData.tempMotor)
-        : undefined,
-      metodo_control_presion: formData.pressureControlMethod || undefined,
-      presion_carga: formData.loadPressure
-        ? parseFloat(formData.loadPressure)
-        : undefined,
-      presion_descarga: formData.unloadPressure
-        ? parseFloat(formData.unloadPressure)
-        : undefined,
-      diferencial_presion: formData.pressureDifferential || undefined,
-      delta_p_separador: formData.deltaPSeparador
-        ? parseFloat(formData.deltaPSeparador)
-        : undefined,
-      tipo_valvula_admision: formData.intakeValveType || undefined,
-      funcionamiento_valvula_admision:
-        formData.intakeValveFunctioning || undefined,
-      wet_tank_existe: formData.wetTankExists || undefined,
-      wet_tank_litros: formData.wetTankLiters
-        ? parseInt(formData.wetTankLiters)
-        : undefined,
-      wet_tank_valvula_seguridad: formData.wetTankSafetyValve || undefined,
-      wet_tank_dren: formData.wetTankDrain || undefined,
-      dry_tank_existe: formData.dryTankExists || undefined,
-      dry_tank_litros: formData.dryTankLiters
-        ? parseInt(formData.dryTankLiters)
-        : undefined,
-      dry_tank_valvula_seguridad: formData.dryTankSafetyValve || undefined,
-      dry_tank_dren: formData.dryTankDrain || undefined,
-      exceso_polvo_suciedad: formData.excessDust || undefined,
-      hay_manual: formData.hasManual || undefined,
-      tablero_electrico_enciende: formData.electricalPanelPowers || undefined,
-      giro_correcto_motor: formData.correctMotorRotation || undefined,
-      unidad_compresion_gira: formData.compressionUnitRotates || undefined,
-      motor_ventilador_funciona: formData.fanMotorWorks || undefined,
-      razon_paro_mantenimiento: formData.maintenanceStopReasons || undefined,
-      alimentacion_electrica_conectada:
-        formData.electricalFeedConnected || undefined,
-      pastilla_adecuada_amperajes: formData.adequateBreaker || undefined,
-      tuberia_descarga_conectada_a:
-        formData.dischargePipeConnectedTo || undefined,
-    };
-  };
-
-  // Save pre-maintenance data to backend
-  const savePreMaintenanceData = async () => {
-    if (!formData.folio) {
-      console.warn("No folio available for saving pre-maintenance data");
-      return { success: false, error: "No folio available" };
-    }
-
-    try {
-      const preMaintenanceData = buildPreMantenimientoData();
-      console.log("📤 Sending data:", preMaintenanceData);
-
-      const result = await savePreMantenimiento(preMaintenanceData);
-      console.log("📥 API Response:", result);
-
-      if (result?.success) {
-        console.log("✅ Pre-maintenance data saved:", result);
-        return result;
-      } else {
-        const errorMsg = result?.error || result?.message || "Unknown error";
-        console.error("❌ Error saving pre-maintenance data:", errorMsg);
-        return { success: false, error: errorMsg };
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Unknown error";
-      console.error("❌ Exception saving pre-maintenance data:", errorMsg);
-      return { success: false, error: errorMsg };
-    }
-  };
 
   const handleNextSection = async () => {
     // Save pre-maintenance data to backend before proceeding
@@ -1237,6 +1237,15 @@ function FillReport() {
       </div>
     </div>
   );
+
+  if (isLoading) {
+    return <LoadingOverlay isVisible={true} message="Cargando..." />;
+  }
+
+  if (!isAuthenticated) {
+    router.push("/");
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">

@@ -58,7 +58,7 @@ function MaintenanceFormContent() {
     fotos: [],
   });
 
-  const [reportData, setReportData] = useState<Record<string, unknown> | null>(
+  const [reportData, setReportData] = useState<MaintenanceFormData | null>(
     null,
   );
 
@@ -141,9 +141,12 @@ function MaintenanceFormContent() {
 
       // Add report data
       if (reportData) {
-        submitData.append("folio", reportData.folio || "");
-        submitData.append("clientName", reportData.clientName || "");
-        submitData.append("serialNumber", reportData.serialNumber || "");
+        submitData.append("folio", String(reportData.folio || ""));
+        submitData.append("clientName", String(reportData.clientName || ""));
+        submitData.append(
+          "serialNumber",
+          String(reportData.serialNumber || ""),
+        );
       }
 
       // Add maintenance data
@@ -163,7 +166,9 @@ function MaintenanceFormContent() {
       });
 
       // Send to backend API
-      const response = await fetch(`${URL}/maintenance-reports/`, {
+      const baseURL =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${baseURL}/maintenance-reports/`, {
         method: "POST",
         body: submitData,
       });
