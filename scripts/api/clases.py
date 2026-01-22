@@ -86,3 +86,31 @@ class Modulos(BaseModel):
     presion: bool
     prediccion: bool
     kwh: bool
+
+class MantenimientoItem(BaseModel):
+    nombre: str
+    realizado: bool
+
+class ReporteMantenimiento(BaseModel):
+    folio: str
+    
+    # Items de mantenimiento (Sí/No)
+    cambio_aceite: Optional[Literal["Sí", "No"]] = None
+    cambio_filtro_aceite: Optional[Literal["Sí", "No"]] = None
+    cambio_filtro_aire: Optional[Literal["Sí", "No"]] = None
+    cambio_separador_aceite: Optional[Literal["Sí", "No"]] = None
+    revision_valvula_admision: Optional[Literal["Sí", "No"]] = None
+    revision_valvula_descarga: Optional[Literal["Sí", "No"]] = None
+    limpieza_radiador: Optional[Literal["Sí", "No"]] = None
+    revision_bandas_correas: Optional[Literal["Sí", "No"]] = None
+    revision_fugas_aire: Optional[Literal["Sí", "No"]] = None
+    revision_fugas_aceite: Optional[Literal["Sí", "No"]] = None
+    revision_conexiones_electricas: Optional[Literal["Sí", "No"]] = None
+    revision_presostato: Optional[Literal["Sí", "No"]] = None
+    revision_manometros: Optional[Literal["Sí", "No"]] = None
+    lubricacion_general: Optional[Literal["Sí", "No"]] = None
+    limpieza_general: Optional[Literal["Sí", "No"]] = None
+    
+    # Comentarios
+    comentarios_generales: Optional[str] = None
+    comentario_cliente: Optional[str] = None

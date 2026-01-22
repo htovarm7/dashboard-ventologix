@@ -221,6 +221,61 @@ function FillReport() {
     }
   };
 
+  // Load previously saved maintenance data from backend
+  const loadMaintenanceData = async (folio: string) => {
+    try {
+      const response = await fetch(`${URL_API}/reporte_mantenimiento/${folio}`);
+      const result = await response.json();
+
+      if (result.data) {
+        const savedData = result.data;
+        console.log("✅ Loaded maintenance data:", savedData);
+
+        // Map database fields back to maintenance items
+        const updatedMantenimientos = defaultMaintenanceItems.map((item) => {
+          const itemFieldMap: { [key: string]: string } = {
+            "Cambio de aceite": "cambio_aceite",
+            "Cambio de filtro de aceite": "cambio_filtro_aceite",
+            "Cambio de filtro de aire": "cambio_filtro_aire",
+            "Cambio de separador de aceite": "cambio_separador_aceite",
+            "Revisión de válvula de admisión": "revision_valvula_admision",
+            "Revisión de válvula de descarga": "revision_valvula_descarga",
+            "Limpieza de radiador": "limpieza_radiador",
+            "Revisión de bandas/correas": "revision_bandas_correas",
+            "Revisión de fugas de aire": "revision_fugas_aire",
+            "Revisión de fugas de aceite": "revision_fugas_aceite",
+            "Revisión de conexiones eléctricas":
+              "revision_conexiones_electricas",
+            "Revisión de presostato": "revision_presostato",
+            "Revisión de manómetros": "revision_manometros",
+            "Lubricación general": "lubricacion_general",
+            "Limpieza general del equipo": "limpieza_general",
+          };
+
+          const dbFieldName = itemFieldMap[item.nombre];
+          const dbValue = savedData[dbFieldName];
+
+          return {
+            nombre: item.nombre,
+            realizado: dbValue === "Sí",
+          };
+        });
+
+        setMaintenanceData({
+          mantenimientos: updatedMantenimientos,
+          comentarios_generales: savedData.comentarios_generales || "",
+          comentario_cliente: savedData.comentario_cliente || "",
+          fotos: [],
+        });
+
+        // Show maintenance section if data exists
+        setShowMaintenanceSection(true);
+      }
+    } catch (error) {
+      console.error("Error loading maintenance data:", error);
+    }
+  };
+
   // Load compressor data from URL parameters
   useEffect(() => {
     const folio = searchParams.get("folio");
@@ -228,7 +283,7 @@ function FillReport() {
     if (folio) {
       fetch(`${URL_API}/ordenes/${folio}`)
         .then((response) => response.json())
-        .then((result) => {
+        .then(async (result) => {
           if (result.data && result.data.length > 0) {
             const orden = result.data[0];
             setFormData((prev) => ({
@@ -253,7 +308,10 @@ function FillReport() {
             }));
 
             // Load previously saved pre-maintenance data
-            loadPreMaintenanceData(orden.folio);
+            await loadPreMaintenanceData(orden.folio);
+
+            // Load previously saved maintenance data
+            await loadMaintenanceData(orden.folio);
 
             // Clean up URL to only show folio
             router.replace(`?folio=${folio}`, { scroll: false });
@@ -444,6 +502,71 @@ function FillReport() {
       const result = await savePreMaintenanceData();
 
       if (result?.success) {
+        // Save maintenance data if section is shown
+        if (showMaintenanceSection && formData.folio) {
+          console.log("💾 Saving maintenance data to database...");
+
+          // Convert maintenance items to database format (Sí/No)
+          const mantenimientoDbData: any = {
+            folio: formData.folio,
+            comentarios_generales: maintenanceData.comentarios_generales,
+            comentario_cliente: maintenanceData.comentario_cliente,
+          };
+
+          // Map maintenance items to database fields
+          const itemFieldMap: { [key: string]: string } = {
+            "Cambio de aceite": "cambio_aceite",
+            "Cambio de filtro de aceite": "cambio_filtro_aceite",
+            "Cambio de filtro de aire": "cambio_filtro_aire",
+            "Cambio de separador de aceite": "cambio_separador_aceite",
+            "Revisión de válvula de admisión": "revision_valvula_admision",
+            "Revisión de válvula de descarga": "revision_valvula_descarga",
+            "Limpieza de radiador": "limpieza_radiador",
+            "Revisión de bandas/correas": "revision_bandas_correas",
+            "Revisión de fugas de aire": "revision_fugas_aire",
+            "Revisión de fugas de aceite": "revision_fugas_aceite",
+            "Revisión de conexiones eléctricas":
+              "revision_conexiones_electricas",
+            "Revisión de presostato": "revision_presostato",
+            "Revisión de manómetros": "revision_manometros",
+            "Lubricación general": "lubricacion_general",
+            "Limpieza general del equipo": "limpieza_general",
+          };
+
+          // Add maintenance items to the data object
+          maintenanceData.mantenimientos.forEach((item) => {
+            const dbField = itemFieldMap[item.nombre];
+            if (dbField) {
+              mantenimientoDbData[dbField] = item.realizado ? "Sí" : "No";
+            }
+          });
+
+          try {
+            const maintenanceResponse = await fetch(
+              `${URL_API}/reporte_mantenimiento/`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(mantenimientoDbData),
+              },
+            );
+
+            const maintenanceResult = await maintenanceResponse.json();
+            if (maintenanceResponse.ok) {
+              console.log("✅ Maintenance data saved:", maintenanceResult);
+            } else {
+              console.error(
+                "⚠️ Error saving maintenance data:",
+                maintenanceResult,
+              );
+            }
+          } catch (mttoError) {
+            console.error("❌ Error saving maintenance data:", mttoError);
+          }
+        }
+
         // Then, upload categorized photos to Google Drive
         const hasPhotosToUpload = Object.values(photosByCategory).some(
           (photos) => photos.length > 0,
@@ -743,6 +866,73 @@ function FillReport() {
       const result = await response.json();
 
       if (response.ok) {
+        // Save maintenance data to database if section was completed
+        if (showMaintenanceSection && formData.folio) {
+          console.log("💾 Saving maintenance data to database...");
+
+          // Convert maintenance items to database format (Sí/No)
+          const mantenimientoDbData: any = {
+            folio: formData.folio,
+            comentarios_generales: maintenanceData.comentarios_generales,
+            comentario_cliente: maintenanceData.comentario_cliente,
+          };
+
+          // Map maintenance items to database fields
+          const itemFieldMap: { [key: string]: string } = {
+            "Cambio de aceite": "cambio_aceite",
+            "Cambio de filtro de aceite": "cambio_filtro_aceite",
+            "Cambio de filtro de aire": "cambio_filtro_aire",
+            "Cambio de separador de aceite": "cambio_separador_aceite",
+            "Revisión de válvula de admisión": "revision_valvula_admision",
+            "Revisión de válvula de descarga": "revision_valvula_descarga",
+            "Limpieza de radiador": "limpieza_radiador",
+            "Revisión de bandas/correas": "revision_bandas_correas",
+            "Revisión de fugas de aire": "revision_fugas_aire",
+            "Revisión de fugas de aceite": "revision_fugas_aceite",
+            "Revisión de conexiones eléctricas":
+              "revision_conexiones_electricas",
+            "Revisión de presostato": "revision_presostato",
+            "Revisión de manómetros": "revision_manometros",
+            "Lubricación general": "lubricacion_general",
+            "Limpieza general del equipo": "limpieza_general",
+          };
+
+          // Add maintenance items to the data object
+          maintenanceData.mantenimientos.forEach((item) => {
+            const dbField = itemFieldMap[item.nombre];
+            if (dbField) {
+              mantenimientoDbData[dbField] = item.realizado ? "Sí" : "No";
+            }
+          });
+
+          try {
+            const maintenanceResponse = await fetch(
+              `${URL_API}/reporte_mantenimiento/`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(mantenimientoDbData),
+              },
+            );
+
+            const maintenanceResult = await maintenanceResponse.json();
+            if (maintenanceResponse.ok) {
+              console.log("✅ Maintenance data saved:", maintenanceResult);
+            } else {
+              console.error(
+                "⚠️ Error saving maintenance data:",
+                maintenanceResult,
+              );
+              // Don't block the main flow if maintenance data fails
+            }
+          } catch (mttoError) {
+            console.error("❌ Error submitting maintenance data:", mttoError);
+            // Don't block the main flow
+          }
+        }
+
         alert("✅ Reporte guardado exitosamente");
         // Remove draft if it exists
         const existingDrafts = localStorage.getItem("draftReports");
@@ -1061,6 +1251,7 @@ function FillReport() {
                     alt="Ventologix Logo"
                     width={64}
                     height={64}
+                    style={{ width: "auto", height: "auto" }}
                   />
                 </div>
                 <div>
