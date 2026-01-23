@@ -1,10 +1,12 @@
 """
 Google Drive utilities for photo uploads organized by client/folio/category
-Uses Service Account credentials from lib/credentials.json
+Uses OAuth 2.0 with user credentials for accessing Google Drive
 """
 import os
+import pickle
 from pathlib import Path
-from google.oauth2 import service_account
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from googleapiclient.errors import HttpError
@@ -14,29 +16,58 @@ from datetime import datetime
 # Configuration
 SCRIPT_DIR = Path(__file__).resolve().parent.parent.parent
 LIB_DIR = SCRIPT_DIR / "lib"
-CREDENTIALS_FILE = str(LIB_DIR / "credentials.json")
+OAUTH_CREDENTIALS_FILE = str(LIB_DIR / "oauth_credentials.json")
+TOKEN_FILE = str(LIB_DIR / "token.pickle")
 
 # Root folder ID for maintenance reports photos
 ROOT_FOLDER_ID = "1go0dsxXDmJ5FyHiUmVa4oXwacIh690g5"
 
-SCOPES = ["https://www.googleapis.com/auth/drive"]
+SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
 def get_drive_service():
-    """Initialize and return Google Drive service using Service Account."""
-    print(f"🔐 Initializing Google Drive service with Service Account...")
-    print(f"   Credentials file: {CREDENTIALS_FILE}")
+    """Initialize and return Google Drive service using OAuth 2.0."""
+    print(f"🔐 Initializing Google Drive service with OAuth 2.0...")
+    print(f"   Token file: {TOKEN_FILE}")
+
     try:
-        if not os.path.exists(CREDENTIALS_FILE):
-            print(f"❌ Credentials file not found: {CREDENTIALS_FILE}")
-            raise FileNotFoundError(f"Credentials file not found at {CREDENTIALS_FILE}")
-            
-        credentials = service_account.Credentials.from_service_account_file(
-            CREDENTIALS_FILE, scopes=SCOPES
-        )
-        
-        service = build('drive', 'v3', credentials=credentials)
+        creds = None
+
+        # Load existing token if available
+        if os.path.exists(TOKEN_FILE):
+            with open(TOKEN_FILE, 'rb') as token:
+                creds = pickle.load(token)
+                print(f"   ✓ Loaded existing token")
+
+        # If no valid credentials, need to login
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                print(f"   ⟳ Refreshing expired token...")
+                creds.refresh(Request())
+                print(f"   ✓ Token refreshed")
+            else:
+                if not os.path.exists(OAUTH_CREDENTIALS_FILE):
+                    raise FileNotFoundError(
+                        f"OAuth credentials not found at {OAUTH_CREDENTIALS_FILE}\n"
+                        "Please create OAuth credentials in Google Cloud Console"
+                    )
+
+                print(f"   ⚠ No valid token found, authentication required")
+                print(f"   Opening browser for authentication...")
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    OAUTH_CREDENTIALS_FILE, SCOPES
+                )
+                creds = flow.run_local_server(port=0)
+                print(f"   ✓ Authentication successful")
+
+            # Save the credentials for next run
+            with open(TOKEN_FILE, 'wb') as token:
+                pickle.dump(creds, token)
+                print(f"   ✓ Token saved")
+
+        service = build('drive', 'v3', credentials=creds)
         print(f"✅ Google Drive service initialized successfully")
         return service
+
     except FileNotFoundError as e:
         print(f"❌ File not found: {e}")
         raise
