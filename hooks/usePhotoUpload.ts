@@ -9,10 +9,15 @@ export interface PhotoUploadResult {
   error?: string;
 }
 
+export type UploadStatus = "idle" | "uploading" | "success" | "error";
+
 export const usePhotoUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{
     [key: string]: number;
+  }>({});
+  const [uploadStatus, setUploadStatus] = useState<{
+    [key: string]: UploadStatus;
   }>({});
 
   const uploadPhotos = async (
@@ -33,7 +38,8 @@ export const usePhotoUpload = () => {
       `📸 Starting upload for ${files.length} file(s) in category: ${category}`
     );
     setUploading(true);
-    setUploadProgress({ [category]: 0 });
+    setUploadProgress((prev) => ({ ...prev, [category]: 0 }));
+    setUploadStatus((prev) => ({ ...prev, [category]: "uploading" }));
 
     try {
       const formData = new FormData();
@@ -68,7 +74,8 @@ export const usePhotoUpload = () => {
           `✅ Upload successful for ${category}:`,
           result.uploaded_files
         );
-        setUploadProgress({ [category]: 100 });
+        setUploadProgress((prev) => ({ ...prev, [category]: 100 }));
+        setUploadStatus((prev) => ({ ...prev, [category]: "success" }));
         return result;
       } else {
         const errorMsg = result.error || "Upload failed";
@@ -79,6 +86,7 @@ export const usePhotoUpload = () => {
       const errorMsg =
         error instanceof Error ? error.message : "Unknown error";
       console.error(`❌ Error uploading photos for ${category}:`, error);
+      setUploadStatus((prev) => ({ ...prev, [category]: "error" }));
       return {
         success: false,
         error: errorMsg,
@@ -105,11 +113,24 @@ export const usePhotoUpload = () => {
     return results;
   };
 
+  const resetUploadStatus = (category: string) => {
+    setUploadStatus((prev) => ({ ...prev, [category]: "idle" }));
+    setUploadProgress((prev) => ({ ...prev, [category]: 0 }));
+  };
+
+  const resetAllUploadStatus = () => {
+    setUploadStatus({});
+    setUploadProgress({});
+  };
+
   return {
     uploading,
     uploadProgress,
+    uploadStatus,
     uploadPhotos,
     uploadPhotosByCategory,
+    resetUploadStatus,
+    resetAllUploadStatus,
   };
 };
 
