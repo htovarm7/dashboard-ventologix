@@ -235,7 +235,7 @@ const ShowClients = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {clients.map((client, index) => (
+                  {clients.map((client) => (
                     <tr
                       key={client.id_cliente}
                       className="hover:bg-blue-50 transition-colors"
@@ -286,7 +286,7 @@ const ShowClients = () => {
               <div className="text-6xl mb-4">📋</div>
               <p className="text-lg font-medium">No hay clientes registrados</p>
               <p className="text-sm mt-2">
-                Haz clic en "Nuevo Cliente" para agregar uno
+                Haz clic en &quot;Nuevo Cliente&quot; para agregar uno
               </p>
             </div>
           )}

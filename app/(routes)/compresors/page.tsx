@@ -375,7 +375,7 @@ const Compresors = () => {
                 No hay compresores registrados
               </p>
               <p className="text-sm mt-2">
-                Haz clic en "Nuevo Compresor" para agregar uno
+                Haz clic en &quot;Nuevo Compresor&quot; para agregar uno
               </p>
             </div>
           )}

@@ -72,7 +72,7 @@ export default function Page() {
             rol: data.rol,
             email: data.email,
             name: data.name,
-            secciones: data.secciones || [],
+            modulos: data.modulos || {},
             compresores: (data.compresores || []).map((c: Compressor) => {
               return {
                 ...c,

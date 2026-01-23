@@ -14,7 +14,6 @@ const Home = () => {
   const [compresores, setCompresores] = useState<Compressor[]>([]);
   const [numeroCliente, setNumeroCliente] = useState<number | null>(null);
   const [rol, setRol] = useState<number | null>(null);
-  const [secciones, setSecciones] = useState<string[]>([]);
   const [selectedCompresor, setSelectedCompresor] = useState<Compressor | null>(
     null,
   );
@@ -46,7 +45,7 @@ const Home = () => {
           setCompresores(parsedData.compresores || []);
           setNumeroCliente(parsedData.numero_cliente);
           setRol(parsedData.rol);
-          setSecciones(parsedData.secciones || []);
+          setModulos(parsedData.modulos || {});
 
           console.log(userData);
 
@@ -102,7 +101,7 @@ const Home = () => {
           return false;
       }
     }
-    return secciones.includes(moduleName);
+    return false;
   };
 
   if (isLoading || isCheckingAuth) {

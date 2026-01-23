@@ -204,13 +204,24 @@ def get_usuario_by_email(email: str):
             """)
             compresores = cursor.fetchall()
 
-        # 3. OBTENER SECCIONES HABILITADAS PARA EL CLIENTE
+        # 3. OBTENER MÓDULOS HABILITADOS PARA EL CLIENTE
         cursor.execute("""
-            SELECT seccion
-            FROM cliente_secciones
-            WHERE numeroCliente = %s AND habilitado = 1
+            SELECT mantenimiento, reporteDia, reporteSemana, presion, prediccion, kwh
+            FROM modulos_web
+            WHERE numero_cliente = %s
         """, (numeroCliente,))
-        secciones = [s['seccion'] for s in cursor.fetchall()]
+        modulos_row = cursor.fetchone()
+        
+        modulos = {}
+        if modulos_row:
+            modulos = {
+                "mantenimiento": bool(modulos_row.get('mantenimiento', False)),
+                "reporteDia": bool(modulos_row.get('reporteDia', False)),
+                "reporteSemana": bool(modulos_row.get('reporteSemana', False)),
+                "presion": bool(modulos_row.get('presion', False)),
+                "prediccion": bool(modulos_row.get('prediccion', False)),
+                "kwh": bool(modulos_row.get('kwh', False))
+            }
 
         cursor.close()
         conn.close()
@@ -222,7 +233,7 @@ def get_usuario_by_email(email: str):
             "rol": rol,
             "name": user['name'],
             "compresores": compresores,
-            "secciones": secciones
+            "modulos": modulos
         }
 
     except mysql.connector.Error as e:

@@ -42,8 +42,6 @@ function FillReport() {
     usePreMantenimiento();
   const {
     uploadPhotos,
-    uploading: uploadingPhotos,
-    uploadProgress,
   } = usePhotoUpload();
 
   const [showMaintenanceSection, setShowMaintenanceSection] = useState(false);
@@ -345,6 +343,7 @@ function FillReport() {
     }, 30000); // 30 segundos
 
     return () => clearInterval(autoSaveInterval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.folio, hasUnsavedChanges]);
 
   // Warn before leaving page with unsaved changes
@@ -447,7 +446,7 @@ function FillReport() {
         console.log(`  ${category}: ${files.length} photo(s)`);
       });
 
-      const results: any = {};
+      const results: Record<string, string[]> = {};
       let totalUploaded = 0;
       let totalFailed = 0;
       let hasPhotos = false;
@@ -507,7 +506,7 @@ function FillReport() {
           console.log("💾 Saving maintenance data to database...");
 
           // Convert maintenance items to database format (Sí/No)
-          const mantenimientoDbData: any = {
+          const mantenimientoDbData: Record<string, string> = {
             folio: formData.folio,
             comentarios_generales: maintenanceData.comentarios_generales,
             comentario_cliente: maintenanceData.comentario_cliente,
@@ -871,7 +870,7 @@ function FillReport() {
           console.log("💾 Saving maintenance data to database...");
 
           // Convert maintenance items to database format (Sí/No)
-          const mantenimientoDbData: any = {
+          const mantenimientoDbData: Record<string, string> = {
             folio: formData.folio,
             comentarios_generales: maintenanceData.comentarios_generales,
             comentario_cliente: maintenanceData.comentario_cliente,
@@ -938,7 +937,7 @@ function FillReport() {
         const existingDrafts = localStorage.getItem("draftReports");
         if (existingDrafts) {
           const drafts = JSON.parse(existingDrafts);
-          const filtered = drafts.filter((d: any) => d.id !== formData.folio);
+          const filtered = drafts.filter((d: { id: string }) => d.id !== formData.folio);
           localStorage.setItem("draftReports", JSON.stringify(filtered));
         }
         // Redirect back to reports list

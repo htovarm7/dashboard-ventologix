@@ -47,6 +47,14 @@ interface OrdenServicio {
   tipo_mantenimiento: string;
 }
 
+interface EventualClient {
+  id: number;
+  nombre: string;
+  direccion?: string;
+  contacto?: string;
+  telefono?: string;
+}
+
 interface TicketFormData {
   folio: string;
   clientName: string;
@@ -91,14 +99,13 @@ const formatTime = (timeString: string) => {
 
 const TypeReportes = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [draftReports, setDraftReports] = useState<DraftReport[]>([]);
   const [rol, setRol] = useState<number | null>(null);
   const [isClienteEventual, setIsClienteEventual] = useState(false);
   const [isNewEventual, setIsNewEventual] = useState(true);
-  const [eventualClients, setEventualClients] = useState<any[]>([]);
+  const [eventualClients, setEventualClients] = useState<EventualClient[]>([]);
   const [selectedEventualClient, setSelectedEventualClient] =
-    useState<any>(null);
+    useState<EventualClient | null>(null);
   const [selectedCompressor, setSelectedCompressor] =
     useState<CompressorSearchResult | null>(null);
   const [showResults, setShowResults] = useState(false);
@@ -106,10 +113,6 @@ const TypeReportes = () => {
     []
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [ordenServicio, setOrdenServicio] = useState<OrdenServicio | null>(
-    null
-  );
-  const [loadingOrden, setLoadingOrden] = useState(false);
   const [ordenesServicio, setOrdenesServicio] = useState<OrdenServicio[]>([]);
   const [loadingOrdenes, setLoadingOrdenes] = useState(false);
   const [ticketData, setTicketData] = useState<TicketFormData>({
@@ -207,28 +210,10 @@ const TypeReportes = () => {
   };
 
   // Fetch orden de servicio by folio
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const fetchOrdenServicio = async (folio: string) => {
-    setLoadingOrden(true);
-    try {
-      const response = await fetch(`${URL_API}/ordenes/`);
-      const data = await response.json();
-
-      if (data.data) {
-        const orden = data.data.find((o: OrdenServicio) => o.folio === folio);
-        if (orden) {
-          setOrdenServicio(orden);
-        } else {
-          alert(
-            "No se encontró la orden de servicio con el folio especificado"
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching orden de servicio:", error);
-      alert("Error al cargar la orden de servicio");
-    } finally {
-      setLoadingOrden(false);
-    }
+    // Función reservada para futura implementación
+    console.log("fetchOrdenServicio called with folio:", folio);
   };
 
   // Load draft reports on mount

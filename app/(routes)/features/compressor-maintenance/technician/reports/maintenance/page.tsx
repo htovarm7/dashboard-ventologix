@@ -58,7 +58,7 @@ function MaintenanceFormContent() {
     fotos: [],
   });
 
-  const [reportData, setReportData] = useState<any>(null);
+  const [reportData, setReportData] = useState<Record<string, unknown> | null>(null);
 
   // Load report data from sessionStorage
   useEffect(() => {
