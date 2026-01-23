@@ -83,7 +83,7 @@ export default function Page() {
 
           // Redirect based on user role
           if (data.rol === 2) {
-            router.push("/features/compressor-maintenance");
+            router.push("/features/compressor-maintenance/technician/reports");
           } else {
             router.push("/home");
           }
