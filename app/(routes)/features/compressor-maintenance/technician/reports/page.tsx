@@ -38,6 +38,16 @@ interface OrdenServicio {
   tipo_mantenimiento: string;
 }
 
+interface EventualClient {
+  id: number;
+  nombre: string;
+  nombre_cliente?: string;
+  direccion?: string;
+  contacto?: string;
+  telefono?: string;
+  email?: string;
+}
+
 interface TicketFormData {
   folio: string;
   clientName: string;
@@ -85,13 +95,9 @@ const TypeReportes = () => {
   const [rol, setRol] = useState<number | null>(null);
   const [isClienteEventual, setIsClienteEventual] = useState(false);
   const [isNewEventual, setIsNewEventual] = useState(true);
-  const [eventualClients, setEventualClients] = useState<
-    Record<string, unknown>[]
-  >([]);
-  const [selectedEventualClient, setSelectedEventualClient] = useState<Record<
-    string,
-    unknown
-  > | null>(null);
+  const [eventualClients, setEventualClients] = useState<EventualClient[]>([]);
+  const [selectedEventualClient, setSelectedEventualClient] =
+    useState<EventualClient | null>(null);
   const [selectedCompressor, setSelectedCompressor] =
     useState<CompressorSearchResult | null>(null);
   const [showResults, setShowResults] = useState(false);
@@ -212,18 +218,6 @@ const TypeReportes = () => {
     }
   };
 
-  // Load draft reports on mount
-  useEffect(() => {
-    const loadDraftReports = () => {
-      const drafts = localStorage.getItem("draftReports");
-      if (drafts) {
-        // Draft reports loaded but not used currently
-        // JSON.parse(drafts);
-      }
-    };
-    loadDraftReports();
-  }, []);
-
   // Search for compressors
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
@@ -332,12 +326,13 @@ const TypeReportes = () => {
   };
 
   // Handle eventual client selection
-  const handleSelectEventualClient = (client: Record<string, unknown>) => {
+  const handleSelectEventualClient = (client: EventualClient) => {
     setSelectedEventualClient(client);
     setIsNewEventual(false);
+    const clientName = client.nombre_cliente || client.nombre || "";
     setTicketData((prev) => ({
       ...prev,
-      clientName: String(client.nombre_cliente || ""),
+      clientName: clientName,
       numeroCliente: "EVENTUAL",
     }));
     setEventualClientInfo({

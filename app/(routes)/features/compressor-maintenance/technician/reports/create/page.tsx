@@ -328,7 +328,20 @@ function FillReport() {
         console.error("Error restoring form data:", error);
       }
     }
-  }, [router, searchParams]);
+  }, [searchParams, router]);
+
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    if (!formData.folio || !hasUnsavedChanges) return;
+
+    const autoSaveInterval = setInterval(() => {
+      console.log("🔄 Auto-guardando borrador...");
+      handleSaveDraft(false); // false = no mostrar alerta
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(autoSaveInterval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.folio, hasUnsavedChanges]);
 
   // Warn before leaving page with unsaved changes
   useEffect(() => {
@@ -549,7 +562,7 @@ function FillReport() {
         console.log(`  ${category}: ${files.length} photo(s)`);
       });
 
-      const results: Record<string, Record<string, unknown>> = {};
+      const results: Record<string, unknown> = {};
       let totalUploaded = 0;
       let totalFailed = 0;
       let hasPhotos = false;
@@ -609,12 +622,12 @@ function FillReport() {
           if (showMaintenanceSection && formData.folio) {
             console.log("💾 Saving maintenance data to database...");
 
-            // Convert maintenance items to database format (Sí/No)
-            const mantenimientoDbData: Record<string, string | boolean> = {
-              folio: formData.folio,
-              comentarios_generales: maintenanceData.comentarios_generales,
-              comentario_cliente: maintenanceData.comentario_cliente,
-            };
+          // Convert maintenance items to database format (Sí/No)
+          const mantenimientoDbData: Record<string, string> = {
+            folio: formData.folio,
+            comentarios_generales: maintenanceData.comentarios_generales,
+            comentario_cliente: maintenanceData.comentario_cliente,
+          };
 
             // Map maintenance items to database fields
             const itemFieldMap: { [key: string]: string } = {
@@ -872,7 +885,7 @@ function FillReport() {
           console.log("💾 Saving maintenance data to database...");
 
           // Convert maintenance items to database format (Sí/No)
-          const mantenimientoDbData: Record<string, unknown> = {
+          const mantenimientoDbData: Record<string, string> = {
             folio: formData.folio,
             comentarios_generales: maintenanceData.comentarios_generales,
             comentario_cliente: maintenanceData.comentario_cliente,

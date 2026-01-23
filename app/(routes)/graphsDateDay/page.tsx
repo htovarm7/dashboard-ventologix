@@ -665,7 +665,7 @@ function MainContent() {
           </div>
           <div
             className={`bg-white rounded-2xl shadow p-4 text-center w-[250px] ${putBlur(
-              Boolean(clientData?.demoDiario),
+              !!(clientData?.demoDiario ?? false),
             )}`}
           >
             <h2 className="text-xl text-black">kWh Utilizados</h2>
@@ -682,7 +682,7 @@ function MainContent() {
         {/* Gráficas */}
         <div
           className={`flex flex-row flex-wrap justify-center gap-4 ${putBlur(
-            Boolean(clientData?.demoDiario),
+            !!(clientData?.demoDiario ?? false),
           )}`}
           id="grafico-listo"
         >

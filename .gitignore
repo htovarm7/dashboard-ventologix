@@ -53,3 +53,5 @@ pdfs
 # Google Drive API credentials
 
 scripts/api/__pycache__
+
+/.claude
