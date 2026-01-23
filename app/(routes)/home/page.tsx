@@ -188,7 +188,7 @@ const Home = () => {
                         const [id_cliente, linea] = e.target.value.split("-");
                         const compresor = compresores.find(
                           (c) =>
-                            c.id_cliente.toString() === id_cliente &&
+                            c.id_cliente?.toString() === id_cliente &&
                             c.linea === linea,
                         );
                         if (compresor) {

@@ -3,6 +3,7 @@ Google Drive utilities for photo uploads organized by client/folio/category
 Uses OAuth 2.0 with user credentials for accessing Google Drive
 """
 import os
+import sys
 import pickle
 from pathlib import Path
 from google.auth.transport.requests import Request
@@ -12,6 +13,14 @@ from googleapiclient.http import MediaIoBaseUpload
 from googleapiclient.errors import HttpError
 import io
 from datetime import datetime
+
+# Configure UTF-8 encoding for Windows console
+if sys.platform == 'win32':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except AttributeError:
+        import codecs
+        sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
 
 # Configuration
 SCRIPT_DIR = Path(__file__).resolve().parent.parent.parent

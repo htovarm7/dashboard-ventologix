@@ -40,7 +40,7 @@ function FillReport() {
   const searchParams = useSearchParams();
   const { savePreMantenimiento, loading: savingPreMaintenance } =
     usePreMantenimiento();
-  const { uploadPhotos } = usePhotoUpload();
+  const { uploadPhotos, uploadStatus, uploadProgress } = usePhotoUpload();
 
   const [showMaintenanceSection, setShowMaintenanceSection] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -550,10 +550,14 @@ function FillReport() {
 
   // Upload all photos to Google Drive
   const uploadAllPhotos = useCallback(async () => {
-    if (!formData.folio || !formData.clientName) {
-      alert("⚠️ Falta información del cliente o folio");
-      return { success: false };
+    // Get fresh data from formData state
+    if (!formData.folio) {
+      console.warn("⚠️ Missing folio for photo upload");
+      return { success: false, error: "Missing folio" };
     }
+
+    // Use clientName from formData, fallback to "Unknown"
+    const clientName = formData.clientName || "Unknown";
 
     try {
       // Log all photo categories for debugging
@@ -571,9 +575,13 @@ function FillReport() {
         if (files.length > 0) {
           hasPhotos = true;
           console.log(`📤 Uploading ${files.length} photo(s) to ${category}`);
+          console.log(
+            `   Using folio: ${formData.folio}, client: ${clientName}`,
+          );
+
           const result = await uploadPhotos(
             formData.folio,
-            formData.clientName,
+            clientName,
             category,
             files,
           );
@@ -595,18 +603,22 @@ function FillReport() {
       }
 
       if (totalFailed > 0) {
-        alert(`⚠️ ${totalUploaded} fotos subidas, ${totalFailed} fallaron`);
+        const failureMsg = `⚠️ ${totalUploaded} fotos subidas, ${totalFailed} fallaron`;
+        console.warn(failureMsg);
+        alert(failureMsg);
       } else if (totalUploaded > 0) {
-        console.log(`✅ Successfully uploaded ${totalUploaded} photo(s)`);
-        alert(`✅ ${totalUploaded} fotos subidas exitosamente`);
+        const successMsg = `✅ ${totalUploaded} fotos subidas exitosamente`;
+        console.log(successMsg);
+        alert(successMsg);
       }
 
       return { success: totalFailed === 0, results };
     } catch (error) {
-      console.error("Error uploading photos:", error);
-      return { success: false, error };
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error("Error uploading photos:", errorMsg);
+      return { success: false, error: errorMsg };
     }
-  }, [formData.folio, formData.clientName, photosByCategory, uploadPhotos]);
+  }, [formData, photosByCategory, uploadPhotos]);
 
   const handleSaveDraft = useCallback(
     async (showAlert: boolean = true) => {
@@ -622,12 +634,12 @@ function FillReport() {
           if (showMaintenanceSection && formData.folio) {
             console.log("💾 Saving maintenance data to database...");
 
-          // Convert maintenance items to database format (Sí/No)
-          const mantenimientoDbData: Record<string, string> = {
-            folio: formData.folio,
-            comentarios_generales: maintenanceData.comentarios_generales,
-            comentario_cliente: maintenanceData.comentario_cliente,
-          };
+            // Convert maintenance items to database format (Sí/No)
+            const mantenimientoDbData: Record<string, string> = {
+              folio: formData.folio,
+              comentarios_generales: maintenanceData.comentarios_generales,
+              comentario_cliente: maintenanceData.comentario_cliente,
+            };
 
             // Map maintenance items to database fields
             const itemFieldMap: { [key: string]: string } = {
@@ -1334,6 +1346,8 @@ function FillReport() {
                     photos={photosByCategory.DISPLAY_HORAS}
                     onPhotoAdd={handleCategorizedPhotoChange}
                     onPhotoRemove={removeCategorizedPhoto}
+                    uploadStatus={uploadStatus.DISPLAY_HORAS || "idle"}
+                    uploadProgress={uploadProgress.DISPLAY_HORAS || 0}
                   />
                   <div>
                     <label className="block text-m font-medium text-gray-700 mb-2">
