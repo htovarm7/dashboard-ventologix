@@ -18,8 +18,8 @@ const ModulosSheet = () => {
     kwh: false,
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<Modulos | null>(null);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingClient, setEditingClient] = useState<number | null>(null);
+  const [editedModules, setEditedModules] = useState<Modulos | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -58,26 +58,6 @@ const ModulosSheet = () => {
       prediccion: false,
       kwh: false,
     });
-    setIsEditMode(false);
-    setSelectedClient(null);
-    setIsModalOpen(true);
-    setError(null);
-    setSuccess(null);
-  };
-
-  const handleOpenEditModal = (client: Modulos) => {
-    setFormData({
-      numero_cliente: client.numero_cliente,
-      nombre_cliente: client.nombre_cliente || "",
-      mantenimiento: client.mantenimiento,
-      reporteDia: client.reporteDia,
-      reporteSemana: client.reporteSemana,
-      presion: client.presion,
-      prediccion: client.prediccion,
-      kwh: client.kwh,
-    });
-    setSelectedClient(client);
-    setIsEditMode(true);
     setIsModalOpen(true);
     setError(null);
     setSuccess(null);
@@ -85,8 +65,6 @@ const ModulosSheet = () => {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setSelectedClient(null);
-    setIsEditMode(false);
     setError(null);
     setSuccess(null);
   };
@@ -101,61 +79,88 @@ const ModulosSheet = () => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmitCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
     try {
-      if (isEditMode && selectedClient) {
-        // Update existing client
-        const res = await fetch(
-          `${URL_API}/modulos/${selectedClient.numero_cliente}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(formData),
-          },
-        );
+      const res = await fetch(`${URL_API}/modulos/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
 
-        const data = await res.json();
+      const data = await res.json();
 
-        if (res.ok) {
-          setSuccess("Modules updated successfully");
-          fetchModulos();
-          setTimeout(() => {
-            handleCloseModal();
-          }, 1500);
-        } else {
-          setError(data.detail || "Failed to update modules");
-        }
+      if (res.ok) {
+        setSuccess("Client added successfully");
+        fetchModulos();
+        setTimeout(() => {
+          handleCloseModal();
+        }, 1500);
       } else {
-        // Create new client
-        const res = await fetch(`${URL_API}/modulos/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          setSuccess("Client added successfully");
-          fetchModulos();
-          setTimeout(() => {
-            handleCloseModal();
-          }, 1500);
-        } else {
-          setError(data.detail || "Failed to add client");
-        }
+        setError(data.detail || "Failed to add client");
       }
     } catch (error) {
       setError("An error occurred");
       console.error("Error submitting form", error);
+    }
+  };
+
+  const handleEditClick = (modulo: Modulos) => {
+    if (modulo.numero_cliente === undefined) return;
+    setEditingClient(modulo.numero_cliente);
+    setEditedModules({ ...modulo });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingClient(null);
+    setEditedModules(null);
+  };
+
+  const handleModuleToggle = (field: keyof Modulos) => {
+    if (editedModules) {
+      setEditedModules({
+        ...editedModules,
+        [field]: !editedModules[field],
+      });
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editedModules) return;
+
+    try {
+      const res = await fetch(
+        `${URL_API}/modulos/${editedModules.numero_cliente}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(editedModules),
+        },
+      );
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setSuccess("Modules updated successfully");
+        fetchModulos();
+        setEditingClient(null);
+        setEditedModules(null);
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError(data.detail || "Failed to update modules");
+        setTimeout(() => setError(null), 3000);
+      }
+    } catch (error) {
+      setError("An error occurred");
+      console.error("Error submitting form", error);
+      setTimeout(() => setError(null), 3000);
     }
   };
 
@@ -184,6 +189,17 @@ const ModulosSheet = () => {
       console.error("Error deleting client", error);
       setTimeout(() => setError(null), 3000);
     }
+  };
+
+  const isEditing = (numero_cliente: number) => {
+    return editingClient === numero_cliente;
+  };
+
+  const getModuleValue = (modulo: Modulos, field: keyof Modulos): boolean => {
+    if (modulo.numero_cliente !== undefined && isEditing(modulo.numero_cliente) && editedModules) {
+      return editedModules[field] as boolean;
+    }
+    return modulo[field] as boolean;
   };
 
   return (
@@ -267,7 +283,11 @@ const ModulosSheet = () => {
                     modulos.map((modulo) => (
                       <tr
                         key={modulo.numero_cliente}
-                        className="hover:bg-gray-50"
+                        className={`hover:bg-gray-50 ${
+                          modulo.numero_cliente !== undefined && isEditing(modulo.numero_cliente)
+                            ? "bg-blue-50"
+                            : ""
+                        }`}
                       >
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {modulo.nombre_cliente || "Sin nombre"}
@@ -275,88 +295,179 @@ const ModulosSheet = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {modulo.numero_cliente}
                         </td>
+
+                        {/* Mantenimiento */}
                         <td className="px-6 py-4 whitespace-nowrap text-center">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              modulo.mantenimiento
-                                ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {modulo.mantenimiento ? "✓" : "✗"}
-                          </span>
+                          {modulo.numero_cliente !== undefined && isEditing(modulo.numero_cliente) ? (
+                            <input
+                              type="checkbox"
+                              checked={getModuleValue(modulo, "mantenimiento")}
+                              onChange={() =>
+                                handleModuleToggle("mantenimiento")
+                              }
+                              className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                            />
+                          ) : (
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                modulo.mantenimiento
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {modulo.mantenimiento ? "✓" : "✗"}
+                            </span>
+                          )}
                         </td>
+
+                        {/* Reporte Dia */}
                         <td className="px-6 py-4 whitespace-nowrap text-center">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              modulo.reporteDia
-                                ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {modulo.reporteDia ? "✓" : "✗"}
-                          </span>
+                          {modulo.numero_cliente !== undefined && isEditing(modulo.numero_cliente) ? (
+                            <input
+                              type="checkbox"
+                              checked={getModuleValue(modulo, "reporteDia")}
+                              onChange={() => handleModuleToggle("reporteDia")}
+                              className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                            />
+                          ) : (
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                modulo.reporteDia
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {modulo.reporteDia ? "✓" : "✗"}
+                            </span>
+                          )}
                         </td>
+
+                        {/* Reporte Semana */}
                         <td className="px-6 py-4 whitespace-nowrap text-center">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              modulo.reporteSemana
-                                ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {modulo.reporteSemana ? "✓" : "✗"}
-                          </span>
+                          {modulo.numero_cliente !== undefined && isEditing(modulo.numero_cliente) ? (
+                            <input
+                              type="checkbox"
+                              checked={getModuleValue(modulo, "reporteSemana")}
+                              onChange={() =>
+                                handleModuleToggle("reporteSemana")
+                              }
+                              className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                            />
+                          ) : (
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                modulo.reporteSemana
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {modulo.reporteSemana ? "✓" : "✗"}
+                            </span>
+                          )}
                         </td>
+
+                        {/* Presion */}
                         <td className="px-6 py-4 whitespace-nowrap text-center">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              modulo.presion
-                                ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {modulo.presion ? "✓" : "✗"}
-                          </span>
+                          {modulo.numero_cliente !== undefined && isEditing(modulo.numero_cliente) ? (
+                            <input
+                              type="checkbox"
+                              checked={getModuleValue(modulo, "presion")}
+                              onChange={() => handleModuleToggle("presion")}
+                              className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                            />
+                          ) : (
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                modulo.presion
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {modulo.presion ? "✓" : "✗"}
+                            </span>
+                          )}
                         </td>
+
+                        {/* Prediccion */}
                         <td className="px-6 py-4 whitespace-nowrap text-center">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              modulo.prediccion
-                                ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {modulo.prediccion ? "✓" : "✗"}
-                          </span>
+                          {modulo.numero_cliente !== undefined && isEditing(modulo.numero_cliente) ? (
+                            <input
+                              type="checkbox"
+                              checked={getModuleValue(modulo, "prediccion")}
+                              onChange={() => handleModuleToggle("prediccion")}
+                              className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                            />
+                          ) : (
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                modulo.prediccion
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {modulo.prediccion ? "✓" : "✗"}
+                            </span>
+                          )}
                         </td>
+
+                        {/* kWh */}
                         <td className="px-6 py-4 whitespace-nowrap text-center">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              modulo.kwh
-                                ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {modulo.kwh ? "✓" : "✗"}
-                          </span>
+                          {modulo.numero_cliente !== undefined && isEditing(modulo.numero_cliente) ? (
+                            <input
+                              type="checkbox"
+                              checked={getModuleValue(modulo, "kwh")}
+                              onChange={() => handleModuleToggle("kwh")}
+                              className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                            />
+                          ) : (
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                modulo.kwh
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {modulo.kwh ? "✓" : "✗"}
+                            </span>
+                          )}
                         </td>
+
+                        {/* Actions */}
                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                          <button
-                            onClick={() => handleOpenEditModal(modulo)}
-                            className="text-blue-600 hover:text-blue-900 mr-4"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            onClick={() =>
-                              modulo.numero_cliente !== undefined &&
-                              handleDelete(modulo.numero_cliente)
-                            }
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Eliminar
-                          </button>
+                          {modulo.numero_cliente !== undefined && isEditing(modulo.numero_cliente) ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={handleSaveEdit}
+                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                              >
+                                Guardar
+                              </button>
+                              <button
+                                onClick={handleCancelEdit}
+                                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() => handleEditClick(modulo)}
+                                className="text-blue-600 hover:text-blue-900 font-medium"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                onClick={() =>
+                                  modulo.numero_cliente !== undefined &&
+                                  handleDelete(modulo.numero_cliente)
+                                }
+                                className="text-red-600 hover:text-red-900 font-medium"
+                              >
+                                Eliminar
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))
@@ -367,15 +478,13 @@ const ModulosSheet = () => {
           </div>
         )}
 
-        {/* Modal */}
+        {/* Modal for Creating New Client */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  {isEditMode
-                    ? "Editar modulos del cliente"
-                    : "Agregar nuevo cliente"}
+                  Agregar nuevo cliente
                 </h2>
 
                 {error && (
@@ -390,7 +499,7 @@ const ModulosSheet = () => {
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmitCreate}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -420,10 +529,7 @@ const ModulosSheet = () => {
                             parseInt(e.target.value) || 0,
                           )
                         }
-                        disabled={isEditMode}
-                        className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          isEditMode ? "bg-gray-100 cursor-not-allowed" : ""
-                        }`}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Número de cliente"
                         required
                       />
@@ -564,7 +670,7 @@ const ModulosSheet = () => {
                       type="submit"
                       className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                     >
-                      {isEditMode ? "Actualizar" : "Crear"}
+                      Crear
                     </button>
                   </div>
                 </form>
