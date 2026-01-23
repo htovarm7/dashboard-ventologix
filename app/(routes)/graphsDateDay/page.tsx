@@ -559,13 +559,13 @@ function MainContent() {
 
   return (
     <main className="relative">
-      <BackButton position="relative" variant="normal" className="mt-4 ml-8" />
+      <BackButton position="relative" variant="normal" className="mt-4 ml-4 md:ml-8" />
       <PrintPageButton reportType="reporte" />
-      <div className="flex flex-col items-center mb-2">
-        <h1 className="text-4xl font-bold text-center">
+      <div className="flex flex-col items-center mb-2 px-2 md:px-4">
+        <h1 className="text-2xl md:text-4xl font-bold text-center">
           Reporte Diario por Fecha
         </h1>
-        <h2 className="text-4xl font-bold text-center">
+        <h2 className="text-xl md:text-4xl font-bold text-center">
           {compresorAlias || compressorData?.alias}
         </h2>
         <div className="flex justify-center my-4 w-full">
@@ -575,7 +575,7 @@ function MainContent() {
             type="day"
           />
         </div>
-        <h3 className="text-3xl font-bold text-center">
+        <h3 className="text-lg md:text-3xl font-bold text-center">
           Fecha:{" "}
           {selectedDate
             ? new Date(selectedDate + "T00:00:00")
@@ -598,82 +598,82 @@ function MainContent() {
         <Image
           src="/Ventologix_04.png"
           alt="logo"
-          className="h-28 w-auto mt-3 absolute top-0 right-0 m-3"
+          className="h-16 md:h-28 w-auto mt-3 absolute top-0 right-0 m-2 md:m-3"
           width={300}
           height={100}
         />
       </div>
 
-      <div className="mt-2 p-4">
-        <h2 className="text-3xl font-bold p-15">Información Compresor</h2>
-        <div className="flex flex-wrap gap-60 items-center justify-center text-center">
+      <div className="mt-2 p-2 md:p-4">
+        <h2 className="text-2xl md:text-3xl font-bold p-2 md:p-15">Información Compresor</h2>
+        <div className="flex flex-wrap gap-4 md:gap-12 lg:gap-60 items-center justify-center text-center">
           <div className="text-center">
-            <p className="text-2xl">{compressorData?.numero_serie}</p>
-            <p className="text-xl font-bold">Número de Serie</p>
+            <p className="text-lg md:text-2xl">{compressorData?.numero_serie}</p>
+            <p className="text-base md:text-xl font-bold">Número de Serie</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl">{compressorData?.marca}</p>
-            <p className="text-xl font-bold">Marca</p>
+            <p className="text-lg md:text-2xl">{compressorData?.marca}</p>
+            <p className="text-base md:text-xl font-bold">Marca</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl">{compressorData?.tipo}</p>
-            <p className="text-xl font-bold">Tipo</p>
+            <p className="text-lg md:text-2xl">{compressorData?.tipo}</p>
+            <p className="text-base md:text-xl font-bold">Tipo</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl">{compressorData?.voltaje}</p>
-            <p className="text-xl font-bold">Voltaje</p>
+            <p className="text-lg md:text-2xl">{compressorData?.voltaje}</p>
+            <p className="text-base md:text-xl font-bold">Voltaje</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl">{compressorData?.hp}</p>
-            <p className="text-xl font-bold">HP</p>
+            <p className="text-lg md:text-2xl">{compressorData?.hp}</p>
+            <p className="text-base md:text-xl font-bold">HP</p>
           </div>
         </div>
 
         {/* Información del cliente - Solo mostrar si el usuario NO es 101010 */}
         {userClientNumber !== 101010 && (
           <>
-            <h2 className="text-3xl font-bold p-15">
+            <h2 className="text-2xl md:text-3xl font-bold p-2 md:p-15">
               {" "}
               Informacion del Cliente{" "}
             </h2>
-            <div className="flex flex-wrap gap-60 items-center justify-center text-center">
+            <div className="flex flex-wrap gap-4 md:gap-12 lg:gap-60 items-center justify-center text-center">
               <div className="text-center">
-                <p className="text-2xl">{clientData?.nombre_cliente}</p>
-                <p className="text-xl font-bold">Nombre</p>
+                <p className="text-lg md:text-2xl">{clientData?.nombre_cliente}</p>
+                <p className="text-base md:text-xl font-bold">Nombre</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl">{clientData?.numero_cliente}</p>
-                <p className="text-xl font-bold">Número de Cliente</p>
+                <p className="text-lg md:text-2xl">{clientData?.numero_cliente}</p>
+                <p className="text-base md:text-xl font-bold">Número de Cliente</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl">{clientData?.RFC}</p>
-                <p className="text-xl font-bold">RFC</p>
+                <p className="text-lg md:text-2xl">{clientData?.RFC}</p>
+                <p className="text-base md:text-xl font-bold">RFC</p>
               </div>
             </div>
           </>
         )}
       </div>
 
-      <div className="flex flex-col items-center justify-center p-4 gap-6">
+      <div className="flex flex-col items-center justify-center p-2 md:p-4 gap-4 md:gap-6">
         {/* KPIs */}
-        <div className="flex flex-row gap-8 mt-2">
-          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-            <h2 className="text-xl text-black">Gasto USD*</h2>
-            <p className="text-3xl font-bold text-black">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-8 mt-2 w-full max-w-4xl">
+          <div className="bg-white rounded-2xl shadow p-3 md:p-4 text-center flex-1">
+            <h2 className="text-lg md:text-xl text-black">Gasto USD*</h2>
+            <p className="text-2xl md:text-3xl font-bold text-black">
               ${dayData?.costo_usd}
             </p>
           </div>
           <div
-            className={`bg-white rounded-2xl shadow p-4 text-center w-[250px] ${putBlur(
+            className={`bg-white rounded-2xl shadow p-3 md:p-4 text-center flex-1 ${putBlur(
               !!(clientData?.demoDiario ?? false),
             )}`}
           >
-            <h2 className="text-xl text-black">kWh Utilizados</h2>
-            <p className="text-3xl font-bold text-black">{dayData?.kWh} kWh</p>
+            <h2 className="text-lg md:text-xl text-black">kWh Utilizados</h2>
+            <p className="text-2xl md:text-3xl font-bold text-black">{dayData?.kWh} kWh</p>
           </div>
-          <div className="bg-white rounded-2xl shadow p-4 text-center w-[250px]">
-            <h2 className="text-xl text-black">Horas Trabajadas</h2>
-            <p className="text-3xl font-bold text-black">
+          <div className="bg-white rounded-2xl shadow p-3 md:p-4 text-center flex-1">
+            <h2 className="text-lg md:text-xl text-black">Horas Trabajadas</h2>
+            <p className="text-2xl md:text-3xl font-bold text-black">
               {dayData?.horas_trabajadas} h
             </p>
           </div>
@@ -681,66 +681,70 @@ function MainContent() {
 
         {/* Gráficas */}
         <div
-          className={`flex flex-row flex-wrap justify-center gap-4 ${putBlur(
+          className={`flex flex-col md:flex-row flex-wrap justify-center gap-4 w-full ${putBlur(
             !!(clientData?.demoDiario ?? false),
           )}`}
           id="grafico-listo"
         >
-          <div className="bg-white rounded-2xl shadow p-4 w-[280px] items-center justify-center">
-            <h2 className="text-xl" style={{ textAlign: "center" }}>
+          <div className="bg-white rounded-2xl shadow p-3 md:p-4 w-full md:w-[280px] items-center justify-center">
+            <h2 className="text-base md:text-xl text-center">
               <strong>Hp Equivalente:</strong> {hp_equivalente} Hp
             </h2>
-            <h2 className="text-xl" style={{ textAlign: "center" }}>
+            <h2 className="text-base md:text-xl text-center">
               <strong>Hp Instalado:</strong> {hp_instalado} Hp
             </h2>
             <ReactECharts
               option={HpOptions}
-              style={{ height: "280px", width: "100%" }}
+              style={{ height: "250px", width: "100%" }}
               notMerge={true}
               lazyUpdate={true}
               theme={"light"}
             />
           </div>
-          <div className="bg-white rounded-2xl shadow p-4 w-[280px] items-center justify-center">
-            <h2 className="text-xl" style={{ textAlign: "center" }}>
+          <div className="bg-white rounded-2xl shadow p-3 md:p-4 w-full md:w-[280px] items-center justify-center">
+            <h2 className="text-base md:text-xl text-center">
               <strong>Ciclos por hora (C/hr):</strong>{" "}
               {dayData?.promedio_ciclos_hora}
             </h2>
             <br></br>
             <ReactECharts
               option={ciclosOptions}
-              style={{ height: "280px", width: "100%" }}
+              style={{ height: "250px", width: "100%" }}
               notMerge={true}
               lazyUpdate={true}
               theme={"light"}
             />
           </div>
 
-          <div className="bg-white rounded-2xl shadow p-4 w-[650px] h-[400px] flex flex-col">
-            <h3 className="text-center text-black mb-2 font-bold">
+          <div className="bg-white rounded-2xl shadow p-3 md:p-4 w-full lg:w-[650px] min-h-[350px] md:h-[400px] flex flex-col">
+            <h3 className="text-center text-black mb-2 font-bold text-base md:text-lg">
               Corriente consumida en el día
             </h3>
-            <Chart type="line" data={dataLine} options={lineChartOptions} />
+            <div className="flex-1">
+              <Chart type="line" data={dataLine} options={lineChartOptions} />
+            </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow p-4 w-[280px] h-[400px] flex flex-col items-center justify-center">
-            <h3 className="text-center text-black  font-bold text-xl">
+          <div className="bg-white rounded-2xl shadow p-3 md:p-4 w-full md:w-[280px] min-h-[350px] md:h-[400px] flex flex-col items-center justify-center">
+            <h3 className="text-center text-black font-bold text-base md:text-xl">
               Estados del Compresor
             </h3>
-            <Pie data={dataPie} options={pieOptions} />
+            <div className="flex-1 flex items-center justify-center w-full">
+              <Pie data={dataPie} options={pieOptions} />
+            </div>
           </div>
         </div>
 
         {Off == 100 ? (
-          <p className="text-5xl text-left mt-4 text-blue-700 text-bold">
+          <p className="text-2xl md:text-5xl text-left mt-4 text-blue-700 font-bold px-4">
             {" "}
             El compresor estuvo apagado todo el dia
           </p>
         ) : (
-          <div className="gap-10 items-left justify-left text-left p-25">
-            <h1 className="text-3xl font-bold">Comentarios</h1>
+          <div className="gap-4 md:gap-10 items-left justify-left text-left p-4 md:p-8 lg:p-25">
+            <h1 className="text-2xl md:text-3xl font-bold mb-4">Comentarios</h1>
 
-            <p className="text-xl text-left">
+            <p className="text-base md:text-xl text-left mb-2">
               • El día{" "}
               <strong>
                 (
@@ -767,14 +771,14 @@ function MainContent() {
               a las <strong>{dayData?.fin_funcionamiento}</strong>
             </p>
 
-            <p className="text-xl text-left mt-2">
+            <p className="text-base md:text-xl text-left mt-2">
               • Entre las horas de{" "}
               <strong>{dayData?.inicio_funcionamiento}</strong> y{" "}
               <strong>{dayData?.fin_funcionamiento}</strong>, el compresor operó
               de la siguiente manera:
             </p>
 
-            <ul className="list-disc ml-8 text-xl text-left">
+            <ul className="list-disc ml-4 md:ml-8 text-base md:text-xl text-left">
               <li>
                 <strong>LOAD:</strong> {Load}%
               </li>
@@ -786,36 +790,36 @@ function MainContent() {
               </li>
             </ul>
 
-            <p className="text-xl text-left mt-2">
+            <p className="text-base md:text-xl text-left mt-2">
               • Durante el día se completaron un total de{" "}
               <strong>{dayData?.ciclos}</strong> ciclos de trabajo. Un ciclo se
               define como un cambio desde el estado <strong>LOAD</strong> a{" "}
               <strong>NO LOAD</strong> consecutivamente.
             </p>
 
-            <p className="text-xl text-left mt-2">
+            <p className="text-base md:text-xl text-left mt-2">
               • El promedio de ciclos por hora trabajada fue de{" "}
               <strong>{dayData?.promedio_ciclos_hora}</strong> ciclos/hora.
             </p>
 
-            <p className="text-xl text-left mt-2">
+            <p className="text-base md:text-xl text-left mt-2">
               • El costo total de operación del compresor fue de{" "}
               <strong>${dayData?.costo_usd}</strong>.
             </p>
 
-            <p className="text-xl text-left mt-2">
+            <p className="text-base md:text-xl text-left mt-2">
               • {dayData?.comentario_ciclos}
             </p>
 
-            <p className="text-xl text-left mt-2">
+            <p className="text-base md:text-xl text-left mt-2">
               • No se detectaron consumos con valores fuera de lo común.
             </p>
 
-            <p className="text-xl text-left mt-2">
+            <p className="text-base md:text-xl text-left mt-2">
               • {dayData?.comentario_hp_equivalente}
             </p>
 
-            <p className="text-xl text-left mt-2">
+            <p className="text-base md:text-xl text-left mt-2">
               • El costo por kilovatio-hora (kWh) utilizado en este análisis es
               de <strong>${clientData?.CostokWh} USD/kWh</strong>, que es el
               estándar actualmente aplicado. Sin embargo, si requiere confirmar
@@ -823,20 +827,20 @@ function MainContent() {
               contacto en <strong>VENTOLOGIX</strong>
             </p>
 
-            <h1 className="text-xl text-left mt-7 font-bold">
+            <h1 className="text-lg md:text-xl text-left mt-7 font-bold">
               IQgineer VENTOLOGIX asignado:
             </h1>
-            <p className="text-xl text-left mt-2">
+            <p className="text-base md:text-xl text-left mt-2">
               <strong>Nombre:</strong> Ing. Andrés Mirazo
             </p>
-            <p className="text-xl text-left mt-2">
+            <p className="text-base md:text-xl text-left mt-2">
               <strong>Teléfono:</strong> 81 8477 7023
             </p>
-            <p className="text-xl text-left mt-2">
+            <p className="text-base md:text-xl text-left mt-2">
               <strong>Correo:</strong>{" "}
               <a
                 href="mailto:Andres.Mirazo@ventologix.com"
-                className="text-blue-600 hover:scale-120 hover:text-blue-800  duration-300"
+                className="text-blue-600 hover:scale-120 hover:text-blue-800 duration-300 break-all"
               >
                 Andres.Mirazo@ventologix.com
               </a>

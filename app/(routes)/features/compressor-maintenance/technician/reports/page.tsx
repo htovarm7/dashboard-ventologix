@@ -746,13 +746,13 @@ const TypeReportes = () => {
   };
 
   return (
-    <div className="min-h-screen p-8 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+    <div className="min-h-screen p-8 bg-gradient-to-br from-gray-50 via-blue-50 to-white">
       {/* Background grid */}
       <div
-        className="absolute inset-0 opacity-10"
+        className="absolute inset-0 opacity-5"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(59,130,246,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.3) 1px, transparent 1px)",
+            "linear-gradient(rgba(59,130,246,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.15) 1px, transparent 1px)",
           backgroundSize: "60px 60px",
         }}
       ></div>
@@ -761,8 +761,8 @@ const TypeReportes = () => {
       {isLoading && (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-cyan-500 mx-auto mb-4"></div>
-            <p className="text-cyan-300 text-xl">Verificando acceso...</p>
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-blue-600 text-xl font-medium">Verificando acceso...</p>
           </div>
         </div>
       )}
@@ -772,15 +772,15 @@ const TypeReportes = () => {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="text-6xl mb-4">🔒</div>
-            <h1 className="text-3xl font-bold text-red-400 mb-2">
+            <h1 className="text-3xl font-bold text-red-600 mb-2">
               Acceso Denegado
             </h1>
-            <p className="text-red-300 mb-6">
+            <p className="text-gray-600 mb-6">
               No tienes permiso para acceder a esta página
             </p>
             <button
               onClick={() => router.push("/home")}
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all font-bold"
+              className="px-8 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-semibold shadow-lg"
             >
               Volver al Inicio
             </button>
@@ -793,11 +793,11 @@ const TypeReportes = () => {
         <div className="max-w-7xl mx-auto relative z-10">
           <button
             onClick={handleGoBack}
-            className="absolute left-0 top-0 flex items-center gap-2 bg-gradient-to-r from-blue-700 to-blue-800 text-white hover:from-blue-800 hover:to-blue-900 transition-all duration-200 px-6 py-3 rounded-xl shadow-lg hover:shadow-blue-500/50 border border-blue-500/30"
+            className="absolute left-0 top-0 flex items-center gap-2 bg-white text-blue-600 hover:bg-blue-50 transition-all duration-200 px-6 py-3 rounded-xl shadow-md hover:shadow-lg border border-blue-200"
             title="Atrás"
           >
             <svg
-              className="w-6 h-6"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -809,32 +809,31 @@ const TypeReportes = () => {
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-            <span className="text-lg font-bold">Atrás</span>
+            <span className="font-semibold">Atrás</span>
           </button>
 
           {/* VISTA PARA ROL 2 (VAST) - Ver Órdenes de Servicio */}
           {rol === 2 && (
             <>
               <div className="mt-24 mb-12 text-center">
-                <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-300 to-cyan-300 mb-3">
+                <h1 className="text-5xl font-bold text-blue-600 mb-3">
                   Órdenes de Servicio
                 </h1>
-                <p className="text-cyan-200/80 text-xl">
+                <p className="text-gray-600 text-xl">
                   Selecciona una orden para crear su reporte
                 </p>
               </div>
 
               {/* Ordenes List Section */}
               <div className="relative">
-                <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 rounded-3xl opacity-30 blur-xl"></div>
-                <div className="relative bg-gradient-to-br from-slate-800/95 via-blue-900/95 to-slate-800/95 rounded-3xl shadow-2xl border border-cyan-500/30 p-8">
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-3xl font-bold text-cyan-300 flex items-center gap-3">
+                <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
+                  <div className="flex justify-between items-center mb-8">
+                    <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
                       <span className="text-4xl">📋</span>
                       Órdenes Pendientes
                     </h2>
                     {ordenesServicio.length > 0 && (
-                      <span className="px-5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full font-semibold text-sm shadow-lg">
+                      <span className="px-5 py-2 bg-blue-100 text-blue-700 rounded-full font-semibold text-sm">
                         {ordenesServicio.length}{" "}
                         {ordenesServicio.length === 1 ? "orden" : "órdenes"}
                       </span>
@@ -843,18 +842,18 @@ const TypeReportes = () => {
 
                   {loadingOrdenes ? (
                     <div className="text-center py-16">
-                      <div className="text-4xl mb-4">⏳</div>
-                      <p className="text-cyan-300">
+                      <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto mb-4"></div>
+                      <p className="text-gray-600 font-medium">
                         Cargando órdenes de servicio...
                       </p>
                     </div>
                   ) : ordenesServicio.length === 0 ? (
-                    <div className="text-center py-16 text-cyan-300/60">
+                    <div className="text-center py-16">
                       <div className="text-8xl mb-6">📄</div>
-                      <p className="text-xl font-medium text-cyan-200">
+                      <p className="text-xl font-semibold text-gray-700">
                         No hay órdenes de servicio disponibles
                       </p>
-                      <p className="text-sm mt-3 text-cyan-300/60">
+                      <p className="text-sm mt-3 text-gray-500">
                         Las nuevas órdenes aparecerán aquí
                       </p>
                     </div>
@@ -864,11 +863,11 @@ const TypeReportes = () => {
                         <div key={group.title} className="space-y-4">
                           {/* Header de fecha */}
                           <div className="flex items-center gap-4">
-                            <h3 className="text-2xl font-bold text-cyan-100 flex items-center gap-2">
+                            <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                               {group.title}
                             </h3>
-                            <div className="flex-1 h-0.5 bg-gradient-to-r from-cyan-500/50 to-transparent"></div>
-                            <span className="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-sm font-semibold">
+                            <div className="flex-1 h-px bg-gradient-to-r from-gray-300 to-transparent"></div>
+                            <span className="px-4 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
                               {group.orders.length}{" "}
                               {group.orders.length === 1 ? "orden" : "órdenes"}
                             </span>
@@ -879,19 +878,19 @@ const TypeReportes = () => {
                             {group.orders.map((orden) => (
                               <div
                                 key={orden.folio}
-                                className="group relative p-5 rounded-2xl border-2 border-cyan-500/30 bg-gradient-to-br from-blue-800/40 to-cyan-800/40 hover:border-cyan-400/60 hover:shadow-xl hover:shadow-cyan-500/20 transition-all duration-300"
+                                className="group relative p-6 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-400 hover:shadow-xl transition-all duration-300"
                               >
                                 <div className="mb-4">
                                   <div className="flex items-center justify-between mb-3">
                                     <span
-                                      className={`px-3 py-1 text-white text-xs font-bold rounded-lg shadow ${
+                                      className={`px-3 py-1 text-xs font-semibold rounded-lg ${
                                         orden.estado === "no_iniciado"
-                                          ? "bg-gray-500"
+                                          ? "bg-gray-100 text-gray-700"
                                           : orden.estado === "en_proceso"
-                                            ? "bg-blue-500"
+                                            ? "bg-blue-100 text-blue-700"
                                             : orden.estado === "completado"
-                                              ? "bg-green-500"
-                                              : "bg-gray-500"
+                                              ? "bg-green-100 text-green-700"
+                                              : "bg-gray-100 text-gray-700"
                                       }`}
                                     >
                                       {orden.estado
@@ -899,69 +898,71 @@ const TypeReportes = () => {
                                         .replace("_", " ")}
                                     </span>
                                     <span
-                                      className={`px-2 py-1 text-xs font-semibold rounded ${
+                                      className={`px-3 py-1 text-xs font-semibold rounded-full ${
                                         orden.prioridad === "urgente"
-                                          ? "bg-red-500 text-white"
+                                          ? "bg-red-100 text-red-700"
                                           : orden.prioridad === "alta"
-                                            ? "bg-orange-500 text-white"
+                                            ? "bg-orange-100 text-orange-700"
                                             : orden.prioridad === "media"
-                                              ? "bg-yellow-500 text-white"
-                                              : "bg-blue-500 text-white"
+                                              ? "bg-yellow-100 text-yellow-700"
+                                              : "bg-blue-100 text-blue-700"
                                       }`}
                                     >
                                       {orden.prioridad.toUpperCase()}
                                     </span>
                                   </div>
-                                  <p className="font-bold text-white text-xl truncate">
+                                  <p className="font-bold text-gray-900 text-xl truncate mb-3">
                                     {orden.nombre_cliente}
                                   </p>
-                                  <p className="text-sm text-white mt-2">
-                                    <span className="font-bold">Folio:</span>{" "}
-                                    {orden.folio}
-                                  </p>
-                                  <p className="text-sm text-white">
-                                    <span className="font-bold">
-                                      Compresor:
-                                    </span>{" "}
-                                    {orden.alias_compresor}
-                                  </p>
-                                  <p className="text-sm text-white">
-                                    <span className="font-bold">Serie:</span>{" "}
-                                    {orden.numero_serie}
-                                  </p>
-                                  <p className="text-sm text-white">
-                                    <span className="font-bold">Marca:</span>{" "}
-                                    {orden.marca}
-                                  </p>
-                                  <p className="text-sm text-white">
-                                    <span className="font-bold">Modelo:</span>{" "}
-                                    {orden.tipo}
-                                  </p>
-                                  <p className="text-sm text-white">
-                                    <span className="font-bold">
-                                      Tipo Visita:
-                                    </span>{" "}
-                                    {orden.tipo_visita}
-                                  </p>
-                                  <p className="text-sm text-white">
-                                    <span className="font-bold">
-                                      Mantenimiento:
-                                    </span>{" "}
-                                    {orden.tipo_mantenimiento ||
-                                      "No especificado"}
-                                  </p>
-                                  <p className="text-sm text-white mt-2">
-                                    <span className="font-bold">
-                                      Programado para:
-                                    </span>{" "}
-                                    {formatDate(orden.fecha_programada)}{" "}
-                                    {formatTime(orden.hora_programada)}
-                                  </p>
+                                  <div className="space-y-1.5">
+                                    <p className="text-sm text-gray-600">
+                                      <span className="font-semibold text-gray-700">Folio:</span>{" "}
+                                      {orden.folio}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      <span className="font-semibold text-gray-700">
+                                        Compresor:
+                                      </span>{" "}
+                                      {orden.alias_compresor}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      <span className="font-semibold text-gray-700">Serie:</span>{" "}
+                                      {orden.numero_serie}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      <span className="font-semibold text-gray-700">Marca:</span>{" "}
+                                      {orden.marca}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      <span className="font-semibold text-gray-700">Modelo:</span>{" "}
+                                      {orden.tipo}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      <span className="font-semibold text-gray-700">
+                                        Tipo Visita:
+                                      </span>{" "}
+                                      {orden.tipo_visita}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      <span className="font-semibold text-gray-700">
+                                        Mantenimiento:
+                                      </span>{" "}
+                                      {orden.tipo_mantenimiento ||
+                                        "No especificado"}
+                                    </p>
+                                    <p className="text-sm text-gray-600 pt-1">
+                                      <span className="font-semibold text-gray-700">
+                                        Programado para:
+                                      </span>{" "}
+                                      {formatDate(orden.fecha_programada)}{" "}
+                                      {formatTime(orden.hora_programada)}
+                                    </p>
+                                  </div>
                                 </div>
                                 <div className="flex">
                                   <button
                                     onClick={() => handleStartReport(orden)}
-                                    className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-sm rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all shadow-lg w-full"
+                                    className="px-4 py-3 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg w-full"
                                     title="Crear Reporte"
                                   >
                                     Empezar Reporte
@@ -975,6 +976,50 @@ const TypeReportes = () => {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Botones de Navegación */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
+                {/* Tabla de Mantenimientos */}
+                <button
+                  className="group relative w-full min-h-[200px] bg-white hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-400 rounded-xl p-8 transition-all duration-300 shadow-md hover:shadow-xl flex items-center justify-center"
+                  onClick={() =>
+                    router.push("/features/compressor-maintenance/maintenance")
+                  }
+                >
+                  <div className="text-center">
+                    <div className="text-5xl mb-4 transform group-hover:scale-110 transition-transform duration-300">
+                      🔧
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                      Tabla de Mantenimientos
+                    </h3>
+                    <p className="text-gray-600 text-sm">
+                      Visualiza y gestiona todos los mantenimientos activos de los
+                      compresores
+                    </p>
+                  </div>
+                </button>
+
+                {/* Reportes */}
+                <button
+                  className="group relative w-full min-h-[200px] bg-white hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-400 rounded-xl p-8 transition-all duration-300 shadow-md hover:shadow-xl flex items-center justify-center"
+                  onClick={() =>
+                    router.push("/features/compressor-maintenance/reports/")
+                  }
+                >
+                  <div className="text-center">
+                    <div className="text-5xl mb-4 transform group-hover:scale-110 transition-transform duration-300">
+                      📄
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                      Reportes
+                    </h3>
+                    <p className="text-gray-600 text-sm">
+                      Ver historial de reportes generados
+                    </p>
+                  </div>
+                </button>
               </div>
             </>
           )}

@@ -1088,89 +1088,89 @@ function MainContent() {
         />
       </div>
 
-      <div className="w-full min-w-full bg-gradient-to-r from-indigo-950 to-blue-400 text-white p-6">
+      <div className="w-full min-w-full bg-gradient-to-r from-indigo-950 to-blue-400 text-white p-3 md:p-6">
         {/* Main docker on rows */}
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
           {/* Left column: Titles */}
-          <div className="flex-1 mr-60 p-6 ">
-            <h1 className="text-4xl font-light text-center">Reporte Semanal</h1>
-            <h2 className="text-3xl font-bold text-center">
+          <div className="flex-1 p-3 md:p-6 w-full lg:mr-12">
+            <h1 className="text-2xl md:text-4xl font-light text-center">Reporte Semanal</h1>
+            <h2 className="text-xl md:text-3xl font-bold text-center">
               Compresor: {compressorData?.alias}
             </h2>
-            <p className="text-xl text-center">
+            <p className="text-base md:text-xl text-center">
               <span className="font-bold">Semana {semanaNumero}:</span>{" "}
               {fechaInicio} al {fechaFin}
             </p>
           </div>
 
           {/* Right Column: Logo and data */}
-          <div className="flex flex-col items-end">
+          <div className="flex flex-col items-center lg:items-end w-full lg:w-auto">
             {/* Logo */}
             <Image
               src="/Logo_Ventologix.png"
               alt="logo"
-              className="h-15 w-70 mr-20"
+              className="h-12 md:h-15 w-auto mb-4"
               width={720}
               height={1080}
             />
 
-            <div className="flex flex-wrap gap-16 items-start text-white mr-10 mt-5">
+            <div className="flex flex-col md:flex-row flex-wrap gap-4 md:gap-8 lg:gap-16 items-start text-white w-full">
               {/* Client Information - Solo mostrar si el usuario NO es 101010 */}
               {userClientNumber !== 101010 && (
-                <div>
-                  <h2 className="text-2xl font-bold">Información Cliente</h2>
-                  <div className="flex flex-wrap gap-8 items-center text-left">
+                <div className="w-full md:w-auto">
+                  <h2 className="text-lg md:text-2xl font-bold">Información Cliente</h2>
+                  <div className="flex flex-wrap gap-4 md:gap-8 items-center text-left">
                     <div>
-                      <p className="text-xl text-center">
+                      <p className="text-base md:text-xl text-center">
                         {clientData?.numero_cliente}
                       </p>
-                      <p className="text-sm">Número Cliente</p>
+                      <p className="text-xs md:text-sm">Número Cliente</p>
                     </div>
                     <div>
-                      <p className="text-xl text-center">
+                      <p className="text-base md:text-xl text-center">
                         {clientData?.nombre_cliente}
                       </p>
-                      <p className="text-sm text-center">Nombre</p>
+                      <p className="text-xs md:text-sm text-center">Nombre</p>
                     </div>
                     <div>
-                      <p className="text-xl text-center">{clientData?.RFC}</p>
-                      <p className="text-sm text-center">RFC</p>
+                      <p className="text-base md:text-xl text-center">{clientData?.RFC}</p>
+                      <p className="text-xs md:text-sm text-center">RFC</p>
                     </div>
                   </div>
                 </div>
               )}
 
               {/* Compresor information */}
-              <div>
-                <h2 className="text-2xl font-bold ">Información Compresor</h2>
-                <div className="flex flex-wrap gap-8 items-center text-left">
+              <div className="w-full md:w-auto">
+                <h2 className="text-lg md:text-2xl font-bold">Información Compresor</h2>
+                <div className="flex flex-wrap gap-4 md:gap-8 items-center text-left">
                   <div>
-                    <p className="text-xl text-center">
+                    <p className="text-base md:text-xl text-center">
                       {compressorData?.numero_serie}
                     </p>
-                    <p className="text-sm text-center">Número de serie</p>
+                    <p className="text-xs md:text-sm text-center">Número de serie</p>
                   </div>
                   <div>
-                    <p className="text-xl text-center">
+                    <p className="text-base md:text-xl text-center">
                       {compressorData?.marca}
                     </p>
-                    <p className="text-sm text-center">Marca</p>
+                    <p className="text-xs md:text-sm text-center">Marca</p>
                   </div>
                   <div>
-                    <p className="text-xl text-center">
+                    <p className="text-base md:text-xl text-center">
                       {compressorData?.tipo}
                     </p>
-                    <p className="text-sm text-center">Tipo</p>
+                    <p className="text-xs md:text-sm text-center">Tipo</p>
                   </div>
                   <div>
-                    <p className="text-xl text-center">
+                    <p className="text-base md:text-xl text-center">
                       {compressorData?.voltaje}
                     </p>
-                    <p className="text-sm text-center">Voltaje</p>
+                    <p className="text-xs md:text-sm text-center">Voltaje</p>
                   </div>
                   <div>
-                    <p className="text-xl text-center">{compressorData?.hp}</p>
-                    <p className="text-sm">HP</p>
+                    <p className="text-base md:text-xl text-center">{compressorData?.hp}</p>
+                    <p className="text-xs md:text-sm">HP</p>
                   </div>
                 </div>
               </div>
@@ -1179,56 +1179,56 @@ function MainContent() {
         </div>
       </div>
 
-      <div className="flex items-start ml-40 gap-30">
-        <div className="inline-block mt-20">
+      <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center px-4 md:px-8 lg:ml-20 gap-4 md:gap-8">
+        <div className="inline-block mt-4 md:mt-8 lg:mt-20">
           {/* Primera fila */}
           <div className="flex">
-            <div className="bg-blue-500 text-white text-center px-4 py-2 w-40">
+            <div className="bg-blue-500 text-white text-center px-2 md:px-4 py-2 w-28 md:w-40 text-sm md:text-base">
               Óptimo
             </div>
-            <div className="bg-green-600 text-white text-center px-4 py-2 w-40">
+            <div className="bg-green-600 text-white text-center px-2 md:px-4 py-2 w-28 md:w-40 text-sm md:text-base">
               Bueno
             </div>
           </div>
           {/* Segunda fila */}
           <div className="flex">
-            <div className="bg-yellow-400 text-black text-center px-4 py-2 w-40 font-bold">
+            <div className="bg-yellow-400 text-black text-center px-2 md:px-4 py-2 w-28 md:w-40 font-bold text-sm md:text-base">
               Intermedio
             </div>
-            <div className="bg-red-600 text-white text-center px-4 py-2 w-40">
+            <div className="bg-red-600 text-white text-center px-2 md:px-4 py-2 w-28 md:w-40 text-sm md:text-base">
               Malo
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-10 ml-50">
-          <div className="flex flex-col items-center  mt-4 text-xl font-bold">
-            <h1>Ciclos promedio por hora</h1>
+        <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 lg:gap-10 w-full lg:w-auto overflow-x-auto">
+          <div className="flex flex-col items-center mt-4 text-base md:text-xl font-bold min-w-[280px]">
+            <h1 className="text-center">Ciclos promedio por hora</h1>
             <ReactECharts
               option={ciclosPromOptions}
-              style={{ height: "280px", width: "350px" }}
+              style={{ height: "250px", width: "280px" }}
               notMerge={true}
               lazyUpdate={true}
               theme={"light"}
             />
           </div>
 
-          <div className="flex flex-col items-center mt-4 text-xl font-bold">
-            <h1>Hp Equivalente vs Instalado</h1>
+          <div className="flex flex-col items-center mt-4 text-base md:text-xl font-bold min-w-[280px]">
+            <h1 className="text-center">Hp Equivalente vs Instalado</h1>
             <ReactECharts
               option={hpOptions}
-              style={{ height: "280px", width: "350px" }}
+              style={{ height: "250px", width: "280px" }}
               notMerge={true}
               lazyUpdate={true}
               theme={"light"}
             />
           </div>
 
-          <div className="flex flex-col items-center  mt-4 text-xl font-bold">
-            <h1>Costo $USD por kWh*</h1>
+          <div className="flex flex-col items-center mt-4 text-base md:text-xl font-bold min-w-[280px]">
+            <h1 className="text-center">Costo $USD por kWh*</h1>
             <ReactECharts
               option={costokWhOptions}
-              style={{ height: "280px", width: "350px" }}
+              style={{ height: "250px", width: "280px" }}
               notMerge={true}
               lazyUpdate={true}
               theme={"light"}
@@ -1238,7 +1238,7 @@ function MainContent() {
       </div>
 
       {/* Line Chart */}
-      <div className="flex justify-center">
+      <div className="flex justify-center px-2 md:px-4 overflow-x-auto">
         <ReactECharts
           option={{
             ...consumoOptions,
@@ -1248,63 +1248,65 @@ function MainContent() {
               { ...consumoOptions.series[2], data: consumoData.turno3 },
             ],
           }}
-          style={{ height: 300, width: 1600 }}
+          style={{ height: 300, width: "100%", minWidth: "320px", maxWidth: "1600px" }}
           notMerge={true}
           lazyUpdate={true}
           theme={"light"}
         />
       </div>
 
-      <div className="flex items-center justify-center mb-5">
+      <div className="flex items-center justify-center mb-5 px-4">
         {/* Lado izquierdo */}
-        <div className="flex flex-col gap-1 w-124">
+        <div className="hidden md:flex flex-col gap-1 w-20 md:w-32 lg:w-124">
           <div className="h-3 bg-blue-500 w-full"></div>
           <div className="h-3 bg-blue-500 w-3/4"></div>
         </div>
 
         {/* Texto */}
-        <h1 className="mx-6 text-blue-900 font-bold text-4xl text-center">
+        <h1 className="mx-2 md:mx-6 text-blue-900 font-bold text-xl md:text-3xl lg:text-4xl text-center">
           Semana Pasada <span className="font-normal text-black">vs</span>{" "}
           Promedio 12 Semanas Anteriores
         </h1>
 
         {/* Lado derecho */}
-        <div className="flex flex-col gap-1 w-124">
+        <div className="hidden md:flex flex-col gap-1 w-20 md:w-32 lg:w-124">
           <div className="h-3 bg-blue-500 w-full"></div>
           <div className="h-3 bg-blue-500 w-3/4 self-end"></div>
         </div>
       </div>
 
-      <div className="flex flex-col">
-        <div className="flex">
-          <div className="flex-1 items-center text-center p-4">
-            <p className="text-2xl font-bold">
+      <div className="flex flex-col px-2 md:px-4">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-2">
+          <div className="flex-1 items-center text-center p-2 md:p-4">
+            <p className="text-lg md:text-2xl font-bold mb-2">
               kWh diarios y Horas de trabajo Por dia de la semana
             </p>
             {/* Contenido columna 1 */}
-            <ReactECharts
-              option={kwhHorasOption}
-              style={{ height: 350, width: 900 }}
-              notMerge={true}
-              lazyUpdate={true}
-              theme={"light"}
-            />
+            <div className="overflow-x-auto">
+              <ReactECharts
+                option={kwhHorasOption}
+                style={{ height: 350, width: "100%", minWidth: "320px" }}
+                notMerge={true}
+                lazyUpdate={true}
+                theme={"light"}
+              />
+            </div>
             <VentoCom
               html={summaryData?.comentarios?.comentario_A || "Sin datos"}
             />
           </div>
-          <div className="flex-1 items-center text-center p-4">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px]">
-              <h2 className="text-xl text-black font-bold">Costo $USD</h2>
+          <div className="flex-1 items-center text-center p-2 md:p-4 flex flex-col gap-4">
+            <div className="bg-white rounded-2xl shadow p-3 md:p-4 text-center w-full max-w-[400px] mx-auto">
+              <h2 className="text-lg md:text-xl text-black font-bold">Costo $USD</h2>
               <p
-                className={`text-3xl font-bold ${getColorClass(
+                className={`text-2xl md:text-3xl font-bold ${getColorClass(
                   summaryData?.semana_actual?.costo_estimado || 0,
                 )}`}
               >
                 ${summaryData?.semana_actual?.costo_estimado || "0.00"} USD /
                 Semanal
               </p>
-              <p className="text-xl text-black">
+              <p className="text-base md:text-xl text-black">
                 {" "}
                 Costo Anual aproximado, $
                 {getAnualValue(
@@ -1312,49 +1314,49 @@ function MainContent() {
                 )}{" "}
                 USD
               </p>
-              <p className="text-xl">Promedio ultimas 12 semanas:</p>
-              <p className="text-xl">
+              <p className="text-base md:text-xl">Promedio ultimas 12 semanas:</p>
+              <p className="text-base md:text-xl">
                 $
                 {summaryData?.promedio_semanas_anteriores?.costo_estimado ||
                   "0.00"}
               </p>
-              <p className="text-lg">
+              <p className="text-sm md:text-lg">
                 ({summaryData?.comparacion?.porcentaje_costo || "0.00"}
                 %)
               </p>
             </div>
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px]">
-              <h2 className="text-xl text-black font-bold">Consumo kWH</h2>
+            <div className="bg-white rounded-2xl shadow p-3 md:p-4 text-center w-full max-w-[400px] mx-auto">
+              <h2 className="text-lg md:text-xl text-black font-bold">Consumo kWH</h2>
               <p
-                className={`text-3xl font-bold ${getColorClass(
+                className={`text-2xl md:text-3xl font-bold ${getColorClass(
                   summaryData?.comparacion?.porcentaje_costo || 0,
                 )}`}
               >
                 {summaryData?.semana_actual?.total_kWh || "0.00"} kWh / Semanal
               </p>
-              <p className="text-xl text-black">
+              <p className="text-base md:text-xl text-black">
                 Gasto Anual aproximado,{" "}
                 {getAnualValue(summaryData?.semana_actual?.total_kWh || 0)} kWh
               </p>
-              <p className="text-xl">Promedio ultimas 12 semanas:</p>
-              <p className="text-xl">
+              <p className="text-base md:text-xl">Promedio ultimas 12 semanas:</p>
+              <p className="text-base md:text-xl">
                 {summaryData?.promedio_semanas_anteriores
                   ?.total_kWh_anteriores || "0.00"}{" "}
                 kWh
               </p>
-              <p className="text-lg">
+              <p className="text-sm md:text-lg">
                 ({summaryData?.comparacion?.porcentaje_kwh || "0.00"}
                 %)
               </p>
             </div>
           </div>
-          <div className="flex-1 items-center text-center mr-20 mt-30">
+          <div className="flex-1 items-center text-center p-2 md:p-4 lg:mr-8 lg:mt-8">
             {/* Contenido columna 3 */}
-            <h4 className="font-bold text-left text-xl">
+            <h4 className="font-bold text-left text-lg md:text-xl mb-2">
               A) Consumo energético y costo
             </h4>
             <div
-              className="text-xl text-justify"
+              className="text-base md:text-xl text-justify"
               dangerouslySetInnerHTML={{
                 __html: summaryData?.comparacion?.bloque_A || "Sin datos",
               }}
@@ -1362,56 +1364,58 @@ function MainContent() {
           </div>
         </div>
 
-        <div className="flex mt-2">
-          <div className="flex-1 items-center text-center p-4">
-            <p className="text-2xl font-bold">
+        <div className="flex flex-col lg:flex-row mt-2 gap-4 lg:gap-2">
+          <div className="flex-1 items-center text-center p-2 md:p-4">
+            <p className="text-lg md:text-2xl font-bold mb-2">
               Ciclos Promedio Por dia de la semana
             </p>
             {/* Contenido columna 1 */}
-            <ReactECharts
-              option={ciclosPromedioOption}
-              style={{ height: 350, width: 900 }}
-              notMerge={true}
-              lazyUpdate={true}
-              theme={"light"}
-            />
+            <div className="overflow-x-auto">
+              <ReactECharts
+                option={ciclosPromedioOption}
+                style={{ height: 350, width: "100%", minWidth: "320px" }}
+                notMerge={true}
+                lazyUpdate={true}
+                theme={"light"}
+              />
+            </div>
             <VentoCom
               html={summaryData?.comentarios?.comentario_B || "Sin datos"}
             />
           </div>
-          <div className="flex-1 items-center text-center p-4">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px] mt-25">
-              <h2 className="text-xl text-black font-bold">
+          <div className="flex-1 items-center text-center p-2 md:p-4 flex flex-col justify-center">
+            <div className="bg-white rounded-2xl shadow p-3 md:p-4 text-center w-full max-w-[400px] mx-auto">
+              <h2 className="text-lg md:text-xl text-black font-bold">
                 Ciclos por hora (C/Hr)
               </h2>
               <p
-                className={`text-3xl font-bold ${getColorCiclos(
+                className={`text-2xl md:text-3xl font-bold ${getColorCiclos(
                   summaryData?.comparacion?.porcentaje_ciclos || 0,
                 )}`}
               >
                 {summaryData?.semana_actual?.promedio_ciclos_por_hora || "0.0"}{" "}
                 C/Hr
               </p>
-              <p className="text-xl">Promedio ultimas 12 semanas:</p>
-              <p className="text-xl">
+              <p className="text-base md:text-xl">Promedio ultimas 12 semanas:</p>
+              <p className="text-base md:text-xl">
                 {summaryData?.promedio_semanas_anteriores
                   ?.promedio_ciclos_por_hora || "0.0"}{" "}
                 C/Hr
               </p>
-              <p className="text-lg">
+              <p className="text-sm md:text-lg">
                 ({summaryData?.comparacion?.porcentaje_ciclos || "0.00"}
                 %)
               </p>
             </div>
           </div>
 
-          <div className="flex-1 items-center text-center mr-20 mt-35">
+          <div className="flex-1 items-center text-center p-2 md:p-4 lg:mr-8 lg:mt-8">
             {/* Contenido columna 3 */}
-            <h4 className="font-bold text-left text-xl">
+            <h4 className="font-bold text-left text-lg md:text-xl mb-2">
               B) Comparación de ciclos de operación:
             </h4>
             <div
-              className="text-xl text-justify"
+              className="text-base md:text-xl text-justify"
               dangerouslySetInnerHTML={{
                 __html: summaryData?.comparacion?.bloque_B || "Sin datos",
               }}
@@ -1419,52 +1423,54 @@ function MainContent() {
           </div>
         </div>
 
-        <div className="flex mt-2">
-          <div className="flex-1 items-center text-center p-4">
-            <p className="text-2xl font-bold">
+        <div className="flex flex-col lg:flex-row mt-2 gap-4 lg:gap-2">
+          <div className="flex-1 items-center text-center p-2 md:p-4">
+            <p className="text-lg md:text-2xl font-bold mb-2">
               HP Equivalente Por dia de la semana
             </p>
             {/* Contenido columna 1 */}
-            <ReactECharts
-              option={hpEquivalenteOption}
-              style={{ height: 350, width: 900 }}
-              notMerge={true}
-              lazyUpdate={true}
-              theme={"light"}
-            />
+            <div className="overflow-x-auto">
+              <ReactECharts
+                option={hpEquivalenteOption}
+                style={{ height: 350, width: "100%", minWidth: "320px" }}
+                notMerge={true}
+                lazyUpdate={true}
+                theme={"light"}
+              />
+            </div>
             <VentoCom
               html={summaryData?.comentarios?.comentario_C || "Sin datos"}
             />
           </div>
-          <div className="flex-1 items-center text-center p-4">
-            <div className="bg-white rounded-2xl shadow p-4 text-center w-[400px] mt-25">
-              <h2 className="text-xl text-black font-bold">HP Equivalente**</h2>
+          <div className="flex-1 items-center text-center p-2 md:p-4 flex flex-col justify-center">
+            <div className="bg-white rounded-2xl shadow p-3 md:p-4 text-center w-full max-w-[400px] mx-auto">
+              <h2 className="text-lg md:text-xl text-black font-bold">HP Equivalente**</h2>
               <p
-                className={`text-3xl font-bold ${getColorHp(
+                className={`text-2xl md:text-3xl font-bold ${getColorHp(
                   summaryData?.comparacion?.porcentaje_hp || 0,
                 )}`}
               >
                 {summaryData?.semana_actual?.promedio_hp_equivalente || "0.0"}{" "}
                 hp
               </p>
-              <p className="text-xl">Promedio ultimas 12 semanas:</p>
-              <p className="text-xl">
+              <p className="text-base md:text-xl">Promedio ultimas 12 semanas:</p>
+              <p className="text-base md:text-xl">
                 {summaryData?.promedio_semanas_anteriores
                   ?.promedio_hp_equivalente || "0.0"}{" "}
                 hp
               </p>
-              <p className="text-lg">
+              <p className="text-sm md:text-lg">
                 ({summaryData?.comparacion?.porcentaje_hp || "0.00"}%)
               </p>
             </div>
           </div>
-          <div className="flex-1 items-center text-center mr-20 mt-30">
+          <div className="flex-1 items-center text-center p-2 md:p-4 lg:mr-8 lg:mt-8">
             {/* Contenido columna 3 */}
-            <h4 className="font-bold text-left text-xl">
+            <h4 className="font-bold text-left text-lg md:text-xl mb-2">
               C) Comparación de HP Equivalente:
             </h4>
             <div
-              className="text-xl text-justify"
+              className="text-base md:text-xl text-justify"
               dangerouslySetInnerHTML={{
                 __html: summaryData?.comparacion?.bloque_C || "Sin datos",
               }}
@@ -1472,21 +1478,21 @@ function MainContent() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 items-start px-2 md:px-4">
           {/* Col 1: Pie + comentario */}
-          <div className="bg-white rounded-2xl p-6 h-full flex flex-col text-center">
-            <p className="text-2xl font-bold mb-4 ml-50">
+          <div className="bg-white rounded-2xl p-4 md:p-6 h-full flex flex-col text-center">
+            <p className="text-lg md:text-2xl font-bold mb-4">
               Estados del Compresor
             </p>
 
             {/* Pie chart centrado y responsivo */}
-            <div className="flex-1 grid place-items-center ml-50">
-              <div className="w-[350px] h-[350px]">
+            <div className="flex-1 grid place-items-center">
+              <div className="w-[280px] h-[280px] md:w-[350px] md:h-[350px]">
                 <Pie data={dataPie} options={pieOptions} />
               </div>
             </div>
 
-            <div className="mt-4 text-xl text-justify break-words hyphens-auto">
+            <div className="mt-4 text-base md:text-xl text-justify break-words hyphens-auto">
               <VentoCom
                 html={summaryData?.comentarios?.comentario_D || "Sin datos"}
               />
@@ -1494,57 +1500,57 @@ function MainContent() {
           </div>
 
           {/* Col 2: Uso Activo */}
-          <div className="bg-white rounded-2xl shadow p-4 w-[400px] flex flex-col justify-center text-center mb-40 ml-70">
-            <h2 className="text-xl text-black font-bold">Uso Activo</h2>
-            <p className="text-3xl font-bold text-black">
+          <div className="bg-white rounded-2xl shadow p-3 md:p-4 w-full max-w-[400px] mx-auto flex flex-col justify-center text-center">
+            <h2 className="text-lg md:text-xl text-black font-bold">Uso Activo</h2>
+            <p className="text-2xl md:text-3xl font-bold text-black">
               {summaryData?.semana_actual?.horas_trabajadas || "0.0"} Hr
             </p>
-            <p className="text-xl">Promedio últimas 12 semanas:</p>
-            <p className="text-xl">
+            <p className="text-base md:text-xl">Promedio últimas 12 semanas:</p>
+            <p className="text-base md:text-xl">
               {summaryData?.promedio_semanas_anteriores
                 ?.horas_trabajadas_anteriores || "0.0"}{" "}
               hr
             </p>
-            <p className="text-lg">
+            <p className="text-sm md:text-lg">
               ({summaryData?.comparacion?.porcentaje_horas || "0.00"}%)
             </p>
           </div>
 
           {/* Col 3: Comentario D */}
-          <div className="bg-white rounded-2xl p-6 flex flex-col ml-15 mb-40">
-            <h4 className="font-bold  text-left text-xl">
+          <div className="bg-white rounded-2xl p-4 md:p-6 flex flex-col">
+            <h4 className="font-bold text-left text-lg md:text-xl mb-2">
               D) Comparación de horas de Uso Activo:
             </h4>
             <div
-              className="text-xl text-justify mr-20"
+              className="text-base md:text-xl text-justify"
               dangerouslySetInnerHTML={{
                 __html: summaryData?.comparacion?.bloque_D || "Sin datos",
               }}
             />
           </div>
         </div>
-        <div className="flex flex-row items-start">
+        <div className="flex flex-col md:flex-row items-start gap-4 px-4 mt-4">
           {/* Columna izquierda: Notas */}
           <div className="flex flex-col flex-1 items-start">
-            <h2 className="text-2xl font-bold text-left mt-2 ml-20">Notas:</h2>
-            <p className="text-m text-left ml-20">
+            <h2 className="text-xl md:text-2xl font-bold text-left mt-2">Notas:</h2>
+            <p className="text-sm md:text-base text-left">
               *El costo de 0.17 USD por kWh es estándar. Si desea modificarlo,
               por favor, comuníquese con su contacto en VENTOLOGIX.
             </p>
-            <p className="text-m text-left ml-20">
+            <p className="text-sm md:text-base text-left">
               **El HP Equivalente es la métrica utilizada por VENTOLOGIX para
               calcular la cantidad real de HP utilizados, y se les aplica un
               factor de seguridad del 40%, según lo recomendado por el CAGI.
             </p>
           </div>
           {/* Columna derecha: Nota adicional */}
-          <div className="flex flex-col flex-1 items-start mt-5">
-            <h1 className="text-2xl ml-120 text-blue-500 font-bold">
+          <div className="flex flex-col flex-1 items-start mt-2 md:mt-5">
+            <h1 className="text-xl md:text-2xl text-blue-500 font-bold">
               {" "}
               Informacion Contacto Ventologix
             </h1>
-            <p className="text-xl ml-120">Andrés Mirazo</p>
-            <p className="text-xl ml-120">Andres.mirazo@ventologix.com</p>
+            <p className="text-base md:text-xl">Andrés Mirazo</p>
+            <p className="text-base md:text-xl">Andres.mirazo@ventologix.com</p>
           </div>
         </div>
       </div>
