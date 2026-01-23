@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import BackButton from "@/components/BackButton";
 import Image from "next/image";
+import { URL_API } from "@/lib/global";
 
 interface MaintenanceItem {
   nombre: string;
@@ -58,7 +59,9 @@ function MaintenanceFormContent() {
     fotos: [],
   });
 
-  const [reportData, setReportData] = useState<Record<string, unknown> | null>(null);
+  const [reportData, setReportData] = useState<Record<string, unknown> | null>(
+    null,
+  );
 
   // Load report data from sessionStorage
   useEffect(() => {
@@ -139,9 +142,12 @@ function MaintenanceFormContent() {
 
       // Add report data
       if (reportData) {
-        submitData.append("folio", reportData.folio || "");
-        submitData.append("clientName", reportData.clientName || "");
-        submitData.append("serialNumber", reportData.serialNumber || "");
+        submitData.append("folio", String(reportData.folio || ""));
+        submitData.append("clientName", String(reportData.clientName || ""));
+        submitData.append(
+          "serialNumber",
+          String(reportData.serialNumber || ""),
+        );
       }
 
       // Add maintenance data
@@ -161,7 +167,7 @@ function MaintenanceFormContent() {
       });
 
       // Send to backend API
-      const response = await fetch(`${URL}/maintenance-reports/`, {
+      const response = await fetch(`${URL_API}/maintenance-reports/`, {
         method: "POST",
         body: submitData,
       });
@@ -234,7 +240,7 @@ function MaintenanceFormContent() {
                     Folio
                   </label>
                   <p className="text-gray-800 font-semibold">
-                    {reportData.folio || "Sin asignar"}
+                    {String(reportData.folio || "Sin asignar")}
                   </p>
                 </div>
                 <div>
@@ -242,7 +248,7 @@ function MaintenanceFormContent() {
                     Cliente
                   </label>
                   <p className="text-gray-800 font-semibold">
-                    {reportData.clientName || "N/A"}
+                    {String(reportData.clientName || "N/A")}
                   </p>
                 </div>
                 <div>
@@ -250,7 +256,7 @@ function MaintenanceFormContent() {
                     Alias Compresor
                   </label>
                   <p className="text-gray-800 font-semibold">
-                    {reportData.compressorAlias || "N/A"}
+                    {String(reportData.compressorAlias || "N/A")}
                   </p>
                 </div>
                 <div>
@@ -258,7 +264,7 @@ function MaintenanceFormContent() {
                     Número de Serie
                   </label>
                   <p className="text-gray-800 font-semibold">
-                    {reportData.serialNumber || "N/A"}
+                    {String(reportData.serialNumber || "N/A")}
                   </p>
                 </div>
                 <div>
@@ -266,7 +272,7 @@ function MaintenanceFormContent() {
                     Marca
                   </label>
                   <p className="text-gray-800 font-semibold">
-                    {reportData.brand || "N/A"}
+                    {String(reportData.brand || "N/A")}
                   </p>
                 </div>
                 <div>
@@ -274,7 +280,7 @@ function MaintenanceFormContent() {
                     HP
                   </label>
                   <p className="text-gray-800 font-semibold">
-                    {reportData.equipmentHp || "N/A"}
+                    {String(reportData.equipmentHp || "N/A")}
                   </p>
                 </div>
               </div>

@@ -40,9 +40,7 @@ function FillReport() {
   const searchParams = useSearchParams();
   const { savePreMantenimiento, loading: savingPreMaintenance } =
     usePreMantenimiento();
-  const {
-    uploadPhotos,
-  } = usePhotoUpload();
+  const { uploadPhotos } = usePhotoUpload();
 
   const [showMaintenanceSection, setShowMaintenanceSection] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -446,7 +444,7 @@ function FillReport() {
         console.log(`  ${category}: ${files.length} photo(s)`);
       });
 
-      const results: Record<string, string[]> = {};
+      const results: Record<string, unknown> = {};
       let totalUploaded = 0;
       let totalFailed = 0;
       let hasPhotos = false;
@@ -937,7 +935,9 @@ function FillReport() {
         const existingDrafts = localStorage.getItem("draftReports");
         if (existingDrafts) {
           const drafts = JSON.parse(existingDrafts);
-          const filtered = drafts.filter((d: { id: string }) => d.id !== formData.folio);
+          const filtered = drafts.filter(
+            (d: { id: string }) => d.id !== formData.folio,
+          );
           localStorage.setItem("draftReports", JSON.stringify(filtered));
         }
         // Redirect back to reports list
