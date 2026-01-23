@@ -36,7 +36,6 @@ interface NavigationItem {
 }
 
 const SideBar: React.FC<SideBarProps> = ({
-  selectedCompresor,
   rol,
   secciones = [],
 }) => {
@@ -44,7 +43,6 @@ const SideBar: React.FC<SideBarProps> = ({
   const pathname = usePathname();
   const { logout, user } = useAuth0();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isBetaExpanded, setIsBetaExpanded] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 

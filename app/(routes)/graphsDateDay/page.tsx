@@ -53,15 +53,10 @@ ChartJS.register(
   LinearScale,
   PointElement,
   annotationPlugin,
-  ChartDataLabels
+  ChartDataLabels,
 );
 
-import type {
-  clientData,
-  compressorData,
-  dayData,
-  LineData,
-} from "@/lib/types";
+import type { Client, compressorData, dayData, LineData } from "@/lib/types";
 
 import { URL_API } from "@/lib/global";
 
@@ -76,10 +71,10 @@ function MainContent() {
   const [Load, setLoad] = useState<number>(0);
   const [NoLoad, setNoLoad] = useState<number>(0);
   const [Off, setOff] = useState<number>(0);
-  const [clientData, setClientData] = useState<clientData | null>(null);
+  const [clientData, setClientData] = useState<Client | null>(null);
   const [userClientNumber, setUserClientNumber] = useState<number | null>(null);
   const [compressorData, setCompresorData] = useState<compressorData | null>(
-    null
+    null,
   );
   const [dayData, setDayData] = useState<dayData | null>(null);
   const [compresorAlias, setCompresorAlias] = useState<string>("");
@@ -102,7 +97,7 @@ function MainContent() {
   const fetchDataWithRetry = useCallback(
     async (
       url: string,
-      maxRetries: number = 3
+      maxRetries: number = 3,
     ): Promise<Record<string, unknown>> => {
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
@@ -137,7 +132,7 @@ function MainContent() {
       }
       return {};
     },
-    []
+    [],
   );
 
   const fetchData = useCallback(
@@ -148,19 +143,19 @@ function MainContent() {
         const [pieRes, lineRes, dayRes, clientRes, compressorRes] =
           await Promise.all([
             fetchDataWithRetry(
-              `${URL_API}/report/pie-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}&_t=${timestamp}`
+              `${URL_API}/report/pie-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}&_t=${timestamp}`,
             ),
             fetchDataWithRetry(
-              `${URL_API}/report/line-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}&_t=${timestamp}`
+              `${URL_API}/report/line-data-proc-day?id_cliente=${id}&linea=${linea}&date=${date}&_t=${timestamp}`,
             ),
             fetchDataWithRetry(
-              `${URL_API}/report/day-report-data?id_cliente=${id}&linea=${linea}&date=${date}&_t=${timestamp}`
+              `${URL_API}/report/day-report-data?id_cliente=${id}&linea=${linea}&date=${date}&_t=${timestamp}`,
             ),
             fetchDataWithRetry(
-              `${URL_API}/report/client-data?id_cliente=${id}&_t=${timestamp}`
+              `${URL_API}/report/client-data?id_cliente=${id}&_t=${timestamp}`,
             ),
             fetchDataWithRetry(
-              `${URL_API}/report/compressor-data?id_cliente=${id}&linea=${linea}&_t=${timestamp}`
+              `${URL_API}/report/compressor-data?id_cliente=${id}&linea=${linea}&_t=${timestamp}`,
             ),
           ]);
 
@@ -169,7 +164,7 @@ function MainContent() {
           Array.isArray(clientRes.data) &&
           clientRes.data.length > 0
         )
-          setClientData(clientRes.data[0] as clientData);
+          setClientData(clientRes.data[0] as Client);
         if (
           compressorRes.data &&
           Array.isArray(compressorRes.data) &&
@@ -197,7 +192,7 @@ function MainContent() {
         } else {
           console.warn(
             "pieRes.data no tiene los datos esperados. pieRes:",
-            pieRes
+            pieRes,
           );
         }
 
@@ -219,11 +214,11 @@ function MainContent() {
                 hour: "2-digit",
                 minute: "2-digit",
                 second: "2-digit",
-              })
+              }),
             );
 
             const currents: (number | null)[] = rawData.map(
-              (item) => item.corriente
+              (item) => item.corriente,
             );
 
             if (!times.includes("23:59:59")) {
@@ -234,10 +229,10 @@ function MainContent() {
             setLineChartLabels(times);
             setLineChartData(currents);
             const validCurrents = currents.filter(
-              (c): c is number => c !== null
+              (c): c is number => c !== null,
             );
             setMaxData(
-              validCurrents.length > 0 ? Math.max(...validCurrents) * 1.3 : 0
+              validCurrents.length > 0 ? Math.max(...validCurrents) * 1.3 : 0,
             );
           } else {
             console.warn("lineRes.data es un array vacío");
@@ -257,7 +252,7 @@ function MainContent() {
         setIsLoading(false);
       }
     },
-    [fetchDataWithRetry]
+    [fetchDataWithRetry],
   );
 
   const searchParams = useSearchParams();
@@ -273,7 +268,7 @@ function MainContent() {
         linea = compresorData.linea;
         date = compresorData.date; // Nueva propiedad para la fecha
         setCompresorAlias(
-          compresorData.alias || `Compresor ${id_cliente}-${linea}`
+          compresorData.alias || `Compresor ${id_cliente}-${linea}`,
         );
         setSelectedDate(date || "");
       } else {
@@ -418,7 +413,7 @@ function MainContent() {
             value:
               (dayData?.promedio_ciclos_hora ?? 0) > 30
                 ? 30
-                : dayData?.promedio_ciclos_hora ?? 0,
+                : (dayData?.promedio_ciclos_hora ?? 0),
           },
         ],
       },
@@ -564,11 +559,7 @@ function MainContent() {
 
   return (
     <main className="relative">
-      <BackButton
-        position="relative"
-        variant="normal"
-        className="mt-4 ml-8"
-      />
+      <BackButton position="relative" variant="normal" className="mt-4 ml-8" />
       <PrintPageButton reportType="reporte" />
       <div className="flex flex-col items-center mb-2">
         <h1 className="text-4xl font-bold text-center">
@@ -674,7 +665,7 @@ function MainContent() {
           </div>
           <div
             className={`bg-white rounded-2xl shadow p-4 text-center w-[250px] ${putBlur(
-              clientData?.demoDiario ?? false
+              !!(clientData?.demoDiario ?? false),
             )}`}
           >
             <h2 className="text-xl text-black">kWh Utilizados</h2>
@@ -691,7 +682,7 @@ function MainContent() {
         {/* Gráficas */}
         <div
           className={`flex flex-row flex-wrap justify-center gap-4 ${putBlur(
-            clientData?.demoDiario ?? false
+            !!(clientData?.demoDiario ?? false),
           )}`}
           id="grafico-listo"
         >
@@ -760,10 +751,10 @@ function MainContent() {
                         day: "2-digit",
                         month: "2-digit",
                         year: "numeric",
-                      }
+                      },
                     )
                   : new Date(
-                      new Date().setDate(new Date().getDate() - 1)
+                      new Date().setDate(new Date().getDate() - 1),
                     ).toLocaleDateString("es-ES", {
                       day: "2-digit",
                       month: "2-digit",
@@ -826,7 +817,7 @@ function MainContent() {
 
             <p className="text-xl text-left mt-2">
               • El costo por kilovatio-hora (kWh) utilizado en este análisis es
-              de <strong>${clientData?.costokWh} USD/kWh</strong>, que es el
+              de <strong>${clientData?.CostokWh} USD/kWh</strong>, que es el
               estándar actualmente aplicado. Sin embargo, si requiere confirmar
               este valor o necesita ajustar la tarifa, puede verificar con su
               contacto en <strong>VENTOLOGIX</strong>

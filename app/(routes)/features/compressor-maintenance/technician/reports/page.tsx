@@ -1,17 +1,8 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { URL_API } from "@/lib/global";
-
-interface DraftReport {
-  id: string;
-  folio: string;
-  clientName: string;
-  serialNumber: string;
-  lastModified: string;
-  reportType: string;
-}
 
 interface CompressorSearchResult {
   hp: number;
@@ -50,9 +41,11 @@ interface OrdenServicio {
 interface EventualClient {
   id: number;
   nombre: string;
+  nombre_cliente?: string;
   direccion?: string;
   contacto?: string;
   telefono?: string;
+  email?: string;
 }
 
 interface TicketFormData {
@@ -99,7 +92,6 @@ const formatTime = (timeString: string) => {
 
 const TypeReportes = () => {
   const router = useRouter();
-  const [draftReports, setDraftReports] = useState<DraftReport[]>([]);
   const [rol, setRol] = useState<number | null>(null);
   const [isClienteEventual, setIsClienteEventual] = useState(false);
   const [isNewEventual, setIsNewEventual] = useState(true);
@@ -209,23 +201,7 @@ const TypeReportes = () => {
     }
   };
 
-  // Fetch orden de servicio by folio
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const fetchOrdenServicio = async (folio: string) => {
-    // Función reservada para futura implementación
-    console.log("fetchOrdenServicio called with folio:", folio);
-  };
 
-  // Load draft reports on mount
-  useEffect(() => {
-    const loadDraftReports = () => {
-      const drafts = localStorage.getItem("draftReports");
-      if (drafts) {
-        setDraftReports(JSON.parse(drafts));
-      }
-    };
-    loadDraftReports();
-  }, []);
 
   // Search for compressors
   const handleSearch = async (query: string) => {
@@ -335,12 +311,13 @@ const TypeReportes = () => {
   };
 
   // Handle eventual client selection
-  const handleSelectEventualClient = (client: any) => {
+  const handleSelectEventualClient = (client: EventualClient) => {
     setSelectedEventualClient(client);
     setIsNewEventual(false);
+    const clientName = client.nombre_cliente || client.nombre || "";
     setTicketData((prev) => ({
       ...prev,
-      clientName: client.nombre_cliente,
+      clientName: clientName,
       numeroCliente: "EVENTUAL",
     }));
     setEventualClientInfo({
@@ -634,18 +611,6 @@ const TypeReportes = () => {
     }
   };
 
-  const deleteDraft = (draftId: string) => {
-    const updatedDrafts = draftReports.filter((d) => d.id !== draftId);
-    setDraftReports(updatedDrafts);
-    localStorage.setItem("draftReports", JSON.stringify(updatedDrafts));
-  };
-
-  const loadDraft = (draft: DraftReport) => {
-    // Navigate to create page with draft data
-    router.push(
-      `/features/compressor-maintenance/technician/reports/create?draftId=${draft.id}`
-    );
-  };
 
   // Función para ir atrás
   const handleGoBack = () => {
@@ -1528,7 +1493,7 @@ const TypeReportes = () => {
                     <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
                       <p className="text-blue-300 text-sm">
                         ℹ️ <strong>Info:</strong> El ticket se creará con estado
-                        "No Iniciado" y podrá ser asignado a un técnico
+                        &quot;No Iniciado&quot; y podrá ser asignado a un técnico
                         posteriormente.
                       </p>
                     </div>

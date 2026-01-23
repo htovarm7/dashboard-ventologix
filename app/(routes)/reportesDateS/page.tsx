@@ -54,14 +54,14 @@ ChartJS.register(
   LinearScale,
   PointElement,
   annotationPlugin,
-  ChartDataLabels
+  ChartDataLabels,
 );
 
 import {
   chartData,
   consumoData,
   SummaryData,
-  clientData,
+  Client,
   compressorData,
 } from "@/lib/types";
 
@@ -74,10 +74,10 @@ function MainContent() {
     turno3: new Array(7).fill(0),
   });
 
-  const [clientData, setClientData] = useState<clientData | null>(null);
+  const [clientData, setClientData] = useState<Client | null>(null);
 
   const [compressorData, setCompresorData] = useState<compressorData | null>(
-    null
+    null,
   );
 
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
@@ -96,7 +96,7 @@ function MainContent() {
                   "x-internal-api-key":
                     process.env.NEXT_PUBLIC_API_SECRET || "",
                 },
-              }
+              },
             );
             return res.json();
           })(),
@@ -109,7 +109,7 @@ function MainContent() {
                   "x-internal-api-key":
                     process.env.NEXT_PUBLIC_API_SECRET || "",
                 },
-              }
+              },
             );
             return res.json();
           })(),
@@ -122,7 +122,7 @@ function MainContent() {
                   "x-internal-api-key":
                     process.env.NEXT_PUBLIC_API_SECRET || "",
                 },
-              }
+              },
             );
             return res.json();
           })(),
@@ -135,7 +135,7 @@ function MainContent() {
                   "x-internal-api-key":
                     process.env.NEXT_PUBLIC_API_SECRET || "",
                 },
-              }
+              },
             );
             return res.json();
           })(),
@@ -148,7 +148,7 @@ function MainContent() {
                   "x-internal-api-key":
                     process.env.NEXT_PUBLIC_API_SECRET || "",
                 },
-              }
+              },
             );
             return res.json();
           })(),
@@ -172,7 +172,7 @@ function MainContent() {
 
       if (!pieRes || !pieRes.data) {
         console.error(
-          "Error: Datos de gráfica circular inválidos o inexistentes"
+          "Error: Datos de gráfica circular inválidos o inexistentes",
         );
         window.status = "data-error";
         return;
@@ -211,7 +211,7 @@ function MainContent() {
               turno3[diaSemana] += item.kwhTurno;
               break;
           }
-        }
+        },
       );
 
       setConsumoData({ turno1, turno2, turno3 });
@@ -261,7 +261,7 @@ function MainContent() {
     categorias: diasSemana,
     kwhData:
       summaryData?.detalle_semana_actual?.map(
-        (d) => d.promedio_ciclos_por_hora
+        (d) => d.promedio_ciclos_por_hora,
       ) ?? [],
   };
 
@@ -313,7 +313,7 @@ function MainContent() {
             `${
               summaryData?.semana_actual?.promedio_ciclos_por_hora !== undefined
                 ? summaryData?.semana_actual?.promedio_ciclos_por_hora.toFixed(
-                    1
+                    1,
                   )
                 : "0.0"
             }`,
@@ -323,12 +323,12 @@ function MainContent() {
             (summaryData?.semana_actual?.promedio_ciclos_por_hora ?? 0) <= 8
               ? "#418FDE"
               : (summaryData?.semana_actual?.promedio_ciclos_por_hora ?? 0) <=
-                12
-              ? "green"
-              : (summaryData?.semana_actual?.promedio_ciclos_por_hora ?? 0) <=
-                15
-              ? "yellow"
-              : "red",
+                  12
+                ? "green"
+                : (summaryData?.semana_actual?.promedio_ciclos_por_hora ?? 0) <=
+                    15
+                  ? "yellow"
+                  : "red",
         },
         data: [
           {
@@ -398,14 +398,17 @@ function MainContent() {
             (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) > 110
               ? "red"
               : (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) > 99
-              ? "black"
-              : (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) > 92
-              ? "#418FDE"
-              : (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) > 79
-              ? "green"
-              : (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) > 64
-              ? "yellow"
-              : "red",
+                ? "black"
+                : (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) >
+                    92
+                  ? "#418FDE"
+                  : (summaryData?.semana_actual?.promedio_hp_equivalente ?? 0) >
+                      79
+                    ? "green"
+                    : (summaryData?.semana_actual?.promedio_hp_equivalente ??
+                          0) > 64
+                      ? "yellow"
+                      : "red",
         },
         data: [
           { value: summaryData?.semana_actual?.promedio_hp_equivalente ?? 0 },
@@ -450,17 +453,17 @@ function MainContent() {
         splitLine: { show: false },
         pointer: { itemStyle: { color: "black" }, length: "100%", width: 3 },
         detail: {
-          formatter: () => `$${clientData?.costokWh || "0.00"}`,
+          formatter: () => `$${clientData?.CostokWh || "0.00"}`,
           fontSize: 18,
           offsetCenter: [0, "30%"],
           color:
-            (clientData?.costokWh ?? 0) <= 0.18
+            (clientData?.CostokWh ?? 0) <= 0.18
               ? "green"
-              : (clientData?.costokWh ?? 0) <= 0.22
-              ? "yellow"
-              : "red",
+              : (clientData?.CostokWh ?? 0) <= 0.22
+                ? "yellow"
+                : "red",
         },
-        data: [{ value: clientData?.costokWh ?? 0 }],
+        data: [{ value: clientData?.CostokWh ?? 0 }],
       },
     ],
   };
@@ -888,7 +891,7 @@ function MainContent() {
 
   const getISOWeekNumber = (date: Date): number => {
     const d = new Date(
-      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
     );
     const dayNum = d.getUTCDay() || 7;
     d.setUTCDate(d.getUTCDate() + 4 - dayNum);
@@ -1108,7 +1111,7 @@ function MainContent() {
               <h2 className="text-xl text-black font-bold">Costo $USD</h2>
               <p
                 className={`text-3xl font-bold ${getColorClass(
-                  summaryData?.semana_actual?.costo_estimado || 0
+                  summaryData?.semana_actual?.costo_estimado || 0,
                 )}`}
               >
                 ${summaryData?.semana_actual?.costo_estimado || "0.00"} USD /
@@ -1118,7 +1121,7 @@ function MainContent() {
                 {" "}
                 Costo Anual aproximado, $
                 {getAnualValue(
-                  summaryData?.semana_actual?.costo_estimado || 0
+                  summaryData?.semana_actual?.costo_estimado || 0,
                 )}{" "}
                 USD
               </p>
@@ -1137,7 +1140,7 @@ function MainContent() {
               <h2 className="text-xl text-black font-bold">Consumo kWH</h2>
               <p
                 className={`text-3xl font-bold ${getColorClass(
-                  summaryData?.comparacion?.porcentaje_costo || 0
+                  summaryData?.comparacion?.porcentaje_costo || 0,
                 )}`}
               >
                 {summaryData?.semana_actual?.total_kWh || "0.00"} kWh / Semanal
@@ -1196,7 +1199,7 @@ function MainContent() {
               </h2>
               <p
                 className={`text-3xl font-bold ${getColorCiclos(
-                  summaryData?.comparacion?.porcentaje_ciclos || 0
+                  summaryData?.comparacion?.porcentaje_ciclos || 0,
                 )}`}
               >
                 {summaryData?.semana_actual?.promedio_ciclos_por_hora || "0.0"}{" "}
@@ -1251,7 +1254,7 @@ function MainContent() {
               <h2 className="text-xl text-black font-bold">HP Equivalente**</h2>
               <p
                 className={`text-3xl font-bold ${getColorHp(
-                  summaryData?.comparacion?.porcentaje_hp || 0
+                  summaryData?.comparacion?.porcentaje_hp || 0,
                 )}`}
               >
                 {summaryData?.semana_actual?.promedio_hp_equivalente || "0.0"}{" "}

@@ -91,7 +91,7 @@ const ModulosSheet = () => {
     setSuccess(null);
   };
 
-  const handleInputChange = (field: keyof ModulosFormData, value: any) => {
+  const handleInputChange = (field: keyof ModulosFormData, value: string | number | boolean) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,

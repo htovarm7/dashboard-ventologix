@@ -166,7 +166,7 @@ export default function CompressorSearch() {
           searchQuery.length >= 2 && (
             <div className="absolute z-50 w-full max-w-7xl mt-2 bg-white border-2 border-gray-200 rounded-lg shadow-xl p-4">
               <p className="text-gray-600 text-center">
-                No se encontraron resultados para "{searchQuery}"
+                No se encontraron resultados para &quot;{searchQuery}&quot;
               </p>
             </div>
           )}
