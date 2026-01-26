@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
 
+# Routers existentes
 from scripts.api.report import report
 from scripts.api.web import web
 from scripts.api.client import client
@@ -11,6 +12,16 @@ from scripts.api.ordenes_servicio import ordenes
 from scripts.api.modulos import modulos_web
 from scripts.api.reportes_mtto import reportes_mtto
 from scripts.api.mantenimiento import router as mantenimiento_router
+
+# Nuevos routers modulares
+from scripts.api.auth import auth
+from scripts.api.ingenieros import ingenieros_router
+from scripts.api.pressure import pressure
+from scripts.api.prediction import prediction
+from scripts.api.maintenance_web import maintenance_web
+from scripts.api.reports_daily import reports_daily
+from scripts.api.reports_weekly import reports_weekly
+from scripts.api.reports_static import reports_static
 
 # Load environment variables
 load_dotenv()
@@ -61,5 +72,16 @@ app.include_router(modulos_web)
 app.include_router(reportes_mtto)
 app.include_router(mantenimiento_router)
 
+# Routers originales (mantener por compatibilidad)
 app.include_router(report)
 app.include_router(web)
+
+# Nuevos routers modulares
+app.include_router(auth)
+app.include_router(ingenieros_router)
+app.include_router(pressure)
+app.include_router(prediction)
+app.include_router(maintenance_web)
+app.include_router(reports_daily)
+app.include_router(reports_weekly)
+app.include_router(reports_static)

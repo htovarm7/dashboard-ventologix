@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 import json
 
-from .clases import Modulos
+from .clases import Modulos, PreMantenimientoRequest
 from .drive_utils import upload_maintenance_photos
 
 load_dotenv()
@@ -93,62 +93,6 @@ def get_pre_answers(folio: str = Path(..., description="Folio del reporte")):
         return {"data": res}
     except mysql.connector.Error as err:
         return {"error": str(err)}
-
-
-# Pydantic models for validation
-class PreMantenimientoRequest(BaseModel):
-    folio: str
-    equipo_enciende: Optional[str] = None
-    display_enciende: Optional[str] = None
-    horas_totales: Optional[Decimal] = None
-    horas_carga: Optional[Decimal] = None
-    horas_descarga: Optional[Decimal] = None
-    mantenimiento_proximo: Optional[str] = None
-    compresor_es_master: Optional[str] = None
-    amperaje_maximo_motor: Optional[Decimal] = None
-    ubicacion_compresor: Optional[str] = None
-    expulsion_aire_caliente: Optional[str] = None
-    operacion_muchos_polvos: Optional[str] = None
-    compresor_bien_instalado: Optional[str] = None
-    condiciones_especiales: Optional[str] = None
-    voltaje_alimentacion: Optional[Decimal] = None
-    amperaje_motor_carga: Optional[Decimal] = None
-    amperaje_ventilador: Optional[Decimal] = None
-    fugas_aceite_visibles: Optional[str] = None
-    fugas_aire_audibles: Optional[str] = None
-    aceite_oscuro_degradado: Optional[str] = None
-    temp_ambiente: Optional[Decimal] = None
-    temp_compresion_display: Optional[Decimal] = None
-    temp_compresion_laser: Optional[Decimal] = None
-    temp_separador_aceite: Optional[Decimal] = None
-    temp_interna_cuarto: Optional[Decimal] = None
-    delta_t_enfriador_aceite: Optional[Decimal] = None
-    temp_motor_electrico: Optional[Decimal] = None
-    metodo_control_presion: Optional[str] = None
-    presion_carga: Optional[Decimal] = None
-    presion_descarga: Optional[Decimal] = None
-    diferencial_presion: Optional[str] = None
-    delta_p_separador: Optional[Decimal] = None
-    tipo_valvula_admision: Optional[str] = None
-    funcionamiento_valvula_admision: Optional[str] = None
-    wet_tank_existe: Optional[bool] = None
-    wet_tank_litros: Optional[int] = None
-    wet_tank_valvula_seguridad: Optional[bool] = None
-    wet_tank_dren: Optional[bool] = None
-    dry_tank_existe: Optional[bool] = None
-    dry_tank_litros: Optional[int] = None
-    dry_tank_valvula_seguridad: Optional[bool] = None
-    dry_tank_dren: Optional[bool] = None
-    exceso_polvo_suciedad: Optional[bool] = None
-    hay_manual: Optional[bool] = None
-    tablero_electrico_enciende: Optional[bool] = None
-    giro_correcto_motor: Optional[bool] = None
-    unidad_compresion_gira: Optional[bool] = None
-    motor_ventilador_funciona: Optional[bool] = None
-    razon_paro_mantenimiento: Optional[str] = None
-    alimentacion_electrica_conectada: Optional[bool] = None
-    pastilla_adecuada_amperajes: Optional[bool] = None
-    tuberia_descarga_conectada_a: Optional[str] = None
 
 
 @reportes_mtto.post("/pre-mtto")

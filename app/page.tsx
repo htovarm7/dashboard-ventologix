@@ -3,14 +3,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { Compressor, UserInfo } from "@/lib/types";
 import { URL_API } from "@/lib/global";
 
 export default function Page() {
   const { loginWithRedirect, logout, isAuthenticated, user, isLoading, error } =
     useAuth0();
-  const router = useRouter();
   const [accessDenied, setAccessDenied] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
@@ -81,11 +79,11 @@ export default function Page() {
           };
           sessionStorage.setItem("userData", JSON.stringify(userData));
 
-          // Redirect based on user role
+          // Use window.location.href for hard navigation to ensure proper redirect
           if (data.rol === 2) {
-            router.push("/features/compressor-maintenance/technician/reports");
+            window.location.href = "/features/compressor-maintenance/technician/reports";
           } else {
-            router.push("/home");
+            window.location.href = "/home";
           }
         } else {
           setAccessDenied(true);
@@ -103,7 +101,7 @@ export default function Page() {
         setHasChecked(true);
       }
     },
-    [router],
+    [],
   );
 
   useEffect(() => {
@@ -115,12 +113,12 @@ export default function Page() {
       try {
         const userData = JSON.parse(storedUserData);
         if (userData.rol === 2) {
-          router.push("/features/compressor-maintenance");
+          window.location.href = "/features/compressor-maintenance";
         } else {
-          router.push("/home");
+          window.location.href = "/home";
         }
       } catch {
-        router.push("/home");
+        window.location.href = "/home";
       }
       return;
     }
@@ -133,7 +131,6 @@ export default function Page() {
       !hasChecked &&
       !sessionStorage.getItem("userData")
     ) {
-      setIsCheckingAuth(true);
       verifyUserAuthorization(user);
     }
   }, [
@@ -143,7 +140,6 @@ export default function Page() {
     isCheckingAuth,
     hasChecked,
     verifyUserAuthorization,
-    router,
   ]);
 
   if (isLoading || isCheckingAuth) {
@@ -305,6 +301,7 @@ export default function Page() {
                   loginWithRedirect({
                     authorizationParams: {
                       prompt: "login",
+                      connection: "google-oauth2",
                     },
                   })
                 }

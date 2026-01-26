@@ -8,9 +8,6 @@ from pathlib import Path
 from google_auth_oauthlib.flow import InstalledAppFlow
 dotenv.load_dotenv()
 
-# -----------------------------
-# CONFIGURACIÓN
-# -----------------------------
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 LIB_DIR = PROJECT_ROOT / "lib"
@@ -31,9 +28,7 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_DATABASE = os.getenv("DB_DATABASE")
 DB_TABLE = "registros_mantenimiento_tornillo"
 
-# -----------------------------
-# AUTENTICACIÓN
-# -----------------------------
+
 def get_google_credentials():
     """Obtiene las credenciales de Google con autenticación OAuth"""
     creds = None
@@ -47,9 +42,7 @@ def get_google_credentials():
             pickle.dump(creds, token)
     return creds
 
-# -----------------------------
-# FUNCIONES AUXILIARES
-# -----------------------------
+
 def normalize_date(fecha_input):
     """Normaliza diferentes formatos de fecha a YYYY-MM-DD"""
     formatos = ["%d/%m/%Y %H:%M:%S", "%d/%m/%Y", "%d/%m/%y %H:%M:%S", "%d/%m/%y",

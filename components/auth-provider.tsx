@@ -2,14 +2,12 @@
 
 import React from "react";
 import { Auth0Provider } from "@auth0/auth0-react";
-import { useRouter } from "next/navigation";
 
 interface AuthProviderProps {
   children: React.ReactNode;
 }
 
 export default function AuthProvider({ children }: AuthProviderProps) {
-  const router = useRouter();
 
   const domain = process.env.NEXT_PUBLIC_AUTH0_DOMAIN;
   const clientId = process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID;
@@ -32,8 +30,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         scope: "openid profile email",
       }}
       onRedirectCallback={(appState) => {
-        const route = appState?.returnTo || "/home";
-        router.push(route);
+        // Use window.location for hard navigation to ensure proper page load
+        const route = appState?.returnTo || "/";
+        window.location.href = route;
       }}
       useRefreshTokens={true}
       cacheLocation="localstorage"
