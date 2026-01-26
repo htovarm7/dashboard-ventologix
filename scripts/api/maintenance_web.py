@@ -27,7 +27,7 @@ OAUTH_CREDENTIALS_FILE = str(LIB_DIR / "credentials.json")
 TOKEN_FILE = str(LIB_DIR / "token.pickle")
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 
-NOTIFICATION_EMAIL = "andres.mirazo@ventologix.com" 
+NOTIFICATION_EMAIL = "Ivan.reyes@ventologix.com" 
 
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
