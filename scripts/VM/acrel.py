@@ -90,6 +90,14 @@ def insert_data(payload):
             ib = find_val(points, 8)
             ic = find_val(points, 9)
 
+            if id_cliente == 30:
+                ua *= 2
+                ub *= 2
+                uc *= 2
+                ia *= 2
+                ib *= 2
+                ic *= 2
+
             insert_electrico = """
                 INSERT INTO pruebas (device_id, ua, ub, uc, ia, ib, ic, time)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
