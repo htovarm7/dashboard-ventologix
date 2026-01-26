@@ -235,7 +235,20 @@ const TypeReportes = () => {
       const data = await response.json();
 
       if (data.data) {
-        setSearchResults(data.data);
+        // Filter results to also include matches by client name
+        const filteredResults = data.data.filter(
+          (result: CompressorSearchResult) => {
+            const lowerQuery = query.toLowerCase();
+            return (
+              result.nombre_cliente?.toLowerCase().includes(lowerQuery) ||
+              result.alias?.toLowerCase().includes(lowerQuery) ||
+              result.numero_serie?.toLowerCase().includes(lowerQuery) ||
+              result.numero_cliente?.toString().includes(query)
+            );
+          },
+        );
+
+        setSearchResults(filteredResults);
         setShowResults(true);
       } else {
         setSearchResults([]);
@@ -746,23 +759,13 @@ const TypeReportes = () => {
   };
 
   return (
-    <div className="min-h-screen p-8 bg-gradient-to-br from-gray-50 via-blue-50 to-white">
-      {/* Background grid */}
-      <div
-        className="absolute inset-0 opacity-5"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(59,130,246,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.15) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-        }}
-      ></div>
-
+    <div className="min-h-screen p-8 bg-white">
       {/* Loading/Authorization Screen */}
       {isLoading && (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-blue-600 text-xl font-medium">Verificando acceso...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-800 mx-auto mb-4"></div>
+            <p className="text-blue-800 text-xl">Verificando acceso...</p>
           </div>
         </div>
       )}
@@ -771,16 +774,30 @@ const TypeReportes = () => {
       {!isLoading && !isAuthorized && (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <div className="text-6xl mb-4">🔒</div>
-            <h1 className="text-3xl font-bold text-red-600 mb-2">
+            <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+              <svg
+                className="w-8 h-8 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m0 0v2m0-2h2m-2 0H10m11-8V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2v-3"
+                />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-semibold text-blue-900 mb-2">
               Acceso Denegado
             </h1>
-            <p className="text-gray-600 mb-6">
+            <p className="text-blue-800 mb-6">
               No tienes permiso para acceder a esta página
             </p>
             <button
               onClick={() => router.push("/home")}
-              className="px-8 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-semibold shadow-lg"
+              className="px-6 py-3 bg-blue-800 text-white rounded-lg hover:bg-blue-900 transition-colors font-medium text-lg"
             >
               Volver al Inicio
             </button>
@@ -790,10 +807,10 @@ const TypeReportes = () => {
 
       {/* Main Content - Only show if authorized and not loading */}
       {!isLoading && isAuthorized && (
-        <div className="max-w-7xl mx-auto relative z-10">
+        <div className="max-w-7xl mx-auto">
           <button
             onClick={handleGoBack}
-            className="absolute left-0 top-0 flex items-center gap-2 bg-white text-blue-600 hover:bg-blue-50 transition-all duration-200 px-6 py-3 rounded-xl shadow-md hover:shadow-lg border border-blue-200"
+            className="flex items-center gap-2 text-blue-800 hover:text-blue-900 transition-colors mb-6"
             title="Atrás"
           >
             <svg
@@ -809,31 +826,30 @@ const TypeReportes = () => {
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-            <span className="font-semibold">Atrás</span>
+            <span className="font-medium">Atrás</span>
           </button>
 
           {/* VISTA PARA ROL 2 (VAST) - Ver Órdenes de Servicio */}
           {rol === 2 && (
             <>
-              <div className="mt-24 mb-12 text-center">
-                <h1 className="text-5xl font-bold text-blue-600 mb-3">
+              <div className="mb-8">
+                <h1 className="text-3xl font-semibold text-blue-900 mb-2">
                   Órdenes de Servicio
                 </h1>
-                <p className="text-gray-600 text-xl">
+                <p className="text-blue-700 text-lg">
                   Selecciona una orden para crear su reporte
                 </p>
               </div>
 
               {/* Ordenes List Section */}
-              <div className="relative">
-                <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
-                  <div className="flex justify-between items-center mb-8">
-                    <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-                      <span className="text-4xl">📋</span>
+              <div>
+                <div className="bg-white rounded-lg border border-blue-200 p-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-semibold text-blue-900">
                       Órdenes Pendientes
                     </h2>
                     {ordenesServicio.length > 0 && (
-                      <span className="px-5 py-2 bg-blue-100 text-blue-700 rounded-full font-semibold text-sm">
+                      <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-base font-medium">
                         {ordenesServicio.length}{" "}
                         {ordenesServicio.length === 1 ? "orden" : "órdenes"}
                       </span>
@@ -841,64 +857,75 @@ const TypeReportes = () => {
                   </div>
 
                   {loadingOrdenes ? (
-                    <div className="text-center py-16">
-                      <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto mb-4"></div>
-                      <p className="text-gray-600 font-medium">
+                    <div className="text-center py-12">
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-800 mx-auto mb-3"></div>
+                      <p className="text-blue-700 text-base">
                         Cargando órdenes de servicio...
                       </p>
                     </div>
                   ) : ordenesServicio.length === 0 ? (
-                    <div className="text-center py-16">
-                      <div className="text-8xl mb-6">📄</div>
-                      <p className="text-xl font-semibold text-gray-700">
+                    <div className="text-center py-12">
+                      <div className="w-14 h-14 mx-auto mb-3 bg-blue-100 rounded-full flex items-center justify-center">
+                        <svg
+                          className="w-7 h-7 text-blue-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                      </div>
+                      <p className="text-blue-900 font-medium text-lg">
                         No hay órdenes de servicio disponibles
                       </p>
-                      <p className="text-sm mt-3 text-gray-500">
+                      <p className="text-base text-blue-600 mt-1">
                         Las nuevas órdenes aparecerán aquí
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-8">
+                    <div className="space-y-6">
                       {groupOrdensByDate().map((group) => (
-                        <div key={group.title} className="space-y-4">
+                        <div key={group.title} className="space-y-3">
                           {/* Header de fecha */}
-                          <div className="flex items-center gap-4">
-                            <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                          <div className="flex items-center gap-3">
+                            <h3 className="text-base font-semibold text-blue-800 uppercase tracking-wide">
                               {group.title}
                             </h3>
-                            <div className="flex-1 h-px bg-gradient-to-r from-gray-300 to-transparent"></div>
-                            <span className="px-4 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
-                              {group.orders.length}{" "}
-                              {group.orders.length === 1 ? "orden" : "órdenes"}
+                            <div className="flex-1 h-px bg-blue-200"></div>
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-sm font-medium">
+                              {group.orders.length}
                             </span>
                           </div>
 
                           {/* Grid de órdenes */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {group.orders.map((orden) => (
                               <div
                                 key={orden.folio}
-                                className="group relative p-6 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-400 hover:shadow-xl transition-all duration-300"
+                                className="p-5 rounded-lg border border-blue-200 bg-white hover:border-blue-800 hover:shadow-md transition-all"
                               >
                                 <div className="mb-4">
                                   <div className="flex items-center justify-between mb-3">
                                     <span
-                                      className={`px-3 py-1 text-xs font-semibold rounded-lg ${
+                                      className={`px-2 py-1 text-sm font-medium rounded ${
                                         orden.estado === "no_iniciado"
-                                          ? "bg-gray-100 text-gray-700"
+                                          ? "bg-blue-50 text-blue-700"
                                           : orden.estado === "en_proceso"
-                                            ? "bg-blue-100 text-blue-700"
+                                            ? "bg-blue-100 text-blue-800"
                                             : orden.estado === "completado"
                                               ? "bg-green-100 text-green-700"
-                                              : "bg-gray-100 text-gray-700"
+                                              : "bg-blue-50 text-blue-700"
                                       }`}
                                     >
-                                      {orden.estado
-                                        .toUpperCase()
-                                        .replace("_", " ")}
+                                      {orden.estado.replace("_", " ")}
                                     </span>
                                     <span
-                                      className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                                      className={`px-2 py-1 text-sm font-medium rounded ${
                                         orden.prioridad === "urgente"
                                           ? "bg-red-100 text-red-700"
                                           : orden.prioridad === "alta"
@@ -908,66 +935,72 @@ const TypeReportes = () => {
                                               : "bg-blue-100 text-blue-700"
                                       }`}
                                     >
-                                      {orden.prioridad.toUpperCase()}
+                                      {orden.prioridad}
                                     </span>
                                   </div>
-                                  <p className="font-bold text-gray-900 text-xl truncate mb-3">
+                                  <p className="font-semibold text-blue-900 text-lg truncate mb-3">
                                     {orden.nombre_cliente}
                                   </p>
-                                  <div className="space-y-1.5">
-                                    <p className="text-sm text-gray-600">
-                                      <span className="font-semibold text-gray-700">Folio:</span>{" "}
+                                  <div className="space-y-1.5 text-base">
+                                    <p className="text-blue-800">
+                                      <span className="text-blue-600">
+                                        Folio:
+                                      </span>{" "}
                                       {orden.folio}
                                     </p>
-                                    <p className="text-sm text-gray-600">
-                                      <span className="font-semibold text-gray-700">
+                                    <p className="text-blue-800">
+                                      <span className="text-blue-600">
                                         Compresor:
                                       </span>{" "}
                                       {orden.alias_compresor}
                                     </p>
-                                    <p className="text-sm text-gray-600">
-                                      <span className="font-semibold text-gray-700">Serie:</span>{" "}
+                                    <p className="text-blue-800">
+                                      <span className="text-blue-600">
+                                        Serie:
+                                      </span>{" "}
                                       {orden.numero_serie}
                                     </p>
-                                    <p className="text-sm text-gray-600">
-                                      <span className="font-semibold text-gray-700">Marca:</span>{" "}
+                                    <p className="text-blue-800">
+                                      <span className="text-blue-600">
+                                        Marca:
+                                      </span>{" "}
                                       {orden.marca}
                                     </p>
-                                    <p className="text-sm text-gray-600">
-                                      <span className="font-semibold text-gray-700">Modelo:</span>{" "}
+                                    <p className="text-blue-800">
+                                      <span className="text-blue-600">
+                                        Modelo:
+                                      </span>{" "}
                                       {orden.tipo}
                                     </p>
-                                    <p className="text-sm text-gray-600">
-                                      <span className="font-semibold text-gray-700">
+                                    <p className="text-blue-800">
+                                      <span className="text-blue-600">
                                         Tipo Visita:
                                       </span>{" "}
                                       {orden.tipo_visita}
                                     </p>
-                                    <p className="text-sm text-gray-600">
-                                      <span className="font-semibold text-gray-700">
+                                    <p className="text-blue-800">
+                                      <span className="text-blue-600">
                                         Mantenimiento:
                                       </span>{" "}
                                       {orden.tipo_mantenimiento ||
                                         "No especificado"}
                                     </p>
-                                    <p className="text-sm text-gray-600 pt-1">
-                                      <span className="font-semibold text-gray-700">
-                                        Programado para:
+                                    <p className="text-blue-800 pt-1">
+                                      <span className="text-blue-600">
+                                        Programado:
                                       </span>{" "}
                                       {formatDate(orden.fecha_programada)}{" "}
                                       {formatTime(orden.hora_programada)}
                                     </p>
                                   </div>
                                 </div>
-                                <div className="flex">
-                                  <button
-                                    onClick={() => handleStartReport(orden)}
-                                    className="px-4 py-3 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg w-full"
-                                    title="Crear Reporte"
-                                  >
-                                    Empezar Reporte
-                                  </button>
-                                </div>
+                                <button
+                                  onClick={() => handleStartReport(orden)}
+                                  className="w-full px-4 py-3 bg-blue-800 text-white text-base font-medium rounded-lg hover:bg-blue-900 transition-colors"
+                                  title="Crear Reporte"
+                                >
+                                  Empezar Reporte
+                                </button>
                               </div>
                             ))}
                           </div>
@@ -979,45 +1012,78 @@ const TypeReportes = () => {
               </div>
 
               {/* Botones de Navegación */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
                 {/* Tabla de Mantenimientos */}
                 <button
-                  className="group relative w-full min-h-[200px] bg-white hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-400 rounded-xl p-8 transition-all duration-300 shadow-md hover:shadow-xl flex items-center justify-center"
+                  className="w-full p-5 bg-white border border-blue-200 rounded-lg hover:border-blue-800 hover:shadow-md transition-all text-left"
                   onClick={() =>
                     router.push("/features/compressor-maintenance/maintenance")
                   }
                 >
-                  <div className="text-center">
-                    <div className="text-5xl mb-4 transform group-hover:scale-110 transition-transform duration-300">
-                      🔧
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-6 h-6 text-blue-800"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                      Tabla de Mantenimientos
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      Visualiza y gestiona todos los mantenimientos activos de los
-                      compresores
-                    </p>
+                    <div>
+                      <h3 className="font-semibold text-blue-900 text-lg">
+                        Tabla de Mantenimientos
+                      </h3>
+                      <p className="text-blue-600 text-base">
+                        Gestiona mantenimientos activos
+                      </p>
+                    </div>
                   </div>
                 </button>
 
                 {/* Reportes */}
                 <button
-                  className="group relative w-full min-h-[200px] bg-white hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-400 rounded-xl p-8 transition-all duration-300 shadow-md hover:shadow-xl flex items-center justify-center"
+                  className="w-full p-5 bg-white border border-blue-200 rounded-lg hover:border-blue-800 hover:shadow-md transition-all text-left"
                   onClick={() =>
                     router.push("/features/compressor-maintenance/reports/")
                   }
                 >
-                  <div className="text-center">
-                    <div className="text-5xl mb-4 transform group-hover:scale-110 transition-transform duration-300">
-                      📄
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-6 h-6 text-blue-800"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                      Reportes
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      Ver historial de reportes generados
-                    </p>
+                    <div>
+                      <h3 className="font-semibold text-blue-900 text-lg">
+                        Reportes
+                      </h3>
+                      <p className="text-blue-600 text-base">
+                        Ver historial de reportes
+                      </p>
+                    </div>
                   </div>
                 </button>
               </div>
@@ -1027,36 +1093,35 @@ const TypeReportes = () => {
           {/* VISTA PARA ROL 0 y 1 - Crear Ticket de Servicio */}
           {(rol === 0 || rol === 1) && (
             <>
-              <div className="mt-24 mb-12 text-center">
-                <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-300 to-cyan-300 mb-3">
+              <div className="mb-8">
+                <h1 className="text-3xl font-semibold text-blue-900 mb-2">
                   Crear Ticket de Servicio
                 </h1>
-                <p className="text-white text-xl">
+                <p className="text-blue-700 text-lg">
                   Registra una nueva solicitud de mantenimiento
                 </p>
               </div>
 
               {/* Search Section */}
-              <div className="relative mb-8">
-                <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 rounded-3xl opacity-30 blur-xl"></div>
-                <div className="relative bg-gradient-to-br from-slate-800/95 via-blue-900/95 to-slate-800/95 rounded-3xl shadow-2xl border border-cyan-500/30 p-8">
-                  <h2 className="text-2xl font-bold text-cyan-300 mb-6">
+              <div className="mb-6">
+                <div className="bg-white rounded-lg border border-blue-200 p-6">
+                  <h2 className="text-xl font-semibold text-blue-900 mb-4">
                     Buscar Compresor
                   </h2>
 
-                  <div className="flex gap-4 mb-6">
+                  <div className="flex gap-3 mb-4">
                     <div className="flex-1">
                       <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => handleSearch(e.target.value)}
-                        placeholder="Buscar por cliente, alias o número de serie..."
-                        className="w-full px-6 py-4 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all text-lg"
+                        placeholder="Buscar por nombre de cliente, alias, número de serie o número de cliente..."
+                        className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                       />
                     </div>
                     <button
                       onClick={handleClienteEventual}
-                      className="px-8 py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-xl hover:from-amber-700 hover:to-orange-700 transition-all font-semibold shadow-lg hover:shadow-amber-500/50 border border-amber-400/50"
+                      className="px-5 py-3 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors font-medium border border-blue-300 text-base"
                     >
                       Cliente Eventual
                     </button>
@@ -1064,32 +1129,32 @@ const TypeReportes = () => {
 
                   {/* Search Results */}
                   {showResults && searchResults.length > 0 && (
-                    <div className="mt-4 max-h-96 overflow-y-auto bg-slate-900/50 rounded-xl border border-cyan-500/30 p-4">
-                      <p className="text-cyan-300 text-sm mb-3 font-semibold">
+                    <div className="mt-4 max-h-80 overflow-y-auto border border-blue-200 rounded-lg">
+                      <p className="text-blue-700 text-base p-3 border-b border-blue-200 bg-blue-50">
                         {searchResults.length} resultado(s) encontrado(s)
                       </p>
-                      <div className="space-y-2">
+                      <div className="divide-y divide-blue-100">
                         {searchResults.map((result, index) => (
                           <button
                             key={index}
                             onClick={() => handleSelectCompressor(result)}
-                            className="w-full text-left p-4 bg-blue-800/40 hover:bg-blue-700/60 rounded-lg transition-all border border-cyan-500/30 hover:border-cyan-400/60"
+                            className="w-full text-left p-4 hover:bg-blue-50 transition-colors"
                           >
                             <div className="flex justify-between items-start">
                               <div>
-                                <p className="font-bold text-cyan-100 text-lg">
+                                <p className="font-medium text-blue-900 text-base">
                                   {result.nombre_cliente}
                                 </p>
-                                <p className="text-cyan-200/80 text-sm mt-1">
+                                <p className="text-blue-700 text-base mt-0.5">
                                   {result.alias} - Serie: {result.numero_serie}
                                 </p>
-                                <p className="text-cyan-300/60 text-xs mt-1">
+                                <p className="text-blue-600 text-sm mt-0.5">
                                   {result.marca} | {result.hp} HP |{" "}
                                   {result.tipo}
                                 </p>
                               </div>
-                              <span className="px-3 py-1 bg-cyan-600/50 text-white text-xs rounded-full">
-                                Cliente #{result.numero_cliente}
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded font-medium">
+                                #{result.numero_cliente}
                               </span>
                             </div>
                           </button>
@@ -1099,8 +1164,8 @@ const TypeReportes = () => {
                   )}
 
                   {showResults && searchResults.length === 0 && (
-                    <div className="mt-4 p-6 bg-slate-900/50 rounded-xl border border-cyan-500/30 text-center">
-                      <p className="text-cyan-300/60">
+                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-center">
+                      <p className="text-blue-700 text-base">
                         No se encontraron resultados
                       </p>
                     </div>
@@ -1110,15 +1175,14 @@ const TypeReportes = () => {
 
               {/* Ticket Form */}
               {(selectedCompressor || isClienteEventual) && (
-                <div className="relative">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 rounded-3xl opacity-30 blur-xl"></div>
-                  <div className="relative bg-gradient-to-br from-slate-800/95 via-blue-900/95 to-slate-800/95 rounded-3xl shadow-2xl border border-cyan-500/30 p-8">
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-2xl font-bold text-cyan-300">
+                <div className="mb-6">
+                  <div className="bg-white rounded-lg border border-blue-200 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-xl font-semibold text-blue-900">
                         Datos del Ticket
                       </h2>
                       {isClienteEventual && (
-                        <span className="px-4 py-2 bg-amber-500/90 text-white rounded-full font-semibold text-sm">
+                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-base font-medium">
                           Cliente Eventual
                         </span>
                       )}
@@ -1126,11 +1190,11 @@ const TypeReportes = () => {
 
                     {/* Eventual Client Selection */}
                     {isClienteEventual && (
-                      <div className="mb-6 p-6 bg-gradient-to-r from-amber-900/40 to-orange-900/40 rounded-xl border-2 border-amber-500/50">
-                        <h3 className="text-xl font-bold text-amber-300 mb-4">
+                      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <h3 className="text-base font-semibold text-blue-900 mb-3">
                           Tipo de Cliente Eventual
                         </h3>
-                        <div className="flex gap-4 mb-4">
+                        <div className="flex gap-3 mb-3">
                           <button
                             type="button"
                             onClick={() => {
@@ -1141,10 +1205,10 @@ const TypeReportes = () => {
                                 clientName: "",
                               }));
                             }}
-                            className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all ${
+                            className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors text-base ${
                               isNewEventual
-                                ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg"
-                                : "bg-slate-700/50 text-cyan-300 hover:bg-slate-700"
+                                ? "bg-blue-800 text-white"
+                                : "bg-white text-blue-800 border border-blue-300 hover:bg-blue-50"
                             }`}
                           >
                             Nuevo Cliente
@@ -1155,10 +1219,10 @@ const TypeReportes = () => {
                               setIsNewEventual(false);
                               setSelectedEventualClient(null);
                             }}
-                            className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all ${
+                            className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors text-base ${
                               !isNewEventual
-                                ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg"
-                                : "bg-slate-700/50 text-cyan-300 hover:bg-slate-700"
+                                ? "bg-blue-800 text-white"
+                                : "bg-white text-blue-800 border border-blue-300 hover:bg-blue-50"
                             }`}
                           >
                             Cliente Existente
@@ -1167,7 +1231,7 @@ const TypeReportes = () => {
 
                         {!isNewEventual && (
                           <div>
-                            <label className="block text-amber-300 font-semibold mb-2">
+                            <label className="block text-blue-800 text-base font-medium mb-1">
                               Seleccionar Cliente Eventual
                             </label>
                             <select
@@ -1181,7 +1245,7 @@ const TypeReportes = () => {
                                   handleSelectEventualClient(client);
                                 }
                               }}
-                              className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-amber-500/50 rounded-xl focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/50 transition-all"
+                              className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                               required={!isNewEventual}
                             >
                               <option value="">
@@ -1200,19 +1264,21 @@ const TypeReportes = () => {
                               ))}
                             </select>
                             {selectedEventualClient && (
-                              <div className="mt-3 p-3 bg-slate-800/50 rounded-lg">
-                                <p className="text-cyan-200 text-sm">
-                                  <span className="font-semibold">
+                              <div className="mt-2 p-3 bg-white rounded-lg border border-blue-200">
+                                <p className="text-blue-800 text-base">
+                                  <span className="font-medium text-blue-900">
                                     Teléfono:
                                   </span>{" "}
                                   {eventualClientInfo.telefono || "N/A"}
                                 </p>
-                                <p className="text-cyan-200 text-sm">
-                                  <span className="font-semibold">Email:</span>{" "}
+                                <p className="text-blue-800 text-base">
+                                  <span className="font-medium text-blue-900">
+                                    Email:
+                                  </span>{" "}
                                   {eventualClientInfo.email || "N/A"}
                                 </p>
-                                <p className="text-cyan-200 text-sm">
-                                  <span className="font-semibold">
+                                <p className="text-blue-800 text-base">
+                                  <span className="font-medium text-blue-900">
                                     Dirección:
                                   </span>{" "}
                                   {eventualClientInfo.direccion || "N/A"}
@@ -1224,9 +1290,9 @@ const TypeReportes = () => {
 
                         {/* Contact information fields for new eventual clients */}
                         {isNewEventual && (
-                          <div className="grid grid-cols-2 gap-4 mt-4">
+                          <div className="grid grid-cols-2 gap-3 mt-3">
                             <label className="block">
-                              <span className="text-amber-300 font-semibold mb-2 block">
+                              <span className="text-blue-800 text-base font-medium mb-1 block">
                                 Teléfono *
                               </span>
                               <input
@@ -1240,12 +1306,12 @@ const TypeReportes = () => {
                                 }
                                 placeholder="555-1234-5678"
                                 required
-                                className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-amber-500/50 rounded-xl focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/50"
+                                className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 text-base"
                               />
                             </label>
 
                             <label className="block">
-                              <span className="text-amber-300 font-semibold mb-2 block">
+                              <span className="text-blue-800 text-base font-medium mb-1 block">
                                 Email *
                               </span>
                               <input
@@ -1259,12 +1325,12 @@ const TypeReportes = () => {
                                 }
                                 placeholder="cliente@ejemplo.com"
                                 required
-                                className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-amber-500/50 rounded-xl focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/50"
+                                className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 text-base"
                               />
                             </label>
 
                             <label className="block col-span-2">
-                              <span className="text-amber-300 font-semibold mb-2 block">
+                              <span className="text-blue-800 text-base font-medium mb-1 block">
                                 Dirección *
                               </span>
                               <input
@@ -1278,12 +1344,12 @@ const TypeReportes = () => {
                                 }
                                 placeholder="Calle, Número, Colonia, Ciudad"
                                 required
-                                className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-amber-500/50 rounded-xl focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/50"
+                                className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 text-base"
                               />
                             </label>
 
                             <label className="block col-span-2">
-                              <span className="text-amber-300 font-semibold mb-2 block">
+                              <span className="text-blue-800 text-base font-medium mb-1 block">
                                 RFC (opcional)
                               </span>
                               <input
@@ -1297,7 +1363,7 @@ const TypeReportes = () => {
                                 }
                                 placeholder="XAXX010101000"
                                 maxLength={13}
-                                className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-amber-500/50 rounded-xl focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/50"
+                                className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 text-base"
                               />
                             </label>
                           </div>
@@ -1307,23 +1373,23 @@ const TypeReportes = () => {
 
                     {/* Display Folio */}
                     {ticketData.folio && (
-                      <div className="mb-6 p-4 bg-gradient-to-r from-purple-900/40 to-blue-900/40 rounded-xl border-2 border-purple-500/50">
-                        <div className="flex items-center gap-3">
-                          <span className="text-purple-300 font-semibold text-lg">
+                      <div className="mb-4 p-4 bg-blue-100 rounded-lg border border-blue-200">
+                        <div className="flex items-center gap-2">
+                          <span className="text-blue-800 font-medium text-base">
                             FOLIO:
                           </span>
-                          <span className="text-cyan-100 font-mono text-2xl font-bold tracking-wider">
+                          <span className="text-blue-900 font-mono text-xl font-semibold">
                             {ticketData.folio}
                           </span>
                         </div>
                       </div>
                     )}
 
-                    <form onSubmit={handleSubmitTicket} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <form onSubmit={handleSubmitTicket} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Cliente Info */}
                         <div>
-                          <label className="block text-cyan-300 font-semibold mb-2">
+                          <label className="block text-blue-800 text-base font-medium mb-1">
                             Nombre del Cliente *
                           </label>
                           <input
@@ -1337,13 +1403,13 @@ const TypeReportes = () => {
                               !isNewEventual &&
                               !!selectedEventualClient
                             }
-                            className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors disabled:bg-blue-50 disabled:cursor-not-allowed text-base"
                             placeholder="Nombre del cliente"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-cyan-300 font-semibold mb-2">
+                          <label className="block text-blue-800 text-base font-medium mb-1">
                             Número de Cliente
                           </label>
                           <input
@@ -1352,14 +1418,14 @@ const TypeReportes = () => {
                             value={ticketData.numeroCliente}
                             onChange={handleInputChange}
                             readOnly={!isClienteEventual}
-                            className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
+                            className="w-full px-4 py-3 bg-blue-50 text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                             placeholder="Número de cliente"
                           />
                         </div>
 
                         {/* Compressor Info */}
                         <div>
-                          <label className="block text-cyan-300 font-semibold mb-2">
+                          <label className="block text-blue-800 text-base font-medium mb-1">
                             Alias del Compresor *
                           </label>
                           <input
@@ -1368,13 +1434,13 @@ const TypeReportes = () => {
                             value={ticketData.alias}
                             onChange={handleInputChange}
                             required
-                            className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
+                            className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                             placeholder="Alias"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-cyan-300 font-semibold mb-2">
+                          <label className="block text-blue-800 text-base font-medium mb-1">
                             Número de Serie *
                           </label>
                           <input
@@ -1383,13 +1449,13 @@ const TypeReportes = () => {
                             value={ticketData.serialNumber}
                             onChange={handleInputChange}
                             required
-                            className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
+                            className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                             placeholder="Número de serie"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-cyan-300 font-semibold mb-2">
+                          <label className="block text-blue-800 text-base font-medium mb-1">
                             HP *
                           </label>
                           <input
@@ -1397,20 +1463,20 @@ const TypeReportes = () => {
                             name="hp"
                             value={ticketData.hp}
                             onChange={handleInputChange}
-                            className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
+                            className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                             placeholder="HP"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-cyan-300 font-semibold mb-2">
+                          <label className="block text-blue-800 text-base font-medium mb-1">
                             Tipo *
                           </label>
                           <select
                             name="tipo"
                             value={ticketData.tipo}
                             onChange={handleInputChange}
-                            className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
+                            className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                           >
                             <option value="">Seleccionar tipo</option>
                             <option value="tornillo">Tornillo</option>
@@ -1419,7 +1485,7 @@ const TypeReportes = () => {
                         </div>
 
                         <div>
-                          <label className="block text-cyan-300 font-semibold mb-2">
+                          <label className="block text-blue-800 text-base font-medium mb-1">
                             Marca *
                           </label>
                           <input
@@ -1427,13 +1493,13 @@ const TypeReportes = () => {
                             name="marca"
                             value={ticketData.marca}
                             onChange={handleInputChange}
-                            className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
+                            className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                             placeholder="Marca"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-cyan-300 font-semibold mb-2">
+                          <label className="block text-blue-800 text-base font-medium mb-1">
                             Año
                           </label>
                           <input
@@ -1441,14 +1507,14 @@ const TypeReportes = () => {
                             name="anio"
                             value={ticketData.anio}
                             onChange={handleInputChange}
-                            className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
+                            className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                             placeholder="Año"
                           />
                         </div>
 
-                        {/* Ticket Details - Pendientes de implementación */}
+                        {/* Ticket Details */}
                         <div>
-                          <label className="block text-cyan-300 font-semibold mb-2">
+                          <label className="block text-blue-800 text-base font-medium mb-1">
                             Prioridad *
                           </label>
                           <select
@@ -1456,7 +1522,7 @@ const TypeReportes = () => {
                             value={ticketData.priority}
                             onChange={handleInputChange}
                             required
-                            className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
+                            className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                           >
                             <option value="baja">Baja</option>
                             <option value="media">Media</option>
@@ -1465,9 +1531,9 @@ const TypeReportes = () => {
                           </select>
                         </div>
 
-                        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-3">
                           <div>
-                            <label className="block text-cyan-300 font-semibold mb-2">
+                            <label className="block text-blue-800 text-base font-medium mb-1">
                               Fecha Programada
                             </label>
                             <input
@@ -1475,18 +1541,18 @@ const TypeReportes = () => {
                               name="scheduledDate"
                               value={ticketData.scheduledDate}
                               onChange={handleInputChange}
-                              className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
+                              className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                             />
                           </div>
                           <div>
-                            <label className="block text-cyan-300 font-semibold mb-2">
+                            <label className="block text-blue-800 text-base font-medium mb-1">
                               Hora
                             </label>
                             <select
                               name="hora"
                               value={ticketData.hora}
                               onChange={handleInputChange}
-                              className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
+                              className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                             >
                               <option value="no-aplica">No aplica</option>
                               <option value="06:00">06:00</option>
@@ -1523,7 +1589,7 @@ const TypeReportes = () => {
 
                       {/* Visit Type */}
                       <div>
-                        <label className="block text-cyan-300 font-semibold mb-2">
+                        <label className="block text-blue-800 text-base font-medium mb-1">
                           Tipo de visita *
                         </label>
                         <select
@@ -1531,7 +1597,7 @@ const TypeReportes = () => {
                           value={ticketData.problemDescription}
                           onChange={handleInputChange}
                           required
-                          className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
+                          className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                         >
                           <option value="">Seleccionar tipo de visita</option>
                           <option value="1era Visita comercial">
@@ -1544,14 +1610,14 @@ const TypeReportes = () => {
 
                       {/* Tipo de Mantenimiento */}
                       <div>
-                        <label className="block text-cyan-300 font-semibold mb-2">
+                        <label className="block text-blue-800 text-base font-medium mb-1">
                           Tipo de Mantenimiento
                         </label>
                         <select
                           name="tipoMantenimiento"
                           value={ticketData.tipoMantenimiento}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
+                          className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                         >
                           <option value="">
                             Seleccionar tipo de mantenimiento
@@ -1574,10 +1640,10 @@ const TypeReportes = () => {
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex gap-4 pt-4">
+                      <div className="flex gap-3 pt-4">
                         <button
                           type="submit"
-                          className="flex-1 px-8 py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all font-bold text-lg shadow-xl hover:shadow-emerald-500/50 border-2 border-emerald-400/50"
+                          className="flex-1 px-5 py-3 bg-blue-800 text-white rounded-lg hover:bg-blue-900 transition-colors font-medium text-base"
                         >
                           Crear Ticket
                         </button>
@@ -1589,17 +1655,16 @@ const TypeReportes = () => {
                             setSearchQuery("");
                             setShowResults(false);
                           }}
-                          className="px-8 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transition-all font-bold text-lg shadow-xl hover:shadow-red-500/50 border-2 border-red-400/50"
+                          className="px-5 py-3 bg-white text-blue-800 rounded-lg hover:bg-blue-50 transition-colors font-medium border border-blue-300 text-base"
                         >
                           Cancelar
                         </button>
                       </div>
 
-                      <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-                        <p className="text-blue-300 text-sm">
-                          ℹ️ <strong>Info:</strong> El ticket se creará con
-                          estado &quot;No Iniciado&quot; y podrá ser asignado a
-                          un técnico posteriormente.
+                      <div className="mt-4 p-4 bg-blue-100 border border-blue-200 rounded-lg">
+                        <p className="text-blue-800 text-base">
+                          El ticket se creará con estado &quot;No Iniciado&quot;
+                          y podrá ser asignado a un técnico posteriormente.
                         </p>
                       </div>
                     </form>
@@ -1608,17 +1673,16 @@ const TypeReportes = () => {
               )}
 
               {/* Collapsible Tickets List - At the bottom */}
-              <div className="relative mt-8">
-                <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 rounded-3xl opacity-30 blur-xl"></div>
-                <div className="relative bg-gradient-to-br from-slate-800/95 via-blue-900/95 to-slate-800/95 rounded-3xl shadow-2xl border border-cyan-500/30 overflow-hidden">
+              <div className="mt-6">
+                <div className="bg-white rounded-lg border border-blue-200 overflow-hidden">
                   {/* Collapsible Header */}
                   <button
                     onClick={() => setShowTicketsList(!showTicketsList)}
-                    className="w-full p-6 flex justify-between items-center hover:bg-cyan-500/10 transition-all"
+                    className="w-full p-5 flex justify-between items-center hover:bg-blue-50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <svg
-                        className="w-8 h-8 text-cyan-300"
+                        className="w-6 h-6 text-blue-800"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -1630,17 +1694,17 @@ const TypeReportes = () => {
                           d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                         />
                       </svg>
-                      <h2 className="text-3xl font-bold text-cyan-300">
+                      <h2 className="text-xl font-semibold text-blue-900">
                         Tickets Existentes
                       </h2>
                       {ordenesServicio.length > 0 && (
-                        <span className="px-4 py-2 bg-cyan-500/20 text-cyan-300 rounded-full font-semibold text-sm">
-                          {ordenesServicio.length} ticket(s)
+                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-base font-medium">
+                          {ordenesServicio.length}
                         </span>
                       )}
                     </div>
                     <svg
-                      className={`w-6 h-6 text-cyan-300 transition-transform ${
+                      className={`w-5 h-5 text-blue-600 transition-transform ${
                         showTicketsList ? "rotate-180" : ""
                       }`}
                       fill="none"
@@ -1658,38 +1722,42 @@ const TypeReportes = () => {
 
                   {/* Collapsible Content */}
                   {showTicketsList && (
-                    <div className="p-8 pt-0">
+                    <div className="p-5 pt-0 border-t border-blue-200">
                       {loadingOrdenes ? (
-                        <div className="text-center py-16">
-                          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-cyan-500 mx-auto"></div>
-                          <p className="text-cyan-300/60 mt-4">
+                        <div className="text-center py-8">
+                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-800 mx-auto"></div>
+                          <p className="text-blue-700 mt-3 text-base">
                             Cargando tickets...
                           </p>
                         </div>
                       ) : ordenesServicio.length === 0 ? (
-                        <div className="text-center py-16 text-cyan-300/60">
-                          <svg
-                            className="w-24 h-24 mx-auto mb-4 opacity-50"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                            />
-                          </svg>
-                          <p className="text-xl">No hay tickets registrados</p>
+                        <div className="text-center py-8">
+                          <div className="w-14 h-14 mx-auto mb-3 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg
+                              className="w-7 h-7 text-blue-600"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                          </div>
+                          <p className="text-blue-900 font-medium text-lg">
+                            No hay tickets registrados
+                          </p>
                         </div>
                       ) : (
-                        <div className="space-y-4">
+                        <div className="space-y-4 mt-4">
                           {groupOrdensByDate().map((group) => (
                             <div key={group.title}>
-                              <h3 className="text-xl font-bold text-cyan-400 mb-3 flex items-center gap-2">
+                              <h3 className="text-base font-semibold text-blue-800 uppercase tracking-wide mb-3 flex items-center gap-2">
                                 {group.title}
-                                <span className="text-sm font-normal text-cyan-300/60">
+                                <span className="text-sm font-normal text-blue-600">
                                   ({group.orders.length})
                                 </span>
                               </h3>
@@ -1697,21 +1765,21 @@ const TypeReportes = () => {
                                 {group.orders.map((orden) => (
                                   <div
                                     key={orden.folio}
-                                    className="p-4 bg-blue-800/40 rounded-xl border-2 border-cyan-500/30 hover:border-cyan-400/60 transition-all"
+                                    className="p-4 bg-blue-50 rounded-lg border border-blue-200 hover:border-blue-800 transition-colors"
                                   >
                                     <div className="flex justify-between items-start">
                                       <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-2">
-                                          <span className="px-3 py-1 bg-purple-500/30 text-purple-200 rounded-full text-sm font-mono font-bold">
+                                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm font-mono font-medium">
                                             {orden.folio}
                                           </span>
                                           <span
-                                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                            className={`px-2 py-1 rounded text-sm font-medium ${
                                               orden.estado === "no_iniciado"
-                                                ? "bg-gray-500/30 text-gray-200"
+                                                ? "bg-blue-100 text-blue-700"
                                                 : orden.estado === "en_progreso"
-                                                  ? "bg-blue-500/30 text-blue-200"
-                                                  : "bg-green-500/30 text-green-200"
+                                                  ? "bg-blue-200 text-blue-800"
+                                                  : "bg-green-100 text-green-700"
                                             }`}
                                           >
                                             {orden.estado === "no_iniciado"
@@ -1721,69 +1789,53 @@ const TypeReportes = () => {
                                                 : "Completado"}
                                           </span>
                                           <span
-                                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                            className={`px-2 py-1 rounded text-sm font-medium ${
                                               orden.prioridad === "baja"
-                                                ? "bg-green-500/30 text-green-200"
+                                                ? "bg-green-100 text-green-700"
                                                 : orden.prioridad === "media"
-                                                  ? "bg-yellow-500/30 text-yellow-200"
+                                                  ? "bg-yellow-100 text-yellow-700"
                                                   : orden.prioridad === "alta"
-                                                    ? "bg-orange-500/30 text-orange-200"
-                                                    : "bg-red-500/30 text-red-200"
+                                                    ? "bg-orange-100 text-orange-700"
+                                                    : "bg-red-100 text-red-700"
                                             }`}
                                           >
-                                            {orden.prioridad === "baja"
-                                              ? "🟢 Baja"
-                                              : orden.prioridad === "media"
-                                                ? "🟡 Media"
-                                                : orden.prioridad === "alta"
-                                                  ? "🔴 Alta"
-                                                  : "🚨 Urgente"}
+                                            {orden.prioridad}
                                           </span>
                                         </div>
-                                        <p className="text-cyan-100 font-semibold mb-1">
+                                        <p className="text-blue-900 font-medium text-base">
                                           {orden.nombre_cliente} -{" "}
                                           {orden.alias_compresor}
                                         </p>
-                                        <p className="text-cyan-300/70 text-sm">
+                                        <p className="text-blue-700 text-sm mt-0.5">
                                           S/N: {orden.numero_serie}
                                         </p>
-                                        <div className="flex gap-4 mt-2 text-sm">
-                                          <div>
-                                            <span className="text-cyan-400/80">
+                                        <div className="flex gap-4 mt-2 text-sm text-blue-800">
+                                          <span>
+                                            <span className="text-blue-600">
                                               Fecha:
                                             </span>{" "}
-                                            <span className="text-cyan-100">
-                                              {formatDate(
-                                                orden.fecha_programada,
-                                              )}
-                                            </span>
-                                          </div>
-                                          <div>
-                                            <span className="text-cyan-400/80">
+                                            {formatDate(orden.fecha_programada)}
+                                          </span>
+                                          <span>
+                                            <span className="text-blue-600">
                                               Hora:
                                             </span>{" "}
-                                            <span className="text-cyan-100">
-                                              {formatTime(
-                                                orden.hora_programada,
-                                              )}
-                                            </span>
-                                          </div>
-                                          <div>
-                                            <span className="text-cyan-400/80">
+                                            {formatTime(orden.hora_programada)}
+                                          </span>
+                                          <span>
+                                            <span className="text-blue-600">
                                               Tipo:
                                             </span>{" "}
-                                            <span className="text-cyan-100">
-                                              {orden.tipo_visita}
-                                            </span>
-                                          </div>
+                                            {orden.tipo_visita}
+                                          </span>
                                         </div>
                                       </div>
-                                      <div className="flex gap-2 ml-4">
+                                      <div className="flex gap-2 ml-3">
                                         <button
                                           onClick={() =>
                                             handleEditTicket(orden)
                                           }
-                                          className="p-2 bg-blue-600/80 hover:bg-blue-600 text-white rounded-lg transition-all"
+                                          className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
                                           title="Editar"
                                         >
                                           <svg
@@ -1804,7 +1856,7 @@ const TypeReportes = () => {
                                           onClick={() =>
                                             handleDeleteTicket(orden.folio)
                                           }
-                                          className="p-2 bg-red-600/80 hover:bg-red-600 text-white rounded-lg transition-all"
+                                          className="p-2 text-blue-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                                           title="Eliminar"
                                         >
                                           <svg
@@ -1839,199 +1891,199 @@ const TypeReportes = () => {
 
           {/* Edit Modal */}
           {showEditModal && editingTicket && (
-            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="relative max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 rounded-3xl opacity-30 blur-xl"></div>
-                <div className="relative bg-gradient-to-br from-slate-800/95 via-blue-900/95 to-slate-800/95 rounded-3xl shadow-2xl border border-cyan-500/30 p-8">
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-3xl font-bold text-cyan-300">
-                      Editar Ticket
-                    </h2>
+            <div className="fixed inset-0 bg-blue-900/30 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-blue-200">
+                <div className="flex justify-between items-center p-5 border-b border-blue-200">
+                  <h2 className="text-xl font-semibold text-blue-900">
+                    Editar Ticket
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setEditingTicket(null);
+                    }}
+                    className="p-1 text-blue-600 hover:text-blue-800 rounded transition-colors"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                <form onSubmit={handleUpdateTicket} className="p-5 space-y-4">
+                  <div className="p-4 bg-blue-100 rounded-lg border border-blue-200">
+                    <p className="text-base font-medium text-blue-800">
+                      Folio:{" "}
+                      <span className="font-mono text-blue-900">
+                        {editingTicket.folio}
+                      </span>
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-blue-800 text-base font-medium mb-1">
+                        Cliente *
+                      </label>
+                      <input
+                        type="text"
+                        value={editingTicket.nombre_cliente}
+                        onChange={(e) =>
+                          setEditingTicket({
+                            ...editingTicket,
+                            nombre_cliente: e.target.value,
+                          })
+                        }
+                        required
+                        className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-blue-800 text-base font-medium mb-1">
+                        Alias Compresor *
+                      </label>
+                      <input
+                        type="text"
+                        value={editingTicket.alias_compresor}
+                        onChange={(e) =>
+                          setEditingTicket({
+                            ...editingTicket,
+                            alias_compresor: e.target.value,
+                          })
+                        }
+                        required
+                        className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-blue-800 text-base font-medium mb-1">
+                        Número de Serie *
+                      </label>
+                      <input
+                        type="text"
+                        value={editingTicket.numero_serie}
+                        onChange={(e) =>
+                          setEditingTicket({
+                            ...editingTicket,
+                            numero_serie: e.target.value,
+                          })
+                        }
+                        required
+                        className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-blue-800 text-base font-medium mb-1">
+                        Tipo de Visita *
+                      </label>
+                      <select
+                        value={editingTicket.tipo_visita}
+                        onChange={(e) =>
+                          setEditingTicket({
+                            ...editingTicket,
+                            tipo_visita: e.target.value,
+                          })
+                        }
+                        required
+                        className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
+                      >
+                        <option value="">Seleccionar...</option>
+                        <option value="1era Visita comercial">
+                          1era Visita comercial
+                        </option>
+                        <option value="Diagnostico">Diagnóstico</option>
+                        <option value="Mantenimiento">Mantenimiento</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-blue-800 text-base font-medium mb-1">
+                        Prioridad
+                      </label>
+                      <select
+                        value={editingTicket.prioridad}
+                        onChange={(e) =>
+                          setEditingTicket({
+                            ...editingTicket,
+                            prioridad: e.target.value,
+                          })
+                        }
+                        className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
+                      >
+                        <option value="baja">Baja</option>
+                        <option value="media">Media</option>
+                        <option value="alta">Alta</option>
+                        <option value="urgente">Urgente</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-blue-800 text-base font-medium mb-1">
+                        Fecha Programada
+                      </label>
+                      <input
+                        type="date"
+                        value={editingTicket.fecha_programada}
+                        onChange={(e) =>
+                          setEditingTicket({
+                            ...editingTicket,
+                            fecha_programada: e.target.value,
+                          })
+                        }
+                        className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-blue-800 text-base font-medium mb-1">
+                        Hora Programada
+                      </label>
+                      <input
+                        type="time"
+                        value={editingTicket.hora_programada}
+                        onChange={(e) =>
+                          setEditingTicket({
+                            ...editingTicket,
+                            hora_programada: e.target.value,
+                          })
+                        }
+                        className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4 border-t border-blue-200">
                     <button
+                      type="submit"
+                      className="flex-1 px-5 py-3 bg-blue-800 text-white rounded-lg hover:bg-blue-900 transition-colors font-medium text-base"
+                    >
+                      Guardar Cambios
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => {
                         setShowEditModal(false);
                         setEditingTicket(null);
                       }}
-                      className="p-2 hover:bg-red-500/20 rounded-lg transition-all"
+                      className="px-5 py-3 bg-white text-blue-800 rounded-lg hover:bg-blue-50 transition-colors font-medium border border-blue-300 text-base"
                     >
-                      <svg
-                        className="w-6 h-6 text-red-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
+                      Cancelar
                     </button>
                   </div>
-
-                  <form onSubmit={handleUpdateTicket} className="space-y-6">
-                    <div className="p-4 bg-purple-900/40 rounded-xl border-2 border-purple-500/50 mb-4">
-                      <p className="text-lg font-bold text-purple-200">
-                        Folio: {editingTicket.folio}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-cyan-300 font-semibold mb-2">
-                          Cliente *
-                        </label>
-                        <input
-                          type="text"
-                          value={editingTicket.nombre_cliente}
-                          onChange={(e) =>
-                            setEditingTicket({
-                              ...editingTicket,
-                              nombre_cliente: e.target.value,
-                            })
-                          }
-                          required
-                          className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-cyan-300 font-semibold mb-2">
-                          Alias Compresor *
-                        </label>
-                        <input
-                          type="text"
-                          value={editingTicket.alias_compresor}
-                          onChange={(e) =>
-                            setEditingTicket({
-                              ...editingTicket,
-                              alias_compresor: e.target.value,
-                            })
-                          }
-                          required
-                          className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-cyan-300 font-semibold mb-2">
-                          Número de Serie *
-                        </label>
-                        <input
-                          type="text"
-                          value={editingTicket.numero_serie}
-                          onChange={(e) =>
-                            setEditingTicket({
-                              ...editingTicket,
-                              numero_serie: e.target.value,
-                            })
-                          }
-                          required
-                          className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-cyan-300 font-semibold mb-2">
-                          Tipo de Visita *
-                        </label>
-                        <select
-                          value={editingTicket.tipo_visita}
-                          onChange={(e) =>
-                            setEditingTicket({
-                              ...editingTicket,
-                              tipo_visita: e.target.value,
-                            })
-                          }
-                          required
-                          className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
-                        >
-                          <option value="">Seleccionar...</option>
-                          <option value="1era Visita comercial">
-                            1era Visita comercial
-                          </option>
-                          <option value="Diagnostico">Diagnóstico</option>
-                          <option value="Mantenimiento">Mantenimiento</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-cyan-300 font-semibold mb-2">
-                          Prioridad
-                        </label>
-                        <select
-                          value={editingTicket.prioridad}
-                          onChange={(e) =>
-                            setEditingTicket({
-                              ...editingTicket,
-                              prioridad: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
-                        >
-                          <option value="baja">🟢 Baja</option>
-                          <option value="media">🟡 Media</option>
-                          <option value="alta">🔴 Alta</option>
-                          <option value="urgente">🚨 Urgente</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-cyan-300 font-semibold mb-2">
-                          Fecha Programada
-                        </label>
-                        <input
-                          type="date"
-                          value={editingTicket.fecha_programada}
-                          onChange={(e) =>
-                            setEditingTicket({
-                              ...editingTicket,
-                              fecha_programada: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-cyan-300 font-semibold mb-2">
-                          Hora Programada
-                        </label>
-                        <input
-                          type="time"
-                          value={editingTicket.hora_programada}
-                          onChange={(e) =>
-                            setEditingTicket({
-                              ...editingTicket,
-                              hora_programada: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-3 bg-slate-800 text-cyan-100 border-2 border-cyan-500/50 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-4 pt-4">
-                      <button
-                        type="submit"
-                        className="flex-1 px-8 py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all font-bold text-lg shadow-xl hover:shadow-emerald-500/50 border-2 border-emerald-400/50"
-                      >
-                        💾 Guardar Cambios
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowEditModal(false);
-                          setEditingTicket(null);
-                        }}
-                        className="px-8 py-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all font-bold text-lg shadow-xl"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </form>
-                </div>
+                </form>
               </div>
             </div>
           )}
