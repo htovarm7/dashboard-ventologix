@@ -379,6 +379,30 @@ function FillReport() {
     const file = e.target.files?.[0] || null;
     setFormData((prev) => ({ ...prev, [fieldName]: file }));
     setHasUnsavedChanges(true);
+
+    // Also add to photosByCategory for Google Drive upload
+    if (file) {
+      // Map photo fields to categories
+      const fieldToCategoryMap: { [key: string]: string } = {
+        photo1: "PLACAS_EQUIPO",
+        photo2: "DISPLAY_HORAS", // Alarmas del sistema
+        photo3: "TEMPERATURAS",
+        photo4: "PRESIONES",
+        photo5: "CONDICIONES_AMBIENTALES",
+        photo6: "OTROS",
+      };
+
+      const category = fieldToCategoryMap[fieldName];
+      if (category) {
+        console.log(
+          `📸 Adding photo to category ${category}: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`,
+        );
+        setPhotosByCategory((prev: { [key: string]: File[] }) => ({
+          ...prev,
+          [category]: [...prev[category].filter((f: File) => f.name !== file.name), file],
+        }));
+      }
+    }
   };
 
   // Handle categorized photo uploads
