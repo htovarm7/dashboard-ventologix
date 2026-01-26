@@ -7,6 +7,9 @@ from typing import Optional, List
 from datetime import date
 import os
 import pickle
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
@@ -23,6 +26,70 @@ LIB_DIR = PROJECT_ROOT / "lib"
 OAUTH_CREDENTIALS_FILE = str(LIB_DIR / "credentials.json")
 TOKEN_FILE = str(LIB_DIR / "token.pickle")
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
+
+NOTIFICATION_EMAIL = "Ivan.reyes@ventologix.com" 
+
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+SMTP_FROM = "andres.mirazo@ventologix.com"
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+
+
+def send_maintenance_notification(compresor_id: int, tipo_mantenimiento: int):
+    """Envía notificación por email cuando se crea una nueva orden de mantenimiento"""
+    try:
+        # Obtener datos del compresor, cliente y tipo de mantenimiento
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT c.Alias, cl.nombre_cliente, cl.direccion
+            FROM compresores c
+            JOIN clientes cl ON c.id_cliente = cl.id_cliente
+            WHERE c.id = %s
+        """, (compresor_id,))
+        compresor_data = cursor.fetchone()
+
+        cursor.execute("SELECT nombre_tipo FROM mantenimientos_tipo WHERE id_mantenimiento = %s", (tipo_mantenimiento,))
+        tipo_data = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        alias = compresor_data.get("Alias", "N/A") if compresor_data else "N/A"
+        cliente = compresor_data.get("nombre_cliente", "N/A") if compresor_data else "N/A"
+        direccion = compresor_data.get("direccion", "N/A") if compresor_data else "N/A"
+        tipo_nombre = tipo_data.get("nombre_tipo", "N/A") if tipo_data else "N/A"
+
+        msg = MIMEMultipart()
+        msg["From"] = SMTP_FROM
+        msg["To"] = NOTIFICATION_EMAIL
+        msg["Subject"] = "Nueva Orden de Mantenimiento Pendiente"
+
+        body = f"""
+        Se ha creado una nueva orden de mantenimiento.
+
+        Detalles:
+        - Compresor: {alias}
+        - Cliente: {cliente}
+        - Tipo de Mantenimiento: {tipo_nombre}
+        - Dirección: {direccion}
+
+        Por favor revisa el sistema para más detalles.
+        """
+
+        msg.attach(MIMEText(body, "plain"))
+
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as smtp:
+            smtp.starttls()
+            smtp.login(SMTP_FROM, SMTP_PASSWORD)
+            smtp.send_message(msg)
+
+        print(f"📧 Email de notificación enviado a {NOTIFICATION_EMAIL}")
+        return True
+    except Exception as e:
+        print(f"⚠️ Error enviando email de notificación: {e}")
+        return False
 
 
 # Mapeo de columnas de BD a nombres legibles
@@ -258,6 +325,12 @@ def add_maintenance(request: AddMaintenanceRequest):
 
         maintenance_id = cursor.lastrowid
         conn.commit()
+
+        # Enviar notificación por email
+        send_maintenance_notification(
+            compresor_id=request.id_compresor,
+            tipo_mantenimiento=request.id_mantenimiento
+        )
 
         return {
             "message": "Mantenimiento agregado exitosamente",
