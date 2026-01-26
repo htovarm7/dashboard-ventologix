@@ -235,7 +235,20 @@ const TypeReportes = () => {
       const data = await response.json();
 
       if (data.data) {
-        setSearchResults(data.data);
+        // Filter results to also include matches by client name
+        const filteredResults = data.data.filter(
+          (result: CompressorSearchResult) => {
+            const lowerQuery = query.toLowerCase();
+            return (
+              result.nombre_cliente?.toLowerCase().includes(lowerQuery) ||
+              result.alias?.toLowerCase().includes(lowerQuery) ||
+              result.numero_serie?.toLowerCase().includes(lowerQuery) ||
+              result.numero_cliente?.toString().includes(query)
+            );
+          },
+        );
+
+        setSearchResults(filteredResults);
         setShowResults(true);
       } else {
         setSearchResults([]);
@@ -747,7 +760,6 @@ const TypeReportes = () => {
 
   return (
     <div className="min-h-screen p-8 bg-white">
-
       {/* Loading/Authorization Screen */}
       {isLoading && (
         <div className="flex items-center justify-center min-h-screen">
@@ -763,8 +775,18 @@ const TypeReportes = () => {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10m11-8V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2v-3" />
+              <svg
+                className="w-8 h-8 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m0 0v2m0-2h2m-2 0H10m11-8V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2v-3"
+                />
               </svg>
             </div>
             <h1 className="text-2xl font-semibold text-blue-900 mb-2">
@@ -844,8 +866,18 @@ const TypeReportes = () => {
                   ) : ordenesServicio.length === 0 ? (
                     <div className="text-center py-12">
                       <div className="w-14 h-14 mx-auto mb-3 bg-blue-100 rounded-full flex items-center justify-center">
-                        <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        <svg
+                          className="w-7 h-7 text-blue-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
                         </svg>
                       </div>
                       <p className="text-blue-900 font-medium text-lg">
@@ -911,35 +943,52 @@ const TypeReportes = () => {
                                   </p>
                                   <div className="space-y-1.5 text-base">
                                     <p className="text-blue-800">
-                                      <span className="text-blue-600">Folio:</span>{" "}
+                                      <span className="text-blue-600">
+                                        Folio:
+                                      </span>{" "}
                                       {orden.folio}
                                     </p>
                                     <p className="text-blue-800">
-                                      <span className="text-blue-600">Compresor:</span>{" "}
+                                      <span className="text-blue-600">
+                                        Compresor:
+                                      </span>{" "}
                                       {orden.alias_compresor}
                                     </p>
                                     <p className="text-blue-800">
-                                      <span className="text-blue-600">Serie:</span>{" "}
+                                      <span className="text-blue-600">
+                                        Serie:
+                                      </span>{" "}
                                       {orden.numero_serie}
                                     </p>
                                     <p className="text-blue-800">
-                                      <span className="text-blue-600">Marca:</span>{" "}
+                                      <span className="text-blue-600">
+                                        Marca:
+                                      </span>{" "}
                                       {orden.marca}
                                     </p>
                                     <p className="text-blue-800">
-                                      <span className="text-blue-600">Modelo:</span>{" "}
+                                      <span className="text-blue-600">
+                                        Modelo:
+                                      </span>{" "}
                                       {orden.tipo}
                                     </p>
                                     <p className="text-blue-800">
-                                      <span className="text-blue-600">Tipo Visita:</span>{" "}
+                                      <span className="text-blue-600">
+                                        Tipo Visita:
+                                      </span>{" "}
                                       {orden.tipo_visita}
                                     </p>
                                     <p className="text-blue-800">
-                                      <span className="text-blue-600">Mantenimiento:</span>{" "}
-                                      {orden.tipo_mantenimiento || "No especificado"}
+                                      <span className="text-blue-600">
+                                        Mantenimiento:
+                                      </span>{" "}
+                                      {orden.tipo_mantenimiento ||
+                                        "No especificado"}
                                     </p>
                                     <p className="text-blue-800 pt-1">
-                                      <span className="text-blue-600">Programado:</span>{" "}
+                                      <span className="text-blue-600">
+                                        Programado:
+                                      </span>{" "}
                                       {formatDate(orden.fecha_programada)}{" "}
                                       {formatTime(orden.hora_programada)}
                                     </p>
@@ -973,9 +1022,24 @@ const TypeReportes = () => {
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-blue-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <svg
+                        className="w-6 h-6 text-blue-800"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
                       </svg>
                     </div>
                     <div>
@@ -998,8 +1062,18 @@ const TypeReportes = () => {
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-blue-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      <svg
+                        className="w-6 h-6 text-blue-800"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
                       </svg>
                     </div>
                     <div>
@@ -1041,7 +1115,7 @@ const TypeReportes = () => {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => handleSearch(e.target.value)}
-                        placeholder="Buscar por cliente, alias o número de serie..."
+                        placeholder="Buscar por nombre de cliente, alias, número de serie o número de cliente..."
                         className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                       />
                     </div>
@@ -1075,7 +1149,8 @@ const TypeReportes = () => {
                                   {result.alias} - Serie: {result.numero_serie}
                                 </p>
                                 <p className="text-blue-600 text-sm mt-0.5">
-                                  {result.marca} | {result.hp} HP | {result.tipo}
+                                  {result.marca} | {result.hp} HP |{" "}
+                                  {result.tipo}
                                 </p>
                               </div>
                               <span className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded font-medium">
@@ -1191,15 +1266,21 @@ const TypeReportes = () => {
                             {selectedEventualClient && (
                               <div className="mt-2 p-3 bg-white rounded-lg border border-blue-200">
                                 <p className="text-blue-800 text-base">
-                                  <span className="font-medium text-blue-900">Teléfono:</span>{" "}
+                                  <span className="font-medium text-blue-900">
+                                    Teléfono:
+                                  </span>{" "}
                                   {eventualClientInfo.telefono || "N/A"}
                                 </p>
                                 <p className="text-blue-800 text-base">
-                                  <span className="font-medium text-blue-900">Email:</span>{" "}
+                                  <span className="font-medium text-blue-900">
+                                    Email:
+                                  </span>{" "}
                                   {eventualClientInfo.email || "N/A"}
                                 </p>
                                 <p className="text-blue-800 text-base">
-                                  <span className="font-medium text-blue-900">Dirección:</span>{" "}
+                                  <span className="font-medium text-blue-900">
+                                    Dirección:
+                                  </span>{" "}
                                   {eventualClientInfo.direccion || "N/A"}
                                 </p>
                               </div>
@@ -1582,7 +1663,8 @@ const TypeReportes = () => {
 
                       <div className="mt-4 p-4 bg-blue-100 border border-blue-200 rounded-lg">
                         <p className="text-blue-800 text-base">
-                          El ticket se creará con estado &quot;No Iniciado&quot; y podrá ser asignado a un técnico posteriormente.
+                          El ticket se creará con estado &quot;No Iniciado&quot;
+                          y podrá ser asignado a un técnico posteriormente.
                         </p>
                       </div>
                     </form>
@@ -1651,11 +1733,23 @@ const TypeReportes = () => {
                       ) : ordenesServicio.length === 0 ? (
                         <div className="text-center py-8">
                           <div className="w-14 h-14 mx-auto mb-3 bg-blue-100 rounded-full flex items-center justify-center">
-                            <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            <svg
+                              className="w-7 h-7 text-blue-600"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
                             </svg>
                           </div>
-                          <p className="text-blue-900 font-medium text-lg">No hay tickets registrados</p>
+                          <p className="text-blue-900 font-medium text-lg">
+                            No hay tickets registrados
+                          </p>
                         </div>
                       ) : (
                         <div className="space-y-4 mt-4">
@@ -1709,43 +1803,74 @@ const TypeReportes = () => {
                                           </span>
                                         </div>
                                         <p className="text-blue-900 font-medium text-base">
-                                          {orden.nombre_cliente} - {orden.alias_compresor}
+                                          {orden.nombre_cliente} -{" "}
+                                          {orden.alias_compresor}
                                         </p>
                                         <p className="text-blue-700 text-sm mt-0.5">
                                           S/N: {orden.numero_serie}
                                         </p>
                                         <div className="flex gap-4 mt-2 text-sm text-blue-800">
                                           <span>
-                                            <span className="text-blue-600">Fecha:</span>{" "}
+                                            <span className="text-blue-600">
+                                              Fecha:
+                                            </span>{" "}
                                             {formatDate(orden.fecha_programada)}
                                           </span>
                                           <span>
-                                            <span className="text-blue-600">Hora:</span>{" "}
+                                            <span className="text-blue-600">
+                                              Hora:
+                                            </span>{" "}
                                             {formatTime(orden.hora_programada)}
                                           </span>
                                           <span>
-                                            <span className="text-blue-600">Tipo:</span>{" "}
+                                            <span className="text-blue-600">
+                                              Tipo:
+                                            </span>{" "}
                                             {orden.tipo_visita}
                                           </span>
                                         </div>
                                       </div>
                                       <div className="flex gap-2 ml-3">
                                         <button
-                                          onClick={() => handleEditTicket(orden)}
+                                          onClick={() =>
+                                            handleEditTicket(orden)
+                                          }
                                           className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
                                           title="Editar"
                                         >
-                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                          <svg
+                                            className="w-5 h-5"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                            />
                                           </svg>
                                         </button>
                                         <button
-                                          onClick={() => handleDeleteTicket(orden.folio)}
+                                          onClick={() =>
+                                            handleDeleteTicket(orden.folio)
+                                          }
                                           className="p-2 text-blue-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                                           title="Eliminar"
                                         >
-                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                          <svg
+                                            className="w-5 h-5"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                            />
                                           </svg>
                                         </button>
                                       </div>
@@ -1779,8 +1904,18 @@ const TypeReportes = () => {
                     }}
                     className="p-1 text-blue-600 hover:text-blue-800 rounded transition-colors"
                   >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -1788,7 +1923,10 @@ const TypeReportes = () => {
                 <form onSubmit={handleUpdateTicket} className="p-5 space-y-4">
                   <div className="p-4 bg-blue-100 rounded-lg border border-blue-200">
                     <p className="text-base font-medium text-blue-800">
-                      Folio: <span className="font-mono text-blue-900">{editingTicket.folio}</span>
+                      Folio:{" "}
+                      <span className="font-mono text-blue-900">
+                        {editingTicket.folio}
+                      </span>
                     </p>
                   </div>
 

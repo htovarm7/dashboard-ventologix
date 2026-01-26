@@ -134,15 +134,15 @@ def search_compresores(query: str = Path(..., description="N√∫mero de serie o n√
         )
         cursor = conn.cursor()
 
-        # Search by serial number or client number
+        # Search by serial number, client number, or client name
         cursor.execute(
             """SELECT c.hp, c.tipo, c.marca, c.numero_serie, c.anio, c.id_cliente, c.Alias , cl.nombre_cliente, cl.numero_cliente
                FROM compresores c
                JOIN clientes cl ON cl.id_cliente = c.id_cliente
-               WHERE c.numero_serie LIKE %s OR cl.numero_cliente LIKE %s
+               WHERE c.numero_serie LIKE %s OR cl.numero_cliente LIKE %s OR cl.nombre_cliente LIKE %s
                LIMIT 20
             """,
-            (f"%{query}%", f"%{query}%")
+            (f"%{query}%", f"%{query}%", f"%{query}%")
         )
 
         res = cursor.fetchall()
