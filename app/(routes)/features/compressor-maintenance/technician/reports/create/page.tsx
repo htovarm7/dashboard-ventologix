@@ -3720,7 +3720,7 @@ function FillReport() {
 
                 {/* Nota legal */}
                 <div className="mt-6 p-4 bg-gray-100 rounded-lg border border-gray-300">
-                  <p className="text-xs text-gray-600 text-center">
+                  <p className="text-m text-gray-600 text-center">
                     Al firmar este documento, la persona a cargo confirma que el
                     servicio de mantenimiento fue realizado satisfactoriamente y
                     que las mediciones fueron tomadas en su presencia. Esta
