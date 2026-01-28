@@ -260,6 +260,33 @@ export interface ReportFormData {
   adequateBreaker: boolean;
   dischargePipeConnectedTo: string;
   compressorRoomConditions: string;
+
+  // Campos de POST-MANTENIMIENTO (valores finales después del mantenimiento)
+  displayPowersFinal?: string;
+  generalHoursFinal?: string;
+  loadHoursFinal?: string;
+  unloadHoursFinal?: string;
+  supplyVoltageFinal?: string;
+  mainMotorAmperageFinal?: string;
+  fanAmperageFinal?: string;
+  oilLeaksFinal?: string;
+  aceiteOscuroFinal?: string;
+  airIntakeTempFinal?: string;
+  compressionTempDisplayFinal?: string;
+  compressionTempLaserFinal?: string;
+  finalCompressionTempFinal?: string;
+  internalTempFinal?: string;
+  deltaTAceiteFinal?: string;
+  tempMotorFinal?: string;
+  loadPressureFinal?: string;
+  unloadPressureFinal?: string;
+  deltaPSeparadorFinal?: string;
+  airLeaksFinal?: string;
+
+  // Firmas
+  nombrePersonaCargo?: string;
+  firmaPersonaCargo?: string; // Base64 de la firma
+  firmaTecnicoVentologix?: string; // URL o path de la imagen del técnico
 }
 
 /* ===== Modulos Web ======= */

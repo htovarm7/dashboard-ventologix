@@ -4,7 +4,6 @@
 
 export const RESPONSE_SYSTEM_PROMPT_TEMPLATE = `You are a helpful AI assistant. Answer the user's questions based on the retrieved documents.
 
-{retrievedDocs}
 
 System time: {systemTime}`;
 
