@@ -36,7 +36,7 @@ import { Pie, Chart } from "react-chartjs-2";
 import { putBlur } from "@/lib/reportsFunctions";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import BackButton from "@/components/BackButton";
-import DateNavigator from "@/components/DateNavigator";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 // ECharts for the gauge chart
 import ReactECharts from "echarts-for-react";
@@ -568,33 +568,61 @@ function MainContent() {
         <h2 className="text-xl md:text-4xl font-bold text-center">
           {compresorAlias || compressorData?.alias}
         </h2>
-        <div className="flex justify-center my-4 w-full">
-          <DateNavigator
-            currentDate={selectedDate}
-            onDateChange={handleDateChange}
-            type="day"
-          />
+        <div className="flex items-center justify-center gap-2 md:gap-4 my-4">
+          <button
+            onClick={() => {
+              const date = new Date(selectedDate + "T00:00:00");
+              date.setDate(date.getDate() - 1);
+              handleDateChange(date.toISOString().split("T")[0]);
+            }}
+            className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors"
+            title="Día anterior"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <h3 className="text-lg md:text-3xl font-bold text-center">
+            {selectedDate
+              ? new Date(selectedDate + "T00:00:00")
+                  .toLocaleDateString("es-ES", {
+                    weekday: "long",
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })
+                  .replace(/^\w/, (c) => c.toUpperCase())
+              : new Date(new Date().setDate(new Date().getDate() - 1))
+                  .toLocaleDateString("es-ES", {
+                    weekday: "long",
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })
+                  .replace(/^\w/, (c) => c.toUpperCase())}
+          </h3>
+          {(() => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const currentDate = new Date(selectedDate + "T00:00:00");
+            const nextDate = new Date(currentDate);
+            nextDate.setDate(currentDate.getDate() + 1);
+            const canGoNext = nextDate <= today;
+            return canGoNext ? (
+              <button
+                onClick={() => {
+                  const date = new Date(selectedDate + "T00:00:00");
+                  date.setDate(date.getDate() + 1);
+                  handleDateChange(date.toISOString().split("T")[0]);
+                }}
+                className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors"
+                title="Día siguiente"
+              >
+                <ChevronRight size={20} />
+              </button>
+            ) : (
+              <div className="w-10 md:w-12" />
+            );
+          })()}
         </div>
-        <h3 className="text-lg md:text-3xl font-bold text-center">
-          Fecha:{" "}
-          {selectedDate
-            ? new Date(selectedDate + "T00:00:00")
-                .toLocaleDateString("es-ES", {
-                  weekday: "long",
-                  day: "2-digit",
-                  month: "long",
-                  year: "numeric",
-                })
-                .replace(/^\w/, (c) => c.toUpperCase())
-            : new Date(new Date().setDate(new Date().getDate() - 1))
-                .toLocaleDateString("es-ES", {
-                  weekday: "long",
-                  day: "2-digit",
-                  month: "long",
-                  year: "numeric",
-                })
-                .replace(/^\w/, (c) => c.toUpperCase())}
-        </h3>
         <Image
           src="/Ventologix_04.png"
           alt="logo"

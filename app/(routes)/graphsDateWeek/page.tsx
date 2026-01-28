@@ -29,7 +29,7 @@ import {
 
 import LoadingOverlay from "@/components/LoadingOverlay";
 import BackButton from "@/components/BackButton";
-import DateNavigator from "@/components/DateNavigator";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 // Libraries for charts
 import {
@@ -1071,36 +1071,50 @@ function MainContent() {
 
   return (
     <main className="relative">
-      {/* Botón de regresar */}
-      <BackButton
-        position="fixed"
-        variant="normal"
-        className="mt-6 ml-6 bg-blue-400"
-      />
       <PrintPageButton reportType="reporte" />
-      <div className="flex justify-center my-4 w-full">
-        <DateNavigator
-          currentDate={selectedDate}
-          onDateChange={handleDateChange}
-          onWeekChange={handleWeekChange}
-          type="week"
-          weekNumber={selectedWeekNumber || undefined}
-        />
-      </div>
-
       <div className="w-full min-w-full bg-gradient-to-r from-indigo-950 to-blue-400 text-white p-3 md:p-6">
         {/* Main docker on rows */}
+        <BackButton />
         <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
           {/* Left column: Titles */}
           <div className="flex-1 p-3 md:p-6 w-full lg:mr-12">
-            <h1 className="text-2xl md:text-4xl font-light text-center">Reporte Semanal</h1>
+            <h1 className="text-2xl md:text-4xl font-light text-center">
+              Reporte Semanal
+            </h1>
             <h2 className="text-xl md:text-3xl font-bold text-center">
               Compresor: {compressorData?.alias}
             </h2>
-            <p className="text-base md:text-xl text-center">
-              <span className="font-bold">Semana {semanaNumero}:</span>{" "}
-              {fechaInicio} al {fechaFin}
-            </p>
+            <div className="flex items-center justify-center gap-2 md:gap-4">
+              <button
+                onClick={() => handleWeekChange(semanaNumero - 1)}
+                className="p-1 md:p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+                title="Semana anterior"
+              >
+                <ChevronLeft size={20} className="text-white" />
+              </button>
+              <p className="text-base md:text-xl text-center">
+                <span className="font-bold">Semana {semanaNumero}:</span>{" "}
+                {fechaInicio} al {fechaFin}
+              </p>
+              {(() => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const nextWeekDate = new Date(lastMonday);
+                nextWeekDate.setDate(lastMonday.getDate() + 7);
+                const canGoNext = nextWeekDate <= today;
+                return canGoNext ? (
+                  <button
+                    onClick={() => handleWeekChange(semanaNumero + 1)}
+                    className="p-1 md:p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+                    title="Semana siguiente"
+                  >
+                    <ChevronRight size={20} className="text-white" />
+                  </button>
+                ) : (
+                  <div className="w-7 md:w-9" /> // Espaciador para mantener centrado
+                );
+              })()}
+            </div>
           </div>
 
           {/* Right Column: Logo and data */}
@@ -1118,7 +1132,9 @@ function MainContent() {
               {/* Client Information - Solo mostrar si el usuario NO es 101010 */}
               {userClientNumber !== 101010 && (
                 <div className="w-full md:w-auto">
-                  <h2 className="text-lg md:text-2xl font-bold">Información Cliente</h2>
+                  <h2 className="text-lg md:text-2xl font-bold">
+                    Información Cliente
+                  </h2>
                   <div className="flex flex-wrap gap-4 md:gap-8 items-center text-left">
                     <div>
                       <p className="text-base md:text-xl text-center">
@@ -1133,7 +1149,9 @@ function MainContent() {
                       <p className="text-xs md:text-sm text-center">Nombre</p>
                     </div>
                     <div>
-                      <p className="text-base md:text-xl text-center">{clientData?.RFC}</p>
+                      <p className="text-base md:text-xl text-center">
+                        {clientData?.RFC}
+                      </p>
                       <p className="text-xs md:text-sm text-center">RFC</p>
                     </div>
                   </div>
@@ -1142,13 +1160,17 @@ function MainContent() {
 
               {/* Compresor information */}
               <div className="w-full md:w-auto">
-                <h2 className="text-lg md:text-2xl font-bold">Información Compresor</h2>
+                <h2 className="text-lg md:text-2xl font-bold">
+                  Información Compresor
+                </h2>
                 <div className="flex flex-wrap gap-4 md:gap-8 items-center text-left">
                   <div>
                     <p className="text-base md:text-xl text-center">
                       {compressorData?.numero_serie}
                     </p>
-                    <p className="text-xs md:text-sm text-center">Número de serie</p>
+                    <p className="text-xs md:text-sm text-center">
+                      Número de serie
+                    </p>
                   </div>
                   <div>
                     <p className="text-base md:text-xl text-center">
@@ -1169,7 +1191,9 @@ function MainContent() {
                     <p className="text-xs md:text-sm text-center">Voltaje</p>
                   </div>
                   <div>
-                    <p className="text-base md:text-xl text-center">{compressorData?.hp}</p>
+                    <p className="text-base md:text-xl text-center">
+                      {compressorData?.hp}
+                    </p>
                     <p className="text-xs md:text-sm">HP</p>
                   </div>
                 </div>
@@ -1248,7 +1272,12 @@ function MainContent() {
               { ...consumoOptions.series[2], data: consumoData.turno3 },
             ],
           }}
-          style={{ height: 300, width: "100%", minWidth: "320px", maxWidth: "1600px" }}
+          style={{
+            height: 300,
+            width: "100%",
+            minWidth: "320px",
+            maxWidth: "1600px",
+          }}
           notMerge={true}
           lazyUpdate={true}
           theme={"light"}
@@ -1297,7 +1326,9 @@ function MainContent() {
           </div>
           <div className="flex-1 items-center text-center p-2 md:p-4 flex flex-col gap-4">
             <div className="bg-white rounded-2xl shadow p-3 md:p-4 text-center w-full max-w-[400px] mx-auto">
-              <h2 className="text-lg md:text-xl text-black font-bold">Costo $USD</h2>
+              <h2 className="text-lg md:text-xl text-black font-bold">
+                Costo $USD
+              </h2>
               <p
                 className={`text-2xl md:text-3xl font-bold ${getColorClass(
                   summaryData?.semana_actual?.costo_estimado || 0,
@@ -1314,7 +1345,9 @@ function MainContent() {
                 )}{" "}
                 USD
               </p>
-              <p className="text-base md:text-xl">Promedio ultimas 12 semanas:</p>
+              <p className="text-base md:text-xl">
+                Promedio ultimas 12 semanas:
+              </p>
               <p className="text-base md:text-xl">
                 $
                 {summaryData?.promedio_semanas_anteriores?.costo_estimado ||
@@ -1326,7 +1359,9 @@ function MainContent() {
               </p>
             </div>
             <div className="bg-white rounded-2xl shadow p-3 md:p-4 text-center w-full max-w-[400px] mx-auto">
-              <h2 className="text-lg md:text-xl text-black font-bold">Consumo kWH</h2>
+              <h2 className="text-lg md:text-xl text-black font-bold">
+                Consumo kWH
+              </h2>
               <p
                 className={`text-2xl md:text-3xl font-bold ${getColorClass(
                   summaryData?.comparacion?.porcentaje_costo || 0,
@@ -1338,7 +1373,9 @@ function MainContent() {
                 Gasto Anual aproximado,{" "}
                 {getAnualValue(summaryData?.semana_actual?.total_kWh || 0)} kWh
               </p>
-              <p className="text-base md:text-xl">Promedio ultimas 12 semanas:</p>
+              <p className="text-base md:text-xl">
+                Promedio ultimas 12 semanas:
+              </p>
               <p className="text-base md:text-xl">
                 {summaryData?.promedio_semanas_anteriores
                   ?.total_kWh_anteriores || "0.00"}{" "}
@@ -1396,7 +1433,9 @@ function MainContent() {
                 {summaryData?.semana_actual?.promedio_ciclos_por_hora || "0.0"}{" "}
                 C/Hr
               </p>
-              <p className="text-base md:text-xl">Promedio ultimas 12 semanas:</p>
+              <p className="text-base md:text-xl">
+                Promedio ultimas 12 semanas:
+              </p>
               <p className="text-base md:text-xl">
                 {summaryData?.promedio_semanas_anteriores
                   ?.promedio_ciclos_por_hora || "0.0"}{" "}
@@ -1444,7 +1483,9 @@ function MainContent() {
           </div>
           <div className="flex-1 items-center text-center p-2 md:p-4 flex flex-col justify-center">
             <div className="bg-white rounded-2xl shadow p-3 md:p-4 text-center w-full max-w-[400px] mx-auto">
-              <h2 className="text-lg md:text-xl text-black font-bold">HP Equivalente**</h2>
+              <h2 className="text-lg md:text-xl text-black font-bold">
+                HP Equivalente**
+              </h2>
               <p
                 className={`text-2xl md:text-3xl font-bold ${getColorHp(
                   summaryData?.comparacion?.porcentaje_hp || 0,
@@ -1453,7 +1494,9 @@ function MainContent() {
                 {summaryData?.semana_actual?.promedio_hp_equivalente || "0.0"}{" "}
                 hp
               </p>
-              <p className="text-base md:text-xl">Promedio ultimas 12 semanas:</p>
+              <p className="text-base md:text-xl">
+                Promedio ultimas 12 semanas:
+              </p>
               <p className="text-base md:text-xl">
                 {summaryData?.promedio_semanas_anteriores
                   ?.promedio_hp_equivalente || "0.0"}{" "}
@@ -1501,7 +1544,9 @@ function MainContent() {
 
           {/* Col 2: Uso Activo */}
           <div className="bg-white rounded-2xl shadow p-3 md:p-4 w-full max-w-[400px] mx-auto flex flex-col justify-center text-center">
-            <h2 className="text-lg md:text-xl text-black font-bold">Uso Activo</h2>
+            <h2 className="text-lg md:text-xl text-black font-bold">
+              Uso Activo
+            </h2>
             <p className="text-2xl md:text-3xl font-bold text-black">
               {summaryData?.semana_actual?.horas_trabajadas || "0.0"} Hr
             </p>
@@ -1532,7 +1577,9 @@ function MainContent() {
         <div className="flex flex-col md:flex-row items-start gap-4 px-4 mt-4">
           {/* Columna izquierda: Notas */}
           <div className="flex flex-col flex-1 items-start">
-            <h2 className="text-xl md:text-2xl font-bold text-left mt-2">Notas:</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-left mt-2">
+              Notas:
+            </h2>
             <p className="text-sm md:text-base text-left">
               *El costo de 0.17 USD por kWh es estándar. Si desea modificarlo,
               por favor, comuníquese con su contacto en VENTOLOGIX.
