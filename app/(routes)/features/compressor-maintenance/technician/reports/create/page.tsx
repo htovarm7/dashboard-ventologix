@@ -43,6 +43,7 @@ function FillReport() {
   const { uploadPhotos, uploadStatus, uploadProgress } = usePhotoUpload();
 
   const [showMaintenanceSection, setShowMaintenanceSection] = useState(false);
+  const [showPostMaintenanceSection, setShowPostMaintenanceSection] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -141,7 +142,6 @@ function FillReport() {
     compressorRoomConditions: "",
   });
 
-  // Load previously saved pre-maintenance data from backend
   const loadPreMaintenanceData = async (folio: string) => {
     try {
       const response = await fetch(`${URL_API}/reporte_mtto/pre-mtto/${folio}`);
@@ -216,7 +216,6 @@ function FillReport() {
     }
   };
 
-  // Load previously saved maintenance data from backend
   const loadMaintenanceData = async (folio: string) => {
     try {
       const response = await fetch(`${URL_API}/reporte_mantenimiento/${folio}`);
@@ -269,6 +268,10 @@ function FillReport() {
     } catch (error) {
       console.error("Error loading maintenance data:", error);
     }
+  };
+
+  const loadPostMaintenanceData = async (folio: string) => {
+    
   };
 
   // Load compressor data from URL parameters
@@ -2864,6 +2867,11 @@ function FillReport() {
               </div>
             </div>
           )}
+
+          {showPostMaintenance && (
+
+          ) }
+
 
           {/* Botones de acción */}
           <div className="bg-white rounded-lg shadow-lg p-6">

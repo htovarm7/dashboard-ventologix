@@ -67,3 +67,5 @@ token.pickle
 scripts/api/__pycache__
 
 /.claude
+# LangGraph API
+.langgraph_api
