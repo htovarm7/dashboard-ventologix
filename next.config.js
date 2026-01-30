@@ -1,36 +1,37 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  turbopack: {},
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@': '.',
-      '@/components': './components',
-      '@/lib': './lib',
-      '@/data': './data',
-      '@/types': './types',
+      "@": ".",
+      "@/components": "./components",
+      "@/lib": "./lib",
+      "@/data": "./data",
+      "@/types": "./types",
     };
     return config;
   },
-  basePath: '',
+  basePath: "",
   images: {
     remotePatterns: [
       {
-        protocol: 'http',
-        hostname: '127.0.0.1',
-        port: '8000',
-        pathname: '/web/**',
+        protocol: "http",
+        hostname: "127.0.0.1",
+        port: "8000",
+        pathname: "/web/**",
       },
       {
-        protocol: 'https',
-        hostname: 'api.ventologix.com',
-        port: '',
-        pathname: '/web/**',
+        protocol: "https",
+        hostname: "api.ventologix.com",
+        port: "",
+        pathname: "/web/**",
       },
       {
-        protocol: 'https',
-        hostname: 'drive.google.com',
-        pathname: '/thumbnail/**',
-      }
+        protocol: "https",
+        hostname: "drive.google.com",
+        pathname: "/thumbnail/**",
+      },
     ],
   },
 };
