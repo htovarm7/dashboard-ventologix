@@ -121,19 +121,19 @@ function MainContent() {
 
   const searchParams = useSearchParams();
 
-  const handleDateChange = (newDate: string) => {
-    setSelectedDate(newDate);
-    const compresorData = sessionStorage.getItem("selectedCompresor");
-    if (compresorData) {
-      const data = JSON.parse(compresorData);
-      data.date = newDate;
-      sessionStorage.setItem("selectedCompresor", JSON.stringify(data));
-    }
-    // Refresh la página después de cambiar la fecha
-    setTimeout(() => {
-      window.location.reload();
-    }, 300);
-  };
+  // const handleDateChange = (newDate: string) => {
+  //   setSelectedDate(newDate);
+  //   const compresorData = sessionStorage.getItem("selectedCompresor");
+  //   if (compresorData) {
+  //     const data = JSON.parse(compresorData);
+  //     data.date = newDate;
+  //     sessionStorage.setItem("selectedCompresor", JSON.stringify(data));
+  //   }
+  //   // Refresh la página después de cambiar la fecha
+  //   setTimeout(() => {
+  //     window.location.reload();
+  //   }, 300);
+  // };
 
   const handleWeekChange = (weekNumber: number) => {
     setSelectedWeekNumber(weekNumber);

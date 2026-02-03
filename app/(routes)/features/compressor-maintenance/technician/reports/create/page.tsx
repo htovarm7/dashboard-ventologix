@@ -48,8 +48,7 @@ function FillReport() {
   const searchParams = useSearchParams();
   const { savePreMantenimiento, loading: savingPreMaintenance } =
     usePreMantenimiento();
-  const { savePostMantenimiento, loading: savingPostMaintenance } =
-    usePostMantenimiento();
+  const { savePostMantenimiento } = usePostMantenimiento();
   const { uploadPhotos, uploadStatus, uploadProgress } = usePhotoUpload();
 
   // Ref para el canvas de firma
@@ -81,7 +80,7 @@ function FillReport() {
     comentarios_generales: "",
     comentario_cliente: "",
     fotos: [] as File[],
-    evidenciasFotos: {} as Record<number, File[]>,
+    evidenciasFotos: {} as Record<string, File[]>,
   });
 
   const [formData, setFormData] = useState<ReportFormData>({
@@ -310,8 +309,6 @@ function FillReport() {
       console.error("Error loading maintenance data:", error);
     }
   };
-
-  const loadPostMaintenanceData = async (folio: string) => {};
 
   // Load compressor data from URL parameters
   useEffect(() => {
@@ -685,7 +682,7 @@ function FillReport() {
           mantenimientos_realizados: maintenanceData.mantenimientos
             .filter((m) => m.realizado)
             .map((m) => m.nombre),
-          evidencias_fotos: maintenanceData.evidenciasFotos,
+          evidencias_fotos: {}, // TODO: Upload maintenance evidence photos and include URLs here
           // Firmas y validación
           nombre_persona_cargo: formData.nombrePersonaCargo || undefined,
           firma_persona_cargo: formData.firmaPersonaCargo || undefined,
@@ -713,7 +710,8 @@ function FillReport() {
       console.error("❌ Exception saving post-maintenance data:", errorMsg);
       return { success: false, error: errorMsg };
     }
-  }, [formData, maintenanceData, savePostMantenimiento]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData, maintenanceData]);
 
   // Upload all photos to Google Drive
   const uploadAllPhotos = useCallback(async () => {
@@ -924,6 +922,7 @@ function FillReport() {
         setIsSaving(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       showMaintenanceSection,
       maintenanceData,
@@ -1021,13 +1020,14 @@ function FillReport() {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
       const updatedEvidencias = { ...maintenanceData.evidenciasFotos };
+      const stringIndex = maintenanceIndex.toString();
 
-      if (!updatedEvidencias[maintenanceIndex]) {
-        updatedEvidencias[maintenanceIndex] = [];
+      if (!updatedEvidencias[stringIndex]) {
+        updatedEvidencias[stringIndex] = [];
       }
 
-      updatedEvidencias[maintenanceIndex] = [
-        ...updatedEvidencias[maintenanceIndex],
+      updatedEvidencias[stringIndex] = [
+        ...updatedEvidencias[stringIndex],
         ...filesArray,
       ];
 
@@ -3579,14 +3579,17 @@ function FillReport() {
                               }
                               className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                             />
-                            {maintenanceData.evidenciasFotos[index] &&
-                              maintenanceData.evidenciasFotos[index].length >
-                                0 && (
+                            {maintenanceData.evidenciasFotos[
+                              index.toString()
+                            ] &&
+                              maintenanceData.evidenciasFotos[index.toString()]
+                                .length > 0 && (
                                 <div className="mt-2 text-sm text-green-600">
                                   ✓{" "}
                                   {
-                                    maintenanceData.evidenciasFotos[index]
-                                      .length
+                                    maintenanceData.evidenciasFotos[
+                                      index.toString()
+                                    ].length
                                   }{" "}
                                   foto(s) agregada(s)
                                 </div>

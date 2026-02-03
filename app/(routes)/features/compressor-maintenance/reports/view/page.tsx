@@ -6,12 +6,7 @@ import BackButton from "@/components/BackButton";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import { URL_API } from "@/lib/global";
 import Image from "next/image";
-import {
-  CheckCircle,
-  XCircle,
-  FileText,
-  X,
-} from "lucide-react";
+import { CheckCircle, XCircle, FileText, X } from "lucide-react";
 
 interface MaintenanceItem {
   nombre: string;
@@ -171,9 +166,12 @@ function ViewReportContent() {
   const searchParams = useSearchParams();
 
   const [orderData, setOrderData] = useState<OrderData | null>(null);
-  const [preMaintenanceData, setPreMaintenanceData] = useState<PreMaintenanceData | null>(null);
-  const [maintenanceData, setMaintenanceData] = useState<MaintenanceData | null>(null);
-  const [postMaintenanceData, setPostMaintenanceData] = useState<PostMaintenanceData | null>(null);
+  const [preMaintenanceData, setPreMaintenanceData] =
+    useState<PreMaintenanceData | null>(null);
+  const [maintenanceData, setMaintenanceData] =
+    useState<MaintenanceData | null>(null);
+  const [postMaintenanceData, setPostMaintenanceData] =
+    useState<PostMaintenanceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageModal, setImageModal] = useState<ImageModalState>({
@@ -258,9 +256,9 @@ function ViewReportContent() {
     });
   };
 
-  const openImageModal = (imageSrc: string) => {
-    setImageModal({ isOpen: true, imageSrc });
-  };
+  // const openImageModal = (imageSrc: string) => {
+  //   setImageModal({ isOpen: true, imageSrc });
+  // };
 
   const closeImageModal = () => {
     setImageModal({ isOpen: false, imageSrc: "" });
@@ -274,7 +272,7 @@ function ViewReportContent() {
 
   const renderValue = (
     value: string | number | boolean | undefined | null,
-    suffix?: string
+    suffix?: string,
   ) => {
     if (value === undefined || value === null || value === "") return "N/A";
     if (typeof value === "boolean") return value ? "Sí" : "No";
@@ -307,7 +305,9 @@ function ViewReportContent() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <FileText className="mx-auto text-gray-300 mb-4" size={64} />
-          <p className="text-gray-600 text-lg">{error || "Reporte no encontrado"}</p>
+          <p className="text-gray-600 text-lg">
+            {error || "Reporte no encontrado"}
+          </p>
           <button
             onClick={() => router.back()}
             className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -493,8 +493,8 @@ function ViewReportContent() {
                       orderData.estado === "Completado"
                         ? "bg-green-100 text-green-800"
                         : orderData.estado === "En progreso"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-gray-100 text-gray-800"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-gray-100 text-gray-800"
                     }`}
                   >
                     {orderData.estado || "N/A"}
@@ -630,7 +630,10 @@ function ViewReportContent() {
                     Temp. Compresión (Display)
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.temp_compresion_display, " °C")}
+                    {renderValue(
+                      preMaintenanceData.temp_compresion_display,
+                      " °C",
+                    )}
                   </p>
                 </div>
                 <div>
@@ -638,7 +641,10 @@ function ViewReportContent() {
                     Temp. Compresión (Láser)
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.temp_compresion_laser, " °C")}
+                    {renderValue(
+                      preMaintenanceData.temp_compresion_laser,
+                      " °C",
+                    )}
                   </p>
                 </div>
                 <div>
@@ -646,7 +652,10 @@ function ViewReportContent() {
                     Temp. Separador Aceite
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.temp_separador_aceite, " °C")}
+                    {renderValue(
+                      preMaintenanceData.temp_separador_aceite,
+                      " °C",
+                    )}
                   </p>
                 </div>
                 <div>
@@ -662,7 +671,10 @@ function ViewReportContent() {
                     Delta T Enfriador Aceite
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.delta_t_enfriador_aceite, " °C")}
+                    {renderValue(
+                      preMaintenanceData.delta_t_enfriador_aceite,
+                      " °C",
+                    )}
                   </p>
                 </div>
                 <div>
@@ -670,7 +682,10 @@ function ViewReportContent() {
                     Temp. Motor Eléctrico
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.temp_motor_electrico, " °C")}
+                    {renderValue(
+                      preMaintenanceData.temp_motor_electrico,
+                      " °C",
+                    )}
                   </p>
                 </div>
               </div>
@@ -801,7 +816,9 @@ function ViewReportContent() {
                       : "bg-gray-50 border-gray-200"
                   }`}
                 >
-                  <span className="text-gray-900 font-medium">{item.nombre}</span>
+                  <span className="text-gray-900 font-medium">
+                    {item.nombre}
+                  </span>
                   {item.realizado ? (
                     <CheckCircle className="text-green-600" size={24} />
                   ) : (
@@ -875,7 +892,10 @@ function ViewReportContent() {
                     Voltaje (Final)
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.voltaje_alimentacion, " V")}
+                    {renderValue(
+                      postMaintenanceData.voltaje_alimentacion,
+                      " V",
+                    )}
                   </p>
                 </div>
                 <div>
@@ -883,7 +903,10 @@ function ViewReportContent() {
                     Amperaje Motor (Final)
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.amperaje_motor_carga, " A")}
+                    {renderValue(
+                      postMaintenanceData.amperaje_motor_carga,
+                      " A",
+                    )}
                   </p>
                 </div>
                 <div>
@@ -891,7 +914,10 @@ function ViewReportContent() {
                     Temp. Compresión (Final)
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.temp_compresion_display, " °C")}
+                    {renderValue(
+                      postMaintenanceData.temp_compresion_display,
+                      " °C",
+                    )}
                   </p>
                 </div>
                 <div>
