@@ -205,23 +205,34 @@ def get_usuario_by_email(email: str):
             compresores = cursor.fetchall()
 
         # 3. OBTENER MÓDULOS HABILITADOS PARA EL CLIENTE
-        cursor.execute("""
-            SELECT mantenimiento, reporteDia, reporteSemana, presion, prediccion, kwh
-            FROM modulos_web
-            WHERE numero_cliente = %s
-        """, (numeroCliente,))
-        modulos_row = cursor.fetchone()
-        
-        modulos = {}
-        if modulos_row:
+        # Si es rol 0 (superAdmin), tiene acceso a todos los módulos
+        if rol == 0:
             modulos = {
-                "mantenimiento": bool(modulos_row.get('mantenimiento', False)),
-                "reporteDia": bool(modulos_row.get('reporteDia', False)),
-                "reporteSemana": bool(modulos_row.get('reporteSemana', False)),
-                "presion": bool(modulos_row.get('presion', False)),
-                "prediccion": bool(modulos_row.get('prediccion', False)),
-                "kwh": bool(modulos_row.get('kwh', False))
+                "mantenimiento": True,
+                "reporteDia": True,
+                "reporteSemana": True,
+                "presion": True,
+                "prediccion": True,
+                "kwh": True
             }
+        else:
+            cursor.execute("""
+                SELECT mantenimiento, reporteDia, reporteSemana, presion, prediccion, kwh
+                FROM modulos_web
+                WHERE numero_cliente = %s
+            """, (numeroCliente,))
+            modulos_row = cursor.fetchone()
+
+            modulos = {}
+            if modulos_row:
+                modulos = {
+                    "mantenimiento": bool(modulos_row.get('mantenimiento', False)),
+                    "reporteDia": bool(modulos_row.get('reporteDia', False)),
+                    "reporteSemana": bool(modulos_row.get('reporteSemana', False)),
+                    "presion": bool(modulos_row.get('presion', False)),
+                    "prediccion": bool(modulos_row.get('prediccion', False)),
+                    "kwh": bool(modulos_row.get('kwh', False))
+                }
 
         cursor.close()
         conn.close()

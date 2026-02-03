@@ -10,6 +10,9 @@
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.4.0",
+    "@langchain/core": "^1.1.17",
+    "@langchain/langgraph": "^1.1.2",
+    "@langchain/openai": "^1.2.3",
     "@radix-ui/react-popover": "^1.1.13",
     "@types/react-calendar": "^3.9.0",
     "axios": "^1.9.0",
@@ -37,9 +40,11 @@
     "react-dom": "^18.3.1",
     "react-gauge-component": "^1.2.21",
     "react-router-dom": "^7.6.0",
+    "react-signature-canvas": "^1.1.0-alpha.2",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@langchain/langgraph-cli": "^1.1.11",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/node": "20.17.48",
     "@types/react": "19.1.4",

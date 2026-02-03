@@ -19,7 +19,7 @@ DB_DATABASE = os.getenv("DB_DATABASE")
 # Constantes compartidas
 FP = 0.9
 HORAS = 24
-COLORES = ['purple', 'orange', 'blue', 'green', 'red', 'cyan', 'brown']
+COLORES = ['purple', 'orange', 'blue', 'green', 'red', 'cyan', 'brown', 'magenta', 'teal', 'lime', 'pink', 'gold']
 
 
 def get_db_connection():

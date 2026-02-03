@@ -28,6 +28,27 @@ type MaintenanceType = {
   tipo_compresor: string;
 };
 
+// Función para formatear fecha de ISO a DD/MM/YYYY HH:MM:SS
+const formatDateTime = (dateString: string | undefined): string => {
+  if (!dateString) return "No registrado";
+
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+
+    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+  } catch {
+    return dateString;
+  }
+};
+
 type MaintenanceTypesResponse = {
   maintenance_types: MaintenanceType[];
 };
@@ -1347,11 +1368,7 @@ const CompressorMaintenance = () => {
                                                         Último Mantenimiento:
                                                       </span>
                                                       <span className="font-medium">
-                                                        {record.lastMaintenanceDate
-                                                          ? record.lastMaintenanceDate.split(
-                                                              "T"
-                                                            )[0]
-                                                          : "No registrado"}
+                                                        {formatDateTime(record.lastMaintenanceDate)}
                                                       </span>
                                                     </div>
                                                   </div>
@@ -1559,8 +1576,7 @@ const CompressorMaintenance = () => {
                                           Último Mantenimiento:
                                         </span>
                                         <span className="font-medium">
-                                          {record.lastMaintenanceDate ||
-                                            "No registrado"}
+                                          {formatDateTime(record.lastMaintenanceDate)}
                                         </span>
                                       </div>
                                     </div>

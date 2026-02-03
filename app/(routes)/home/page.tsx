@@ -83,6 +83,11 @@ const Home = () => {
   }, [isAuthenticated, user, isLoading, router, hasCheckedAuth]);
 
   const isModuleEnabled = (moduleName: string): boolean => {
+    // SuperAdmin (rol 0) tiene acceso a todos los módulos
+    if (rol === 0) {
+      return true;
+    }
+
     if (modulos) {
       switch (moduleName) {
         case "Mantenimiento":

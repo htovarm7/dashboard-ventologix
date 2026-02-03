@@ -1,5 +1,11 @@
 "use client";
-import React, { useState, Suspense, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  Suspense,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LoadingOverlay from "@/components/LoadingOverlay";
@@ -8,8 +14,10 @@ import Image from "next/image";
 import { URL_API } from "@/lib/global";
 import { ReportFormData } from "@/lib/types";
 import { usePreMantenimiento } from "@/hooks/usePreMantenimiento";
+import { usePostMantenimiento } from "@/hooks/usePostMantenimiento";
 import { usePhotoUpload } from "@/hooks/usePhotoUpload";
 import { PhotoUploadSection } from "@/components/PhotoUploadSection";
+import SignatureCanvas from "react-signature-canvas";
 
 interface MaintenanceItem {
   nombre: string;
@@ -40,9 +48,16 @@ function FillReport() {
   const searchParams = useSearchParams();
   const { savePreMantenimiento, loading: savingPreMaintenance } =
     usePreMantenimiento();
+  const { savePostMantenimiento, loading: savingPostMaintenance } =
+    usePostMantenimiento();
   const { uploadPhotos, uploadStatus, uploadProgress } = usePhotoUpload();
 
+  // Ref para el canvas de firma
+  const signatureCanvasRef = useRef<SignatureCanvas>(null);
+
   const [showMaintenanceSection, setShowMaintenanceSection] = useState(false);
+  const [showPostMaintenanceSection, setShowPostMaintenanceSection] =
+    useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -66,6 +81,7 @@ function FillReport() {
     comentarios_generales: "",
     comentario_cliente: "",
     fotos: [] as File[],
+    evidenciasFotos: {} as Record<number, File[]>,
   });
 
   const [formData, setFormData] = useState<ReportFormData>({
@@ -139,9 +155,33 @@ function FillReport() {
     adequateBreaker: false,
     dischargePipeConnectedTo: "",
     compressorRoomConditions: "",
+    // Campos de POST-MANTENIMIENTO
+    displayPowersFinal: "",
+    generalHoursFinal: "",
+    loadHoursFinal: "",
+    unloadHoursFinal: "",
+    supplyVoltageFinal: "",
+    mainMotorAmperageFinal: "",
+    fanAmperageFinal: "",
+    oilLeaksFinal: "",
+    aceiteOscuroFinal: "",
+    airIntakeTempFinal: "",
+    compressionTempDisplayFinal: "",
+    compressionTempLaserFinal: "",
+    finalCompressionTempFinal: "",
+    internalTempFinal: "",
+    deltaTAceiteFinal: "",
+    tempMotorFinal: "",
+    loadPressureFinal: "",
+    unloadPressureFinal: "",
+    deltaPSeparadorFinal: "",
+    airLeaksFinal: "",
+    // Firmas
+    nombrePersonaCargo: "",
+    firmaPersonaCargo: "",
+    firmaTecnicoVentologix: "",
   });
 
-  // Load previously saved pre-maintenance data from backend
   const loadPreMaintenanceData = async (folio: string) => {
     try {
       const response = await fetch(`${URL_API}/reporte_mtto/pre-mtto/${folio}`);
@@ -216,7 +256,6 @@ function FillReport() {
     }
   };
 
-  // Load previously saved maintenance data from backend
   const loadMaintenanceData = async (folio: string) => {
     try {
       const response = await fetch(`${URL_API}/reporte_mantenimiento/${folio}`);
@@ -261,6 +300,7 @@ function FillReport() {
           comentarios_generales: savedData.comentarios_generales || "",
           comentario_cliente: savedData.comentario_cliente || "",
           fotos: [],
+          evidenciasFotos: {},
         });
 
         // Show maintenance section if data exists
@@ -270,6 +310,8 @@ function FillReport() {
       console.error("Error loading maintenance data:", error);
     }
   };
+
+  const loadPostMaintenanceData = async (folio: string) => {};
 
   // Load compressor data from URL parameters
   useEffect(() => {
@@ -399,7 +441,10 @@ function FillReport() {
         );
         setPhotosByCategory((prev: { [key: string]: File[] }) => ({
           ...prev,
-          [category]: [...prev[category].filter((f: File) => f.name !== file.name), file],
+          [category]: [
+            ...prev[category].filter((f: File) => f.name !== file.name),
+            file,
+          ],
         }));
       }
     }
@@ -572,6 +617,104 @@ function FillReport() {
     }
   }, [formData, savePreMantenimiento]);
 
+  // Save post-maintenance data to backend
+  const savePostMaintenanceData = useCallback(async () => {
+    if (!formData.folio) {
+      console.warn("No folio available for saving post-maintenance data");
+      return { success: false, error: "No folio available" };
+    }
+
+    try {
+      // Helper function to convert form data to post-maintenance format
+      const buildPostMantenimientoData = () => {
+        return {
+          folio: formData.folio || "",
+          display_enciende: formData.displayPowersFinal || undefined,
+          horas_totales: formData.generalHoursFinal
+            ? parseFloat(formData.generalHoursFinal)
+            : undefined,
+          horas_carga: formData.loadHoursFinal
+            ? parseFloat(formData.loadHoursFinal)
+            : undefined,
+          horas_descarga: formData.unloadHoursFinal
+            ? parseFloat(formData.unloadHoursFinal)
+            : undefined,
+          voltaje_alimentacion: formData.supplyVoltageFinal
+            ? parseFloat(formData.supplyVoltageFinal)
+            : undefined,
+          amperaje_motor_carga: formData.mainMotorAmperageFinal
+            ? parseFloat(formData.mainMotorAmperageFinal)
+            : undefined,
+          amperaje_ventilador: formData.fanAmperageFinal
+            ? parseFloat(formData.fanAmperageFinal)
+            : undefined,
+          fugas_aceite_visibles: formData.oilLeaksFinal || undefined,
+          fugas_aire_audibles: formData.airLeaksFinal || undefined,
+          aceite_oscuro_degradado: formData.aceiteOscuroFinal || undefined,
+          temp_ambiente: formData.airIntakeTempFinal
+            ? parseFloat(formData.airIntakeTempFinal)
+            : undefined,
+          temp_compresion_display: formData.compressionTempDisplayFinal
+            ? parseFloat(formData.compressionTempDisplayFinal)
+            : undefined,
+          temp_compresion_laser: formData.compressionTempLaserFinal
+            ? parseFloat(formData.compressionTempLaserFinal)
+            : undefined,
+          temp_separador_aceite: formData.finalCompressionTempFinal
+            ? parseFloat(formData.finalCompressionTempFinal)
+            : undefined,
+          temp_interna_cuarto: formData.internalTempFinal
+            ? parseFloat(formData.internalTempFinal)
+            : undefined,
+          delta_t_enfriador_aceite: formData.deltaTAceiteFinal
+            ? parseFloat(formData.deltaTAceiteFinal)
+            : undefined,
+          temp_motor_electrico: formData.tempMotorFinal
+            ? parseFloat(formData.tempMotorFinal)
+            : undefined,
+          presion_carga: formData.loadPressureFinal
+            ? parseFloat(formData.loadPressureFinal)
+            : undefined,
+          presion_descarga: formData.unloadPressureFinal
+            ? parseFloat(formData.unloadPressureFinal)
+            : undefined,
+          delta_p_separador: formData.deltaPSeparadorFinal
+            ? parseFloat(formData.deltaPSeparadorFinal)
+            : undefined,
+          // Mantenimientos realizados y evidencias
+          mantenimientos_realizados: maintenanceData.mantenimientos
+            .filter((m) => m.realizado)
+            .map((m) => m.nombre),
+          evidencias_fotos: maintenanceData.evidenciasFotos,
+          // Firmas y validación
+          nombre_persona_cargo: formData.nombrePersonaCargo || undefined,
+          firma_persona_cargo: formData.firmaPersonaCargo || undefined,
+          firma_tecnico_ventologix:
+            formData.firmaTecnicoVentologix || "/Ventologix_05.png",
+        };
+      };
+
+      const postMaintenanceData = buildPostMantenimientoData();
+      console.log("📤 Sending post-maintenance data:", postMaintenanceData);
+
+      const result = await savePostMantenimiento(postMaintenanceData);
+      console.log("📥 API Response:", result);
+
+      if (result?.success) {
+        console.log("✅ Post-maintenance data saved:", result);
+        return result;
+      } else {
+        const errorMsg = result?.error || result?.message || "Unknown error";
+        console.error("❌ Error saving post-maintenance data:", errorMsg);
+        return { success: false, error: errorMsg };
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      console.error("❌ Exception saving post-maintenance data:", errorMsg);
+      return { success: false, error: errorMsg };
+    }
+  }, [formData, maintenanceData, savePostMantenimiento]);
+
   // Upload all photos to Google Drive
   const uploadAllPhotos = useCallback(async () => {
     // Get fresh data from formData state
@@ -719,6 +862,27 @@ function FillReport() {
             }
           }
 
+          // Save post-maintenance data if section is shown
+          if (showPostMaintenanceSection && formData.folio) {
+            console.log("💾 Saving post-maintenance data to database...");
+            try {
+              const postResult = await savePostMaintenanceData();
+              if (postResult?.success) {
+                console.log("✅ Post-maintenance data saved:", postResult);
+              } else {
+                console.error(
+                  "⚠️ Error saving post-maintenance data:",
+                  postResult,
+                );
+              }
+            } catch (postError) {
+              console.error(
+                "❌ Error saving post-maintenance data:",
+                postError,
+              );
+            }
+          }
+
           // Then, upload categorized photos to Google Drive
           const hasPhotosToUpload = Object.values(photosByCategory).some(
             (photos) => photos.length > 0,
@@ -799,6 +963,25 @@ function FillReport() {
     }, 100);
   };
 
+  const handleNextToPostMaintenance = async () => {
+    // Save maintenance data before proceeding to post-maintenance
+    await handleSaveDraft(false);
+
+    setShowPostMaintenanceSection(true);
+    // Scroll to post-maintenance section after a brief delay
+    setTimeout(() => {
+      const postMaintenanceSection = document.getElementById(
+        "post-maintenance-section",
+      );
+      if (postMaintenanceSection) {
+        postMaintenanceSection.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }, 100);
+  };
+
   const handleMaintenanceToggle = (index: number) => {
     const updatedMantenimientos = [...maintenanceData.mantenimientos];
     updatedMantenimientos[index].realizado =
@@ -828,6 +1011,49 @@ function FillReport() {
   const removeMaintenancePhoto = (index: number) => {
     const updatedFotos = maintenanceData.fotos.filter((_, i) => i !== index);
     setMaintenanceData({ ...maintenanceData, fotos: updatedFotos });
+  };
+
+  // Handler para fotos de evidencia de mantenimientos realizados
+  const handleMaintenanceEvidencePhoto = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    maintenanceIndex: number,
+  ) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      const updatedEvidencias = { ...maintenanceData.evidenciasFotos };
+
+      if (!updatedEvidencias[maintenanceIndex]) {
+        updatedEvidencias[maintenanceIndex] = [];
+      }
+
+      updatedEvidencias[maintenanceIndex] = [
+        ...updatedEvidencias[maintenanceIndex],
+        ...filesArray,
+      ];
+
+      setMaintenanceData({
+        ...maintenanceData,
+        evidenciasFotos: updatedEvidencias,
+      });
+    }
+  };
+
+  // Handlers para firmas
+  const clearSignature = () => {
+    if (signatureCanvasRef.current) {
+      signatureCanvasRef.current.clear();
+      setFormData({ ...formData, firmaPersonaCargo: "" });
+    }
+  };
+
+  const saveSignature = () => {
+    if (signatureCanvasRef.current) {
+      const signatureData = signatureCanvasRef.current
+        .getTrimmedCanvas()
+        .toDataURL("image/png");
+      setFormData({ ...formData, firmaPersonaCargo: signatureData });
+      console.log("✍️ Firma guardada");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1324,6 +1550,55 @@ function FillReport() {
                 <p className="text-2xl">{formData.folio || "Sin asignar"}</p>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Navegación Rápida entre Secciones */}
+        <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
+          <h3 className="text-sm font-semibold text-gray-600 mb-3">
+            NAVEGACIÓN RÁPIDA
+          </h3>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="px-4 py-2 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors text-sm font-medium"
+            >
+              📋 Pre-Mantenimiento
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowMaintenanceSection(true);
+                setTimeout(() => {
+                  const section = document.getElementById(
+                    "maintenance-section",
+                  );
+                  section?.scrollIntoView({ behavior: "smooth" });
+                }, 100);
+              }}
+              className="px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition-colors text-sm font-medium"
+            >
+              🔧 Mantenimiento
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowMaintenanceSection(true);
+                setShowPostMaintenanceSection(true);
+                setTimeout(() => {
+                  const section = document.getElementById(
+                    "post-maintenance-section",
+                  );
+                  section?.scrollIntoView({ behavior: "smooth" });
+                }, 100);
+              }}
+              className="px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors text-sm font-medium"
+            >
+              ✅ Post-Mantenimiento
+            </button>
           </div>
         </div>
 
@@ -2861,6 +3136,597 @@ function FillReport() {
                     ))}
                   </div>
                 )}
+              </div>
+
+              {/* Botón para continuar a Post-Mantenimiento */}
+              {!showPostMaintenanceSection && (
+                <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={handleNextToPostMaintenance}
+                      disabled={isSaving}
+                      className="px-8 py-4 bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg hover:from-red-700 hover:to-red-900 transition-all font-bold text-lg flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                    >
+                      {isSaving ? (
+                        <>
+                          <svg
+                            className="animate-spin h-5 w-5"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                              fill="none"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          Continuar a Post-Mantenimiento →
+                          <svg
+                            className="w-6 h-6"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M13 7l5 5m0 0l-5 5m5-5H6"
+                            />
+                          </svg>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-center text-gray-500 text-sm mt-4">
+                    Complete las mediciones finales después del mantenimiento
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {showPostMaintenanceSection && (
+            <div id="post-maintenance-section">
+              {/* Header Post-Mantenimiento */}
+              <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
+                <div className="bg-gradient-to-r from-red-700 to-red-900 text-white p-4">
+                  <h2 className="text-xl font-bold text-center">
+                    POST-MANTENIMIENTO
+                  </h2>
+                </div>
+              </div>
+
+              {/* SECCIÓN 1: Display y Horas de Trabajo - POST */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-red-700 px-4 py-2 rounded font-bold mb-4">
+                  DISPLAY Y HORAS DE TRABAJO - POST-MANTENIMIENTO
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      ¿Display enciende? (Final)
+                    </label>
+                    <select
+                      name="displayPowersFinal"
+                      value={formData.displayPowersFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="Sí">Sí</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Horas Totales (Final)
+                    </label>
+                    <input
+                      type="number"
+                      name="generalHoursFinal"
+                      value={formData.generalHoursFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Horas en Carga (Final)
+                    </label>
+                    <input
+                      type="number"
+                      name="loadHoursFinal"
+                      value={formData.loadHoursFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Horas en Descarga (Final)
+                    </label>
+                    <input
+                      type="number"
+                      name="unloadHoursFinal"
+                      value={formData.unloadHoursFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 2: Voltajes y Amperajes - POST */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-red-700 px-4 py-2 rounded font-bold mb-4">
+                  VOLTAJES Y AMPERAJES - POST-MANTENIMIENTO
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Voltaje Alimentación (Final) (V)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="supplyVoltageFinal"
+                      value={formData.supplyVoltageFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Amperaje Motor en Carga (Final) (A)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="mainMotorAmperageFinal"
+                      value={formData.mainMotorAmperageFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Amperaje Ventilador (Final) (A)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="fanAmperageFinal"
+                      value={formData.fanAmperageFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 3: Aceite - POST */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-red-700 px-4 py-2 rounded font-bold mb-4">
+                  ACEITE - POST-MANTENIMIENTO
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      ¿Fugas de Aceite Visibles? (Final)
+                    </label>
+                    <select
+                      name="oilLeaksFinal"
+                      value={formData.oilLeaksFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="Sí">Sí</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      ¿Aceite Oscuro/Degradado? (Final)
+                    </label>
+                    <select
+                      name="aceiteOscuroFinal"
+                      value={formData.aceiteOscuroFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="Sí">Sí</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 4: Temperaturas - POST */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-red-700 px-4 py-2 rounded font-bold mb-4">
+                  TEMPERATURAS - POST-MANTENIMIENTO
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Temp. Ambiente (Final) (°C)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="airIntakeTempFinal"
+                      value={formData.airIntakeTempFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Temp. Final Compresión Display (Final) (°C)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="compressionTempDisplayFinal"
+                      value={formData.compressionTempDisplayFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Temp. Final Compresión Laser (Final) (°C)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="compressionTempLaserFinal"
+                      value={formData.compressionTempLaserFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Temp. Separador Aire-Aceite (Final) (°C)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="finalCompressionTempFinal"
+                      value={formData.finalCompressionTempFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Temp. Interna Cuarto (Final) (°C)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="internalTempFinal"
+                      value={formData.internalTempFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Delta T Enfriador Aceite (Final) (°C)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="deltaTAceiteFinal"
+                      value={formData.deltaTAceiteFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Temp. Motor Eléctrico (Final) (°C)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="tempMotorFinal"
+                      value={formData.tempMotorFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 5: Mediciones de Presión - POST */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-red-700 px-4 py-2 rounded font-bold mb-4">
+                  MEDICIONES DE PRESIÓN - POST-MANTENIMIENTO
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Presión CARGA (Final) (PSI o Bar)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="loadPressureFinal"
+                      value={formData.loadPressureFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Presión DESCARGA (Final) (PSI)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="unloadPressureFinal"
+                      value={formData.unloadPressureFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      Delta P Separador (Final) (Bar)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="deltaPSeparadorFinal"
+                      value={formData.deltaPSeparadorFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 6: Fugas de Aire - POST */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-red-700 px-4 py-2 rounded font-bold mb-4">
+                  FUGAS DE AIRE - POST-MANTENIMIENTO
+                </h2>
+                <div className="grid grid-cols-1 gap-6">
+                  <div>
+                    <label className="block text-m font-medium text-gray-700 mb-2">
+                      ¿Fugas de Aire Audibles? (Final)
+                    </label>
+                    <select
+                      name="airLeaksFinal"
+                      value={formData.airLeaksFinal}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      <option value="Sí">Sí</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 7: Evidencias Fotográficas */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-red-700 px-4 py-2 rounded font-bold mb-4">
+                  EVIDENCIAS FOTOGRÁFICAS - POST-MANTENIMIENTO
+                </h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Sube fotos de evidencia para cada mantenimiento realizado. Los
+                  campos de fotos se habilitarán automáticamente según los
+                  mantenimientos marcados como realizados.
+                </p>
+                <div className="space-y-4">
+                  {maintenanceData.mantenimientos.map(
+                    (item, index) =>
+                      item.realizado && (
+                        <div
+                          key={index}
+                          className="p-4 border-2 border-red-200 rounded-lg bg-red-50"
+                        >
+                          <h3 className="font-bold text-red-900 mb-3">
+                            📸 Evidencias: {item.nombre}
+                          </h3>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Subir Fotos (múltiples permitidas)
+                            </label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              onChange={(e) =>
+                                handleMaintenanceEvidencePhoto(e, index)
+                              }
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                            />
+                            {maintenanceData.evidenciasFotos[index] &&
+                              maintenanceData.evidenciasFotos[index].length >
+                                0 && (
+                                <div className="mt-2 text-sm text-green-600">
+                                  ✓{" "}
+                                  {
+                                    maintenanceData.evidenciasFotos[index]
+                                      .length
+                                  }{" "}
+                                  foto(s) agregada(s)
+                                </div>
+                              )}
+                          </div>
+                        </div>
+                      ),
+                  )}
+                  {maintenanceData.mantenimientos.filter((m) => m.realizado)
+                    .length === 0 && (
+                    <p className="text-center text-gray-500 py-8">
+                      No hay mantenimientos realizados. Marca los mantenimientos
+                      realizados en la sección MANTENIMIENTO para habilitar los
+                      campos de evidencia fotográfica.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* SECCIÓN 8: Firmas */}
+              <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
+                <div className="bg-gradient-to-r from-red-700 to-red-900 text-white p-4">
+                  <h2 className="text-xl font-bold text-center">
+                    FIRMAS Y VALIDACIÓN
+                  </h2>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Firma del Técnico de Ventologix */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-red-900 border-b-2 border-red-700 pb-2">
+                      Técnico de Ventologix
+                    </h3>
+                    <div className="bg-gray-50 p-6 rounded-lg border-2 border-gray-300">
+                      <div className="flex justify-center mb-4">
+                        <Image
+                          src="/Ventologix_05.png"
+                          alt="Firma Ventologix"
+                          width={200}
+                          height={100}
+                          className="object-contain"
+                        />
+                      </div>
+                      <div className="text-center border-t-2 border-gray-400 pt-2">
+                        <p className="font-bold text-gray-800">VENTOLOGIX</p>
+                        <p className="text-sm text-gray-600">
+                          Técnico Autorizado
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 text-center italic">
+                      Firma autorizada del técnico de Ventologix
+                    </p>
+                  </div>
+
+                  {/* Firma de la Persona a Cargo del Cliente */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-red-900 border-b-2 border-red-700 pb-2">
+                      Persona a Cargo (Cliente)
+                    </h3>
+
+                    {/* Nombre de la persona */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nombre Completo *
+                      </label>
+                      <input
+                        type="text"
+                        name="nombrePersonaCargo"
+                        value={formData.nombrePersonaCargo}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                        placeholder="Ingrese nombre completo"
+                        required
+                      />
+                    </div>
+
+                    {/* Canvas de firma */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Firma Digital *
+                      </label>
+                      <div className="border-2 border-gray-300 rounded-lg bg-white">
+                        <SignatureCanvas
+                          ref={signatureCanvasRef}
+                          canvasProps={{
+                            className: "w-full h-48 rounded-lg",
+                          }}
+                          backgroundColor="rgb(255, 255, 255)"
+                          penColor="rgb(0, 0, 0)"
+                        />
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={clearSignature}
+                          className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium"
+                        >
+                          🗑️ Limpiar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={saveSignature}
+                          className="flex-1 px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors text-sm font-medium"
+                        >
+                          💾 Guardar Firma
+                        </button>
+                      </div>
+                      {formData.firmaPersonaCargo && (
+                        <div className="mt-2 p-2 bg-green-50 border border-green-300 rounded text-sm text-green-700 text-center">
+                          ✓ Firma guardada correctamente
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-500 mt-2">
+                        Dibuje su firma usando el mouse o el dedo en
+                        dispositivos táctiles
+                      </p>
+                    </div>
+
+                    <div className="text-center border-t-2 border-gray-400 pt-4 mt-4">
+                      <p className="font-medium text-gray-800">
+                        {formData.nombrePersonaCargo || "_____________________"}
+                      </p>
+                      <p className="text-sm text-gray-600">Nombre y Firma</p>
+                      <p className="text-xs text-gray-500">Cliente</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Nota legal */}
+                <div className="mt-6 p-4 bg-gray-100 rounded-lg border border-gray-300">
+                  <p className="text-m text-gray-600 text-center">
+                    Al firmar este documento, la persona a cargo confirma que el
+                    servicio de mantenimiento fue realizado satisfactoriamente y
+                    que las mediciones fueron tomadas en su presencia. Esta
+                    firma tiene validez legal como constancia de servicio.
+                  </p>
+                </div>
               </div>
             </div>
           )}

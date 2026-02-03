@@ -1,11 +1,11 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap");
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
 
-*This doesnt change anything*
+/* This doesnt change anything */
 :root {
   --background: #000000;
   --foreground: #000000;
-  --font-sans: 'Outfit', sans-serif;
+  --font-sans: "Outfit", sans-serif;
 }
 
 @theme inline {
