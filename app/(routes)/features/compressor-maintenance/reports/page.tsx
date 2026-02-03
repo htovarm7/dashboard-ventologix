@@ -47,13 +47,9 @@ const Reports = () => {
   const router = useRouter();
   const [reportsByClient, setReportsByClient] = useState<ReportsByClient[]>([]);
   const [expandedClients, setExpandedClients] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<number>(0);
-  const [userNumeroCliente, setUserNumeroCliente] = useState<number | null>(
-    null
-  );
 
   useEffect(() => {
     loadUserDataAndReports();
@@ -72,8 +68,6 @@ const Reports = () => {
         const parsedData = JSON.parse(userData);
         rol = parsedData.rol || 0;
         numeroCliente = parsedData.numero_cliente || null;
-        setUserRole(rol);
-        setUserNumeroCliente(numeroCliente);
       }
 
       // Fetch all orders from /ordenes/ endpoint
@@ -90,7 +84,7 @@ const Reports = () => {
       let filteredOrdenes = ordenes;
       if ((rol === 3 || rol === 4) && numeroCliente) {
         filteredOrdenes = ordenes.filter(
-          (orden) => orden.numero_cliente === numeroCliente
+          (orden) => orden.numero_cliente === numeroCliente,
         );
       }
 
@@ -119,7 +113,7 @@ const Reports = () => {
           reports: group.reports.sort(
             (a, b) =>
               new Date(b.fecha_creacion || "").getTime() -
-              new Date(a.fecha_creacion || "").getTime()
+              new Date(a.fecha_creacion || "").getTime(),
           ),
         }))
         .sort((a, b) => a.clientName.localeCompare(b.clientName));
@@ -145,7 +139,7 @@ const Reports = () => {
   const handleViewReport = (orden: OrdenServicio) => {
     // Navigate to the report view page using folio
     router.push(
-      `/features/compressor-maintenance/reports/view?folio=${orden.folio}`
+      `/features/compressor-maintenance/reports/view?folio=${orden.folio}`,
     );
   };
 
@@ -268,9 +262,7 @@ const Reports = () => {
                             </div>
                             <div className="flex items-center space-x-2">
                               <User size={16} />
-                              <span>
-                                {orden.tipo_mantenimiento || "N/A"}
-                              </span>
+                              <span>{orden.tipo_mantenimiento || "N/A"}</span>
                             </div>
                             {orden.estado && (
                               <span
@@ -278,8 +270,8 @@ const Reports = () => {
                                   orden.estado === "Completado"
                                     ? "bg-green-100 text-green-800"
                                     : orden.estado === "En progreso"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-gray-100 text-gray-800"
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : "bg-gray-100 text-gray-800"
                                 }`}
                               >
                                 {orden.estado}
