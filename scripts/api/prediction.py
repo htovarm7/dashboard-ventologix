@@ -156,8 +156,22 @@ def consumption_prediction_plot(
         kwh_anual = promedio_diario * 365
         costo_anual = kwh_anual * costoKwh
 
+        # Calcular tamaño dinámico de la figura
+        num_dias = len(df_total) + dias_prediccion
+        num_compresores = len(kwh_cols)
+
+        # Ancho: mínimo 10, máximo 20, escala con días
+        ancho = max(10, min(20, num_dias * 0.8 + 4))
+
+        # Altura: mínimo 6, escala con número de compresores y valores
+        altura_base = 6
+        if num_compresores > 5:
+            altura_base = 7
+        if num_compresores > 8:
+            altura_base = 8
+
         plt.switch_backend('Agg')
-        fig, ax = plt.subplots(figsize=(12, 6))
+        fig, ax = plt.subplots(figsize=(ancho, altura_base))
 
         df_plot = df_total[kwh_cols].fillna(0)
 
@@ -167,15 +181,21 @@ def consumption_prediction_plot(
 
         bottom = np.zeros(len(df_total))
 
+        # Ajustar ancho de barras según número de días
+        bar_width = min(0.8, max(0.4, 8 / num_dias))
+
         for col, color in zip(kwh_cols, COLORES):
             if col in nombres_compresores:
                 label = nombres_compresores[col]
-                ax.bar(x_positions, df_plot[col].values, label=label, color=color, bottom=bottom, width=0.8)
+                ax.bar(x_positions, df_plot[col].values, label=label, color=color, bottom=bottom, width=bar_width)
                 bottom += df_plot[col].values
+
+        # Ajustar tamaño de fuente de etiquetas según número de días
+        label_fontsize = max(6, min(9, 60 / num_dias))
 
         for i, y in enumerate(df_total['kWh']):
             if pd.notna(y) and y > 0:
-                ax.text(i, y + max(y * 0.05, 5), f'{y:.0f}', ha='center', va='bottom', fontsize=8, color='black')
+                ax.text(i, y + max(y * 0.05, 5), f'{y:.0f}', ha='center', va='bottom', fontsize=label_fontsize, color='black')
 
         if any(p > 0 for p in predicciones):
             # Posiciones para predicciones (continúan después de los datos históricos)
@@ -191,13 +211,22 @@ def consumption_prediction_plot(
         ax.set_xticks(all_x)
         ax.set_xticklabels(fechas_labels, rotation=45, ha='right')
 
+        # Ajustar posición del recuadro según el ancho de la figura
+        recuadro_x = max(0.65, 0.72 - (num_compresores - 5) * 0.02)
+        recuadro_y = max(0.75, 0.82 - (num_compresores - 5) * 0.02)
+
         recuadro = f"Estimación Anual: {kwh_anual:,.0f} kWh\nCosto Estimado: ${costo_anual:,.0f} USD"
-        plt.gcf().text(0.72, 0.82, recuadro, fontsize=11, bbox=dict(facecolor='white', edgecolor='black', alpha=0.9))
+        plt.gcf().text(recuadro_x, recuadro_y, recuadro, fontsize=10, bbox=dict(facecolor='white', edgecolor='black', alpha=0.9))
 
         ax.set_title(f"Consumo Energético Diario", fontsize=14, weight='bold')
-        ax.set_xlabel("Fecha")
-        ax.set_ylabel("Consumo (kWh)")
-        ax.legend(loc='upper left')
+        ax.set_xlabel("Fecha", fontsize=11)
+        ax.set_ylabel("Consumo (kWh)", fontsize=11)
+
+        # Ajustar leyenda según número de compresores
+        legend_fontsize = max(7, min(10, 70 / num_compresores))
+        legend_ncol = 1 if num_compresores <= 6 else 2
+
+        ax.legend(loc='upper left', fontsize=legend_fontsize, ncol=legend_ncol, framealpha=0.9)
         ax.grid(True, alpha=0.3, axis='y')
 
         plt.tight_layout()
