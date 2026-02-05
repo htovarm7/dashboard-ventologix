@@ -74,7 +74,7 @@ def test_langgraph_agent():
     print("🔍 Testing LangGraph agent...")
 
     try:
-        from langgraph.agent import chat
+        from langgraph.graph import StateGraph
 
         # Test query
         test_question = "¿Cuántos clientes tenemos en total?"

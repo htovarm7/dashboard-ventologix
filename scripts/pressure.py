@@ -1,160 +1,269 @@
-import paho.mqtt.client as mqtt
+"""
+RTU MQTT Listener - Escucha tópicos MQTT e inserta datos en RTU_datos
+"""
 import mysql.connector
+from mysql.connector import Error
+import paho.mqtt.client as mqtt
 import json
-from datetime import datetime
+import time
 import logging
+from datetime import datetime
 from dotenv import load_dotenv
 import os
-import time
 import atexit
 
 # Cargar variables de entorno
 load_dotenv()
 
-MQTT_BROKER = os.getenv("MQTT_BROKER")
-MQTT_PORT = int(os.getenv("MQTT_PORT"))
+# Configuración de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
-db_config = {
-    "host": os.getenv("DB_HOST"),
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD"),
-    "database": os.getenv("DB_DATABASE")
+# Configuración de la base de datos
+DB_CONFIG = {
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'user': os.getenv('DB_USER', 'root'),
+    'password': os.getenv('DB_PASSWORD', ''),
+    'database': os.getenv('DB_DATABASE', 'tu_database'),
+    'port': int(os.getenv('DB_PORT', 3306))
 }
 
-# Configurar logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+# Configuración MQTT
+MQTT_BROKER = os.getenv('MQTT_BROKER', 'localhost')
+MQTT_PORT = int(os.getenv('MQTT_PORT', 1883))
+MQTT_USER = os.getenv('MQTT_USER', '')
+MQTT_PASSWORD = os.getenv('MQTT_PASSWORD', '')
 
-# Conexión persistente a base de datos
+# Diccionario para mapear tópicos a RTU_id
+topic_to_rtu = {}
+
+# Conexión persistente a la base de datos
+db_conn = None
+db_cursor = None
+
 def conectar_db():
+    """Crear conexión persistente a la base de datos con reintentos"""
     while True:
         try:
-            conn = mysql.connector.connect(**db_config)
+            conn = mysql.connector.connect(**DB_CONFIG)
             if conn.is_connected():
-                logging.info("🟢 Conectado a la base de datos")
+                logging.info("🟢 Conectado a la base de datos MySQL")
                 return conn
-        except Exception as e:
-            logging.error(f"❌ Error al conectar a la base de datos: {e}")
-            time.sleep(3)
+        except Error as e:
+            logging.error(f"❌ Error al conectar a MySQL: {e}")
+            logging.info("⏳ Reintentando en 5 segundos...")
+            time.sleep(5)
 
-conn = conectar_db()
-cursor = conn.cursor(dictionary=True)
-
-# Lista global de tópicos MQTT (RTU_IDs)
-mqtt_topics = []
-
-# Cerrar conexión al terminar
 def cerrar_conexion():
-    if conn.is_connected():
-        cursor.close()
-        conn.close()
-        logging.info("🔴 Conexión a base cerrada")
+    """Cerrar conexión a la base de datos al terminar"""
+    global db_conn, db_cursor
+    try:
+        if db_cursor:
+            db_cursor.close()
+        if db_conn and db_conn.is_connected():
+            db_conn.close()
+            logging.info("🔴 Conexión a base de datos cerrada")
+    except:
+        pass
 
+# Registrar cierre de conexión al terminar
 atexit.register(cerrar_conexion)
 
-# Obtener todos los RTU_IDs de la tabla RTU_Especificaciones
-def obtener_device_ids():
-    try:
-        cursor.execute("SELECT DISTINCT RTU_ID FROM RTU_Especificaciones")
-        resultados = cursor.fetchall()
-        device_ids = [row['RTU_ID'] for row in resultados]
-        logging.info(f"📋 {len(device_ids)} dispositivos encontrados: {device_ids}")
-        return device_ids
-    except Exception as e:
-        logging.error(f"❌ Error al obtener device_ids: {e}")
-        return []
+def load_topics_from_db():
+    """Cargar todos los tópicos y RTU_ids desde la base de datos"""
+    global topic_to_rtu
 
-# Callback al conectar al broker
+    try:
+        # Usar conexión temporal para cargar tópicos
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT numero_serie_topico, RTU_id FROM RTU_device")
+        devices = cursor.fetchall()
+
+        topic_to_rtu.clear()
+        for device in devices:
+            topic = device['numero_serie_topico']
+            rtu_id = device['RTU_id']
+            topic_to_rtu[topic] = rtu_id
+            logging.info(f"✓ Tópico cargado: {topic} -> RTU_id: {rtu_id}")
+
+        cursor.close()
+        conn.close()
+        logging.info(f"✓ Total de tópicos cargados: {len(topic_to_rtu)}")
+
+    except Error as e:
+        logging.error(f"❌ Error al cargar tópicos: {e}")
+
+def insert_sensor_data(rtu_id, s1, s2, s3):
+    """Insertar datos de sensores en la base de datos usando conexión persistente"""
+    global db_conn, db_cursor
+
+    try:
+        # Verificar conexión
+        if not db_conn.is_connected():
+            logging.warning("🔄 Reconectando a la base de datos...")
+            db_conn = conectar_db()
+            db_cursor = db_conn.cursor()
+
+        query = """
+            INSERT INTO RTU_datos (RTU_id, S1, S2, S3, Time)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        timestamp = datetime.now()
+        db_cursor.execute(query, (rtu_id, s1, s2, s3, timestamp))
+        db_conn.commit()
+
+        logging.info(f"✅ Datos insertados - RTU_id: {rtu_id}, S1: {s1}, S2: {s2}, S3: {s3}, Time: {timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+        return True
+
+    except Error as e:
+        logging.error(f"❌ Error al insertar datos: {e}")
+        # Intentar reconectar
+        try:
+            db_conn = conectar_db()
+            db_cursor = db_conn.cursor()
+        except:
+            pass
+        return False
+
 def on_connect(client, userdata, flags, rc):
+    """Callback cuando se conecta al broker MQTT"""
     if rc == 0:
         logging.info("🟢 Conectado al broker MQTT")
 
         # Suscribirse a todos los tópicos
-        for topic in mqtt_topics:
+        if not topic_to_rtu:
+            logging.warning("⚠️ No hay tópicos para suscribirse")
+            return
+
+        for topic in topic_to_rtu.keys():
             client.subscribe(topic)
             logging.info(f"📡 Suscrito al tópico: {topic}")
+
+        logging.info(f"✅ Sistema listo. Escuchando {len(topic_to_rtu)} tópicos...")
     else:
-        logging.error(f"🔴 Error de conexión MQTT: {rc}")
+        logging.error(f"❌ Error de conexión MQTT. Código: {rc}")
 
-# Callback al recibir mensaje
 def on_message(client, userdata, msg):
-    global conn, cursor
-
+    """Callback cuando se recibe un mensaje MQTT"""
     try:
-        # El tópico es el RTU_ID
-        rtu_id = msg.topic
-        payload = json.loads(msg.payload.decode())
+        topic = msg.topic
+        payload = msg.payload.decode('utf-8')
 
-        logging.info(f"📨 Mensaje recibido de {rtu_id}: {payload}")
+        logging.info(f"\n📨 Mensaje recibido en tópico: {topic}")
+        logging.debug(f"   Payload: {payload}")
 
-        # Extraer datos de sensores (ajustar según el formato de tu payload MQTT)
-        sensor1 = float(payload.get("sensor1", payload.get("Sensor1", 0)))
-        sensor2 = float(payload.get("sensor2", payload.get("Sensor2", 0)))
-        sensor3 = float(payload.get("sensor3", payload.get("Sensor3", 0)))
-        col4 = float(payload.get("col4", payload.get("Col4", 0)))
+        # Obtener RTU_id del tópico
+        rtu_id = topic_to_rtu.get(topic)
 
-        # Parsear timestamp (ajustar según el formato que recibas)
-        time_str = payload.get("time", payload.get("timestamp"))
-        if time_str:
-            # Si el formato es 'YYYYMMDDHHMMSS' (como en mqtt_to_mysql.py)
-            if len(time_str) == 14 and time_str.isdigit():
-                time_fmt = datetime.strptime(time_str, "%Y%m%d%H%M%S").strftime('%Y-%m-%d %H:%M:%S')
-            else:
-                # Si es ISO format o similar
-                time_fmt = datetime.fromisoformat(time_str).strftime('%Y-%m-%d %H:%M:%S')
-        else:
-            # Si no viene timestamp, usar el actual
-            time_fmt = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        if rtu_id is None:
+            logging.warning(f"⚠️ Tópico desconocido: {topic}")
+            return
 
-        # Insertar en RTU_Datos
-        insert_query = """
-            INSERT INTO RTU_Datos (RTU_ID, Sensor1, Sensor2, Sensor3, Col4, time)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """
-        values = (rtu_id, sensor1, sensor2, sensor3, col4, time_fmt)
-        cursor.execute(insert_query, values)
-        conn.commit()
+        # Parsear el JSON
+        data = json.loads(payload)
 
-        logging.info(f"✅ Insertado RTU_ID: {rtu_id} | Tiempo: {time_fmt}")
+        # Extraer valores de sensores
+        s1 = data.get('S1')
+        s2 = data.get('S2')
+        s3 = data.get('S3')
 
-    except mysql.connector.Error as db_err:
-        logging.error(f"❌ Error en base de datos: {db_err}")
-        if not conn.is_connected():
-            logging.warning("🔄 Reintentando conexión a base de datos...")
-            conn = conectar_db()
-            cursor = conn.cursor(dictionary=True)
-    except json.JSONDecodeError as json_err:
-        logging.error(f"❌ Error al decodificar JSON: {json_err} | Payload: {msg.payload}")
+        # Validar que al menos un sensor tenga datos
+        if s1 is None and s2 is None and s3 is None:
+            logging.warning(f"⚠️ No se encontraron datos de sensores en el payload")
+            return
+
+        # Insertar en la base de datos
+        insert_sensor_data(rtu_id, s1, s2, s3)
+
+    except json.JSONDecodeError as e:
+        logging.error(f"❌ Error al parsear JSON: {e}")
+        logging.debug(f"   Payload recibido: {msg.payload}")
     except Exception as e:
-        logging.error(f"❌ Error general: {str(e)}")
+        logging.error(f"❌ Error al procesar mensaje: {e}")
 
-# Callback de desconexión
 def on_disconnect(client, userdata, rc):
+    """Callback cuando se desconecta del broker"""
     if rc != 0:
-        logging.warning(f"⚠️ Desconexión inesperada del broker MQTT (código: {rc})")
-        logging.info("🔄 Reintentando conexión...")
+        logging.warning(f"⚠️ Desconexión inesperada del broker MQTT. Código: {rc}")
+        logging.info("🔄 El cliente intentará reconectar automáticamente...")
+    else:
+        logging.info("🔴 Desconectado del broker MQTT")
 
-# Main
-if __name__ == "__main__":
-    # Obtener todos los device_ids (RTU_IDs)
-    mqtt_topics = obtener_device_ids()
+def main():
+    """Función principal"""
+    global db_conn, db_cursor
 
-    if not mqtt_topics:
-        logging.error("❌ No se encontraron dispositivos. Saliendo...")
-        exit(1)
+    logging.info("=" * 60)
+    logging.info("   RTU MQTT Listener - Sistema de Monitoreo RTU")
+    logging.info("=" * 60)
+
+    # Conectar a la base de datos
+    db_conn = conectar_db()
+    db_cursor = db_conn.cursor()
+
+    # Cargar tópicos desde la base de datos
+    logging.info("\n📋 Cargando tópicos desde RTU_device...")
+    load_topics_from_db()
+
+    if not topic_to_rtu:
+        logging.error("❌ No hay tópicos para escuchar. Verifica la tabla RTU_device")
+        logging.info("💡 Agrega dispositivos RTU desde la interfaz web: /add-RTU")
+        return
 
     # Configurar cliente MQTT
-    client = mqtt.Client(protocol=mqtt.MQTTv311)
+    client = mqtt.Client(client_id="RTU_Listener", clean_session=True)
     client.on_connect = on_connect
     client.on_message = on_message
     client.on_disconnect = on_disconnect
 
-    # Conectar al broker MQTT y loop infinito
+    # Credenciales MQTT (si se requieren)
+    if MQTT_USER and MQTT_PASSWORD:
+        client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
+        logging.info("🔐 Autenticación MQTT configurada")
+
+    # Conectar al broker
     try:
+        logging.info(f"\n🌐 Conectando a broker MQTT: {MQTT_BROKER}:{MQTT_PORT}")
         client.connect(MQTT_BROKER, MQTT_PORT, 60)
-        logging.info(f"🚀 Iniciando escucha de {len(mqtt_topics)} dispositivos IoT...")
+
+        # Mantener el loop corriendo
+        logging.info("\n" + "=" * 60)
+        logging.info("✅ Sistema iniciado. Esperando mensajes MQTT...")
+        logging.info("   Presiona Ctrl+C para detener")
+        logging.info("=" * 60 + "\n")
+
         client.loop_forever()
+
     except KeyboardInterrupt:
-        logging.info("⏹️ Detenido por el usuario")
+        logging.info("\n\n⏸️  Deteniendo servicio...")
         client.disconnect()
+        cerrar_conexion()
+        logging.info("✅ Servicio detenido correctamente")
+
     except Exception as e:
-        logging.error(f"❌ Error al conectar al broker: {e}")
+        logging.error(f"\n❌ Error fatal: {e}")
+        time.sleep(5)
+
+if __name__ == "__main__":
+    logging.info("\n" + "=" * 60)
+    logging.info("  🚀 Iniciando RTU MQTT Listener")
+    logging.info("=" * 60)
+    logging.info(f"  Broker: {MQTT_BROKER}:{MQTT_PORT}")
+    logging.info(f"  Base de datos: {DB_CONFIG['host']}:{DB_CONFIG['port']}")
+    logging.info("=" * 60 + "\n")
+
+    # Loop infinito con reconexión automática
+    while True:
+        try:
+            main()
+        except KeyboardInterrupt:
+            logging.info("\n👋 Saliendo...")
+            break
+        except Exception as e:
+            logging.error(f"\n❌ Error en el loop principal: {e}")
+            logging.info("🔄 Reiniciando en 10 segundos...\n")
+            time.sleep(10)

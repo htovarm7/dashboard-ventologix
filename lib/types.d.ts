@@ -572,3 +572,55 @@ export type Visit = {
   cliente?: string;
   numero_cliente?: number;
 };
+
+/* ===== RTU Devices ======= */
+export interface RTUDevice {
+  id: number;
+  numero_serie_topico: string;
+  RTU_id: number;
+  numero_cliente: number;
+  alias: string | null;
+  nombre_cliente?: string;
+}
+
+export interface RTUSensor {
+  id: number;
+  RTU_id: number;
+  C: number;
+  Vmin: number | null;
+  Vmax: number | null;
+  Lmin: number | null;
+  Lmax: number | null;
+}
+
+export interface RTUPort {
+  id: number;
+  RTU_id: number;
+  P1: number | null;
+  P2: number | null;
+  P3: number | null;
+}
+
+export interface RTUFormData {
+  numero_serie_topico: string;
+  RTU_id: number | string;
+  numero_cliente: number | string;
+  alias: string;
+  // Sensores (C1, C2, C3)
+  C1_Vmin: number | string;
+  C1_Vmax: number | string;
+  C1_Lmin: number | string;
+  C1_Lmax: number | string;
+  C2_Vmin: number | string;
+  C2_Vmax: number | string;
+  C2_Lmin: number | string;
+  C2_Lmax: number | string;
+  C3_Vmin: number | string;
+  C3_Vmax: number | string;
+  C3_Lmin: number | string;
+  C3_Lmax: number | string;
+  // Puertos ESP
+  P1: number | string;
+  P2: number | string;
+  P3: number | string;
+}
