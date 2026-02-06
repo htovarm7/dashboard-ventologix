@@ -82,6 +82,25 @@ docker logs -f rtu-stack
 
 ---
 
+## ⚠️ Ventologix3 VM (Container-Optimized OS)
+
+**IMPORTANTE:** La VM `ventologix3` corre **Container-Optimized OS (COS)** de Google Cloud, que tiene un filesystem de **solo lectura**. No puedes instalar `docker-compose` directamente.
+
+### Solución: Ejecutar docker-compose en un container
+
+```bash
+cd ~/Ventologix
+
+# Ejecutar docker-compose desde un container
+docker run --rm \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "$PWD:$PWD" \
+  -w "$PWD" \
+  docker/compose:latest up -d
+```
+
+---
+
 ## 📊 Monitoreo
 
 ### Ver estado de los procesos dentro del container
@@ -190,7 +209,8 @@ dashboard-ventologix/
 ├── Dockerfile                # Imagen Docker del stack
 ├── docker-compose.yml        # Orquestación
 ├── supervisord.conf          # Configuración de procesos
-├── requirements.txt          # Dependencias Python
+├── requirements.txt          # Dependencias Python (proyecto completo)
+├── requirements_docker.txt   # Dependencias Python (solo RTU scripts)
 ├── logs/                     # Logs persistentes (creado automáticamente)
 │   ├── acrel.out.log
 │   ├── pressure.out.log

@@ -1,0 +1,14 @@
+# Docker requirements for RTU Stack
+# Minimal dependencies for acrel.py, pressure.py, mqtt_to_mysql.py
+
+# MQTT Client
+paho-mqtt
+
+# MySQL Database
+mysql-connector-python
+
+# Timezone handling
+pytz
+
+# Environment variables
+python-dotenv
