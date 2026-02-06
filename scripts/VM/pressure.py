@@ -97,6 +97,47 @@ def load_topics_from_db():
     except Error as e:
         logging.error(f"❌ Error al cargar tópicos: {e}")
 
+def round_seconds_to_half_minute(dt):
+    """
+    Redondear segundos a 0 o 30 (replicando lógica de Node-RED)
+    - Si segundos < 15 → 0
+    - Si 15 <= segundos < 45 → 30
+    - Si segundos >= 45 → próximo minuto con segundos en 0
+    """
+    seconds = dt.second
+
+    if seconds < 15:
+        # Mantener minuto actual, segundos en 0
+        return dt.replace(second=0, microsecond=0)
+    elif seconds < 45:
+        # Mantener minuto actual, segundos en 30
+        return dt.replace(second=30, microsecond=0)
+    else:
+        # Avanzar al siguiente minuto, segundos en 0
+        from datetime import timedelta
+        next_minute = dt.replace(second=0, microsecond=0) + timedelta(minutes=1)
+        return next_minute
+
+def get_adjusted_timestamp():
+    """
+    Obtener timestamp ajustado:
+    1. Hora actual UTC
+    2. Restar 6 horas para zona Monterrey (UTC-6 fijo)
+    3. Redondear segundos a 0 o 30
+    """
+    from datetime import timedelta, timezone
+
+    # Obtener hora UTC actual (usando método recomendado)
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    # Restar 6 horas para UTC-6 (Monterrey)
+    monterrey_time = now_utc - timedelta(hours=6)
+
+    # Redondear segundos a 0 o 30
+    adjusted_time = round_seconds_to_half_minute(monterrey_time)
+
+    return adjusted_time
+
 def insert_sensor_data(rtu_id, s1, s2, s3):
     """Insertar datos de sensores en la base de datos usando conexión persistente"""
     global db_conn, db_cursor
@@ -108,11 +149,13 @@ def insert_sensor_data(rtu_id, s1, s2, s3):
             db_conn = conectar_db()
             db_cursor = db_conn.cursor()
 
+        # Obtener timestamp ajustado a UTC-6 con redondeo
+        timestamp = get_adjusted_timestamp()
+
         query = """
             INSERT INTO RTU_datos (RTU_id, S1, S2, S3, Time)
             VALUES (%s, %s, %s, %s, %s)
         """
-        timestamp = datetime.now()
         db_cursor.execute(query, (rtu_id, s1, s2, s3, timestamp))
         db_conn.commit()
 
@@ -153,9 +196,6 @@ def on_message(client, userdata, msg):
         topic = msg.topic
         payload = msg.payload.decode('utf-8')
 
-        logging.info(f"\n📨 Mensaje recibido en tópico: {topic}")
-        logging.debug(f"   Payload: {payload}")
-
         # Obtener RTU_id del tópico
         rtu_id = topic_to_rtu.get(topic)
 
@@ -166,10 +206,39 @@ def on_message(client, userdata, msg):
         # Parsear el JSON
         data = json.loads(payload)
 
-        # Extraer valores de sensores
-        s1 = data.get('S1')
-        s2 = data.get('S2')
-        s3 = data.get('S3')
+        # Detectar formato del payload y extraer sensores
+        s1, s2, s3 = None, None, None
+
+        # Formato 1: Node-RED con sensorDatas array
+        if 'sensorDatas' in data:
+            sensor_datas = data['sensorDatas']
+
+            # Validar que el array tenga al menos 3 elementos
+            if not sensor_datas or len(sensor_datas) < 3:
+                logging.warning(f"⚠️ Payload incompleto. Se esperan al menos 3 sensores, recibidos: {len(sensor_datas) if sensor_datas else 0}")
+                return
+
+            # Extraer valores (sensores 0, 1, 2 → S1, S2, S3)
+            try:
+                s1 = float(sensor_datas[0].get('value', 0))
+                s2 = float(sensor_datas[1].get('value', 0))
+                s3 = float(sensor_datas[2].get('value', 0))
+            except (ValueError, KeyError, AttributeError) as e:
+                logging.error(f"❌ Error al extraer valores de sensorDatas: {e}")
+                return
+
+        # Formato 2: Directo con S1, S2, S3
+        elif 'S1' in data or 'S2' in data or 'S3' in data:
+            s1 = data.get('S1')
+            s2 = data.get('S2')
+            s3 = data.get('S3')
+            logging.debug(f"   Formato directo detectado: S1={s1}, S2={s2}, S3={s3}")
+
+        else:
+            logging.warning(f"⚠️ Formato de payload no reconocido. Formatos soportados:")
+            logging.warning(f"   1. Node-RED: {{\"sensorDatas\": [{{\"value\": \"1.23\"}}, ...]}}")
+            logging.warning(f"   2. Directo: {{\"S1\": 1.23, \"S2\": 4.56, \"S3\": 7.89}}")
+            return
 
         # Validar que al menos un sensor tenga datos
         if s1 is None and s2 is None and s3 is None:
@@ -184,6 +253,8 @@ def on_message(client, userdata, msg):
         logging.debug(f"   Payload recibido: {msg.payload}")
     except Exception as e:
         logging.error(f"❌ Error al procesar mensaje: {e}")
+        import traceback
+        logging.debug(traceback.format_exc())
 
 def on_disconnect(client, userdata, rc):
     """Callback cuando se desconecta del broker"""
@@ -197,16 +268,11 @@ def main():
     """Función principal"""
     global db_conn, db_cursor
 
-    logging.info("=" * 60)
-    logging.info("   RTU MQTT Listener - Sistema de Monitoreo RTU")
-    logging.info("=" * 60)
-
     # Conectar a la base de datos
     db_conn = conectar_db()
     db_cursor = db_conn.cursor()
 
     # Cargar tópicos desde la base de datos
-    logging.info("\n📋 Cargando tópicos desde RTU_device...")
     load_topics_from_db()
 
     if not topic_to_rtu:
@@ -230,12 +296,6 @@ def main():
         logging.info(f"\n🌐 Conectando a broker MQTT: {MQTT_BROKER}:{MQTT_PORT}")
         client.connect(MQTT_BROKER, MQTT_PORT, 60)
 
-        # Mantener el loop corriendo
-        logging.info("\n" + "=" * 60)
-        logging.info("✅ Sistema iniciado. Esperando mensajes MQTT...")
-        logging.info("   Presiona Ctrl+C para detener")
-        logging.info("=" * 60 + "\n")
-
         client.loop_forever()
 
     except KeyboardInterrupt:
@@ -249,14 +309,6 @@ def main():
         time.sleep(5)
 
 if __name__ == "__main__":
-    logging.info("\n" + "=" * 60)
-    logging.info("  🚀 Iniciando RTU MQTT Listener")
-    logging.info("=" * 60)
-    logging.info(f"  Broker: {MQTT_BROKER}:{MQTT_PORT}")
-    logging.info(f"  Base de datos: {DB_CONFIG['host']}:{DB_CONFIG['port']}")
-    logging.info("=" * 60 + "\n")
-
-    # Loop infinito con reconexión automática
     while True:
         try:
             main()
