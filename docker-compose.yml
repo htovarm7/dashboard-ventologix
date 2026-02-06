@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # RTU Stack: Acrel + Pressure + MQTT to MySQL
+  # ============================================
+  rtu-stack:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rtu-stack
+    restart: unless-stopped
+
+    # Cargar variables de entorno desde .env en root
+    env_file:
+      - .env
+
+    # Asegurar que PYTHONUNBUFFERED esté activo
+    environment:
+      PYTHONUNBUFFERED: 1
+
+    # Networking
+    network_mode: "host"
+
+    # Volúmenes para persistir logs
+    volumes:
+      - ./logs:/var/log/supervisor
+
+    # Healthcheck para verificar que los 3 procesos estén corriendo
+    healthcheck:
+      test: ["CMD", "supervisorctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+    # Política de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"

@@ -24,3 +24,8 @@ statsmodels
 pmdarima
 matplotlib
 weasyprint
+langchain
+langchain-openai
+langchain-core
+langchain-community
+langgraph

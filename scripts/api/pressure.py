@@ -1,17 +1,47 @@
 """
 Endpoints de análisis de presión
 """
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from typing import Optional, List
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import io
 
-from .db_utils import obtener_medidores_presion, obtener_datos_presion
+from .db_utils import obtener_medidores_presion, obtener_datos_presion, get_db_connection
 
 
 pressure = APIRouter(prefix="/pressure", tags=["📈 Presión"])
+
+
+# ===== Modelos Pydantic para RTU =====
+class RTUSensorModel(BaseModel):
+    C: int
+    Vmin: Optional[float] = None
+    Vmax: Optional[float] = None
+    Lmin: Optional[float] = None
+    Lmax: Optional[float] = None
+
+
+class RTUPortModel(BaseModel):
+    P1: Optional[int] = None
+    P2: Optional[int] = None
+    P3: Optional[int] = None
+
+
+class RTUDeviceModel(BaseModel):
+    numero_serie_topico: str
+    RTU_id: int
+    numero_cliente: int
+    alias: Optional[str] = None
+
+
+class RTUCreateModel(BaseModel):
+    device: RTUDeviceModel
+    sensors: List[RTUSensorModel]
+    ports: RTUPortModel
 
 
 @pressure.get("/plot", tags=["📈 Visualización de Datos"])
@@ -231,3 +261,299 @@ def pressure_analysis_stats(
 
     except Exception as e:
         return {"error": f"Error interno del servidor: {str(e)}"}
+
+
+# ===== CRUD Endpoints para RTU Devices =====
+
+@pressure.get("/rtu-devices", tags=["🔧 RTU Devices"])
+def get_rtu_devices():
+    """Obtiene todos los dispositivos RTU con información del cliente"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT
+                d.id,
+                d.numero_serie_topico,
+                d.RTU_id,
+                d.numero_cliente,
+                d.alias,
+                c.nombre_cliente
+            FROM RTU_device d
+            LEFT JOIN Clientes c ON d.numero_cliente = c.numero_cliente
+            ORDER BY d.RTU_id
+        """)
+
+        devices = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return {"success": True, "data": devices}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener dispositivos RTU: {str(e)}")
+
+
+@pressure.get("/rtu-devices/{rtu_id}", tags=["🔧 RTU Devices"])
+def get_rtu_device(rtu_id: int):
+    """Obtiene un dispositivo RTU específico"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT
+                d.id,
+                d.numero_serie_topico,
+                d.RTU_id,
+                d.numero_cliente,
+                d.alias,
+                c.nombre_cliente
+            FROM RTU_device d
+            LEFT JOIN Clientes c ON d.numero_cliente = c.numero_cliente
+            WHERE d.RTU_id = %s
+        """, (rtu_id,))
+
+        device = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not device:
+            raise HTTPException(status_code=404, detail="Dispositivo RTU no encontrado")
+
+        return {"success": True, "data": device}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener dispositivo RTU: {str(e)}")
+
+
+@pressure.get("/rtu-sensors/{rtu_id}", tags=["🔧 RTU Devices"])
+def get_rtu_sensors(rtu_id: int):
+    """Obtiene los sensores de un dispositivo RTU"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT id, RTU_id, C, Vmin, Vmax, Lmin, Lmax
+            FROM RTU_sensores
+            WHERE RTU_id = %s
+            ORDER BY C
+        """, (rtu_id,))
+
+        sensors = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return {"success": True, "data": sensors}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener sensores: {str(e)}")
+
+
+@pressure.get("/rtu-ports/{rtu_id}", tags=["🔧 RTU Devices"])
+def get_rtu_ports(rtu_id: int):
+    """Obtiene los puertos de un dispositivo RTU"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT id, RTU_id, P1, P2, P3
+            FROM RTU_puertos
+            WHERE RTU_id = %s
+        """, (rtu_id,))
+
+        ports = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        return {"success": True, "data": ports or {}}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener puertos: {str(e)}")
+
+
+@pressure.post("/rtu-devices", tags=["🔧 RTU Devices"])
+def create_rtu_device(rtu_data: RTUCreateModel):
+    """Crea un nuevo dispositivo RTU con sus sensores y puertos"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Verificar si el RTU_id ya existe
+        cursor.execute("SELECT COUNT(*) as count FROM RTU_device WHERE RTU_id = %s", (rtu_data.device.RTU_id,))
+        result = cursor.fetchone()
+        if result[0] > 0:
+            raise HTTPException(status_code=400, detail=f"Ya existe un dispositivo con RTU_id {rtu_data.device.RTU_id}")
+
+        # Insertar dispositivo
+        cursor.execute("""
+            INSERT INTO RTU_device (numero_serie_topico, RTU_id, numero_cliente, alias)
+            VALUES (%s, %s, %s, %s)
+        """, (
+            rtu_data.device.numero_serie_topico,
+            rtu_data.device.RTU_id,
+            rtu_data.device.numero_cliente,
+            rtu_data.device.alias
+        ))
+
+        # Insertar sensores
+        for sensor in rtu_data.sensors:
+            cursor.execute("""
+                INSERT INTO RTU_sensores (RTU_id, C, Vmin, Vmax, Lmin, Lmax)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                rtu_data.device.RTU_id,
+                sensor.C,
+                sensor.Vmin,
+                sensor.Vmax,
+                sensor.Lmin,
+                sensor.Lmax
+            ))
+
+        # Insertar puertos
+        cursor.execute("""
+            INSERT INTO RTU_puertos (RTU_id, P1, P2, P3)
+            VALUES (%s, %s, %s, %s)
+        """, (
+            rtu_data.device.RTU_id,
+            rtu_data.ports.P1,
+            rtu_data.ports.P2,
+            rtu_data.ports.P3
+        ))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return {"success": True, "message": "Dispositivo RTU creado exitosamente"}
+
+    except HTTPException:
+        if conn:
+            conn.rollback()
+            conn.close()
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        raise HTTPException(status_code=500, detail=f"Error al crear dispositivo RTU: {str(e)}")
+
+
+@pressure.put("/rtu-devices/{rtu_id}", tags=["🔧 RTU Devices"])
+def update_rtu_device(rtu_id: int, rtu_data: RTUCreateModel):
+    """Actualiza un dispositivo RTU existente con sus sensores y puertos"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Verificar si el dispositivo existe
+        cursor.execute("SELECT COUNT(*) as count FROM RTU_device WHERE RTU_id = %s", (rtu_id,))
+        result = cursor.fetchone()
+        if result[0] == 0:
+            raise HTTPException(status_code=404, detail=f"No existe un dispositivo con RTU_id {rtu_id}")
+
+        # Actualizar dispositivo
+        cursor.execute("""
+            UPDATE RTU_device
+            SET numero_serie_topico = %s, numero_cliente = %s, alias = %s
+            WHERE RTU_id = %s
+        """, (
+            rtu_data.device.numero_serie_topico,
+            rtu_data.device.numero_cliente,
+            rtu_data.device.alias,
+            rtu_id
+        ))
+
+        # Eliminar y reinsertar sensores
+        cursor.execute("DELETE FROM RTU_sensores WHERE RTU_id = %s", (rtu_id,))
+        for sensor in rtu_data.sensors:
+            cursor.execute("""
+                INSERT INTO RTU_sensores (RTU_id, C, Vmin, Vmax, Lmin, Lmax)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                rtu_id,
+                sensor.C,
+                sensor.Vmin,
+                sensor.Vmax,
+                sensor.Lmin,
+                sensor.Lmax
+            ))
+
+        # Actualizar puertos
+        cursor.execute("""
+            UPDATE RTU_puertos
+            SET P1 = %s, P2 = %s, P3 = %s
+            WHERE RTU_id = %s
+        """, (
+            rtu_data.ports.P1,
+            rtu_data.ports.P2,
+            rtu_data.ports.P3,
+            rtu_id
+        ))
+
+        # Si no existe registro de puertos, insertarlo
+        if cursor.rowcount == 0:
+            cursor.execute("""
+                INSERT INTO RTU_puertos (RTU_id, P1, P2, P3)
+                VALUES (%s, %s, %s, %s)
+            """, (
+                rtu_id,
+                rtu_data.ports.P1,
+                rtu_data.ports.P2,
+                rtu_data.ports.P3
+            ))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return {"success": True, "message": "Dispositivo RTU actualizado exitosamente"}
+
+    except HTTPException:
+        if conn:
+            conn.rollback()
+            conn.close()
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        raise HTTPException(status_code=500, detail=f"Error al actualizar dispositivo RTU: {str(e)}")
+
+
+@pressure.delete("/rtu-devices/{rtu_id}", tags=["🔧 RTU Devices"])
+def delete_rtu_device(rtu_id: int):
+    """Elimina un dispositivo RTU y todos sus datos relacionados (sensores, puertos, datos)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Verificar si el dispositivo existe
+        cursor.execute("SELECT COUNT(*) as count FROM RTU_device WHERE RTU_id = %s", (rtu_id,))
+        result = cursor.fetchone()
+        if result[0] == 0:
+            raise HTTPException(status_code=404, detail=f"No existe un dispositivo con RTU_id {rtu_id}")
+
+        # El CASCADE en las foreign keys eliminará automáticamente sensores, puertos y datos
+        cursor.execute("DELETE FROM RTU_device WHERE RTU_id = %s", (rtu_id,))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return {"success": True, "message": "Dispositivo RTU eliminado exitosamente"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        raise HTTPException(status_code=500, detail=f"Error al eliminar dispositivo RTU: {str(e)}")
