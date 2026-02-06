@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { URL_API } from "@/lib/global";
 import BackButton from "@/components/BackButton";
-import { Client, RTUDevice, RTUFormData } from "@/lib/types";
+import {
+  Client,
+  RTUDevice,
+  RTUFormData,
+  RTUSensor,
+  RTUPort,
+} from "@/lib/types";
 
 const AddRTU = () => {
   const [rtus, setRTUs] = useState<RTUDevice[]>([]);
@@ -112,17 +118,17 @@ const AddRTU = () => {
         fetch(`${URL_API}/pressure/rtu-ports/${rtu.RTU_id}`),
       ]);
 
-      let sensorData: any = {
+      const sensorData: Record<string, RTUSensor | Record<string, never>> = {
         C1: {},
         C2: {},
         C3: {},
       };
-      let portData: any = {};
+      let portData: RTUPort | Record<string, never> = {};
 
       if (sensorsRes.ok) {
         const sensorsResponse = await sensorsRes.json();
         const sensors = sensorsResponse.data || [];
-        sensors.forEach((sensor: any) => {
+        sensors.forEach((sensor: RTUSensor) => {
           if (sensor.C === 1) sensorData.C1 = sensor;
           if (sensor.C === 2) sensorData.C2 = sensor;
           if (sensor.C === 3) sensorData.C3 = sensor;
