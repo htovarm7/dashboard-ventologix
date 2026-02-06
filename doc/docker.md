@@ -38,65 +38,67 @@ MQTT_TOPIC=
 
 ---
 
-## 🚀 Deployment
+## 🚀 Deployment (Ventologix3 VM)
 
-### Opción 1: Docker Compose (Recomendado)
+**IMPORTANTE:** La VM `ventologix3` usa Container-Optimized OS (COS), por lo que usamos `docker run` directamente.
+
+### 1️⃣ Build de la imagen
 
 ```bash
-# Construir y levantar el stack
-docker-compose up -d
+cd ~/Ventologix
 
-# Ver logs en tiempo real
-docker-compose logs -f
-
-# Ver logs de un script específico
-docker-compose logs -f | grep acrel
-docker-compose logs -f | grep pressure
-docker-compose logs -f | grep mqtt_to_mysql
-
-# Detener el stack
-docker-compose down
-
-# Reiniciar el stack
-docker-compose restart
+# Construir la imagen (solo necesario la primera vez o después de cambios)
+docker build -t ventologix_rtu-stack .
 ```
 
-### Opción 2: Docker directo
+### 2️⃣ Iniciar el stack
 
 ```bash
-# Build
-docker build -t rtu-stack .
-
-# Run
+# Ejecutar el container
 docker run -d \
   --name rtu-stack \
   --env-file .env \
   --network host \
   -v $(pwd)/logs:/var/log/supervisor \
   --restart unless-stopped \
-  rtu-stack
-
-# Ver logs
-docker logs -f rtu-stack
+  ventologix_rtu-stack
 ```
 
----
-
-## ⚠️ Ventologix3 VM (Container-Optimized OS)
-
-**IMPORTANTE:** La VM `ventologix3` corre **Container-Optimized OS (COS)** de Google Cloud, que tiene un filesystem de **solo lectura**. No puedes instalar `docker-compose` directamente.
-
-### Solución: Ejecutar docker-compose en un container
+### 3️⃣ Comandos comunes
 
 ```bash
-cd ~/Ventologix
+# Ver logs en tiempo real
+docker logs -f rtu-stack
 
-# Ejecutar docker-compose desde un container
-docker run --rm \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -v "$PWD:$PWD" \
-  -w "$PWD" \
-  docker/compose:latest up -d
+# Ver logs filtrados por script
+docker logs -f rtu-stack | grep acrel
+docker logs -f rtu-stack | grep pressure
+docker logs -f rtu-stack | grep mqtt_to_mysql
+
+# Detener el stack
+docker stop rtu-stack
+
+# Iniciar el stack (si ya existe)
+docker start rtu-stack
+
+# Reiniciar el stack
+docker restart rtu-stack
+
+# Eliminar el container (para reconstruir)
+docker stop rtu-stack
+docker rm rtu-stack
+
+# Reconstruir después de cambios en .env o código
+docker stop rtu-stack
+docker rm rtu-stack
+docker build -t ventologix_rtu-stack .
+docker run -d \
+  --name rtu-stack \
+  --env-file .env \
+  --network host \
+  -v $(pwd)/logs:/var/log/supervisor \
+  --restart unless-stopped \
+  ventologix_rtu-stack
 ```
 
 ---
@@ -187,16 +189,23 @@ docker exec -it rtu-stack supervisorctl restart all
 ## 🔄 Actualizar el código
 
 ```bash
-# 1. Detener el stack
-docker-compose down
+# 1. Detener y remover el container
+docker stop rtu-stack
+docker rm rtu-stack
 
-# 2. Modificar los scripts Python si es necesario
+# 2. Modificar los scripts Python o .env si es necesario
 
 # 3. Reconstruir la imagen
-docker-compose build --no-cache
+docker build --no-cache -t ventologix_rtu-stack .
 
 # 4. Levantar de nuevo
-docker-compose up -d
+docker run -d \
+  --name rtu-stack \
+  --env-file .env \
+  --network host \
+  -v $(pwd)/logs:/var/log/supervisor \
+  --restart unless-stopped \
+  ventologix_rtu-stack
 ```
 
 ---
@@ -248,10 +257,11 @@ docker exec -it rtu-stack find /var/log/supervisor -name "*.log.*" -delete
 
 Si encuentras problemas:
 
-1. Revisa los logs: `docker-compose logs -f`
+1. Revisa los logs: `docker logs -f rtu-stack`
 2. Verifica el estado: `docker exec -it rtu-stack supervisorctl status`
 3. Revisa la configuración: `cat .env`
-4. Contacta al equipo de desarrollo
+4. Verifica que las variables en `.env` coincidan con las que usan los scripts
+5. Contacta al equipo de desarrollo
 
 ---
 
@@ -269,16 +279,28 @@ Si encuentras problemas:
 ## 🚀 Quick Start
 
 ```bash
-# 1. Verifica .env
+# 1. Ir al directorio del proyecto
+cd ~/Ventologix
+
+# 2. Verifica .env (asegúrate que las variables coincidan con las del código)
 cat .env
 
-# 2. Levanta el stack
-docker-compose up -d
+# 3. Construir la imagen
+docker build -t ventologix_rtu-stack .
 
-# 3. Monitorea logs
-docker-compose logs -f
+# 4. Levantar el stack
+docker run -d \
+  --name rtu-stack \
+  --env-file .env \
+  --network host \
+  -v $(pwd)/logs:/var/log/supervisor \
+  --restart unless-stopped \
+  ventologix_rtu-stack
 
-# 4. Verifica estado
+# 5. Monitorea logs
+docker logs -f rtu-stack
+
+# 6. Verifica estado (en otra terminal)
 docker exec -it rtu-stack supervisorctl status
 ```
 
