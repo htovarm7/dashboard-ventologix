@@ -62,11 +62,10 @@ def pressure_analysis_plot(
         V_tanque = 700
 
         first_device = dispositivos[0]
-        p_device_id = first_device["p_device_id"]
-        dispositivo_id = first_device["dispositivo_id"]
-        linea = first_device["linea"].strip()
+        RTU_id = first_device["RTU_id"]
+        linea = first_device["linea"]
 
-        df = obtener_datos_presion(p_device_id, dispositivo_id, linea, fecha)
+        df = obtener_datos_presion(RTU_id, fecha=fecha)
 
         if df.empty:
             return {"error": "No se encontraron datos de presión para los parámetros especificados"}
@@ -192,11 +191,10 @@ def pressure_analysis_stats(
         presion_max = 120
 
         first_device = dispositivos[0]
-        p_device_id = first_device["p_device_id"]
-        dispositivo_id = first_device["dispositivo_id"]
-        linea = first_device["linea"].strip()
+        RTU_id = first_device["RTU_id"]
+        linea = first_device["linea"]
 
-        df = obtener_datos_presion(p_device_id, dispositivo_id, linea, fecha)
+        df = obtener_datos_presion(RTU_id, fecha=fecha)
 
         if df.empty:
             return {"error": "No se encontraron datos de presión para los parámetros especificados"}

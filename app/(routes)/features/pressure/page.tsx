@@ -39,7 +39,7 @@ const PressureAnalysis = () => {
   const generateImageUrl = useCallback(
     (numeroCliente: string, fecha: string) => {
       const timestamp = Date.now();
-      return `${URL_API}/web/beta/pressure-plot?numero_cliente=${encodeURIComponent(
+      return `${URL_API}/pressure/plot?numero_cliente=${encodeURIComponent(
         numeroCliente
       )}&fecha=${encodeURIComponent(fecha)}&t=${timestamp}`;
     },
@@ -48,7 +48,7 @@ const PressureAnalysis = () => {
 
   const generateStatsUrl = useCallback(
     (numeroCliente: string, fecha: string) => {
-      return `${URL_API}/web/beta/pressure-stats?numero_cliente=${encodeURIComponent(
+      return `${URL_API}/pressure/stats?numero_cliente=${encodeURIComponent(
         numeroCliente
       )}&fecha=${encodeURIComponent(fecha)}`;
     },

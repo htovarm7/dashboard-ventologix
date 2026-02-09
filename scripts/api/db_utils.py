@@ -35,14 +35,25 @@ def get_db_connection():
 # =======================================================================================
 #                              FUNCIONES DE PRESIÓN
 # =======================================================================================
+def convertir_voltaje_a_psi(voltaje, vmin, vmax, lmin, lmax):
+    """Convierte un valor de voltaje a PSI usando la calibración del sensor"""
+    if voltaje is None or vmin is None or vmax is None or lmin is None or lmax is None:
+        return None
+    if vmax == vmin:  # Evitar división por cero
+        return lmin
+    # Conversión lineal: PSI = Lmin + (V - Vmin) * (Lmax - Lmin) / (Vmax - Vmin)
+    psi = lmin + (voltaje - vmin) * (lmax - lmin) / (vmax - vmin)
+    return psi
+
+
 def obtener_medidores_presion(numero_cliente: int) -> List[dict]:
-    """Consulta todos los medidores de presión del cliente"""
+    """Consulta todos los dispositivos RTU de presión del cliente"""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
-        SELECT p_device_id, dispositivo_id, linea
-        FROM dispositivos_presion
-        WHERE cliente_id = %s
+        SELECT RTU_id, numero_serie_topico, alias
+        FROM RTU_device
+        WHERE numero_cliente = %s
     """, (numero_cliente,))
     result = cursor.fetchall()
     cursor.close()
@@ -50,32 +61,95 @@ def obtener_medidores_presion(numero_cliente: int) -> List[dict]:
 
     return [
         {
-            "p_device_id": col["p_device_id"],
-            "dispositivo_id": col["dispositivo_id"],
-            "linea": col["linea"]
+            "RTU_id": col["RTU_id"],
+            "numero_serie_topico": col["numero_serie_topico"],
+            "linea": col["alias"] if col["alias"] else f"RTU-{col['RTU_id']}"
         }
         for col in result
     ]
 
 
-def obtener_datos_presion(p_device_id: int, dispositivo_id: int, linea: str, fecha: str) -> pd.DataFrame:
-    """Obtiene datos de presión usando procedimiento almacenado"""
+def obtener_datos_presion(RTU_id: int, dispositivo_id: int = None, linea: str = None, fecha: str = None) -> pd.DataFrame:
+    """Obtiene datos de presión desde las tablas RTU_datos y RTU_sensores"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        params = (p_device_id, dispositivo_id, dispositivo_id, linea, fecha)
-        cursor.callproc('DataFiltradaConPresion', params)
+        # Obtener configuración de sensores para este RTU
+        cursor.execute("""
+            SELECT C, Vmin, Vmax, Lmin, Lmax
+            FROM RTU_sensores
+            WHERE RTU_id = %s
+            ORDER BY C
+        """, (RTU_id,))
+        sensores_rows = cursor.fetchall()
+        sensores = {row['C']: row for row in sensores_rows}
 
-        data = []
-        for result in cursor.stored_results():
-            data = result.fetchall()
+        # Consultar datos del RTU para la fecha especificada
+        if fecha:
+            cursor.execute("""
+                SELECT S1, S2, S3, Time
+                FROM RTU_datos
+                WHERE RTU_id = %s AND DATE(Time) = %s
+                ORDER BY Time
+            """, (RTU_id, fecha))
+        else:
+            cursor.execute("""
+                SELECT S1, S2, S3, Time
+                FROM RTU_datos
+                WHERE RTU_id = %s
+                ORDER BY Time
+            """, (RTU_id,))
 
+        datos = cursor.fetchall()
         cursor.close()
         conn.close()
 
-        return pd.DataFrame(data)
-    except Exception:
+        if not datos:
+            return pd.DataFrame()
+
+        # Convertir a DataFrame
+        df = pd.DataFrame(datos)
+
+        # Convertir voltajes a PSI usando calibración de sensores
+        if 1 in sensores:
+            s1_config = sensores[1]
+            df['presion1_psi'] = df['S1'].apply(
+                lambda v: convertir_voltaje_a_psi(v, s1_config['Vmin'], s1_config['Vmax'],
+                                                   s1_config['Lmin'], s1_config['Lmax'])
+            )
+        else:
+            df['presion1_psi'] = df['S1']
+
+        if 2 in sensores:
+            s2_config = sensores[2]
+            df['presion2_psi'] = df['S2'].apply(
+                lambda v: convertir_voltaje_a_psi(v, s2_config['Vmin'], s2_config['Vmax'],
+                                                   s2_config['Lmin'], s2_config['Lmax'])
+            )
+        else:
+            df['presion2_psi'] = df['S2']
+
+        if 3 in sensores:
+            s3_config = sensores[3]
+            df['presion3_psi'] = df['S3'].apply(
+                lambda v: convertir_voltaje_a_psi(v, s3_config['Vmin'], s3_config['Vmax'],
+                                                   s3_config['Lmin'], s3_config['Lmax'])
+            )
+        else:
+            df['presion3_psi'] = df['S3']
+
+        # Renombrar Time a time para compatibilidad
+        df = df.rename(columns={'Time': 'time'})
+
+        # Agregar columna de estado (1 si hay datos válidos, 0 si no)
+        df['estado'] = df['presion1_psi'].notna().astype(int)
+
+        # Seleccionar solo las columnas necesarias
+        return df[['time', 'presion1_psi', 'presion2_psi', 'presion3_psi', 'estado']]
+
+    except Exception as e:
+        print(f"ERROR obteniendo datos de presión: {e}")
         return pd.DataFrame()
 
 
