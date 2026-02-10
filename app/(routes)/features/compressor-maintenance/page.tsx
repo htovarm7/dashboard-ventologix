@@ -239,10 +239,10 @@ const Home = () => {
                   📋
                 </div>
                 <h3 className="text-2xl font-bold text-purple-600 mb-3">
-                  Generar Reportes
+                  Órdenes de Servicio
                 </h3>
                 <p className="text-gray-700 text-sm">
-                  Genera los diferentes tipos de reportes de mantenimiento
+                  Crea y gestiona órdenes de servicio para mantenimiento
                 </p>
               </div>
             </button>
