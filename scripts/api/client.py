@@ -423,7 +423,7 @@ def create_client(request: Client):
         cursor.execute(
             """INSERT INTO clientes
                 (id_cliente, numero_cliente, nombre_cliente, RFC, direccion, champion, costokWh, demoDiario, demoSemanal)
-                VALUES (%s, %s, %s, %s, %s, %s, %s,%s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s,%s,%s)
             """,
             (
                 next_id_cliente,
@@ -438,11 +438,29 @@ def create_client(request: Client):
             )
         )
 
+        # Insertar automáticamente en modulos_web con reporteDia y reporteSemana activados
+        cursor.execute(
+            """INSERT INTO modulos_web
+                (numero_cliente, mantenimiento, reporteDia, reporteSemana, presion, prediccion, kwh, nombre_cliente)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                request.numero_cliente,
+                0,  # mantenimiento
+                1,  # reporteDia activado por defecto
+                1,  # reporteSemana activado por defecto
+                0,  # presion
+                0,  # prediccion
+                0,  # kwh
+                request.nombre_cliente
+            )
+        )
+
         conn.commit()
 
         return {
             "success": True,
-            "message": "Cliente agregado exitosamente",
+            "message": "Cliente agregado exitosamente y registrado en módulos web",
             "id_cliente": next_id_cliente,
             "numero_cliente": request.numero_cliente,
             "nombre_cliente": request.nombre_cliente

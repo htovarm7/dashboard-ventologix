@@ -173,7 +173,7 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
       ? [
           {
             id: "admin view",
-            title: "Administrador",
+            title: "Panel de Administración",
             icon: <UserPen />,
             route: "/admin-view",
           },
@@ -183,15 +183,15 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
       ? [
           {
             id: "clients",
-            title: "Ver clientes",
+            title: "Gestionar Clientes",
             icon: <BookUser />,
             route: "/clients",
           },
           {
             id: "compresors",
-            title: "Ver compresores",
+            title: "Compresores y VTOs",
             icon: <Database />,
-            route: "/compresors",
+            route: "/compresors-vto",
           },
           {
             id: "rtu-devices",

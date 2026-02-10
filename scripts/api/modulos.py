@@ -110,7 +110,7 @@ def get_modulos_by_cliente(numero_cliente: int = Path(..., description="Numero d
     
 @modulos_web.post("/")
 def submit_modulos_permission(request : Modulos):
-    try: 
+    try:
         conn = mysql.connector.connect(
             user=DB_USER,
             host=DB_HOST,
@@ -120,19 +120,34 @@ def submit_modulos_permission(request : Modulos):
 
         cursor = conn.cursor(dictionary=True)
 
+        # Si todos los módulos están desactivados, activar reporteDia y reporteSemana automáticamente
+        mantenimiento = request.mantenimiento
+        reporteDia = request.reporteDia
+        reporteSemana = request.reporteSemana
+        presion = request.presion
+        prediccion = request.prediccion
+        kwh = request.kwh
+
+        # Verificar si todos los módulos están desactivados
+        todos_desactivados = not (mantenimiento or reporteDia or reporteSemana or presion or prediccion or kwh)
+
+        if todos_desactivados:
+            reporteDia = 1
+            reporteSemana = 1
+
         cursor.execute(
             """INSERT into modulos_web
                 (numero_cliente, mantenimiento, reporteDia, reporteSemana, presion, prediccion, kwh, nombre_cliente)
-                VALUES (%s,%s,%s,%s,%s,%s,%s)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
             """,
             (
                 request.numero_cliente,
-                request.mantenimiento,
-                request.reporteDia,
-                request.reporteSemana,
-                request.presion,
-                request.prediccion,
-                request.kwh,
+                mantenimiento,
+                reporteDia,
+                reporteSemana,
+                presion,
+                prediccion,
+                kwh,
                 request.nombre_cliente
             )
         )
@@ -171,6 +186,21 @@ def update_modulos_cliente(numero_cliente: int = Path(...,description="Numero de
 
         cursor = conn.cursor()
 
+        # Si todos los módulos están desactivados, activar reporteDia y reporteSemana automáticamente
+        mantenimiento = request.mantenimiento
+        reporteDia = request.reporteDia
+        reporteSemana = request.reporteSemana
+        presion = request.presion
+        prediccion = request.prediccion
+        kwh = request.kwh
+
+        # Verificar si todos los módulos están desactivados
+        todos_desactivados = not (mantenimiento or reporteDia or reporteSemana or presion or prediccion or kwh)
+
+        if todos_desactivados:
+            reporteDia = 1
+            reporteSemana = 1
+
         cursor.execute(
             """UPDATE modulos_web SET
                 mantenimiento = %s, reporteDia = %s, reporteSemana = %s,
@@ -178,12 +208,12 @@ def update_modulos_cliente(numero_cliente: int = Path(...,description="Numero de
                 WHERE numero_cliente = %s
             """,
             (
-                request.mantenimiento,
-                request.reporteDia,
-                request.reporteSemana,
-                request.prediccion,
-                request.presion,
-                request.kwh,
+                mantenimiento,
+                reporteDia,
+                reporteSemana,
+                prediccion,
+                presion,
+                kwh,
                 numero_cliente
             )
         )

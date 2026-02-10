@@ -237,7 +237,7 @@ const ShowClients = () => {
                 <tbody>
                   {clients.map((client) => (
                     <tr
-                      key={client.id_cliente}
+                      key={client.numero_cliente}
                       className="hover:bg-blue-50 transition-colors"
                     >
                       <td className="border border-gray-300 p-3 font-medium text-gray-800">

@@ -206,7 +206,7 @@ def create_compresor(request: Compresor):
 
         cursor.execute(
             """INSERT INTO compresores
-                (id, hp, tipo, voltaje, marca, numero_serie, anio, id_cliente, 
+                (id, hp, tipo, voltaje, marca, numero_serie, anio, id_cliente,
                 Amp_Load, Amp_No_Load, proyecto, linea, LOAD_NO_LOAD, Alias, fecha_utlimo_mtto)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
@@ -229,11 +229,23 @@ def create_compresor(request: Compresor):
             )
         )
 
+        # Insertar automáticamente un dispositivo (VTO) asociado al compresor
+        cursor.execute(
+            """INSERT INTO dispositivo (id_kpm, id_proyecto, id_cliente)
+               VALUES (%s, %s, %s)
+            """,
+            (
+                None,  # id_kpm por defecto null
+                request.proyecto,
+                request.id_cliente
+            )
+        )
+
         conn.commit()
 
         return {
             "success": True,
-            "message": "Compresor agregado exitosamente",
+            "message": "Compresor y VTO agregados exitosamente",
             "id": next_id,
             "numero_serie": request.numero_serie,
             "alias": request.Alias
