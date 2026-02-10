@@ -88,6 +88,12 @@ class Modulos(BaseModel):
     prediccion: bool
     kwh: bool
 
+class Dispositivo(BaseModel):
+    id: Optional[int] = None
+    id_kpm: Optional[str] = None
+    id_proyecto: int
+    id_cliente: int
+
 class MantenimientoItem(BaseModel):
     nombre: str
     realizado: bool
