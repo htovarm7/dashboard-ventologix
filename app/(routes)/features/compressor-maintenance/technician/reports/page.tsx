@@ -1622,6 +1622,9 @@ const TypeReportes = () => {
                           <option value="">
                             Seleccionar tipo de mantenimiento
                           </option>
+                          <option value="700 horas - Mantenimiento E (Limpieza y Parametros)">
+                            700 horas - Mantenimiento E (Limpieza y Parametros)
+                          </option>
                           <option value="2,000 Hrs - Filtro Aire + Filtro Aceite">
                             2,000 Hrs - Filtro Aire + Filtro Aceite
                           </option>
