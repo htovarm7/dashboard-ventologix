@@ -206,7 +206,11 @@ const TypeReportes = () => {
       const data = await response.json();
 
       if (data.data) {
-        setOrdenesServicio(data.data);
+        // Filter out completed/terminado orders
+        const activeOrders = data.data.filter(
+          (orden: OrdenServicio) => orden.estado !== "terminado"
+        );
+        setOrdenesServicio(activeOrders);
       } else {
         setOrdenesServicio([]);
       }

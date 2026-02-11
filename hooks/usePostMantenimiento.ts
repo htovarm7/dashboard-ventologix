@@ -4,60 +4,36 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 interface PostMantenimientoData {
   folio: string;
-  equipo_enciende?: string;
-  display_enciende?: string;
-  horas_totales?: number;
-  horas_carga?: number;
-  horas_descarga?: number;
-  mantenimiento_proximo?: string;
-  compresor_es_master?: string;
-  amperaje_maximo_motor?: number;
-  ubicacion_compresor?: string;
-  expulsion_aire_caliente?: string;
-  operacion_muchos_polvos?: string;
-  compresor_bien_instalado?: string;
-  condiciones_especiales?: string;
-  voltaje_alimentacion?: number;
-  amperaje_motor_carga?: number;
-  amperaje_ventilador?: number;
-  fugas_aceite_visibles?: string;
-  fugas_aire_audibles?: string;
-  aceite_oscuro_degradado?: string;
-  temp_ambiente?: number;
-  temp_compresion_display?: number;
-  temp_compresion_laser?: number;
-  temp_separador_aceite?: number;
-  temp_interna_cuarto?: number;
-  delta_t_enfriador_aceite?: number;
-  temp_motor_electrico?: number;
-  metodo_control_presion?: string;
-  presion_carga?: number;
-  presion_descarga?: number;
-  diferencial_presion?: string;
-  delta_p_separador?: number;
-  tipo_valvula_admision?: string;
-  funcionamiento_valvula_admision?: string;
-  wet_tank_existe?: boolean;
-  wet_tank_litros?: number;
-  wet_tank_valvula_seguridad?: boolean;
-  wet_tank_dren?: boolean;
-  dry_tank_existe?: boolean;
-  dry_tank_litros?: number;
-  dry_tank_valvula_seguridad?: boolean;
-  dry_tank_dren?: boolean;
-  exceso_polvo_suciedad?: boolean;
-  hay_manual?: boolean;
-  tablero_electrico_enciende?: boolean;
-  giro_correcto_motor?: boolean;
-  unidad_compresion_gira?: boolean;
-  motor_ventilador_funciona?: boolean;
-  razon_paro_mantenimiento?: string;
-  alimentacion_electrica_conectada?: boolean;
-  pastilla_adecuada_amperajes?: boolean;
-  tuberia_descarga_conectada_a?: string;
-  // Campos específicos de post-mantenimiento
-  mantenimientos_realizados?: string[];
-  evidencias_fotos?: Record<string, string[]>;
+  // Display y Horas de Trabajo
+  display_enciende_final?: string;
+  horas_totales_final?: number;
+  horas_carga_final?: number;
+  horas_descarga_final?: number;
+  // Voltajes y Amperajes
+  voltaje_alimentacion_final?: number;
+  amperaje_motor_carga_final?: number;
+  amperaje_ventilador_final?: number;
+  // Aceite
+  fugas_aceite_final?: string;
+  aceite_oscuro_final?: string;
+  // Temperaturas
+  temp_ambiente_final?: number;
+  temp_compresion_display_final?: number;
+  temp_compresion_laser_final?: number;
+  temp_separador_aceite_final?: number;
+  temp_interna_cuarto_final?: number;
+  delta_t_enfriador_aceite_final?: number;
+  temp_motor_electrico_final?: number;
+  // Presiones
+  presion_carga_final?: number;
+  presion_descarga_final?: number;
+  delta_p_separador_final?: number;
+  // Fugas de Aire
+  fugas_aire_final?: string;
+  // Firmas
+  nombre_persona_cargo?: string;
+  firma_persona_cargo?: string;
+  firma_tecnico_ventologix?: string;
 }
 
 interface SaveResponse {

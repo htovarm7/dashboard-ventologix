@@ -53,6 +53,8 @@ function FillReport() {
 
   // Ref para el canvas de firma
   const signatureCanvasRef = useRef<SignatureCanvas>(null);
+  // Guard to prevent re-loading data on re-renders
+  const dataLoadedRef = useRef<string | null>(null);
 
   const [showMaintenanceSection, setShowMaintenanceSection] = useState(false);
   const [showPostMaintenanceSection, setShowPostMaintenanceSection] =
@@ -314,6 +316,9 @@ function FillReport() {
   useEffect(() => {
     const folio = searchParams.get("folio");
 
+    // Prevent re-loading if data for this folio was already loaded
+    if (folio && dataLoadedRef.current === folio) return;
+
     if (folio) {
       fetch(`${URL_API}/ordenes/${folio}`)
         .then((response) => response.json())
@@ -347,8 +352,8 @@ function FillReport() {
             // Load previously saved maintenance data
             await loadMaintenanceData(orden.folio);
 
-            // Clean up URL to only show folio
-            router.replace(`?folio=${folio}`, { scroll: false });
+            // Mark as loaded so we don't re-fetch on re-renders
+            dataLoadedRef.current = folio;
           }
         })
         .catch((error) => {
@@ -367,7 +372,8 @@ function FillReport() {
         console.error("Error restoring form data:", error);
       }
     }
-  }, [searchParams, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Auto-save every 30 seconds
   useEffect(() => {
@@ -626,64 +632,58 @@ function FillReport() {
       const buildPostMantenimientoData = () => {
         return {
           folio: formData.folio || "",
-          display_enciende: formData.displayPowersFinal || undefined,
-          horas_totales: formData.generalHoursFinal
+          display_enciende_final: formData.displayPowersFinal || undefined,
+          horas_totales_final: formData.generalHoursFinal
             ? parseFloat(formData.generalHoursFinal)
             : undefined,
-          horas_carga: formData.loadHoursFinal
+          horas_carga_final: formData.loadHoursFinal
             ? parseFloat(formData.loadHoursFinal)
             : undefined,
-          horas_descarga: formData.unloadHoursFinal
+          horas_descarga_final: formData.unloadHoursFinal
             ? parseFloat(formData.unloadHoursFinal)
             : undefined,
-          voltaje_alimentacion: formData.supplyVoltageFinal
+          voltaje_alimentacion_final: formData.supplyVoltageFinal
             ? parseFloat(formData.supplyVoltageFinal)
             : undefined,
-          amperaje_motor_carga: formData.mainMotorAmperageFinal
+          amperaje_motor_carga_final: formData.mainMotorAmperageFinal
             ? parseFloat(formData.mainMotorAmperageFinal)
             : undefined,
-          amperaje_ventilador: formData.fanAmperageFinal
+          amperaje_ventilador_final: formData.fanAmperageFinal
             ? parseFloat(formData.fanAmperageFinal)
             : undefined,
-          fugas_aceite_visibles: formData.oilLeaksFinal || undefined,
-          fugas_aire_audibles: formData.airLeaksFinal || undefined,
-          aceite_oscuro_degradado: formData.aceiteOscuroFinal || undefined,
-          temp_ambiente: formData.airIntakeTempFinal
+          fugas_aceite_final: formData.oilLeaksFinal || undefined,
+          aceite_oscuro_final: formData.aceiteOscuroFinal || undefined,
+          temp_ambiente_final: formData.airIntakeTempFinal
             ? parseFloat(formData.airIntakeTempFinal)
             : undefined,
-          temp_compresion_display: formData.compressionTempDisplayFinal
+          temp_compresion_display_final: formData.compressionTempDisplayFinal
             ? parseFloat(formData.compressionTempDisplayFinal)
             : undefined,
-          temp_compresion_laser: formData.compressionTempLaserFinal
+          temp_compresion_laser_final: formData.compressionTempLaserFinal
             ? parseFloat(formData.compressionTempLaserFinal)
             : undefined,
-          temp_separador_aceite: formData.finalCompressionTempFinal
+          temp_separador_aceite_final: formData.finalCompressionTempFinal
             ? parseFloat(formData.finalCompressionTempFinal)
             : undefined,
-          temp_interna_cuarto: formData.internalTempFinal
+          temp_interna_cuarto_final: formData.internalTempFinal
             ? parseFloat(formData.internalTempFinal)
             : undefined,
-          delta_t_enfriador_aceite: formData.deltaTAceiteFinal
+          delta_t_enfriador_aceite_final: formData.deltaTAceiteFinal
             ? parseFloat(formData.deltaTAceiteFinal)
             : undefined,
-          temp_motor_electrico: formData.tempMotorFinal
+          temp_motor_electrico_final: formData.tempMotorFinal
             ? parseFloat(formData.tempMotorFinal)
             : undefined,
-          presion_carga: formData.loadPressureFinal
+          presion_carga_final: formData.loadPressureFinal
             ? parseFloat(formData.loadPressureFinal)
             : undefined,
-          presion_descarga: formData.unloadPressureFinal
+          presion_descarga_final: formData.unloadPressureFinal
             ? parseFloat(formData.unloadPressureFinal)
             : undefined,
-          delta_p_separador: formData.deltaPSeparadorFinal
+          delta_p_separador_final: formData.deltaPSeparadorFinal
             ? parseFloat(formData.deltaPSeparadorFinal)
             : undefined,
-          // Mantenimientos realizados y evidencias
-          mantenimientos_realizados: maintenanceData.mantenimientos
-            .filter((m) => m.realizado)
-            .map((m) => m.nombre),
-          evidencias_fotos: {}, // TODO: Upload maintenance evidence photos and include URLs here
-          // Firmas y validación
+          fugas_aire_final: formData.airLeaksFinal || undefined,
           nombre_persona_cargo: formData.nombrePersonaCargo || undefined,
           firma_persona_cargo: formData.firmaPersonaCargo || undefined,
           firma_tecnico_ventologix:
@@ -946,39 +946,27 @@ function FillReport() {
   }, [formData.folio, hasUnsavedChanges, handleSaveDraft]);
 
   const handleNextSection = async () => {
-    // Save pre-maintenance data to backend before proceeding
-    await savePreMaintenanceData();
-
-    setShowMaintenanceSection(true);
-    // Scroll to maintenance section after a brief delay
-    setTimeout(() => {
-      const maintenanceSection = document.getElementById("maintenance-section");
-      if (maintenanceSection) {
-        maintenanceSection.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }
-    }, 100);
-  };
-
-  const handleNextToPostMaintenance = async () => {
-    // Save maintenance data before proceeding to post-maintenance
-    await handleSaveDraft(false);
-
-    setShowPostMaintenanceSection(true);
-    // Scroll to post-maintenance section after a brief delay
-    setTimeout(() => {
-      const postMaintenanceSection = document.getElementById(
-        "post-maintenance-section",
-      );
-      if (postMaintenanceSection) {
-        postMaintenanceSection.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }
-    }, 100);
+    if (!showMaintenanceSection) {
+      // Transition: Pre-maintenance → Maintenance
+      await savePreMaintenanceData();
+      setShowMaintenanceSection(true);
+      setTimeout(() => {
+        const section = document.getElementById("maintenance-section");
+        if (section) {
+          section.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 100);
+    } else if (!showPostMaintenanceSection) {
+      // Transition: Maintenance → Post-maintenance
+      await handleSaveDraft(false);
+      setShowPostMaintenanceSection(true);
+      setTimeout(() => {
+        const section = document.getElementById("post-maintenance-section");
+        if (section) {
+          section.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 100);
+    }
   };
 
   const handleMaintenanceToggle = (index: number) => {
@@ -3138,59 +3126,9 @@ function FillReport() {
                 )}
               </div>
 
-              {/* Botón para continuar a Post-Mantenimiento */}
+              {/* Spacer removed - "Siguiente Sección" button at the bottom handles navigation to post-maintenance */}
               {!showPostMaintenanceSection && (
-                <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                  <div className="flex justify-center">
-                    <button
-                      type="button"
-                      onClick={handleNextToPostMaintenance}
-                      disabled={isSaving}
-                      className="px-8 py-4 bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg hover:from-red-700 hover:to-red-900 transition-all font-bold text-lg flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                    >
-                      {isSaving ? (
-                        <>
-                          <svg
-                            className="animate-spin h-5 w-5"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                              fill="none"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                          Guardando...
-                        </>
-                      ) : (
-                        <>
-                          Continuar a Post-Mantenimiento →
-                          <svg
-                            className="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M13 7l5 5m0 0l-5 5m5-5H6"
-                            />
-                          </svg>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                <div>
                   <p className="text-center text-gray-500 text-sm mt-4">
                     Complete las mediciones finales después del mantenimiento
                   </p>
@@ -3838,16 +3776,48 @@ function FillReport() {
                     <>💾 Guardar Borrador</>
                   )}
                 </button>
-                {!showMaintenanceSection && (
+                {!showPostMaintenanceSection ? (
                   <button
                     type="button"
                     onClick={handleNextSection}
                     disabled={savingPreMaintenance || isSaving}
                     className="px-6 py-3 bg-blue-800 text-white rounded-lg hover:bg-blue-900 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {savingPreMaintenance
+                    {savingPreMaintenance || isSaving
                       ? "Guardando..."
                       : "Siguiente Sección →"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!formData.folio) return;
+                      const confirmed = confirm(
+                        "¿Está seguro de terminar el reporte? Se marcará como terminado y no se podrá editar."
+                      );
+                      if (!confirmed) return;
+
+                      setIsSaving(true);
+                      try {
+                        // Save post-maintenance data (also marks as terminado on backend)
+                        const postResult = await savePostMaintenanceData();
+                        if (postResult?.success) {
+                          alert("Reporte terminado exitosamente. El reporte ha sido marcado como terminado.");
+                          router.push("/features/compressor-maintenance/technician/reports");
+                        } else {
+                          alert("Error al terminar el reporte: " + (postResult?.error || "Error desconocido"));
+                        }
+                      } catch (err) {
+                        console.error("Error finishing report:", err);
+                        alert("Error al terminar el reporte.");
+                      } finally {
+                        setIsSaving(false);
+                      }
+                    }}
+                    disabled={isSaving}
+                    className="px-6 py-3 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? "Guardando..." : "✅ Terminar Reporte"}
                   </button>
                 )}
               </div>
