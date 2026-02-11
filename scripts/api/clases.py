@@ -175,3 +175,44 @@ class PreMantenimientoRequest(BaseModel):
     alimentacion_electrica_conectada: Optional[bool] = None
     pastilla_adecuada_amperajes: Optional[bool] = None
     tuberia_descarga_conectada_a: Optional[str] = None
+
+
+class PostMantenimientoRequest(BaseModel):
+    folio: str
+
+    # Display y Horas de Trabajo
+    display_enciende_final: Optional[str] = None
+    horas_totales_final: Optional[Decimal] = None
+    horas_carga_final: Optional[Decimal] = None
+    horas_descarga_final: Optional[Decimal] = None
+
+    # Voltajes y Amperajes
+    voltaje_alimentacion_final: Optional[Decimal] = None
+    amperaje_motor_carga_final: Optional[Decimal] = None
+    amperaje_ventilador_final: Optional[Decimal] = None
+
+    # Aceite
+    fugas_aceite_final: Optional[str] = None
+    aceite_oscuro_final: Optional[str] = None
+
+    # Temperaturas
+    temp_ambiente_final: Optional[Decimal] = None
+    temp_compresion_display_final: Optional[Decimal] = None
+    temp_compresion_laser_final: Optional[Decimal] = None
+    temp_separador_aceite_final: Optional[Decimal] = None
+    temp_interna_cuarto_final: Optional[Decimal] = None
+    delta_t_enfriador_aceite_final: Optional[Decimal] = None
+    temp_motor_electrico_final: Optional[Decimal] = None
+
+    # Presiones
+    presion_carga_final: Optional[Decimal] = None
+    presion_descarga_final: Optional[Decimal] = None
+    delta_p_separador_final: Optional[Decimal] = None
+
+    # Fugas de Aire
+    fugas_aire_final: Optional[str] = None
+
+    # Firmas
+    nombre_persona_cargo: Optional[str] = None
+    firma_persona_cargo: Optional[str] = None
+    firma_tecnico_ventologix: Optional[str] = None

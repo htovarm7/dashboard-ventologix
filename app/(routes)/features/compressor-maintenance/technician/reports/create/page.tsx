@@ -2185,7 +2185,7 @@ function FillReport() {
                   </div>
                   <div>
                     <label className="block text-m font-medium text-gray-700 mb-2">
-                      Presión CARGA (PSI o Bar)
+                      Presión CARGA (PSI)
                     </label>
                     <input
                       type="number"
@@ -2226,7 +2226,7 @@ function FillReport() {
                   </div>
                   <div>
                     <label className="block text-m font-medium text-gray-700 mb-2">
-                      Delta P Separador (Bar)
+                      Delta P Separador (PSI)
                     </label>
                     <input
                       type="number"
@@ -3478,7 +3478,7 @@ function FillReport() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-m font-medium text-gray-700 mb-2">
-                      Presión CARGA (Final) (PSI o Bar)
+                      Presión CARGA (Final) (PSI)
                     </label>
                     <input
                       type="number"
@@ -3506,7 +3506,7 @@ function FillReport() {
                   </div>
                   <div>
                     <label className="block text-m font-medium text-gray-700 mb-2">
-                      Delta P Separador (Final) (Bar)
+                      Delta P Separador (Final) (PSI)
                     </label>
                     <input
                       type="number"
