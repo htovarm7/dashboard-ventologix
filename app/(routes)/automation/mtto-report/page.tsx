@@ -128,7 +128,7 @@ function MttoReportContent() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8 bg-white">
       {/* Ocultar botón de regreso en modo automatización */}
       {!isAutomation && (
         <div className="no-print">

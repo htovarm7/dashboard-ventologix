@@ -495,7 +495,7 @@ function MainContent() {
   }, [lineChartData, chartData]);
 
   return (
-    <main className="relative">
+    <main className="relative bg-white">
       {/* Here its the top section*/}
       <div className="flex flex-col items-center mb-2">
         <h1 className="text-4xl font-bold text-center">Reporte Diario</h1>
