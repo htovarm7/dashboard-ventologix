@@ -896,7 +896,7 @@ function MainContent() {
   const semanaNumero = getISOWeekNumber(lastMonday);
 
   return (
-    <main className="relative">
+    <main className="relative bg-white">
       <div className="w-full min-w-full bg-gradient-to-r from-indigo-950 to-blue-400 text-white p-6">
         {/* Main docker on rows */}
         <div className="flex justify-between items-start">

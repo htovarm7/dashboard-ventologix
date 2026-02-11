@@ -90,6 +90,11 @@ const Compresors = () => {
       id_proyecto: "",
       id_cliente: "",
     });
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkClienteId, setBulkClienteId] = useState<number | string>("");
+  const [bulkVTOs, setBulkVTOs] = useState<DispositivoFormData[]>([
+    { id_kpm: "", id_proyecto: "", id_cliente: "" },
+  ]);
 
   const fetchCompresores = async (): Promise<void> => {
     try {
@@ -388,6 +393,77 @@ const Compresors = () => {
     }
   };
 
+  // Funciones para registro masivo de VTOs
+  const handleOpenBulkModal = () => {
+    setBulkClienteId("");
+    setBulkVTOs([{ id_kpm: "", id_proyecto: "", id_cliente: "" }]);
+    setIsBulkModalOpen(true);
+  };
+
+  const handleCloseBulkModal = () => {
+    setIsBulkModalOpen(false);
+    setBulkClienteId("");
+    setBulkVTOs([{ id_kpm: "", id_proyecto: "", id_cliente: "" }]);
+  };
+
+  const handleAddBulkVTO = () => {
+    setBulkVTOs([...bulkVTOs, { id_kpm: "", id_proyecto: "", id_cliente: "" }]);
+  };
+
+  const handleRemoveBulkVTO = (index: number) => {
+    if (bulkVTOs.length > 1) {
+      setBulkVTOs(bulkVTOs.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleBulkVTOChange = (
+    index: number,
+    field: keyof DispositivoFormData,
+    value: string,
+  ) => {
+    const updatedVTOs = [...bulkVTOs];
+    updatedVTOs[index][field] = value;
+    setBulkVTOs(updatedVTOs);
+  };
+
+  const handleBulkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!bulkClienteId) {
+      alert("Por favor selecciona un cliente");
+      return;
+    }
+
+    const payload = bulkVTOs.map((vto) => ({
+      id_kpm: vto.id_kpm || null,
+      id_proyecto: Number(vto.id_proyecto),
+      id_cliente: Number(bulkClienteId),
+    }));
+
+    try {
+      const res = await fetch(`${URL_API}/vto/bulk`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const response = await res.json();
+        alert(response.message || "VTOs creados exitosamente");
+        handleCloseBulkModal();
+        fetchDispositivos();
+      } else {
+        const error = await res.json();
+        alert(`Error: ${error.detail || "No se pudo completar la operación"}`);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al procesar la solicitud");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="mb-4">
@@ -576,25 +652,46 @@ const Compresors = () => {
                     Total de dispositivos: {dispositivos.length}
                   </p>
                 </div>
-                <button
-                  onClick={handleOpenCreateDispositivoModal}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 shadow-md transition-colors"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleOpenBulkModal}
+                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 shadow-md transition-colors"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                  Nuevo Dispositivo
-                </button>
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    Registro Masivo
+                  </button>
+                  <button
+                    onClick={handleOpenCreateDispositivoModal}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 shadow-md transition-colors"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    Nuevo Dispositivo
+                  </button>
+                </div>
               </div>
 
               {loading ? (
@@ -981,6 +1078,118 @@ const Compresors = () => {
                   className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
                   {isCreateMode ? "Crear Dispositivo" : "Guardar Cambios"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Registro Masivo de VTOs */}
+      {isBulkModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-green-600 text-white p-6 rounded-t-lg">
+              <h2 className="text-2xl font-bold">Registro Masivo de VTOs</h2>
+              <p className="text-sm mt-1">Agrega múltiples dispositivos a un cliente</p>
+            </div>
+
+            <form onSubmit={handleBulkSubmit} className="p-6 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  ID Cliente * (común para todos los VTOs)
+                </label>
+                <input
+                  type="number"
+                  value={bulkClienteId}
+                  onChange={(e) => setBulkClienteId(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="Ingresa el ID del cliente"
+                  required
+                />
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    Dispositivos ({bulkVTOs.length})
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={handleAddBulkVTO}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    + Agregar VTO
+                  </button>
+                </div>
+
+                {bulkVTOs.map((vto, index) => (
+                  <div
+                    key={index}
+                    className="border border-gray-300 rounded-lg p-4 bg-gray-50"
+                  >
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-medium text-gray-700">
+                        VTO #{index + 1}
+                      </h4>
+                      {bulkVTOs.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveBulkVTO(index)}
+                          className="text-red-600 hover:text-red-800 text-sm font-medium"
+                        >
+                          Eliminar
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          ID KPM
+                        </label>
+                        <input
+                          type="text"
+                          value={vto.id_kpm}
+                          onChange={(e) =>
+                            handleBulkVTOChange(index, "id_kpm", e.target.value)
+                          }
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder="Opcional"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          ID Proyecto *
+                        </label>
+                        <input
+                          type="number"
+                          value={vto.id_proyecto}
+                          onChange={(e) =>
+                            handleBulkVTOChange(index, "id_proyecto", e.target.value)
+                          }
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder="Ingresa el ID del proyecto"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-4 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={handleCloseBulkModal}
+                  className="flex-1 px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                >
+                  Crear {bulkVTOs.length} VTO{bulkVTOs.length > 1 ? "s" : ""}
                 </button>
               </div>
             </form>

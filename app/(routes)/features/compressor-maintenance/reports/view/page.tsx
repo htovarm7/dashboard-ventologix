@@ -710,7 +710,7 @@ function ViewReportContent() {
                     Presión en Carga
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.presion_carga, " bar")}
+                    {renderValue(preMaintenanceData.presion_carga, " Psi")}
                   </p>
                 </div>
                 <div>
@@ -718,7 +718,7 @@ function ViewReportContent() {
                     Presión en Descarga
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.presion_descarga, " bar")}
+                    {renderValue(preMaintenanceData.presion_descarga, " Psi")}
                   </p>
                 </div>
                 <div>
@@ -726,7 +726,7 @@ function ViewReportContent() {
                     Delta P Separador
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.delta_p_separador, " bar")}
+                    {renderValue(preMaintenanceData.delta_p_separador, " Psi")}
                   </p>
                 </div>
               </div>
@@ -925,7 +925,7 @@ function ViewReportContent() {
                     Presión Carga (Final)
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.presion_carga, " bar")}
+                    {renderValue(postMaintenanceData.presion_carga, " Psi")}
                   </p>
                 </div>
                 <div>
@@ -933,7 +933,7 @@ function ViewReportContent() {
                     Presión Descarga (Final)
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.presion_descarga, " bar")}
+                    {renderValue(postMaintenanceData.presion_descarga, " Psi")}
                   </p>
                 </div>
               </div>

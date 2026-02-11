@@ -147,6 +147,52 @@ def create_dispositivo(request: Dispositivo):
         if conn:
             conn.close()
 
+@vto_web.post("/bulk")
+def create_dispositivos_bulk(dispositivos: list[Dispositivo]):
+    try:
+        conn = mysql.connector.connect(
+            user=DB_USER,
+            host=DB_HOST,
+            password=DB_PASSWORD,
+            database=DB_DATABASE
+        )
+
+        cursor = conn.cursor()
+
+        # Insertar múltiples dispositivos
+        for dispositivo in dispositivos:
+            cursor.execute(
+                """INSERT INTO dispositivo (id_kpm, id_proyecto, id_cliente)
+                   VALUES (%s, %s, %s)
+                """,
+                (
+                    dispositivo.id_kpm,
+                    dispositivo.id_proyecto,
+                    dispositivo.id_cliente
+                )
+            )
+
+        conn.commit()
+
+        return {
+            "success": True,
+            "message": f"{len(dispositivos)} dispositivos creados exitosamente",
+            "count": len(dispositivos)
+        }
+    except mysql.connector.Error as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error adding dispositivos: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
 @vto_web.put("/{dispositivo_id}")
 def update_dispositivo(dispositivo_id: int = Path(..., description="ID del dispositivo"), request: Dispositivo = None):
     try:
