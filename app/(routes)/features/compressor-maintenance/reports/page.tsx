@@ -10,6 +10,7 @@ import {
   Wrench,
   Building2,
   Eye,
+  Download,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/BackButton";
@@ -159,6 +160,28 @@ const Reports = () => {
     }
   };
 
+  const handleDownloadPdf = async (folio: string) => {
+    try {
+      const response = await fetch(`${URL_API}/reporte_mtto/descargar-pdf/${folio}`);
+      if (!response.ok) {
+        alert("Error al descargar el PDF");
+        return;
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Reporte_${folio.replace(/\//g, "-")}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      alert("Error al descargar el PDF");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -267,20 +290,31 @@ const Reports = () => {
                             {orden.estado && (
                               <span
                                 className={`px-2 py-1 rounded text-xs font-medium ${
-                                  orden.estado === "Completado"
+                                  orden.estado === "terminado"
                                     ? "bg-green-100 text-green-800"
-                                    : orden.estado === "En progreso"
-                                      ? "bg-yellow-100 text-yellow-800"
-                                      : "bg-gray-100 text-gray-800"
+                                    : orden.estado === "Completado"
+                                      ? "bg-green-100 text-green-800"
+                                      : orden.estado === "En progreso"
+                                        ? "bg-yellow-100 text-yellow-800"
+                                        : "bg-gray-100 text-gray-800"
                                 }`}
                               >
-                                {orden.estado}
+                                {orden.estado === "terminado" ? "Terminado" : orden.estado}
                               </span>
                             )}
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          {orden.reporte_url && (
+                          {orden.estado === "terminado" && (
+                            <button
+                              onClick={() => handleDownloadPdf(orden.folio)}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                            >
+                              <Download size={16} />
+                              <span>PDF</span>
+                            </button>
+                          )}
+                          {orden.reporte_url && orden.estado !== "terminado" && (
                             <button
                               onClick={() => handleViewPdf(orden)}
                               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center space-x-2"

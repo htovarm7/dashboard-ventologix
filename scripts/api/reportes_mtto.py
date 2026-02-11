@@ -12,7 +12,7 @@ from datetime import datetime
 import json
 
 from .clases import Modulos, PreMantenimientoRequest, PostMantenimientoRequest
-from .drive_utils import upload_maintenance_photos
+from .drive_utils import upload_maintenance_photos, get_drive_service, ROOT_FOLDER_ID, get_or_create_folder
 
 load_dotenv()
 DB_HOST = os.getenv("DB_HOST")
@@ -794,6 +794,43 @@ def download_report_pdf(folio: str = Path(..., description="Folio del reporte"))
                     pass
 
             elements.append(Spacer(1, 12))
+
+        # ===== GOOGLE DRIVE PHOTOS LINK =====
+        drive_folder_url = None
+        try:
+            drive_service = get_drive_service()
+            client_name = (orden.get("nombre_cliente") or "").strip().replace('/', '-')
+            clean_folio = folio.strip().replace('/', '-')
+            if client_name:
+                # Find client folder
+                query = f"'{ROOT_FOLDER_ID}' in parents and name='{client_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+                results = drive_service.files().list(q=query, fields="files(id)", spaces='drive', pageSize=1).execute()
+                client_folders = results.get('files', [])
+                if client_folders:
+                    # Find folio folder inside client folder
+                    query2 = f"'{client_folders[0]['id']}' in parents and name='{clean_folio}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+                    results2 = drive_service.files().list(q=query2, fields="files(id)", spaces='drive', pageSize=1).execute()
+                    folio_folders = results2.get('files', [])
+                    if folio_folders:
+                        drive_folder_url = f"https://drive.google.com/drive/folders/{folio_folders[0]['id']}"
+        except Exception:
+            # If Drive is not available, fall back to root folder
+            drive_folder_url = f"https://drive.google.com/drive/folders/{ROOT_FOLDER_ID}"
+
+        if drive_folder_url:
+            elements.append(Spacer(1, 12))
+            elements.append(Paragraph("EVIDENCIAS FOTOGRÁFICAS", styles["SectionHeader"]))
+            elements.append(Spacer(1, 4))
+            elements.append(Paragraph(
+                f'Las fotografías del servicio se encuentran disponibles en Google Drive:<br/>'
+                f'<a href="{drive_folder_url}" color="blue"><u>{drive_folder_url}</u></a>',
+                ParagraphStyle(
+                    name="DriveLink", parent=styles["Normal"],
+                    fontSize=9, leading=14, alignment=TA_CENTER,
+                    spaceAfter=8
+                )
+            ))
+            elements.append(Spacer(1, 8))
 
         # Footer
         elements.append(Paragraph(
