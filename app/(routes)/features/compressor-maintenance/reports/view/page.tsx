@@ -172,6 +172,7 @@ function ViewReportContent() {
     useState<MaintenanceData | null>(null);
   const [postMaintenanceData, setPostMaintenanceData] =
     useState<PostMaintenanceData | null>(null);
+  const [fotosDrive, setFotosDrive] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageModal, setImageModal] = useState<ImageModalState>({
@@ -194,49 +195,42 @@ function ViewReportContent() {
       setLoading(true);
       setError(null);
 
-      // Fetch all data in parallel
-      const [orderRes, preRes, maintenanceRes, postRes] = await Promise.all([
-        fetch(`${URL_API}/ordenes/${folio}`),
-        fetch(`${URL_API}/reporte_mtto/pre-mtto/${folio}`),
-        fetch(`${URL_API}/reporte_mantenimiento/${folio}`),
-        fetch(`${URL_API}/reporte_mtto/post-mtto/${folio}`),
-      ]);
+      // Fetch complete report data (includes photos)
+      const completeReportRes = await fetch(
+        `${URL_API}/reporte_mtto/reporte-completo/${folio}`
+      );
 
-      // Process order data
-      if (orderRes.ok) {
-        const orderResult = await orderRes.json();
-        if (orderResult.data && orderResult.data.length > 0) {
-          setOrderData(orderResult.data[0]);
-        }
+      if (!completeReportRes.ok) {
+        setError("No se encontró el reporte");
+        setLoading(false);
+        return;
       }
 
-      // Process pre-maintenance data
-      if (preRes.ok) {
-        const preResult = await preRes.json();
-        if (preResult.data) {
-          setPreMaintenanceData(preResult.data);
-        }
+      const completeResult = await completeReportRes.json();
+
+      if (!completeResult.success) {
+        setError(completeResult.error || "Error al cargar el reporte");
+        setLoading(false);
+        return;
       }
 
-      // Process maintenance tasks data
-      if (maintenanceRes.ok) {
-        const maintenanceResult = await maintenanceRes.json();
-        if (maintenanceResult.data) {
-          setMaintenanceData(maintenanceResult.data);
-        }
-      }
+      const reportData = completeResult.data;
 
-      // Process post-maintenance data
-      if (postRes.ok) {
-        const postResult = await postRes.json();
-        if (postResult.data) {
-          setPostMaintenanceData(postResult.data);
-        }
+      // Set all report data
+      if (reportData.orden) {
+        setOrderData(reportData.orden);
       }
-
-      // Check if we got at least the order data
-      if (!orderRes.ok) {
-        setError("No se encontró la orden de servicio");
+      if (reportData.pre_mantenimiento) {
+        setPreMaintenanceData(reportData.pre_mantenimiento);
+      }
+      if (reportData.mantenimiento) {
+        setMaintenanceData(reportData.mantenimiento);
+      }
+      if (reportData.post_mantenimiento) {
+        setPostMaintenanceData(reportData.post_mantenimiento);
+      }
+      if (reportData.fotos_drive) {
+        setFotosDrive(reportData.fotos_drive);
       }
     } catch (err) {
       console.error("Error loading report data:", err);
@@ -256,9 +250,9 @@ function ViewReportContent() {
     });
   };
 
-  // const openImageModal = (imageSrc: string) => {
-  //   setImageModal({ isOpen: true, imageSrc });
-  // };
+  const openImageModal = (imageSrc: string) => {
+    setImageModal({ isOpen: true, imageSrc });
+  };
 
   const closeImageModal = () => {
     setImageModal({ isOpen: false, imageSrc: "" });
@@ -988,6 +982,34 @@ function ViewReportContent() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Photos Section */}
+        {fotosDrive && fotosDrive.length > 0 && (
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 className="text-white bg-purple-600 px-4 py-2 rounded font-bold mb-4">
+              FOTOS DEL MANTENIMIENTO
+            </h2>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {fotosDrive.map((fotoUrl, index) => (
+                <div
+                  key={index}
+                  className="cursor-pointer transform hover:scale-105 transition-transform"
+                  onClick={() => openImageModal(fotoUrl)}
+                >
+                  <Image
+                    src={fotoUrl}
+                    width={400}
+                    height={400}
+                    unoptimized
+                    alt={`Foto ${index + 1}`}
+                    className="rounded-lg shadow-md w-full h-48 object-cover"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

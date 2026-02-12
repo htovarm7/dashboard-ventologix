@@ -51,8 +51,9 @@ function FillReport() {
   const { savePostMantenimiento } = usePostMantenimiento();
   const { uploadPhotos, uploadStatus, uploadProgress } = usePhotoUpload();
 
-  // Ref para el canvas de firma
-  const signatureCanvasRef = useRef<SignatureCanvas>(null);
+  // Refs para los canvas de firma
+  const signatureCanvasRef = useRef<SignatureCanvas>(null); // Cliente
+  const engineerSignatureCanvasRef = useRef<SignatureCanvas>(null); // Ingeniero
   // Guard to prevent re-loading data on re-renders
   const dataLoadedRef = useRef<string | null>(null);
 
@@ -75,6 +76,21 @@ function FillReport() {
     TANQUES: [],
     MANTENIMIENTO: [],
     OTROS: [],
+  });
+
+  // Track which photos have already been uploaded to prevent duplicates
+  const [uploadedPhotosByCategory, setUploadedPhotosByCategory] = useState<{
+    [category: string]: boolean;
+  }>({
+    ACEITE: false,
+    CONDICIONES_AMBIENTALES: false,
+    DISPLAY_HORAS: false,
+    PLACAS_EQUIPO: false,
+    TEMPERATURAS: false,
+    PRESIONES: false,
+    TANQUES: false,
+    MANTENIMIENTO: false,
+    OTROS: false,
   });
 
   const [maintenanceData, setMaintenanceData] = useState({
@@ -686,8 +702,7 @@ function FillReport() {
           fugas_aire_final: formData.airLeaksFinal || undefined,
           nombre_persona_cargo: formData.nombrePersonaCargo || undefined,
           firma_persona_cargo: formData.firmaPersonaCargo || undefined,
-          firma_tecnico_ventologix:
-            formData.firmaTecnicoVentologix || "/Ventologix_05.png",
+          firma_tecnico_ventologix: formData.firmaTecnicoVentologix || undefined,
         };
       };
 
@@ -728,7 +743,8 @@ function FillReport() {
       // Log all photo categories for debugging
       console.log("📋 Photo categories status:");
       Object.entries(photosByCategory).forEach(([category, files]) => {
-        console.log(`  ${category}: ${files.length} photo(s)`);
+        const alreadyUploaded = uploadedPhotosByCategory[category];
+        console.log(`  ${category}: ${files.length} photo(s)${alreadyUploaded ? ' (already uploaded)' : ''}`);
       });
 
       const results: Record<string, unknown> = {};
@@ -737,6 +753,12 @@ function FillReport() {
       let hasPhotos = false;
 
       for (const [category, files] of Object.entries(photosByCategory)) {
+        // Skip if photos for this category have already been uploaded
+        if (uploadedPhotosByCategory[category]) {
+          console.log(`⏭️ Skipping ${category} - already uploaded`);
+          continue;
+        }
+
         if (files.length > 0) {
           hasPhotos = true;
           console.log(`📤 Uploading ${files.length} photo(s) to ${category}`);
@@ -755,6 +777,10 @@ function FillReport() {
             totalUploaded += files.length;
             results[category] = result as unknown as Record<string, unknown>;
             console.log(`✅ ${category} upload successful`);
+
+            // Mark this category as uploaded and clear the files to prevent re-upload
+            setUploadedPhotosByCategory(prev => ({ ...prev, [category]: true }));
+            setPhotosByCategory(prev => ({ ...prev, [category]: [] }));
           } else {
             totalFailed += files.length;
             console.error(`❌ Failed to upload ${category}:`, result.error);
@@ -763,7 +789,7 @@ function FillReport() {
       }
 
       if (!hasPhotos) {
-        console.log("ℹ️ No photos to upload (all categories empty)");
+        console.log("ℹ️ No new photos to upload (all categories empty or already uploaded)");
         return { success: true, results: {} };
       }
 
@@ -783,7 +809,7 @@ function FillReport() {
       console.error("Error uploading photos:", errorMsg);
       return { success: false, error: errorMsg };
     }
-  }, [formData, photosByCategory, uploadPhotos]);
+  }, [formData, photosByCategory, uploadedPhotosByCategory, uploadPhotos]);
 
   const handleSaveDraft = useCallback(
     async (showAlert: boolean = true) => {
@@ -1026,7 +1052,7 @@ function FillReport() {
     }
   };
 
-  // Handlers para firmas
+  // Handlers para firma del cliente
   const clearSignature = () => {
     if (signatureCanvasRef.current) {
       signatureCanvasRef.current.clear();
@@ -1040,7 +1066,25 @@ function FillReport() {
         .getTrimmedCanvas()
         .toDataURL("image/png");
       setFormData({ ...formData, firmaPersonaCargo: signatureData });
-      console.log("✍️ Firma guardada");
+      console.log("✍️ Firma del cliente guardada");
+    }
+  };
+
+  // Handlers para firma del ingeniero
+  const clearEngineerSignature = () => {
+    if (engineerSignatureCanvasRef.current) {
+      engineerSignatureCanvasRef.current.clear();
+      setFormData({ ...formData, firmaTecnicoVentologix: "" });
+    }
+  };
+
+  const saveEngineerSignature = () => {
+    if (engineerSignatureCanvasRef.current) {
+      const signatureData = engineerSignatureCanvasRef.current
+        .getTrimmedCanvas()
+        .toDataURL("image/png");
+      setFormData({ ...formData, firmaTecnicoVentologix: signatureData });
+      console.log("✍️ Firma del ingeniero guardada");
     }
   };
 
@@ -1583,7 +1627,7 @@ function FillReport() {
                   section?.scrollIntoView({ behavior: "smooth" });
                 }, 100);
               }}
-              className="px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors text-sm font-medium"
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
             >
               ✅ Post-Mantenimiento
             </button>
@@ -3141,7 +3185,7 @@ function FillReport() {
             <div id="post-maintenance-section">
               {/* Header Post-Mantenimiento */}
               <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
-                <div className="bg-gradient-to-r from-red-700 to-red-900 text-white p-4">
+                <div className="bg-gradient-to-r from-orange-600 to-orange-700 text-white p-4">
                   <h2 className="text-xl font-bold text-center">
                     POST-MANTENIMIENTO
                   </h2>
@@ -3150,7 +3194,7 @@ function FillReport() {
 
               {/* SECCIÓN 1: Display y Horas de Trabajo - POST */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-red-700 px-4 py-2 rounded font-bold mb-4">
+                <h2 className="text-white bg-orange-600 px-4 py-2 rounded font-bold mb-4">
                   DISPLAY Y HORAS DE TRABAJO - POST-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -3162,7 +3206,7 @@ function FillReport() {
                       name="displayPowersFinal"
                       value={formData.displayPowersFinal}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     >
                       <option value="">-- Seleccionar --</option>
                       <option value="Sí">Sí</option>
@@ -3213,7 +3257,7 @@ function FillReport() {
 
               {/* SECCIÓN 2: Voltajes y Amperajes - POST */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-red-700 px-4 py-2 rounded font-bold mb-4">
+                <h2 className="text-white bg-orange-600 px-4 py-2 rounded font-bold mb-4">
                   VOLTAJES Y AMPERAJES - POST-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -3264,7 +3308,7 @@ function FillReport() {
 
               {/* SECCIÓN 3: Aceite - POST */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-red-700 px-4 py-2 rounded font-bold mb-4">
+                <h2 className="text-white bg-orange-600 px-4 py-2 rounded font-bold mb-4">
                   ACEITE - POST-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -3303,7 +3347,7 @@ function FillReport() {
 
               {/* SECCIÓN 4: Temperaturas - POST */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-red-700 px-4 py-2 rounded font-bold mb-4">
+                <h2 className="text-white bg-orange-600 px-4 py-2 rounded font-bold mb-4">
                   TEMPERATURAS - POST-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -3410,7 +3454,7 @@ function FillReport() {
 
               {/* SECCIÓN 5: Mediciones de Presión - POST */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-red-700 px-4 py-2 rounded font-bold mb-4">
+                <h2 className="text-white bg-orange-600 px-4 py-2 rounded font-bold mb-4">
                   MEDICIONES DE PRESIÓN - POST-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -3461,7 +3505,7 @@ function FillReport() {
 
               {/* SECCIÓN 6: Fugas de Aire - POST */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-red-700 px-4 py-2 rounded font-bold mb-4">
+                <h2 className="text-white bg-orange-600 px-4 py-2 rounded font-bold mb-4">
                   FUGAS DE AIRE - POST-MANTENIMIENTO
                 </h2>
                 <div className="grid grid-cols-1 gap-6">
@@ -3485,7 +3529,7 @@ function FillReport() {
 
               {/* SECCIÓN 7: Evidencias Fotográficas */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-white bg-red-700 px-4 py-2 rounded font-bold mb-4">
+                <h2 className="text-white bg-orange-600 px-4 py-2 rounded font-bold mb-4">
                   EVIDENCIAS FOTOGRÁFICAS - POST-MANTENIMIENTO
                 </h2>
                 <p className="text-sm text-gray-600 mb-4">
@@ -3499,9 +3543,9 @@ function FillReport() {
                       item.realizado && (
                         <div
                           key={index}
-                          className="p-4 border-2 border-red-200 rounded-lg bg-red-50"
+                          className="p-4 border-2 border-orange-200 rounded-lg bg-orange-50"
                         >
-                          <h3 className="font-bold text-red-900 mb-3">
+                          <h3 className="font-bold text-orange-900 mb-3">
                             📸 Evidencias: {item.nombre}
                           </h3>
                           <div>
@@ -3549,7 +3593,7 @@ function FillReport() {
 
               {/* SECCIÓN 8: Firmas */}
               <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
-                <div className="bg-gradient-to-r from-red-700 to-red-900 text-white p-4">
+                <div className="bg-gradient-to-r from-orange-600 to-orange-700 text-white p-4">
                   <h2 className="text-xl font-bold text-center">
                     FIRMAS Y VALIDACIÓN
                   </h2>
@@ -3560,34 +3604,50 @@ function FillReport() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {/* Firma del Técnico de Ventologix */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-red-900 border-b-2 border-red-700 pb-2">
+                    <h3 className="text-lg font-bold text-orange-900 border-b-2 border-orange-600 pb-2">
                       Técnico de Ventologix
                     </h3>
-                    <div className="bg-gray-50 p-6 rounded-lg border-2 border-gray-300">
-                      <div className="flex justify-center mb-4">
-                        <Image
-                          src="/Ventologix_05.png"
-                          alt="Firma Ventologix"
-                          width={200}
-                          height={100}
-                          className="object-contain"
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Firma del Ingeniero *
+                      </label>
+                      <div className="border-2 border-gray-300 rounded-lg bg-white">
+                        <SignatureCanvas
+                          ref={engineerSignatureCanvasRef}
+                          canvasProps={{
+                            className: "w-full h-48 rounded-lg",
+                          }}
+                          backgroundColor="rgb(255, 255, 255)"
+                          penColor="rgb(0, 0, 0)"
                         />
                       </div>
-                      <div className="text-center border-t-2 border-gray-400 pt-2">
-                        <p className="font-bold text-gray-800">VENTOLOGIX</p>
-                        <p className="text-sm text-gray-600">
-                          Técnico Autorizado
-                        </p>
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={clearEngineerSignature}
+                          className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium"
+                        >
+                          🗑️ Limpiar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={saveEngineerSignature}
+                          className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
+                        >
+                          💾 Guardar Firma
+                        </button>
                       </div>
+                      {formData.firmaTecnicoVentologix && (
+                        <div className="mt-2 p-2 bg-green-50 border border-green-300 rounded text-sm text-green-700 text-center">
+                          ✅ Firma del ingeniero guardada
+                        </div>
+                      )}
                     </div>
-                    <p className="text-xs text-gray-500 text-center italic">
-                      Firma autorizada del técnico de Ventologix
-                    </p>
                   </div>
 
                   {/* Firma de la Persona a Cargo del Cliente */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-red-900 border-b-2 border-red-700 pb-2">
+                    <h3 className="text-lg font-bold text-orange-900 border-b-2 border-orange-600 pb-2">
                       Persona a Cargo (Cliente)
                     </h3>
 
@@ -3601,7 +3661,7 @@ function FillReport() {
                         name="nombrePersonaCargo"
                         value={formData.nombrePersonaCargo}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                         placeholder="Ingrese nombre completo"
                         required
                       />
@@ -3633,7 +3693,7 @@ function FillReport() {
                         <button
                           type="button"
                           onClick={saveSignature}
-                          className="flex-1 px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors text-sm font-medium"
+                          className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
                         >
                           💾 Guardar Firma
                         </button>
@@ -3799,13 +3859,31 @@ function FillReport() {
 
                       setIsSaving(true);
                       try {
-                        // Save post-maintenance data (also marks as terminado on backend)
+                        // First, save post-maintenance data (if not already saved)
                         const postResult = await savePostMaintenanceData();
-                        if (postResult?.success) {
+                        if (!postResult?.success) {
+                          alert("Error al guardar post-mantenimiento: " + (postResult?.error || "Error desconocido"));
+                          return;
+                        }
+
+                        // Then, mark the report as terminado
+                        const finishResponse = await fetch(
+                          `${URL_API}/reporte_mtto/finalizar-reporte/${formData.folio}`,
+                          {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                          }
+                        );
+
+                        const finishResult = await finishResponse.json();
+
+                        if (finishResult?.success) {
                           alert("Reporte terminado exitosamente. El reporte ha sido marcado como terminado.");
                           router.push("/features/compressor-maintenance/technician/reports");
                         } else {
-                          alert("Error al terminar el reporte: " + (postResult?.error || "Error desconocido"));
+                          alert("Error al terminar el reporte: " + (finishResult?.error || "Error desconocido"));
                         }
                       } catch (err) {
                         console.error("Error finishing report:", err);

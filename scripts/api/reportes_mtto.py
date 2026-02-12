@@ -13,6 +13,7 @@ import json
 
 from .clases import Modulos, PreMantenimientoRequest, PostMantenimientoRequest
 from .drive_utils import upload_maintenance_photos, get_drive_service, ROOT_FOLDER_ID, get_or_create_folder
+from .maintenance_web import get_drive_folder_images
 
 load_dotenv()
 DB_HOST = os.getenv("DB_HOST")
@@ -320,12 +321,68 @@ def save_post_mantenimiento(data: PostMantenimientoRequest):
             (data.folio,)
         )
 
+        # Note: Status is NOT automatically set to 'terminado' here
+        # It should only be set when the user explicitly clicks "Terminar Reporte"
+        # Use the /finalizar-reporte/{folio} endpoint instead
+
+        conn.commit()
+        cursor.close()
+
+        return {
+            "success": True,
+            "message": "Post-maintenance data saved successfully.",
+            "folio": data.folio
+        }
+
+    except mysql.connector.Error as err:
+        if conn:
+            conn.rollback()
+        return {
+            "success": False,
+            "error": f"Database error: {str(err)}"
+        }
+    except Exception as err:
+        if conn:
+            conn.rollback()
+        return {
+            "success": False,
+            "error": f"Unexpected error: {str(err)}"
+        }
+    finally:
+        if conn and conn.is_connected():
+            conn.close()
+
+
+@reportes_mtto.post("/finalizar-reporte/{folio}")
+def finalizar_reporte(folio: str = Path(..., description="Folio del reporte")):
+    """
+    Mark a report as 'terminado' (finished).
+    This should only be called when the user explicitly clicks "Terminar Reporte".
+    """
+    conn = None
+    try:
+        conn = mysql.connector.connect(
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE,
+            host=DB_HOST
+        )
+        cursor = conn.cursor()
+
         # Update orden_servicio status to 'terminado'
         cursor.execute(
             """UPDATE ordenes_servicio
                SET estado = 'terminado'
                WHERE folio = %s""",
-            (data.folio,)
+            (folio,)
+        )
+
+        # Update reportes_status: mark as enviado
+        cursor.execute(
+            """UPDATE reportes_status
+               SET enviado = 1
+               WHERE folio = %s""",
+            (folio,)
         )
 
         conn.commit()
@@ -333,8 +390,8 @@ def save_post_mantenimiento(data: PostMantenimientoRequest):
 
         return {
             "success": True,
-            "message": "Post-maintenance data saved. Report marked as terminado.",
-            "folio": data.folio
+            "message": f"Report {folio} marked as terminado.",
+            "folio": folio
         }
 
     except mysql.connector.Error as err:
@@ -440,7 +497,8 @@ def get_report_history():
 @reportes_mtto.get("/reporte-completo/{folio}")
 def get_full_report(folio: str = Path(..., description="Folio del reporte")):
     """
-    Get all report data (pre, maintenance, post) for PDF generation.
+    Get all report data (pre, maintenance, post) for PDF generation and client view.
+    Includes photos from Google Drive if available.
     """
     try:
         conn = mysql.connector.connect(
@@ -487,6 +545,48 @@ def get_full_report(folio: str = Path(..., description="Folio del reporte")):
         if not orden:
             return {"success": False, "error": "Folio not found"}
 
+        # Get photos from Google Drive
+        fotos_drive = []
+        try:
+            drive_service = get_drive_service()
+            client_name = (orden.get("nombre_cliente") or "").strip().replace('/', '-')
+            clean_folio = folio.strip().replace('/', '-')
+
+            if client_name:
+                # Find client folder
+                query = f"'{ROOT_FOLDER_ID}' in parents and name='{client_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+                results = drive_service.files().list(q=query, fields="files(id)", spaces='drive', pageSize=1).execute()
+                client_folders = results.get('files', [])
+
+                if client_folders:
+                    client_folder_id = client_folders[0]['id']
+                    # Find folio folder
+                    query2 = f"'{client_folder_id}' in parents and name='{clean_folio}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+                    results2 = drive_service.files().list(q=query2, fields="files(id)", spaces='drive', pageSize=1).execute()
+                    folio_folders = results2.get('files', [])
+
+                    if folio_folders:
+                        # Get photos from this folder and all subfolders
+                        folio_folder_url = f"https://drive.google.com/drive/folders/{folio_folders[0]['id']}"
+                        fotos_drive = get_drive_folder_images(folio_folder_url)
+
+                        # Also check subfolders (category folders)
+                        folio_folder_id = folio_folders[0]['id']
+                        query3 = f"'{folio_folder_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
+                        results3 = drive_service.files().list(q=query3, fields="files(id, name)", spaces='drive').execute()
+                        subfolders = results3.get('files', [])
+
+                        for subfolder in subfolders:
+                            subfolder_url = f"https://drive.google.com/drive/folders/{subfolder['id']}"
+                            subfolder_images = get_drive_folder_images(subfolder_url)
+                            fotos_drive.extend(subfolder_images)
+        except Exception as e:
+            print(f"Warning: Could not fetch photos from Drive: {str(e)}")
+            # Continue without photos if Drive fetch fails
+
+        # Extract just the URLs from the photo objects
+        foto_urls = [foto.get('url', '') for foto in fotos_drive if foto.get('url')]
+
         return {
             "success": True,
             "data": {
@@ -494,7 +594,8 @@ def get_full_report(folio: str = Path(..., description="Folio del reporte")):
                 "pre_mantenimiento": pre_mtto,
                 "mantenimiento": mtto,
                 "post_mantenimiento": post_mtto,
-                "status": status
+                "status": status,
+                "fotos_drive": foto_urls
             }
         }
     except mysql.connector.Error as err:
