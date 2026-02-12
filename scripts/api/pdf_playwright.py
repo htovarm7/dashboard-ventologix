@@ -46,6 +46,32 @@ async def generate_pdf_from_react(folio: str, frontend_url: str = "https://dashb
                     noPrintElements.forEach(el => {
                         el.style.display = 'none';
                     });
+
+                    // Hide sidebar/navigation menu
+                    const sidebar = document.querySelector('aside');
+                    if (sidebar) sidebar.style.display = 'none';
+
+                    // Hide any nav elements
+                    const navElements = document.querySelectorAll('nav');
+                    navElements.forEach(nav => nav.style.display = 'none');
+
+                    // Hide any fixed/sticky headers or footers
+                    const fixedElements = document.querySelectorAll('[class*="fixed"], [class*="sticky"]');
+                    fixedElements.forEach(el => {
+                        if (!el.closest('.bg-white.rounded-lg')) {
+                            el.style.display = 'none';
+                        }
+                    });
+
+                    // Remove background color from body to avoid extra space
+                    document.body.style.backgroundColor = 'white';
+
+                    // Remove padding from main container
+                    const mainContainer = document.querySelector('.min-h-screen');
+                    if (mainContainer) {
+                        mainContainer.style.minHeight = 'auto';
+                        mainContainer.style.padding = '20px';
+                    }
                 }
             """)
 
