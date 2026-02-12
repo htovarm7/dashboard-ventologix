@@ -47,6 +47,8 @@ interface ReportsByClient {
 const Reports = () => {
   const router = useRouter();
   const [reportsByClient, setReportsByClient] = useState<ReportsByClient[]>([]);
+  const [flatReports, setFlatReports] = useState<OrdenServicio[]>([]);
+  const [userRole, setUserRole] = useState<number>(0);
   const [expandedClients, setExpandedClients] = useState<Set<string>>(
     new Set(),
   );
@@ -69,6 +71,7 @@ const Reports = () => {
         const parsedData = JSON.parse(userData);
         rol = parsedData.rol || 0;
         numeroCliente = parsedData.numero_cliente || null;
+        setUserRole(rol);
       }
 
       // Fetch all orders from /ordenes/ endpoint
@@ -81,45 +84,60 @@ const Reports = () => {
       const result = await response.json();
       const ordenes: OrdenServicio[] = result.data || [];
 
+      // Only show completed reports
+      const completedOrdenes = ordenes.filter(
+        (orden) => orden.estado === "terminado",
+      );
+
       // Filter by role - roles 3 and 4 can only see their own client's reports
-      let filteredOrdenes = ordenes;
+      let filteredOrdenes = completedOrdenes;
       if ((rol === 3 || rol === 4) && numeroCliente) {
-        filteredOrdenes = ordenes.filter(
+        filteredOrdenes = completedOrdenes.filter(
           (orden) => orden.numero_cliente === numeroCliente,
         );
       }
 
-      // Group reports by client name
-      const clientsMap = new Map<string, ReportsByClient>();
+      // For client roles (3 & 4), show flat list; for others, group by client
+      if ((rol === 3 || rol === 4) && numeroCliente) {
+        const sortedReports = filteredOrdenes.sort(
+          (a, b) =>
+            new Date(b.fecha_creacion || "").getTime() -
+            new Date(a.fecha_creacion || "").getTime(),
+        );
+        setFlatReports(sortedReports);
+      } else {
+        // Group reports by client name
+        const clientsMap = new Map<string, ReportsByClient>();
 
-      filteredOrdenes.forEach((orden) => {
-        const clientName = orden.nombre_cliente || "Sin cliente";
-        const clientKey = `${clientName}-${orden.numero_cliente}`;
+        filteredOrdenes.forEach((orden) => {
+          const clientName = orden.nombre_cliente || "Sin cliente";
+          const clientKey = `${clientName}-${orden.numero_cliente}`;
 
-        if (!clientsMap.has(clientKey)) {
-          clientsMap.set(clientKey, {
-            clientName,
-            numeroCliente: orden.numero_cliente,
-            reports: [],
-          });
-        }
+          if (!clientsMap.has(clientKey)) {
+            clientsMap.set(clientKey, {
+              clientName,
+              numeroCliente: orden.numero_cliente,
+              reports: [],
+            });
+          }
 
-        clientsMap.get(clientKey)!.reports.push(orden);
-      });
+          clientsMap.get(clientKey)!.reports.push(orden);
+        });
 
-      // Convert map to array and sort
-      const groupedReports: ReportsByClient[] = Array.from(clientsMap.values())
-        .map((group) => ({
-          ...group,
-          reports: group.reports.sort(
-            (a, b) =>
-              new Date(b.fecha_creacion || "").getTime() -
-              new Date(a.fecha_creacion || "").getTime(),
-          ),
-        }))
-        .sort((a, b) => a.clientName.localeCompare(b.clientName));
+        // Convert map to array and sort
+        const groupedReports: ReportsByClient[] = Array.from(clientsMap.values())
+          .map((group) => ({
+            ...group,
+            reports: group.reports.sort(
+              (a, b) =>
+                new Date(b.fecha_creacion || "").getTime() -
+                new Date(a.fecha_creacion || "").getTime(),
+            ),
+          }))
+          .sort((a, b) => a.clientName.localeCompare(b.clientName));
 
-      setReportsByClient(groupedReports);
+        setReportsByClient(groupedReports);
+      }
     } catch (error) {
       console.error("Error loading reports:", error);
     } finally {
@@ -152,12 +170,6 @@ const Reports = () => {
       month: "long",
       day: "numeric",
     });
-  };
-
-  const handleViewPdf = (orden: OrdenServicio) => {
-    if (orden.reporte_url) {
-      window.open(orden.reporte_url, "_blank");
-    }
   };
 
   const handleDownloadPdf = async (folio: string) => {
@@ -193,7 +205,10 @@ const Reports = () => {
     );
   }
 
-  if (reportsByClient.length === 0) {
+  const isClientRole = userRole === 3 || userRole === 4;
+  const hasNoReports = isClientRole ? flatReports.length === 0 : reportsByClient.length === 0;
+
+  if (hasNoReports) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center relative">
         <div className="absolute top-4 left-4">
@@ -215,97 +230,146 @@ const Reports = () => {
           Reportes de Mantenimiento
         </h1>
 
-        {/* Client list */}
+        {/* Reports list */}
         <div className="space-y-4">
-          {reportsByClient.map((clientGroup) => (
-            <div
-              key={`${clientGroup.clientName}-${clientGroup.numeroCliente}`}
-              className="bg-white rounded-lg shadow-md overflow-hidden"
-            >
-              {/* Client header */}
-              <div
-                className="p-6 bg-gray-100 border-b-2 border-gray-300 cursor-pointer hover:bg-gray-200 transition-all"
-                onClick={() => toggleClient(clientGroup.clientName)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    {expandedClients.has(clientGroup.clientName) ? (
-                      <ChevronDown className="text-gray-700" size={24} />
-                    ) : (
-                      <ChevronRight className="text-gray-700" size={24} />
-                    )}
-                    <Building2 className="text-gray-600" size={24} />
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      {clientGroup.clientName}
-                    </h2>
-                  </div>
-                  <span className="bg-gray-600 text-white px-4 py-2 rounded-full text-sm font-medium">
-                    {clientGroup.reports.length} reporte
-                    {clientGroup.reports.length !== 1 ? "s" : ""}
-                  </span>
-                </div>
-              </div>
-
-              {/* Reports list */}
-              {expandedClients.has(clientGroup.clientName) && (
-                <div className="p-6 bg-white">
-                  <div className="space-y-3">
-                    {clientGroup.reports.map((orden) => (
-                      <div
-                        key={orden.folio}
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-6 mb-2">
-                            <div className="flex items-center space-x-2 text-gray-700">
-                              <Wrench size={18} />
-                              <span className="font-semibold">
-                                {orden.alias_compresor || "Compresor"}
-                              </span>
-                            </div>
-                            {orden.numero_serie && (
-                              <span className="text-sm text-gray-500">
-                                S/N: {orden.numero_serie}
-                              </span>
-                            )}
-                            <span className="text-sm text-blue-600 font-medium">
-                              Folio: {orden.folio}
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-6 text-sm text-gray-600">
-                            <div className="flex items-center space-x-2">
-                              <Calendar size={16} />
-                              <span>{formatDate(orden.fecha_programada)}</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <FileText size={16} />
-                              <span>
-                                {orden.tipo_visita || "Mantenimiento"}
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <User size={16} />
-                              <span>{orden.tipo_mantenimiento || "N/A"}</span>
-                            </div>
-                            {orden.estado && (
-                              <span
-                                className={`px-2 py-1 rounded text-xs font-medium ${
-                                  orden.estado === "terminado"
-                                    ? "bg-green-100 text-green-800"
-                                    : orden.estado === "Completado"
-                                      ? "bg-green-100 text-green-800"
-                                      : orden.estado === "En progreso"
-                                        ? "bg-yellow-100 text-yellow-800"
-                                        : "bg-gray-100 text-gray-800"
-                                }`}
-                              >
-                                {orden.estado === "terminado" ? "Terminado" : orden.estado}
-                              </span>
-                            )}
-                          </div>
+          {isClientRole ? (
+            /* Flat list for client roles (3 & 4) */
+            <div className="bg-white rounded-lg shadow-md overflow-hidden p-6">
+              <div className="space-y-3">
+                {flatReports.map((orden) => (
+                  <div
+                    key={orden.folio}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-6 mb-2">
+                        <div className="flex items-center space-x-2 text-gray-700">
+                          <Wrench size={18} />
+                          <span className="font-semibold">
+                            {orden.alias_compresor || "Compresor"}
+                          </span>
+                        </div>
+                        {orden.numero_serie && (
+                          <span className="text-sm text-gray-500">
+                            S/N: {orden.numero_serie}
+                          </span>
+                        )}
+                        <span className="text-sm text-blue-600 font-medium">
+                          Folio: {orden.folio}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-6 text-sm text-gray-600">
+                        <div className="flex items-center space-x-2">
+                          <Calendar size={16} />
+                          <span>{formatDate(orden.fecha_programada)}</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          {orden.estado === "terminado" && (
+                          <FileText size={16} />
+                          <span>
+                            {orden.tipo_visita || "Mantenimiento"}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <User size={16} />
+                          <span>{orden.tipo_mantenimiento || "N/A"}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleDownloadPdf(orden.folio)}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                      >
+                        <Download size={16} />
+                        <span>PDF</span>
+                      </button>
+                      <button
+                        onClick={() => handleViewReport(orden)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                      >
+                        <Eye size={16} />
+                        <span>Ver Reporte</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            /* Grouped view for admin/technician roles */
+            reportsByClient.map((clientGroup) => (
+              <div
+                key={`${clientGroup.clientName}-${clientGroup.numeroCliente}`}
+                className="bg-white rounded-lg shadow-md overflow-hidden"
+              >
+                {/* Client header */}
+                <div
+                  className="p-6 bg-gray-100 border-b-2 border-gray-300 cursor-pointer hover:bg-gray-200 transition-all"
+                  onClick={() => toggleClient(clientGroup.clientName)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      {expandedClients.has(clientGroup.clientName) ? (
+                        <ChevronDown className="text-gray-700" size={24} />
+                      ) : (
+                        <ChevronRight className="text-gray-700" size={24} />
+                      )}
+                      <Building2 className="text-gray-600" size={24} />
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        {clientGroup.clientName}
+                      </h2>
+                    </div>
+                    <span className="bg-gray-600 text-white px-4 py-2 rounded-full text-sm font-medium">
+                      {clientGroup.reports.length} reporte
+                      {clientGroup.reports.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Reports list */}
+                {expandedClients.has(clientGroup.clientName) && (
+                  <div className="p-6 bg-white">
+                    <div className="space-y-3">
+                      {clientGroup.reports.map((orden) => (
+                        <div
+                          key={orden.folio}
+                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-6 mb-2">
+                              <div className="flex items-center space-x-2 text-gray-700">
+                                <Wrench size={18} />
+                                <span className="font-semibold">
+                                  {orden.alias_compresor || "Compresor"}
+                                </span>
+                              </div>
+                              {orden.numero_serie && (
+                                <span className="text-sm text-gray-500">
+                                  S/N: {orden.numero_serie}
+                                </span>
+                              )}
+                              <span className="text-sm text-blue-600 font-medium">
+                                Folio: {orden.folio}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-6 text-sm text-gray-600">
+                              <div className="flex items-center space-x-2">
+                                <Calendar size={16} />
+                                <span>{formatDate(orden.fecha_programada)}</span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <FileText size={16} />
+                                <span>
+                                  {orden.tipo_visita || "Mantenimiento"}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <User size={16} />
+                                <span>{orden.tipo_mantenimiento || "N/A"}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
                             <button
                               onClick={() => handleDownloadPdf(orden.folio)}
                               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center space-x-2"
@@ -313,31 +377,22 @@ const Reports = () => {
                               <Download size={16} />
                               <span>PDF</span>
                             </button>
-                          )}
-                          {orden.reporte_url && orden.estado !== "terminado" && (
                             <button
-                              onClick={() => handleViewPdf(orden)}
-                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                              onClick={() => handleViewReport(orden)}
+                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
                             >
-                              <FileText size={16} />
-                              <span>PDF</span>
+                              <Eye size={16} />
+                              <span>Ver Reporte</span>
                             </button>
-                          )}
-                          <button
-                            onClick={() => handleViewReport(orden)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
-                          >
-                            <Eye size={16} />
-                            <span>Ver Reporte</span>
-                          </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

@@ -112,26 +112,26 @@ interface MaintenanceData {
 
 interface PostMaintenanceData {
   folio: string;
-  display_enciende?: string;
-  horas_totales?: number;
-  horas_carga?: number;
-  horas_descarga?: number;
-  voltaje_alimentacion?: number;
-  amperaje_motor_carga?: number;
-  amperaje_ventilador?: number;
-  fugas_aceite_visibles?: string;
-  fugas_aire_audibles?: string;
-  aceite_oscuro_degradado?: string;
-  temp_ambiente?: number;
-  temp_compresion_display?: number;
-  temp_compresion_laser?: number;
-  temp_separador_aceite?: number;
-  temp_interna_cuarto?: number;
-  delta_t_enfriador_aceite?: number;
-  temp_motor_electrico?: number;
-  presion_carga?: number;
-  presion_descarga?: number;
-  delta_p_separador?: number;
+  display_enciende_final?: string;
+  horas_totales_final?: number;
+  horas_carga_final?: number;
+  horas_descarga_final?: number;
+  voltaje_alimentacion_final?: number;
+  amperaje_motor_carga_final?: number;
+  amperaje_ventilador_final?: number;
+  fugas_aceite_final?: string;
+  fugas_aire_final?: string;
+  aceite_oscuro_final?: string;
+  temp_ambiente_final?: number;
+  temp_compresion_display_final?: number;
+  temp_compresion_laser_final?: number;
+  temp_separador_aceite_final?: number;
+  temp_interna_cuarto_final?: number;
+  delta_t_enfriador_aceite_final?: number;
+  temp_motor_electrico_final?: number;
+  presion_carga_final?: number;
+  presion_descarga_final?: number;
+  delta_p_separador_final?: number;
   nombre_persona_cargo?: string;
   firma_persona_cargo?: string;
   firma_tecnico_ventologix?: string;
@@ -172,6 +172,7 @@ function ViewReportContent() {
     useState<MaintenanceData | null>(null);
   const [postMaintenanceData, setPostMaintenanceData] =
     useState<PostMaintenanceData | null>(null);
+  const [fotosDrive, setFotosDrive] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageModal, setImageModal] = useState<ImageModalState>({
@@ -194,49 +195,42 @@ function ViewReportContent() {
       setLoading(true);
       setError(null);
 
-      // Fetch all data in parallel
-      const [orderRes, preRes, maintenanceRes, postRes] = await Promise.all([
-        fetch(`${URL_API}/ordenes/${folio}`),
-        fetch(`${URL_API}/reporte_mtto/pre-mtto/${folio}`),
-        fetch(`${URL_API}/reporte_mantenimiento/${folio}`),
-        fetch(`${URL_API}/reporte_mtto/post-mtto/${folio}`),
-      ]);
+      // Fetch complete report data (includes photos)
+      const completeReportRes = await fetch(
+        `${URL_API}/reporte_mtto/reporte-completo/${folio}`
+      );
 
-      // Process order data
-      if (orderRes.ok) {
-        const orderResult = await orderRes.json();
-        if (orderResult.data && orderResult.data.length > 0) {
-          setOrderData(orderResult.data[0]);
-        }
+      if (!completeReportRes.ok) {
+        setError("No se encontró el reporte");
+        setLoading(false);
+        return;
       }
 
-      // Process pre-maintenance data
-      if (preRes.ok) {
-        const preResult = await preRes.json();
-        if (preResult.data) {
-          setPreMaintenanceData(preResult.data);
-        }
+      const completeResult = await completeReportRes.json();
+
+      if (!completeResult.success) {
+        setError(completeResult.error || "Error al cargar el reporte");
+        setLoading(false);
+        return;
       }
 
-      // Process maintenance tasks data
-      if (maintenanceRes.ok) {
-        const maintenanceResult = await maintenanceRes.json();
-        if (maintenanceResult.data) {
-          setMaintenanceData(maintenanceResult.data);
-        }
-      }
+      const reportData = completeResult.data;
 
-      // Process post-maintenance data
-      if (postRes.ok) {
-        const postResult = await postRes.json();
-        if (postResult.data) {
-          setPostMaintenanceData(postResult.data);
-        }
+      // Set all report data
+      if (reportData.orden) {
+        setOrderData(reportData.orden);
       }
-
-      // Check if we got at least the order data
-      if (!orderRes.ok) {
-        setError("No se encontró la orden de servicio");
+      if (reportData.pre_mantenimiento) {
+        setPreMaintenanceData(reportData.pre_mantenimiento);
+      }
+      if (reportData.mantenimiento) {
+        setMaintenanceData(reportData.mantenimiento);
+      }
+      if (reportData.post_mantenimiento) {
+        setPostMaintenanceData(reportData.post_mantenimiento);
+      }
+      if (reportData.fotos_drive) {
+        setFotosDrive(reportData.fotos_drive);
       }
     } catch (err) {
       console.error("Error loading report data:", err);
@@ -256,17 +250,20 @@ function ViewReportContent() {
     });
   };
 
-  // const openImageModal = (imageSrc: string) => {
-  //   setImageModal({ isOpen: true, imageSrc });
-  // };
+  const openImageModal = (imageSrc: string) => {
+    setImageModal({ isOpen: true, imageSrc });
+  };
 
   const closeImageModal = () => {
     setImageModal({ isOpen: false, imageSrc: "" });
   };
 
   const handleViewPdf = () => {
-    if (orderData?.reporte_url) {
-      window.open(orderData.reporte_url, "_blank");
+    // Use the new Playwright endpoint to generate PDF from React view
+    const folio = searchParams.get("folio");
+    if (folio) {
+      const pdfUrl = `${URL_API}/reporte_mtto/descargar-pdf-react/${folio}`;
+      window.open(pdfUrl, "_blank");
     }
   };
 
@@ -323,7 +320,9 @@ function ViewReportContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <BackButton />
+      <div className="no-print">
+        <BackButton />
+      </div>
 
       <div className="max-w-7xl mx-auto mt-4">
         {/* Header Principal */}
@@ -881,10 +880,34 @@ function ViewReportContent() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Display Enciende (Final)
+                  </label>
+                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
+                    {renderValue(postMaintenanceData.display_enciende_final)}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
                     Horas Totales (Final)
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.horas_totales, " hrs")}
+                    {renderValue(postMaintenanceData.horas_totales_final, " hrs")}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Horas Carga (Final)
+                  </label>
+                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
+                    {renderValue(postMaintenanceData.horas_carga_final, " hrs")}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Horas Descarga (Final)
+                  </label>
+                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
+                    {renderValue(postMaintenanceData.horas_descarga_final, " hrs")}
                   </p>
                 </div>
                 <div>
@@ -893,7 +916,7 @@ function ViewReportContent() {
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
                     {renderValue(
-                      postMaintenanceData.voltaje_alimentacion,
+                      postMaintenanceData.voltaje_alimentacion_final,
                       " V",
                     )}
                   </p>
@@ -904,18 +927,111 @@ function ViewReportContent() {
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
                     {renderValue(
-                      postMaintenanceData.amperaje_motor_carga,
+                      postMaintenanceData.amperaje_motor_carga_final,
                       " A",
                     )}
                   </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Temp. Compresión (Final)
+                    Amperaje Ventilador (Final)
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
                     {renderValue(
-                      postMaintenanceData.temp_compresion_display,
+                      postMaintenanceData.amperaje_ventilador_final,
+                      " A",
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Fugas Aceite (Final)
+                  </label>
+                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
+                    {renderValue(postMaintenanceData.fugas_aceite_final)}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Aceite Oscuro (Final)
+                  </label>
+                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
+                    {renderValue(postMaintenanceData.aceite_oscuro_final)}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Temp. Ambiente (Final)
+                  </label>
+                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
+                    {renderValue(
+                      postMaintenanceData.temp_ambiente_final,
+                      " °C",
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Temp. Compresión Display (Final)
+                  </label>
+                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
+                    {renderValue(
+                      postMaintenanceData.temp_compresion_display_final,
+                      " °C",
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Temp. Compresión Láser (Final)
+                  </label>
+                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
+                    {renderValue(
+                      postMaintenanceData.temp_compresion_laser_final,
+                      " °C",
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Temp. Separador Aceite (Final)
+                  </label>
+                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
+                    {renderValue(
+                      postMaintenanceData.temp_separador_aceite_final,
+                      " °C",
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Temp. Interna Cuarto (Final)
+                  </label>
+                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
+                    {renderValue(
+                      postMaintenanceData.temp_interna_cuarto_final,
+                      " °C",
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Delta T Enfriador Aceite (Final)
+                  </label>
+                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
+                    {renderValue(
+                      postMaintenanceData.delta_t_enfriador_aceite_final,
+                      " °C",
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Temp. Motor Eléctrico (Final)
+                  </label>
+                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
+                    {renderValue(
+                      postMaintenanceData.temp_motor_electrico_final,
                       " °C",
                     )}
                   </p>
@@ -925,7 +1041,7 @@ function ViewReportContent() {
                     Presión Carga (Final)
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.presion_carga, " Psi")}
+                    {renderValue(postMaintenanceData.presion_carga_final, " bar")}
                   </p>
                 </div>
                 <div>
@@ -933,7 +1049,23 @@ function ViewReportContent() {
                     Presión Descarga (Final)
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.presion_descarga, " Psi")}
+                    {renderValue(postMaintenanceData.presion_descarga_final, " bar")}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Delta P Separador (Final)
+                  </label>
+                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
+                    {renderValue(postMaintenanceData.delta_p_separador_final, " bar")}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Fugas Aire (Final)
+                  </label>
+                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
+                    {renderValue(postMaintenanceData.fugas_aire_final)}
                   </p>
                 </div>
               </div>
@@ -991,23 +1123,49 @@ function ViewReportContent() {
           </div>
         )}
 
+        {/* Photos Section */}
+        {fotosDrive && fotosDrive.length > 0 && (
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 className="text-white bg-purple-600 px-4 py-2 rounded font-bold mb-4">
+              FOTOS DEL MANTENIMIENTO
+            </h2>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {fotosDrive.map((fotoUrl, index) => (
+                <div
+                  key={index}
+                  className="cursor-pointer transform hover:scale-105 transition-transform"
+                  onClick={() => openImageModal(fotoUrl)}
+                >
+                  <Image
+                    src={fotoUrl}
+                    width={400}
+                    height={400}
+                    unoptimized
+                    alt={`Foto ${index + 1}`}
+                    className="rounded-lg shadow-md w-full h-48 object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Footer Actions */}
-        <div className="bg-white rounded-lg shadow-lg p-6 flex justify-between items-center">
+        <div className="no-print bg-white rounded-lg shadow-lg p-6 flex justify-between items-center">
           <button
             onClick={() => router.back()}
             className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
           >
             Volver
           </button>
-          {orderData.reporte_url && (
-            <button
-              onClick={handleViewPdf}
-              className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center space-x-2"
-            >
-              <FileText size={20} />
-              <span>Ver PDF</span>
-            </button>
-          )}
+          <button
+            onClick={handleViewPdf}
+            className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center space-x-2"
+          >
+            <FileText size={20} />
+            <span>📄 Descargar PDF</span>
+          </button>
         </div>
       </div>
 

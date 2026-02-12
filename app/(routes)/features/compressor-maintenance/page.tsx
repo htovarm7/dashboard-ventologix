@@ -73,7 +73,7 @@ const Home = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Mantenimientos */}
+          {/* Tabla de Mantenimientos */}
           <div className="group relative">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-200 to-blue-300 rounded-2xl opacity-30 group-hover:opacity-40 blur-lg transition-all duration-300"></div>
             <button
@@ -87,33 +87,34 @@ const Home = () => {
                   🔧
                 </div>
                 <h3 className="text-2xl font-bold text-blue-600 mb-3">
-                  Mantenimientos
+                  Tabla de Mantenimientos Activos
                 </h3>
                 <p className="text-gray-700 text-sm">
-                  Visualiza los mantenimientos realizados en tus compresores.
+                  Visualiza y gestiona todos los mantenimientos activos de los
+                  compresores
                 </p>
               </div>
             </button>
           </div>
 
-          {/* Mis Reportes */}
+          {/* Reportes */}
           <div className="group relative">
             <div className="absolute -inset-1 bg-gradient-to-r from-green-200 to-green-300 rounded-2xl opacity-30 group-hover:opacity-40 blur-lg transition-all duration-300"></div>
             <button
               className="relative w-full h-full min-h-[280px] bg-white hover:bg-green-50 border-2 border-green-200 hover:border-green-300 rounded-2xl p-10 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg flex items-center justify-center"
               onClick={() =>
-                router.push("/features/compressor-maintenance/views")
+                router.push("/features/compressor-maintenance/reports/")
               }
             >
               <div className="text-center">
                 <div className="text-5xl mb-5 transform group-hover:scale-110 transition-transform duration-300">
-                  📅
+                  📄
                 </div>
                 <h3 className="text-2xl font-bold text-green-600 mb-3">
-                  Mis Reportes
+                  Reportes
                 </h3>
                 <p className="text-gray-700 text-sm">
-                  Accede a todos tus reportes de mantenimiento
+                  Ver historial de reportes generados.
                 </p>
               </div>
             </button>
