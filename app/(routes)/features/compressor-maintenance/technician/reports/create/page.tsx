@@ -1062,11 +1062,12 @@ function FillReport() {
 
   const saveSignature = () => {
     if (signatureCanvasRef.current) {
-      const signatureData = signatureCanvasRef.current
-        .getTrimmedCanvas()
-        .toDataURL("image/png");
+      // Usar toDataURL directamente del canvas sin trim para evitar error
+      const canvas = signatureCanvasRef.current.getCanvas();
+      const signatureData = canvas.toDataURL("image/png");
       setFormData({ ...formData, firmaPersonaCargo: signatureData });
       console.log("✍️ Firma del cliente guardada");
+      alert("✅ Firma del cliente guardada");
     }
   };
 
@@ -1080,11 +1081,12 @@ function FillReport() {
 
   const saveEngineerSignature = () => {
     if (engineerSignatureCanvasRef.current) {
-      const signatureData = engineerSignatureCanvasRef.current
-        .getTrimmedCanvas()
-        .toDataURL("image/png");
+      // Usar toDataURL directamente del canvas sin trim para evitar error
+      const canvas = engineerSignatureCanvasRef.current.getCanvas();
+      const signatureData = canvas.toDataURL("image/png");
       setFormData({ ...formData, firmaTecnicoVentologix: signatureData });
       console.log("✍️ Firma del ingeniero guardada");
+      alert("✅ Firma del ingeniero guardada");
     }
   };
 
@@ -3859,14 +3861,22 @@ function FillReport() {
 
                       setIsSaving(true);
                       try {
+                        console.log("🏁 Iniciando proceso de terminar reporte para folio:", formData.folio);
+
                         // First, save post-maintenance data (if not already saved)
+                        console.log("💾 Guardando datos de post-mantenimiento...");
                         const postResult = await savePostMaintenanceData();
+                        console.log("📥 Resultado post-mantenimiento:", postResult);
+
                         if (!postResult?.success) {
-                          alert("Error al guardar post-mantenimiento: " + (postResult?.error || "Error desconocido"));
+                          const errorMsg = postResult?.error || "Error desconocido al guardar post-mantenimiento";
+                          console.error("❌ Error en post-mantenimiento:", errorMsg);
+                          alert("❌ Error al guardar post-mantenimiento: " + errorMsg + "\n\nEl reporte NO se ha perdido. Está guardado como borrador con folio: " + formData.folio);
                           return;
                         }
 
                         // Then, mark the report as terminado
+                        console.log("🏁 Marcando reporte como terminado...");
                         const finishResponse = await fetch(
                           `${URL_API}/reporte_mtto/finalizar-reporte/${formData.folio}`,
                           {
@@ -3878,16 +3888,20 @@ function FillReport() {
                         );
 
                         const finishResult = await finishResponse.json();
+                        console.log("📥 Resultado finalizar reporte:", finishResult);
 
                         if (finishResult?.success) {
-                          alert("Reporte terminado exitosamente. El reporte ha sido marcado como terminado.");
+                          alert("✅ Reporte terminado exitosamente!\n\nFolio: " + formData.folio + "\nEl reporte ha sido marcado como terminado.");
                           router.push("/features/compressor-maintenance/technician/reports");
                         } else {
-                          alert("Error al terminar el reporte: " + (finishResult?.error || "Error desconocido"));
+                          const errorMsg = finishResult?.error || "Error desconocido al finalizar";
+                          console.error("❌ Error al finalizar:", errorMsg);
+                          alert("❌ Error al terminar el reporte: " + errorMsg + "\n\nLos datos están guardados con folio: " + formData.folio + "\n\nPuede intentar nuevamente o contactar soporte.");
                         }
                       } catch (err) {
-                        console.error("Error finishing report:", err);
-                        alert("Error al terminar el reporte.");
+                        const errorMsg = err instanceof Error ? err.message : String(err);
+                        console.error("❌ Excepción al terminar reporte:", errorMsg, err);
+                        alert("❌ Error crítico al terminar el reporte:\n" + errorMsg + "\n\nFolio: " + formData.folio + "\n\nEl reporte está guardado como borrador.");
                       } finally {
                         setIsSaving(false);
                       }

@@ -259,8 +259,11 @@ function ViewReportContent() {
   };
 
   const handleViewPdf = () => {
-    if (orderData?.reporte_url) {
-      window.open(orderData.reporte_url, "_blank");
+    // Use the new Playwright endpoint to generate PDF from React view
+    const folio = searchParams.get("folio");
+    if (folio) {
+      const pdfUrl = `${URL_API}/reporte_mtto/descargar-pdf-react/${folio}`;
+      window.open(pdfUrl, "_blank");
     }
   };
 
@@ -1021,15 +1024,13 @@ function ViewReportContent() {
           >
             Volver
           </button>
-          {orderData.reporte_url && (
-            <button
-              onClick={handleViewPdf}
-              className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center space-x-2"
-            >
-              <FileText size={20} />
-              <span>Ver PDF</span>
-            </button>
-          )}
+          <button
+            onClick={handleViewPdf}
+            className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center space-x-2"
+          >
+            <FileText size={20} />
+            <span>📄 Descargar PDF</span>
+          </button>
         </div>
       </div>
 

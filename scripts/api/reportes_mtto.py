@@ -14,6 +14,7 @@ import json
 from .clases import Modulos, PreMantenimientoRequest, PostMantenimientoRequest
 from .drive_utils import upload_maintenance_photos, get_drive_service, ROOT_FOLDER_ID, get_or_create_folder
 from .maintenance_web import get_drive_folder_images
+from .pdf_playwright import generate_pdf_from_react
 
 load_dotenv()
 DB_HOST = os.getenv("DB_HOST")
@@ -603,10 +604,40 @@ def get_full_report(folio: str = Path(..., description="Folio del reporte")):
 
 
 @reportes_mtto.get("/descargar-pdf/{folio}")
-def download_report_pdf(folio: str = Path(..., description="Folio del reporte")):
+async def download_report_pdf(folio: str = Path(..., description="Folio del reporte")):
     """
-    Generate and download a PDF report for the given folio.
-    Combines pre-maintenance, maintenance, and post-maintenance data.
+    Generate PDF from React view using Playwright.
+    This creates a PDF that looks exactly like the web view with all photos.
+    """
+    try:
+        # Get the frontend URL from environment or use default
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+        # Generate PDF using Playwright
+        pdf_bytes = await generate_pdf_from_react(folio, frontend_url)
+
+        # Return PDF as downloadable file
+        clean_folio = folio.replace("/", "-").replace("\\", "-")
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="Reporte_{clean_folio}.pdf"'
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as err:
+        raise HTTPException(status_code=500, detail=f"Error generating PDF with Playwright: {str(err)}")
+
+
+# OLD REPORTLAB CODE - DEPRECATED AND REMOVED
+# The old PDF generation using ReportLab has been replaced with Playwright
+# to generate PDFs that look exactly like the React view
+@reportes_mtto.get("/descargar-pdf-OLD/{folio}")
+async def download_report_pdf_old(folio: str = Path(..., description="Folio del reporte")):
+    """
+    OLD PDF generation - DEPRECATED. Use /descargar-pdf/{folio} instead.
     """
     from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
@@ -958,3 +989,31 @@ def download_report_pdf(folio: str = Path(..., description="Folio del reporte"))
         raise
     except Exception as err:
         raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(err)}")
+
+
+@reportes_mtto.get("/descargar-pdf-react/{folio}")
+async def download_report_pdf_react(folio: str = Path(..., description="Folio del reporte")):
+    """
+    Generate PDF from React view using Playwright.
+    This creates a PDF that looks exactly like the web view.
+    """
+    try:
+        # Get the frontend URL from environment or use default
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+        # Generate PDF using Playwright
+        pdf_bytes = await generate_pdf_from_react(folio, frontend_url)
+
+        # Return PDF as downloadable file
+        clean_folio = folio.replace("/", "-").replace("\\", "-")
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="Reporte_{clean_folio}.pdf"'
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as err:
+        raise HTTPException(status_code=500, detail=f"Error generating PDF with Playwright: {str(err)}")
