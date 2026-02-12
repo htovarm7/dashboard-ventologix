@@ -41,30 +41,17 @@ async def generate_pdf_from_react(folio: str, frontend_url: str = "http://localh
             # Hide navigation buttons and elements that shouldn't be in PDF
             await page.evaluate("""
                 () => {
-                    // Hide back button
-                    const backButtons = document.querySelectorAll('button');
-                    backButtons.forEach(btn => {
-                        if (btn.textContent.includes('Volver') ||
-                            btn.textContent.includes('Descargar PDF') ||
-                            btn.textContent.includes('Ver PDF')) {
-                            btn.style.display = 'none';
-                        }
-                    });
-
-                    // Hide the footer actions div
-                    const footerDivs = document.querySelectorAll('.flex.justify-between');
-                    footerDivs.forEach(div => {
-                        const hasButtons = div.querySelector('button');
-                        if (hasButtons) {
-                            div.style.display = 'none';
-                        }
+                    // Hide all elements with 'no-print' class
+                    const noPrintElements = document.querySelectorAll('.no-print');
+                    noPrintElements.forEach(el => {
+                        el.style.display = 'none';
                     });
                 }
             """)
 
-            # Generate PDF with proper settings
+            # Generate PDF with proper settings in A3 format
             pdf_bytes = await page.pdf(
-                format='Letter',
+                format='A3',
                 print_background=True,
                 margin={
                     'top': '0.5in',
