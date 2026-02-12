@@ -7,7 +7,7 @@ from playwright.async_api import async_playwright
 from fastapi import HTTPException
 
 
-async def generate_pdf_from_react(folio: str, frontend_url: str = "http://localhost:3000") -> bytes:
+async def generate_pdf_from_react(folio: str, frontend_url: str = "https://dashboard-ventologix.com") -> bytes:
     """
     Generate a PDF by capturing the React view page using Playwright.
 

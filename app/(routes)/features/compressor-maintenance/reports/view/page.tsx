@@ -197,7 +197,7 @@ function ViewReportContent() {
 
       // Fetch complete report data (includes photos)
       const completeReportRes = await fetch(
-        `${URL_API}/reporte_mtto/reporte-completo/${folio}`
+        `${URL_API}/reporte_mtto/reporte-completo/${folio}`,
       );
 
       if (!completeReportRes.ok) {
@@ -891,7 +891,10 @@ function ViewReportContent() {
                     Horas Totales (Final)
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.horas_totales_final, " hrs")}
+                    {renderValue(
+                      postMaintenanceData.horas_totales_final,
+                      " hrs",
+                    )}
                   </p>
                 </div>
                 <div>
@@ -907,7 +910,10 @@ function ViewReportContent() {
                     Horas Descarga (Final)
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.horas_descarga_final, " hrs")}
+                    {renderValue(
+                      postMaintenanceData.horas_descarga_final,
+                      " hrs",
+                    )}
                   </p>
                 </div>
                 <div>
@@ -1041,7 +1047,10 @@ function ViewReportContent() {
                     Presión Carga (Final)
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.presion_carga_final, " bar")}
+                    {renderValue(
+                      postMaintenanceData.presion_carga_final,
+                      " bar",
+                    )}
                   </p>
                 </div>
                 <div>
@@ -1049,7 +1058,10 @@ function ViewReportContent() {
                     Presión Descarga (Final)
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.presion_descarga_final, " bar")}
+                    {renderValue(
+                      postMaintenanceData.presion_descarga_final,
+                      " bar",
+                    )}
                   </p>
                 </div>
                 <div>
@@ -1057,7 +1069,10 @@ function ViewReportContent() {
                     Delta P Separador (Final)
                   </label>
                   <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.delta_p_separador_final, " bar")}
+                    {renderValue(
+                      postMaintenanceData.delta_p_separador_final,
+                      " bar",
+                    )}
                   </p>
                 </div>
                 <div>
