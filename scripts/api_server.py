@@ -43,9 +43,16 @@ async def restrict_public_access(request: Request, call_next):
     if request.method == "OPTIONS":
         response = await call_next(request)
         return response
-    
+
+    # Check if request is from Playwright (for PDF generation)
+    user_agent = request.headers.get("user-agent", "")
+    if "Playwright" in user_agent or "HeadlessChrome" in user_agent:
+        # Allow Playwright requests (PDF generation)
+        response = await call_next(request)
+        return response
+
     origin = request.headers.get("origin") or request.headers.get("referer")
-    
+
     if origin is None:
         client_host = request.client.host
         if client_host not in ("127.0.0.1", "localhost"):

@@ -611,7 +611,7 @@ async def download_report_pdf(folio: str = Path(..., description="Folio del repo
     """
     try:
         # Get the frontend URL from environment or use default
-        frontend_url = os.getenv("FRONTEND_URL", "https://dashboard-ventologix.com")
+        frontend_url = os.getenv("FRONTEND_URL", "https://dashboard.ventologix.com")
 
         # Generate PDF using Playwright
         pdf_bytes = await generate_pdf_from_react(folio, frontend_url)
@@ -999,7 +999,7 @@ async def download_report_pdf_react(folio: str = Path(..., description="Folio de
     """
     try:
         # Get the frontend URL from environment or use default
-        frontend_url = os.getenv("FRONTEND_URL", "https://dashboard-ventologix.com")
+        frontend_url = os.getenv("FRONTEND_URL", "https://dashboard.ventologix.com")
 
         # Generate PDF using Playwright
         pdf_bytes = await generate_pdf_from_react(folio, frontend_url)
