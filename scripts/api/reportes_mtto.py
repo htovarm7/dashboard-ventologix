@@ -546,8 +546,9 @@ def get_full_report(folio: str = Path(..., description="Folio del reporte")):
         if not orden:
             return {"success": False, "error": "Folio not found"}
 
-        # Get photos from Google Drive
-        fotos_drive = []
+        # Get photos from Google Drive organized by category
+        fotos_by_category = {}
+        fotos_drive_flat = []
         try:
             drive_service = get_drive_service()
             client_name = (orden.get("nombre_cliente") or "").strip().replace('/', '-')
@@ -567,26 +568,47 @@ def get_full_report(folio: str = Path(..., description="Folio del reporte")):
                     folio_folders = results2.get('files', [])
 
                     if folio_folders:
-                        # Get photos from this folder and all subfolders
-                        folio_folder_url = f"https://drive.google.com/drive/folders/{folio_folders[0]['id']}"
-                        fotos_drive = get_drive_folder_images(folio_folder_url)
-
-                        # Also check subfolders (category folders)
                         folio_folder_id = folio_folders[0]['id']
-                        query3 = f"'{folio_folder_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
+
+                        # Get photos from root folio folder (uncategorized)
+                        folio_folder_url = f"https://drive.google.com/drive/folders/{folio_folder_id}"
+                        root_images = get_drive_folder_images(folio_folder_url)
+                        if root_images:
+                            root_urls = [foto.get('url', '') for foto in root_images if foto.get('url')]
+                            if root_urls:
+                                fotos_by_category["OTROS"] = root_urls
+                                fotos_drive_flat.extend(root_urls)
+
+                        # Navigate: Folio -> PHOTOS -> Category folders
+                        # First find the PHOTOS subfolder
+                        query_photos = f"'{folio_folder_id}' in parents and name='PHOTOS' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+                        results_photos = drive_service.files().list(q=query_photos, fields="files(id)", spaces='drive', pageSize=1).execute()
+                        photos_folders = results_photos.get('files', [])
+
+                        # Determine the parent folder for category subfolders
+                        # If PHOTOS folder exists, use it; otherwise fall back to folio folder directly
+                        category_parent_id = photos_folders[0]['id'] if photos_folders else folio_folder_id
+
+                        # Get category subfolders and organize photos by category
+                        query3 = f"'{category_parent_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
                         results3 = drive_service.files().list(q=query3, fields="files(id, name)", spaces='drive').execute()
                         subfolders = results3.get('files', [])
 
                         for subfolder in subfolders:
+                            subfolder_name = subfolder['name']
                             subfolder_url = f"https://drive.google.com/drive/folders/{subfolder['id']}"
                             subfolder_images = get_drive_folder_images(subfolder_url)
-                            fotos_drive.extend(subfolder_images)
+                            if subfolder_images:
+                                subfolder_urls = [foto.get('url', '') for foto in subfolder_images if foto.get('url')]
+                                if subfolder_urls:
+                                    if subfolder_name in fotos_by_category:
+                                        fotos_by_category[subfolder_name].extend(subfolder_urls)
+                                    else:
+                                        fotos_by_category[subfolder_name] = subfolder_urls
+                                    fotos_drive_flat.extend(subfolder_urls)
         except Exception as e:
             print(f"Warning: Could not fetch photos from Drive: {str(e)}")
             # Continue without photos if Drive fetch fails
-
-        # Extract just the URLs from the photo objects
-        foto_urls = [foto.get('url', '') for foto in fotos_drive if foto.get('url')]
 
         return {
             "success": True,
@@ -596,7 +618,8 @@ def get_full_report(folio: str = Path(..., description="Folio del reporte")):
                 "mantenimiento": mtto,
                 "post_mantenimiento": post_mtto,
                 "status": status,
-                "fotos_drive": foto_urls
+                "fotos_drive": fotos_drive_flat,
+                "fotos_por_categoria": fotos_by_category
             }
         }
     except mysql.connector.Error as err:

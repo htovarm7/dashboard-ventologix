@@ -137,6 +137,10 @@ interface PostMaintenanceData {
   firma_tecnico_ventologix?: string;
 }
 
+interface FotosPorCategoria {
+  [category: string]: string[];
+}
+
 interface ImageModalState {
   isOpen: boolean;
   imageSrc: string;
@@ -172,7 +176,7 @@ function ViewReportContent() {
     useState<MaintenanceData | null>(null);
   const [postMaintenanceData, setPostMaintenanceData] =
     useState<PostMaintenanceData | null>(null);
-  const [fotosDrive, setFotosDrive] = useState<string[]>([]);
+  const [fotosPorCategoria, setFotosPorCategoria] = useState<FotosPorCategoria>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageModal, setImageModal] = useState<ImageModalState>({
@@ -229,8 +233,11 @@ function ViewReportContent() {
       if (reportData.post_mantenimiento) {
         setPostMaintenanceData(reportData.post_mantenimiento);
       }
-      if (reportData.fotos_drive) {
-        setFotosDrive(reportData.fotos_drive);
+      if (reportData.fotos_por_categoria && Object.keys(reportData.fotos_por_categoria).length > 0) {
+        setFotosPorCategoria(reportData.fotos_por_categoria);
+      } else if (reportData.fotos_drive && reportData.fotos_drive.length > 0) {
+        // Fallback: if only flat array is available, show all under OTROS
+        setFotosPorCategoria({ OTROS: reportData.fotos_drive });
       }
     } catch (err) {
       console.error("Error loading report data:", err);
@@ -293,6 +300,92 @@ function ViewReportContent() {
     return items;
   };
 
+  // Render a photo section block with multiple categories
+  const renderPhotoSection = (
+    categories: { key: string; label: string }[],
+    sectionTitle: string,
+    bgColor: string,
+  ) => {
+    const allPhotos: { url: string; label: string }[] = [];
+    categories.forEach(({ key, label }) => {
+      const photos = fotosPorCategoria[key];
+      if (photos && photos.length > 0) {
+        photos.forEach((url) => allPhotos.push({ url, label }));
+      }
+    });
+    if (allPhotos.length === 0) return null;
+
+    // Group by label for display
+    const grouped: { label: string; urls: string[] }[] = [];
+    categories.forEach(({ key, label }) => {
+      const photos = fotosPorCategoria[key];
+      if (photos && photos.length > 0) {
+        grouped.push({ label, urls: photos });
+      }
+    });
+
+    return (
+      <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <h2
+          className={`text-white ${bgColor} px-4 py-2 rounded font-bold mb-4`}
+        >
+          {sectionTitle}
+        </h2>
+        {grouped.map((group, gi) => (
+          <div key={gi} className={gi > 0 ? "mt-6" : ""}>
+            <h3 className="font-semibold text-gray-700 mb-3 text-base px-2">
+              {group.label}
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 px-2">
+              {group.urls.map((fotoUrl, index) => (
+                <div
+                  key={index}
+                  className="cursor-pointer transform hover:scale-[1.02] transition-transform"
+                  onClick={() => openImageModal(fotoUrl)}
+                >
+                  <Image
+                    src={fotoUrl}
+                    width={600}
+                    height={600}
+                    unoptimized
+                    alt={`${group.label} - Foto ${index + 1}`}
+                    className="rounded-lg shadow-md w-full h-56 md:h-64 object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // Categories grouped by report section
+  const preMaintenanceCategories = [
+    { key: "PLACAS_EQUIPO", label: "Placas del Equipo" },
+    { key: "DISPLAY_HORAS", label: "Display / Horas" },
+    { key: "TEMPERATURAS", label: "Temperaturas" },
+    { key: "PRESIONES", label: "Presiones" },
+    { key: "ACEITE", label: "Aceite" },
+    { key: "CONDICIONES_AMBIENTALES", label: "Condiciones Ambientales" },
+    { key: "TANQUES", label: "Tanques" },
+  ];
+
+  const maintenanceCategories = [
+    { key: "MANTENIMIENTO", label: "Fotos del Mantenimiento" },
+  ];
+
+  // All known inline categories
+  const inlineKeys = new Set([
+    ...preMaintenanceCategories.map((c) => c.key),
+    ...maintenanceCategories.map((c) => c.key),
+  ]);
+
+  // Remaining categories (OTROS, or anything unexpected)
+  const remainingCategories = Object.keys(fotosPorCategoria).filter(
+    (cat) => !inlineKeys.has(cat),
+  );
+
   if (loading) {
     return <LoadingOverlay isVisible={true} message="Cargando reporte..." />;
   }
@@ -346,7 +439,7 @@ function ViewReportContent() {
               </div>
               <div className="text-right">
                 <p className="text-xl font-bold">Folio</p>
-                <p className="text-3xl font-bold text-yellow-400">
+                <p className="text-3xl font-bold text-white">
                   {orderData.folio}
                 </p>
                 <p className="text-sm text-blue-200 mt-2">
@@ -796,7 +889,15 @@ function ViewReportContent() {
                 </div>
               </div>
             </div>
+
           </div>
+        )}
+
+        {/* Pre-Maintenance Photos Section */}
+        {renderPhotoSection(
+          preMaintenanceCategories,
+          "FOTOS PRE-MANTENIMIENTO",
+          "bg-purple-700",
         )}
 
         {/* Maintenance Tasks */}
@@ -826,7 +927,15 @@ function ViewReportContent() {
                 </div>
               ))}
             </div>
+
           </div>
+        )}
+
+        {/* Maintenance Photos Section */}
+        {renderPhotoSection(
+          maintenanceCategories,
+          "FOTOS DEL MANTENIMIENTO",
+          "bg-green-600",
         )}
 
         {/* Comments */}
@@ -1138,31 +1247,39 @@ function ViewReportContent() {
           </div>
         )}
 
-        {/* Photos Section */}
-        {fotosDrive && fotosDrive.length > 0 && (
+        {/* Remaining Photos (uncategorized / OTROS) */}
+        {remainingCategories.length > 0 && (
           <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <h2 className="text-white bg-purple-600 px-4 py-2 rounded font-bold mb-4">
-              FOTOS DEL MANTENIMIENTO
+            <h2 className="text-white bg-gray-700 px-4 py-2 rounded font-bold mb-4">
+              OTRAS FOTOS
             </h2>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {fotosDrive.map((fotoUrl, index) => (
-                <div
-                  key={index}
-                  className="cursor-pointer transform hover:scale-105 transition-transform"
-                  onClick={() => openImageModal(fotoUrl)}
-                >
-                  <Image
-                    src={fotoUrl}
-                    width={400}
-                    height={400}
-                    unoptimized
-                    alt={`Foto ${index + 1}`}
-                    className="rounded-lg shadow-md w-full h-48 object-cover"
-                  />
+            {remainingCategories.map((cat) => (
+              <div key={cat} className={remainingCategories.indexOf(cat) > 0 ? "mt-6" : ""}>
+                {remainingCategories.length > 1 && (
+                  <h3 className="font-semibold text-gray-700 mb-3 text-base px-2">
+                    {cat.replace(/_/g, " ")}
+                  </h3>
+                )}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 px-2">
+                  {fotosPorCategoria[cat].map((fotoUrl, index) => (
+                    <div
+                      key={index}
+                      className="cursor-pointer transform hover:scale-[1.02] transition-transform"
+                      onClick={() => openImageModal(fotoUrl)}
+                    >
+                      <Image
+                        src={fotoUrl}
+                        width={600}
+                        height={600}
+                        unoptimized
+                        alt={`${cat} - Foto ${index + 1}`}
+                        className="rounded-lg shadow-md w-full h-56 md:h-64 object-cover"
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -1184,23 +1301,24 @@ function ViewReportContent() {
         </div>
       </div>
 
-      {/* Image Modal */}
+      {/* Image Modal - Blur background */}
       {imageModal.isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-[60]"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60]"
           onClick={closeImageModal}
         >
-          <div className="relative max-w-5xl max-h-[90vh] w-full h-full flex items-center justify-center">
-            <button
-              onClick={closeImageModal}
-              className="absolute top-4 right-4 text-white hover:bg-white/20 rounded-full p-2 transition-colors z-10"
-            >
-              <X size={32} />
-            </button>
+          <button
+            onClick={closeImageModal}
+            className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/70 rounded-full p-2 transition-colors z-10"
+          >
+            <X size={28} />
+          </button>
+          <div className="relative max-w-5xl max-h-[90vh] w-full h-full flex items-center justify-center p-4">
             <Image
               src={imageModal.imageSrc}
               alt="Foto ampliada"
               fill
+              unoptimized
               className="object-contain"
               sizes="100vw"
               onClick={(e) => e.stopPropagation()}
