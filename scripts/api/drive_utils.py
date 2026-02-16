@@ -134,15 +134,19 @@ def get_or_create_folder(drive_service, parent_id: str, folder_name: str) -> str
         print(f"❌ Error creating/getting folder {folder_name}: {error}")
         raise
 
-def create_folder_structure(drive_service, client_name: str, folio: str) -> dict:
+def create_folder_structure(drive_service, client_name: str, folio: str, categories_with_photos: list = None) -> dict:
     """
     Create the folder structure: Root / Client Name / Folio / PHOTOS / Categories
-    
+    Only creates category folders that actually have photos to upload.
+
     Args:
         drive_service: Google Drive service instance
         client_name: Client name
         folio: Folio number
-    
+        categories_with_photos: List of category names that have photos.
+            Only these category folders will be created.
+            If None or empty, no category folders are created.
+
     Returns:
         Dictionary with folder IDs for each category
     """
@@ -150,42 +154,34 @@ def create_folder_structure(drive_service, client_name: str, folio: str) -> dict
         # Clean client name and folio for folder names
         clean_client = client_name.strip().replace('/', '-')
         clean_folio = folio.strip().replace('/', '-')
-        
+
         # Create client folder
         client_folder_id = get_or_create_folder(drive_service, ROOT_FOLDER_ID, clean_client)
-        
+
         # Create folio folder
         folio_folder_id = get_or_create_folder(drive_service, client_folder_id, clean_folio)
-        
+
         # Create PHOTOS folder
         photos_folder_id = get_or_create_folder(drive_service, folio_folder_id, "PHOTOS")
-        
-        # Create category folders
-        categories = [
-            "ACEITE",
-            "CONDICIONES_AMBIENTALES",
-            "DISPLAY_HORAS",
-            "PLACAS_EQUIPO",
-            "TEMPERATURAS",
-            "PRESIONES",
-            "TANQUES",
-            "MANTENIMIENTO",
-            "OTROS"
-        ]
-        
+
         folder_structure = {
             "client_folder_id": client_folder_id,
             "folio_folder_id": folio_folder_id,
             "photos_folder_id": photos_folder_id,
             "categories": {}
         }
-        
-        for category in categories:
-            category_folder_id = get_or_create_folder(drive_service, photos_folder_id, category)
-            folder_structure["categories"][category] = category_folder_id
-        
+
+        # Only create folders for categories that actually have photos
+        if categories_with_photos:
+            for category in categories_with_photos:
+                category_folder_id = get_or_create_folder(drive_service, photos_folder_id, category)
+                folder_structure["categories"][category] = category_folder_id
+                print(f"   📁 Created folder for {category} (has photos)")
+        else:
+            print(f"   ℹ️ No categories with photos, skipping category folder creation")
+
         return folder_structure
-        
+
     except Exception as error:
         print(f"❌ Error creating folder structure: {error}")
         raise
@@ -255,58 +251,70 @@ def upload_maintenance_photos(client_name: str, folio: str, photos_by_category: 
     """
     try:
         drive_service = get_drive_service()
-        
-        # Create folder structure
+
+        # Map to standard category names
+        category_map = {
+            "ACEITE": "ACEITE",
+            "OIL": "ACEITE",
+            "CONDICIONES_AMBIENTALES": "CONDICIONES_AMBIENTALES",
+            "ENVIRONMENTAL": "CONDICIONES_AMBIENTALES",
+            "DISPLAY": "DISPLAY_HORAS",
+            "DISPLAY_HORAS": "DISPLAY_HORAS",
+            "PLACAS": "PLACAS_EQUIPO",
+            "PLACAS_EQUIPO": "PLACAS_EQUIPO",
+            "TEMPERATURAS": "TEMPERATURAS",
+            "TEMPERATURES": "TEMPERATURAS",
+            "PRESIONES": "PRESIONES",
+            "PRESSURES": "PRESIONES",
+            "TANQUES": "TANQUES",
+            "TANKS": "TANQUES",
+            "MANTENIMIENTO": "MANTENIMIENTO",
+            "MAINTENANCE": "MANTENIMIENTO",
+            "OTROS": "OTROS",
+            "OTHER": "OTROS"
+        }
+
+        # Determine which standard categories actually have photos
+        categories_needed = set()
+        for category, photos in photos_by_category.items():
+            if photos:
+                category_key = category.upper().replace(" ", "_")
+                standard_category = category_map.get(category_key, "OTROS")
+                categories_needed.add(standard_category)
+
+        # Create folder structure only for categories with photos
         print(f"\n📁 Creating folder structure for {client_name} / {folio}")
-        folder_structure = create_folder_structure(drive_service, client_name, folio)
-        
+        print(f"   Only creating folders for categories with photos: {list(categories_needed)}")
+        folder_structure = create_folder_structure(drive_service, client_name, folio, list(categories_needed))
+
         uploaded_files = {}
-        
+
         # Upload photos to their respective categories
         for category, photos in photos_by_category.items():
             if not photos:
                 continue
-            
+
             category_key = category.upper().replace(" ", "_")
-            
-            # Map to standard category names
-            category_map = {
-                "ACEITE": "ACEITE",
-                "OIL": "ACEITE",
-                "CONDICIONES_AMBIENTALES": "CONDICIONES_AMBIENTALES",
-                "ENVIRONMENTAL": "CONDICIONES_AMBIENTALES",
-                "DISPLAY": "DISPLAY_HORAS",
-                "DISPLAY_HORAS": "DISPLAY_HORAS",
-                "PLACAS": "PLACAS_EQUIPO",
-                "PLACAS_EQUIPO": "PLACAS_EQUIPO",
-                "TEMPERATURAS": "TEMPERATURAS",
-                "TEMPERATURES": "TEMPERATURAS",
-                "PRESIONES": "PRESIONES",
-                "PRESSURES": "PRESIONES",
-                "TANQUES": "TANQUES",
-                "TANKS": "TANQUES",
-                "MANTENIMIENTO": "MANTENIMIENTO",
-                "MAINTENANCE": "MANTENIMIENTO",
-                "OTROS": "OTROS",
-                "OTHER": "OTROS"
-            }
-            
             standard_category = category_map.get(category_key, "OTROS")
-            
+
             if standard_category not in folder_structure["categories"]:
-                print(f"⚠️ Category {standard_category} not found in folder structure, using OTROS")
-                standard_category = "OTROS"
-            
+                # This shouldn't happen now, but just in case
+                print(f"⚠️ Category {standard_category} folder missing, creating it now")
+                folder_id = get_or_create_folder(
+                    drive_service, folder_structure["photos_folder_id"], standard_category
+                )
+                folder_structure["categories"][standard_category] = folder_id
+
             folder_id = folder_structure["categories"][standard_category]
             uploaded_files[category] = []
-            
+
             print(f"\n📤 Uploading {len(photos)} photo(s) to {standard_category}")
-            
+
             for idx, (filename, file_content, mime_type) in enumerate(photos):
                 # Add timestamp to filename to avoid duplicates
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 unique_filename = f"{folio}_{timestamp}_{idx}_{filename}"
-                
+
                 file_info = upload_photo(
                     drive_service,
                     file_content,
@@ -314,7 +322,7 @@ def upload_maintenance_photos(client_name: str, folio: str, photos_by_category: 
                     folder_id,
                     mime_type
                 )
-                
+
                 uploaded_files[category].append({
                     "file_id": file_info["file_id"],
                     "filename": unique_filename,
