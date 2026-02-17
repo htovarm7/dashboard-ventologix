@@ -1,9 +1,3 @@
-# ------------------------------------------------------------
-# Ventologix PDF Report Generator - Automatico Diario y Semanal
-# Genera y envia reportes DIARIOS, SEMANALES y de MANTENIMIENTO.
-# Destinatarios se obtienen directamente de la BD (tabla ingenieros).
-# ------------------------------------------------------------
-
 from playwright.sync_api import sync_playwright
 from datetime import datetime, timedelta
 from contextlib import contextmanager
