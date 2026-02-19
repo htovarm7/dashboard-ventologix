@@ -1,22 +1,27 @@
+import os
+
 import mysql.connector
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
 
 # --- CONFIGURACIÓN SMTP ---
-SMTP_SERVER = "tu.servidor.smtp.com"
+SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SMTP_USER = "tu_correo@ventologix.com"
-SMTP_PASS = "tu_password"
+SMTP_USER = "andres.mirazo@ventologix.com"
+SMTP_PASS = os.getenv("SMTP_PASSWORD")
+
+load_dotenv()
 
 # --- CONFIGURACIÓN DB ---
 DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'tu_usuario',
-    'password': 'tu_password',
-    'database': 'pruebas'
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'user': os.getenv('DB_USER', 'tu_usuario'),
+    'password': os.getenv('DB_PASSWORD', 'tu_password'),
+    'database': os.getenv('DB_NAME', 'pruebas')
 }
 
 def obtener_datos_envio(tipo_reporte="diario"):
@@ -26,15 +31,13 @@ def obtener_datos_envio(tipo_reporte="diario"):
     columna_filtro = "envio_diario" if tipo_reporte == "diario" else "envio_semanal"
     
     query = f"""
-    SELECT 
-        u.email, u.name as usuario_nombre, u.rol,
-        c.nombre_cliente, c.numero_cliente, c.champion,
-        comp.Alias as compresor_alias,
-        d.id_kpm as vto_id
+    SELECT DISTINCT
+        u.email, 
+        u.name as nombre,
+        c.nombre_cliente, 
+        c.numero_cliente
     FROM usuarios_auth u
     JOIN clientes c ON u.numeroCliente = c.numero_cliente
-    JOIN compresores comp ON c.id_cliente = comp.id_cliente
-    JOIN dispositivo d ON comp.id_cliente = d.id_cliente
     WHERE u.{columna_filtro} = 1
     ORDER BY c.numero_cliente;
     """
@@ -53,7 +56,6 @@ def procesar_y_enviar(tipo_reporte="diario"):
         print(f"No hay envíos programados para el reporte {tipo_reporte}.")
         return
 
-    # Agrupamos por Numero de Cliente para mandar un solo correo por empresa
     clientes_agrupados = {}
     for fila in datos:
         num_cliente = fila['numero_cliente']

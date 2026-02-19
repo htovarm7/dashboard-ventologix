@@ -365,16 +365,22 @@ def send_mail(to: list[str], cc: list[str], bcc: list[str],
                 filename=os.path.basename(pdf_path),
             )
 
-    try:
-        all_addrs = list(to) + list(cc) + list(bcc)
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as smtp:
-            smtp.starttls()
-            smtp.login(SMTP_FROM, SMTP_PASSWORD)
-            smtp.send_message(msg, to_addrs=all_addrs)
-        return True
-    except Exception as e:
-        print(f"  Error SMTP enviando a {to}: {e}")
-        return False
+    all_addrs = list(to) + list(cc) + list(bcc)
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        try:
+            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=30) as smtp:
+                smtp.starttls()
+                smtp.login(SMTP_FROM, SMTP_PASSWORD)
+                smtp.send_message(msg, to_addrs=all_addrs)
+            return True
+        except Exception as e:
+            print(f"  Error SMTP enviando a {to} (intento {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                wait = attempt * 5
+                print(f"  Reintentando en {wait}s...")
+                time.sleep(wait)
+    return False
 
 
 def send_error_mail(failed_pdfs: list = None, missing_files: list = None):
@@ -489,11 +495,14 @@ def enviar_reportes(tipo: str, pdfs_generados: dict):
     enviados = 0
     sin_destino = []
 
-    for key, pdf_path in pdfs_generados.items():
+    for i, (key, pdf_path) in enumerate(pdfs_generados.items()):
         dest = destinatarios.get(key)
         if not dest or not dest['to']:
             sin_destino.append(os.path.basename(pdf_path))
             continue
+
+        if i > 0:
+            time.sleep(2)
 
         subject = f"Reporte {tipo_label} VENTOLOGIX - {dest['nombre_cliente']} {dest['alias']} ({fecha_str})"
         body = f"""
@@ -599,6 +608,81 @@ def clean_pdfs_folder():
 def debe_generar_semanales(fecha: datetime) -> bool:
     return FORZAR_SEMANALES or fecha.weekday() == 0
 
+# ==================== TEST ====================
+TEST_EMAILS = [
+    "andres.mirazo@ventologix.com",
+    "octavio.murillo@ventologix.com",
+    "hector.tovar@ventologix.com",
+]
+
+
+def test():
+    """
+    Genera TODOS los reportes diarios y los envia unicamente
+    a los correos de prueba (TEST_EMAILS), sin tocar a los clientes.
+    """
+    print("=== TEST MODE - REPORTES DIARIOS ===")
+    print(f"Destinatarios de prueba: {TEST_EMAILS}")
+    print(f"Fecha: {FECHA_HOY.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    print("\n--- Verificando conectividad ---")
+    verificar_conectividad()
+
+    print("\n--- Limpiando PDFs ---")
+    clean_pdfs_folder()
+
+    inicio = time.time()
+
+    clientes = obtener_clientes("diario")
+    print(f"\nClientes diarios: {len(clientes)}")
+
+    if not clientes:
+        print("No hay clientes con reportes diarios.")
+        return
+
+    pdfs, fallidos = generar_todos_los_pdfs(clientes, "diario")
+
+    if not pdfs:
+        print("No se genero ningun PDF.")
+        if fallidos:
+            send_error_mail(failed_pdfs=fallidos)
+        return
+
+    # Enviar todos los PDFs a los correos de prueba
+    tipo_label = "Diario"
+    fecha_str = get_fecha_reporte("diario", FECHA_HOY)
+    enviados = 0
+
+    for i, (_, pdf_path) in enumerate(pdfs.items()):
+        nombre_archivo = os.path.basename(pdf_path)
+
+        subject = f"[TEST] Reporte {tipo_label} - {nombre_archivo} ({fecha_str})"
+        body = f"""
+        <p><b>[MODO TEST]</b> - Este correo es solo de prueba.</p>
+        <p>Adjunto el reporte <b>{tipo_label.lower()}</b> correspondiente al {fecha_str}.</p>
+        <p>Archivo: <b>{nombre_archivo}</b></p>
+        """
+
+        if i > 0:
+            time.sleep(2)
+
+        if send_mail(
+            to=TEST_EMAILS, cc=[], bcc=[],
+            subject=subject, body_html=body, pdf_path=pdf_path,
+        ):
+            enviados += 1
+            try:
+                os.remove(pdf_path)
+            except Exception:
+                pass
+
+    elapsed = time.time() - inicio
+    print(f"\n=== TEST COMPLETADO en {elapsed:.1f}s ===")
+    print(f"PDFs generados: {len(pdfs)} | Fallidos: {len(fallidos)} | Correos enviados: {enviados}")
+
+    if fallidos:
+        send_error_mail(failed_pdfs=fallidos)
+
 
 # ==================== MAIN ====================
 
@@ -656,8 +740,14 @@ def main():
 
 
 if __name__ == "__main__":
+    import sys
+    modo = sys.argv[1] if len(sys.argv) > 1 else "main"
+
     try:
-        main()
+        if modo == "test":
+            test()
+        else:
+            main()
     except KeyboardInterrupt:
         print("\nCancelado por el usuario.")
         clean_pdfs_folder()
