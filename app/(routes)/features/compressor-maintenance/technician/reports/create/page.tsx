@@ -1090,6 +1090,210 @@ function FillReport() {
     }
   };
 
+  // Function to update semaforo when maintenance is completed
+  const updateMaintenanceSemaforo = async (
+    formData: ReportFormData,
+    maintenanceData: {
+      mantenimientos: MaintenanceItem[];
+      comentarios_generales: string;
+      comentario_cliente: string;
+    }
+  ) => {
+    try {
+      // Step 1: Get compressor data
+      const compressorAlias = formData.compressorAlias;
+      const numeroSerie = formData.serialNumber;
+      const numeroCliente = formData.clientId || formData.eventualClientId;
+      const compressorType = formData.compressorType || "piston";
+
+      if (!compressorAlias || !numeroCliente) {
+        console.warn("⚠️ Missing compressor data to update semaforo");
+        return;
+      }
+
+      // Step 2: Get the compressor ID from sessionStorage userData
+      const userData = sessionStorage.getItem("userData");
+      let idCompresor: number | null = null;
+
+      if (userData) {
+        const parsedUserData = JSON.parse(userData);
+        const userCompresores = parsedUserData.compresores || [];
+
+        // Find the compressor by alias
+        const matchingCompressor = userCompresores.find(
+          (comp: any) =>
+            comp.alias === compressorAlias ||
+            comp.Alias === compressorAlias ||
+            comp.linea === compressorAlias ||
+            comp.Linea === compressorAlias
+        );
+
+        if (matchingCompressor) {
+          idCompresor = matchingCompressor.id_compresor || parseInt(matchingCompressor.id) || null;
+        }
+      }
+
+      if (!idCompresor) {
+        console.warn("⚠️ Could not find compressor ID");
+        return;
+      }
+
+      console.log(`🔍 Found compressor ID: ${idCompresor} for alias: ${compressorAlias}`);
+
+      // Step 3: Get all maintenance records for this compressor
+      const maintenanceListResponse = await fetch(
+        `${URL_API}/web/maintenance/list?numero_cliente=${numeroCliente}`
+      );
+
+      if (!maintenanceListResponse.ok) {
+        console.error("❌ Error fetching maintenance list");
+        return;
+      }
+
+      const maintenanceListData = await maintenanceListResponse.json();
+      const maintenanceRecords = maintenanceListData.maintenance_records || [];
+
+      // Filter to get only this compressor's maintenance records
+      const compressorMaintenances = maintenanceRecords.filter(
+        (record: any) => record.id_compresor === idCompresor
+      );
+
+      console.log("🔍 Found maintenance records:", compressorMaintenances);
+
+      // Step 4: Get available maintenance types for this compressor type
+      const maintenanceTypesResponse = await fetch(
+        `${URL_API}/web/maintenance/types?tipo=${compressorType}`
+      );
+
+      if (!maintenanceTypesResponse.ok) {
+        console.error("❌ Error fetching maintenance types");
+        return;
+      }
+
+      const maintenanceTypesData = await maintenanceTypesResponse.json();
+      const maintenanceTypes = maintenanceTypesData.maintenance_types || [];
+
+      console.log("🔍 Available maintenance types:", maintenanceTypes);
+
+      // Step 5: Map maintenance item names to maintenance types
+      const maintenanceNameToIdMap: { [key: string]: string } = {
+        "Cambio de aceite": "Cambio de aceite",
+        "Cambio de filtro de aceite": "Cambio de filtro de aceite",
+        "Cambio de filtro de aire": "Cambio de filtro de aire",
+        "Cambio de separador de aceite": "Cambio de separador de aceite",
+        "Revisión de válvula de admisión": "Revisión de válvula de admisión",
+        "Revisión de válvula de descarga": "Revisión de válvula de descarga",
+        "Limpieza de radiador": "Limpieza de radiador",
+        "Revisión de bandas/correas": "Revisión de bandas/correas",
+        "Revisión de fugas de aire": "Revisión de fugas de aire",
+        "Revisión de fugas de aceite": "Revisión de fugas de aceite",
+        "Revisión de conexiones eléctricas": "Revisión de conexiones eléctricas",
+        "Revisión de presostato": "Revisión de presostato",
+        "Revisión de manómetros": "Revisión de manómetros",
+        "Lubricación general": "Lubricación general",
+        "Limpieza general del equipo": "Limpieza general del equipo",
+      };
+
+      // Step 6: Update or create maintenance records for each completed maintenance
+      const today = new Date().toISOString().split("T")[0]; // Format: YYYY-MM-DD
+      const completedMaintenances = maintenanceData.mantenimientos.filter(
+        (item) => item.realizado
+      );
+
+      console.log(`✅ Processing ${completedMaintenances.length} completed maintenance items`);
+
+      for (const completedItem of completedMaintenances) {
+        const maintenanceTypeName = maintenanceNameToIdMap[completedItem.nombre];
+
+        // Find the matching maintenance type
+        const matchingType = maintenanceTypes.find(
+          (type: any) => type.nombre_tipo === maintenanceTypeName
+        );
+
+        if (!matchingType) {
+          console.warn(`⚠️ No maintenance type found for: ${maintenanceTypeName}`);
+          continue;
+        }
+
+        // Find the matching maintenance record
+        const matchingRecord = compressorMaintenances.find(
+          (record: any) => record.id_mantenimiento === matchingType.id_mantenimiento
+        );
+
+        if (matchingRecord) {
+          // UPDATE existing maintenance record
+          console.log(`🔄 Updating maintenance: ${maintenanceTypeName} (ID: ${matchingRecord.id})`);
+
+          const updateResponse = await fetch(
+            `${URL_API}/web/maintenance/${matchingRecord.id}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                frecuencia_horas: matchingRecord.frecuencia_horas,
+                ultimo_mantenimiento: today,
+                activo: matchingRecord.activo ?? true,
+                observaciones: matchingRecord.observaciones || `Actualizado desde reporte técnico - ${formData.folio}`,
+                editado_por: "Técnico Ventologix (Auto-actualizado desde reporte)",
+              }),
+            }
+          );
+
+          if (updateResponse.ok) {
+            console.log(`✅ Updated semaforo for: ${maintenanceTypeName}`);
+          } else {
+            const errorData = await updateResponse.json();
+            console.error(`❌ Error updating ${maintenanceTypeName}:`, errorData);
+          }
+        } else {
+          // CREATE new maintenance record
+          console.log(`➕ Creating new maintenance record: ${maintenanceTypeName}`);
+
+          const userDataStr = sessionStorage.getItem("userData");
+          const currentUserName = userDataStr
+            ? JSON.parse(userDataStr)?.name || "Técnico Ventologix"
+            : "Técnico Ventologix";
+
+          const createResponse = await fetch(
+            `${URL_API}/web/maintenance/add`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                id_compresor: idCompresor,
+                id_mantenimiento: matchingType.id_mantenimiento,
+                frecuencia_horas: matchingType.frecuencia || 2000,
+                ultimo_mantenimiento: today,
+                activo: true,
+                observaciones: `Creado desde reporte técnico - ${formData.folio}`,
+                costo: 0,
+                creado_por: currentUserName,
+                fecha_creacion: today,
+              }),
+            }
+          );
+
+          if (createResponse.ok) {
+            const createResult = await createResponse.json();
+            console.log(`✅ Created new maintenance record for: ${maintenanceTypeName} (ID: ${createResult.id})`);
+          } else {
+            const errorData = await createResponse.json();
+            console.error(`❌ Error creating ${maintenanceTypeName}:`, errorData);
+          }
+        }
+      }
+
+      console.log("✅ Semaforo update complete");
+    } catch (error) {
+      console.error("❌ Error in updateMaintenanceSemaforo:", error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -1230,6 +1434,15 @@ function FillReport() {
             const maintenanceResult = await maintenanceResponse.json();
             if (maintenanceResponse.ok) {
               console.log("✅ Maintenance data saved:", maintenanceResult);
+
+              // 🔄 Update semaforo: Update ultimo_mantenimiento for completed maintenance items
+              try {
+                console.log("🚦 Updating semaforo for completed maintenance items...");
+                await updateMaintenanceSemaforo(formData, maintenanceData);
+              } catch (semaforoError) {
+                console.error("⚠️ Error updating semaforo:", semaforoError);
+                // Don't block the main flow if semaforo update fails
+              }
             } else {
               console.error(
                 "⚠️ Error saving maintenance data:",
