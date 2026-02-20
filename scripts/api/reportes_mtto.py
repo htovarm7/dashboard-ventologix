@@ -132,7 +132,7 @@ def save_pre_mantenimiento(data: PreMantenimientoRequest):
             # Update existing record
             set_clause = ", ".join([f"`{k}` = %s" for k in fields])
             query = f"""
-                UPDATE reportes_pre_mantenimiento 
+                UPDATE reportes_pre_mantenimiento
                 SET {set_clause}, `fecha_actualizacion` = NOW()
                 WHERE folio = %s
             """
@@ -142,15 +142,29 @@ def save_pre_mantenimiento(data: PreMantenimientoRequest):
             # Insert new record
             fields.append("folio")
             values.append(data.folio)
-            
+
             placeholders = ", ".join(["%s"] * len(values))
             field_names = ", ".join([f"`{f}`" for f in fields])
-            
+
             query = f"""
                 INSERT INTO reportes_pre_mantenimiento ({field_names})
                 VALUES ({placeholders})
             """
             cursor.execute(query, values)
+
+            # Create the master record in `reportes` table
+            cursor.execute(
+                "SELECT id_cliente FROM ordenes_servicio WHERE folio = %s",
+                (data.folio,)
+            )
+            orden = cursor.fetchone()
+            id_cliente = orden[0] if orden else None
+
+            cursor.execute(
+                """INSERT IGNORE INTO reportes (folio, id_cliente, estado)
+                   VALUES (%s, %s, 'pre_mantenimiento')""",
+                (data.folio, id_cliente)
+            )
 
         conn.commit()
         cursor.close()
@@ -322,6 +336,12 @@ def save_post_mantenimiento(data: PostMantenimientoRequest):
             (data.folio,)
         )
 
+        # Update estado in reportes table
+        cursor.execute(
+            "UPDATE reportes SET estado = 'completado' WHERE folio = %s",
+            (data.folio,)
+        )
+
         # Note: Status is NOT automatically set to 'terminado' here
         # It should only be set when the user explicitly clicks "Terminar Reporte"
         # Use the /finalizar-reporte/{folio} endpoint instead
@@ -383,6 +403,12 @@ def finalizar_reporte(folio: str = Path(..., description="Folio del reporte")):
             """UPDATE reportes_status
                SET enviado = 1
                WHERE folio = %s""",
+            (folio,)
+        )
+
+        # Update estado in reportes table
+        cursor.execute(
+            "UPDATE reportes SET estado = 'enviado' WHERE folio = %s",
             (folio,)
         )
 
