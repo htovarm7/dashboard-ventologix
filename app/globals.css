@@ -1,9 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap");
 @import "tailwindcss";
 
-/* This doesnt change anything */
 :root {
-  --background: #000000;
+  --background: #ffffff;
   --foreground: #000000;
   --font-sans: "Outfit", sans-serif;
 }
@@ -12,13 +11,6 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #ffffff;
-    --foreground: #000000; /* Font color */
-  }
 }
 
 body {

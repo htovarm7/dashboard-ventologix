@@ -26,6 +26,7 @@ load_dotenv()
 # ==================== CONFIG ====================
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, "..", ".."))
 DOWNLOADS_FOLDER = os.path.join(BASE_DIR, "pdfs")
 
 ALIAS_NAME = "VTO LOGIX"
@@ -35,8 +36,8 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
-LOGO_PATH = os.path.join(BASE_DIR, "public", "Logo vento firma.jpg")
-VENTOLOGIX_LOGO_PATH = os.path.join(BASE_DIR, "public", "ventologix firma.jpg")
+LOGO_PATH = os.path.join(PROJECT_ROOT, "public", "Logo vento firma.jpg")
+VENTOLOGIX_LOGO_PATH = os.path.join(PROJECT_ROOT, "public", "ventologix firma.jpg")
 
 GOOGLE_DRIVE_FOLDER_ID = "19YM9co-kyogK7iXeJ-Wwq1VnrICr50Xk"
 GDRIVE_SCOPES = ['https://www.googleapis.com/auth/drive.file']
