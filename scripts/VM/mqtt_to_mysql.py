@@ -79,6 +79,14 @@ def on_message(client, userdata, msg):
             return
         id_device = result['id_cliente']
 
+        # Verificar si el compresor requiere multiplicar corrientes x2
+        cursor.execute(
+            "SELECT multiplicar_por_dos FROM compresores WHERE id_cliente = %s LIMIT 1",
+            (id_device,)
+        )
+        comp_result = cursor.fetchone()
+        multiplicar_por_dos = bool(comp_result and comp_result.get('multiplicar_por_dos') == 1)
+
         # Parsear timestamp en 'time' (string 'YYYYMMDDHHMMSS')
         time_str = payload.get("time")
         if not time_str:
@@ -93,6 +101,13 @@ def on_message(client, userdata, msg):
         ia = float(payload.get("ia", 0))
         ib = float(payload.get("ib", 0))
         ic = float(payload.get("ic", 0))
+
+        # Multiplicar corrientes x2 si está configurado
+        if multiplicar_por_dos:
+            ia *= 2
+            ib *= 2
+            ic *= 2
+            logging.info(f"⚡ Corrientes multiplicadas x2 para device {id_device}")
         # Insertar en BD
         insert_query = """
             INSERT INTO pruebas (device_id, ua, ub, uc, ia, ib, ic, time)
