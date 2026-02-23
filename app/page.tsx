@@ -71,7 +71,9 @@ export default function Page() {
             email: data.email,
             name: data.name,
             modulos: data.modulos || {},
-            compresores: (data.compresores || []).map((c: Compressor) => {
+            compresores: (data.compresores || [])
+            .filter((c: Compressor) => c.activo === 1)
+            .map((c: Compressor) => {
               return {
                 ...c,
               };

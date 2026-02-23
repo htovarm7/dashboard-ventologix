@@ -1926,7 +1926,7 @@ def generate_predictions_fast(series: pd.Series, days: int = 3) -> Tuple[List[fl
         return [promedio] * days, "Promedio (modelo falló)"
     
 def get_public_image_url(file_id: str):
-    return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
+    return f"https://lh3.googleusercontent.com/d/{file_id}"
 
 def get_drive_folder_images(folder_url: str):
     """
@@ -1987,7 +1987,7 @@ def get_drive_folder_images(folder_url: str):
     # 5. Convertir a URLs visibles
     # ------------------------------------------
     images = [
-        f"https://drive.google.com/thumbnail?id={f['id']}&sz=w2000"
+        f"https://lh3.googleusercontent.com/d/{f['id']}"
         for f in files
     ]
 

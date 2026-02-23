@@ -41,9 +41,9 @@ VENTOLOGIX_LOGO_PATH = os.path.join(PROJECT_ROOT, "public", "ventologix firma.jp
 
 GOOGLE_DRIVE_FOLDER_ID = "19YM9co-kyogK7iXeJ-Wwq1VnrICr50Xk"
 GDRIVE_SCOPES = ['https://www.googleapis.com/auth/drive.file']
-CREDENTIALS_FILE = os.path.join(BASE_DIR, "credentials.json")
-TOKEN_JSON = os.path.join(BASE_DIR, "token.json")
-TOKEN_PICKLE = os.path.join(BASE_DIR, "token.pickle")
+CREDENTIALS_FILE = os.path.join(PROJECT_ROOT, "lib", "oauth_credentials.json")
+TOKEN_JSON = os.path.join(PROJECT_ROOT, "lib", "token.json")
+TOKEN_PICKLE = os.path.join(PROJECT_ROOT, "lib", "token.pickle")
 
 ADMIN_CORREOS = [
     "hector.tovar@ventologix.com",
@@ -220,16 +220,19 @@ def get_fecha_reporte(tipo: str, fecha_base: datetime = None) -> str:
 def obtener_clientes(tipo: str) -> list[dict]:
     """
     Obtiene clientes+compresores que necesitan reportes.
-    Reemplaza la llamada HTTP a /report/clients-data.
+    Solo incluye compresores con al menos un destinatario válido en usuarios_auth.
     """
-    flag = "Diario" if tipo == "diario" else "Semanal"
+    flag = "envio_diario" if tipo == "diario" else "envio_semanal"
     with db_connection() as conn:
         cursor = conn.cursor(dictionary=True)
         cursor.execute(f"""
-            SELECT e.id_cliente, e.nombre_cliente, comp.linea, comp.Alias as alias
-            FROM envios e
-            JOIN compresores comp ON e.id_cliente = comp.id_cliente
-            WHERE e.{flag} = 1
+            SELECT DISTINCT c.id_cliente, c.nombre_cliente, comp.linea, comp.Alias AS alias
+            FROM clientes c
+            JOIN compresores comp ON comp.id_cliente = c.id_cliente
+            JOIN usuarios_auth ua ON ua.numeroCliente = c.numero_cliente
+            WHERE ua.{flag} = 1
+              AND ua.email IS NOT NULL AND ua.email != ''
+              AND ua.email NOT LIKE '##%%'
         """)
         rows = cursor.fetchall()
         cursor.close()
@@ -239,29 +242,23 @@ def obtener_clientes(tipo: str) -> list[dict]:
 def obtener_destinatarios(tipo: str) -> dict:
     """
     Obtiene destinatarios desde BD agrupados por (id_cliente, linea).
-    Usa tablas: envios, compresores, clientes, ingeniero_compresor, ingenieros, usuarios_auth.
+    Usa tablas: clientes, compresores, usuarios_auth.
     Retorna: {(id_cliente, linea): {'nombre_cliente', 'alias', 'to': [...], 'cc': [...]}}
     """
-    email_flag = "email_daily" if tipo == "diario" else "email_weekly"
-    envio_flag = "Diario" if tipo == "diario" else "Semanal"
+    flag = "envio_diario" if tipo == "diario" else "envio_semanal"
 
     query = f"""
-        SELECT
-            e.id_cliente, e.nombre_cliente,
+        SELECT DISTINCT
+            c.id_cliente, c.nombre_cliente,
             comp.linea, comp.Alias,
-            i.email,
-            COALESCE(u.rol, 4) as rol
-        FROM envios e
-        JOIN compresores comp ON e.id_cliente = comp.id_cliente
-        JOIN clientes cl ON e.id_cliente = cl.id_cliente
-        JOIN ingeniero_compresor ic ON ic.compresor_id = comp.id
-        JOIN ingenieros i ON ic.ingeniero_id = i.id
-            AND i.numeroCliente = cl.numero_cliente
-            AND i.{email_flag} = 1
-        LEFT JOIN usuarios_auth u ON i.email = u.email
-            AND i.numeroCliente = u.numeroCliente
-        WHERE e.{envio_flag} = 1
-        ORDER BY e.id_cliente, comp.Alias
+            ua.email, ua.rol
+        FROM clientes c
+        JOIN compresores comp ON comp.id_cliente = c.id_cliente
+        JOIN usuarios_auth ua ON ua.numeroCliente = c.numero_cliente
+        WHERE ua.{flag} = 1
+          AND ua.email IS NOT NULL AND ua.email != ''
+          AND ua.email NOT LIKE '##%%'
+        ORDER BY c.id_cliente, comp.Alias
     """
 
     with db_connection() as conn:
@@ -281,7 +278,7 @@ def obtener_destinatarios(tipo: str) -> dict:
                 'cc': [],
             }
         email = row['email']
-        rol = row['rol']
+        rol = row['rol'] if row['rol'] is not None else 4
         bucket = 'cc' if rol in (0, 1, 2) else 'to'
         if email not in destinatarios[key][bucket]:
             destinatarios[key][bucket].append(email)

@@ -43,6 +43,7 @@ export interface Compressor {
   numero_serie: string;
   numero_cliente: number;
   nombre_cliente?: string;
+  activo?: number;
 }
 
 /* ===== Usuarios ======= */

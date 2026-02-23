@@ -29,8 +29,8 @@ const nextConfig = {
       },
       {
         protocol: "https",
-        hostname: "drive.google.com",
-        pathname: "/thumbnail/**",
+        hostname: "lh3.googleusercontent.com",
+        pathname: "/d/**",
       },
     ],
   },

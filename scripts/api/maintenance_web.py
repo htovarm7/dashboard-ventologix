@@ -163,7 +163,7 @@ maintenance_web = APIRouter(prefix="/web", tags=["🛠️ Mantenimiento de Compr
 
 
 def get_public_image_url(file_id: str) -> str:
-    return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
+    return f"https://lh3.googleusercontent.com/d/{file_id}"
 
 
 def get_drive_folder_images(folder_url: str) -> List[dict]:
