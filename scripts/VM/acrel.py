@@ -81,22 +81,28 @@ def insert_data(payload):
             # Convertir y redondear a :00 o :30
             formatted_time = redondear_a_30s(tp_raw).strftime("%Y-%m-%d %H:%M:%S")
 
+            # Paso 3.5: Verificar si el compresor requiere multiplicar corrientes x2
+            cursor.execute(
+                "SELECT multiplicar_por_dos FROM compresores WHERE id_cliente = %s LIMIT 1",
+                (id_cliente,)
+            )
+            comp_result = cursor.fetchone()
+            multiplicar_por_dos = bool(comp_result and comp_result.get('multiplicar_por_dos') == 1)
+
             # Paso 4: Valores eléctricos
             points = payload["data"][0].get("point", [])
             ua = find_val(points, 1)
-            ub = find_val(points, 2)  
+            ub = find_val(points, 2)
             uc = find_val(points, 3)
             ia = find_val(points, 7)
             ib = find_val(points, 8)
             ic = find_val(points, 9)
 
-            if id_cliente == 30:
-                ua *= 2
-                ub *= 2
-                uc *= 2
+            if multiplicar_por_dos:
                 ia *= 2
                 ib *= 2
                 ic *= 2
+                print(f"⚡ Corrientes multiplicadas x2 para id_cliente {id_cliente}")
 
             insert_electrico = """
                 INSERT INTO pruebas (device_id, ua, ub, uc, ia, ib, ic, time)

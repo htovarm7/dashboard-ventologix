@@ -36,8 +36,9 @@ class Compresor(BaseModel):
     linea: str
     LOAD_NO_LOAD: Optional[int] = None
     Alias: str
-    segundosPorRegistro: Optional[int] = None 
+    segundosPorRegistro: Optional[int] = None
     fecha_ultimo_mtto: Optional[datetime] = None
+    multiplicar_por_dos: Optional[bool] = False
 
 class CompresorEventual(BaseModel):
     hp: Optional[int] = None

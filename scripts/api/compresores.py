@@ -56,6 +56,7 @@ def get_all_compresores():
                 "linea": row[11],
                 "LOAD_NO_LOAD": row[12],
                 "Alias": row[13],
+                "multiplicar_por_dos": bool(row[14]),
                 "fecha_utlimo_mtto": row[15],
                 "modelo": row[16],
                 "nombre_cliente": row[17]
@@ -111,7 +112,8 @@ def get_compresores_cliente(numero_cliente: int = Path(...,description="Numero d
                 "linea": row[11],
                 "LOAD_NO_LOAD": row[12],
                 "Alias": row[13],
-                "fecha_utlimo_mtto": row[14]
+                "multiplicar_por_dos": bool(row[14]),
+                "fecha_utlimo_mtto": row[15]
             }
             for row in res
         ]
@@ -207,8 +209,8 @@ def create_compresor(request: Compresor):
         cursor.execute(
             """INSERT INTO compresores
                 (id, hp, tipo, voltaje, marca, numero_serie, anio, id_cliente,
-                Amp_Load, Amp_No_Load, proyecto, linea, LOAD_NO_LOAD, Alias, fecha_utlimo_mtto)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                Amp_Load, Amp_No_Load, proyecto, linea, LOAD_NO_LOAD, Alias, fecha_utlimo_mtto, multiplicar_por_dos)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 next_id,
@@ -225,7 +227,8 @@ def create_compresor(request: Compresor):
                 request.linea,
                 request.LOAD_NO_LOAD,
                 request.Alias,
-                request.fecha_ultimo_mtto
+                request.fecha_ultimo_mtto,
+                request.multiplicar_por_dos
             )
         )
 
@@ -289,11 +292,11 @@ def update_compresor(compresor_id: int = Path(..., description="ID del compresor
             raise HTTPException(status_code=404, detail="Compresor no encontrado")
 
         cursor.execute(
-            """UPDATE compresores SET 
+            """UPDATE compresores SET
                hp = %s, tipo = %s, voltaje = %s, marca = %s, numero_serie = %s,
                anio = %s, id_cliente = %s, Amp_Load = %s, Amp_No_Load = %s,
                proyecto = %s, linea = %s, LOAD_NO_LOAD = %s, Alias = %s,
-               fecha_utlimo_mtto = %s
+               fecha_utlimo_mtto = %s, multiplicar_por_dos = %s
                WHERE id = %s""",
             (
                 request.hp,
@@ -310,6 +313,7 @@ def update_compresor(compresor_id: int = Path(..., description="ID del compresor
                 request.LOAD_NO_LOAD,
                 request.Alias,
                 request.fecha_ultimo_mtto,
+                request.multiplicar_por_dos,
                 compresor_id
             )
         )
