@@ -66,14 +66,21 @@ def db_connection():
         conn.close()
 
 
-def upload_to_gcs(file_path: str) -> bool:
-    """Sube un archivo PDF a Google Cloud Storage."""
+def upload_to_gcs(file_path: str, client_name: str = "", folio: str = "") -> bool:
+    """Sube un archivo PDF a Google Cloud Storage dentro de la carpeta del folio.
+    Path: mantenimiento/{year}/{month}/{client_name}/{folio}/{filename}
+    """
     try:
         credentials = service_account.Credentials.from_service_account_file(GCS_KEY_FILE)
-        client = storage.Client(credentials=credentials, project=credentials.project_id)
-        bucket = client.bucket(GCS_BUCKET_NAME)
+        gcs_client = storage.Client(credentials=credentials, project=credentials.project_id)
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
         now = datetime.now()
-        blob_name = f"mantenimiento/{now.strftime('%Y')}/{now.strftime('%m')}/pdfs/{os.path.basename(file_path)}"
+        clean_client = client_name.strip().replace('/', '-') if client_name else "sin-cliente"
+        clean_folio = folio.strip().replace('/', '-') if folio else "sin-folio"
+        blob_name = (
+            f"mantenimiento/{now.strftime('%Y')}/{now.strftime('%m')}"
+            f"/{clean_client}/{clean_folio}/{os.path.basename(file_path)}"
+        )
         blob = bucket.blob(blob_name)
         blob.upload_from_filename(file_path, content_type='application/pdf')
         try:
@@ -409,7 +416,7 @@ def generar_todos_los_pdfs(clientes: list[dict], tipo: str) -> tuple[dict, list]
         if pdf_path:
             generados[(id_cliente, linea)] = pdf_path
             if tipo == "semanal":
-                upload_to_gcs(pdf_path)
+                upload_to_gcs(pdf_path, client_name=nombre_cliente, folio=etiqueta)
             print(f"  OK ({elapsed:.1f}s)")
         else:
             fallidos.append({
@@ -495,9 +502,7 @@ def procesar_mantenimientos() -> tuple[int, int]:
 
         pdf_path = generar_pdf_mantenimiento(registro_id, numero_serie, cliente, fecha)
         if pdf_path:
-            carpeta = reg.get('carpeta_fotos')
-            if carpeta:
-                upload_to_gcs(pdf_path)
+            upload_to_gcs(pdf_path, client_name=cliente, folio=str(registro_id))
             exitosos += 1
         else:
             fallidos_count += 1
