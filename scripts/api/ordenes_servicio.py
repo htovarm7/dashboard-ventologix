@@ -194,14 +194,16 @@ def create_orden_servicio(request: OrdenServicio):
 
 @ordenes.patch("/{folio}/estado")
 def update_orden_estado(folio: str, estado: str):
+    conn = None
+    cursor = None
     try:
-        valid_estados = ['no_iniciado', 'en_progreso', 'terminado']
+        valid_estados = ['no_iniciado', 'en_progreso', 'terminado', 'por_firmar']
         if estado not in valid_estados:
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail=f"Estado inválido. Debe ser uno de: {', '.join(valid_estados)}"
             )
-        
+
         conn = mysql.connector.connect(
             host=DB_HOST,
             user=DB_USER,

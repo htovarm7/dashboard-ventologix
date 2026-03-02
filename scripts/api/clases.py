@@ -75,7 +75,7 @@ class OrdenServicio(BaseModel):
     prioridad: Literal['baja','media','alta','urgente']
     fecha_programada: datetime
     hora_programada: time
-    estado: Literal['no_iniciado','en_progreso','terminado','enviado']
+    estado: Literal['no_iniciado','en_progreso','terminado','enviado','por_firmar']
     fecha_creacion: datetime
     reporte_url: Optional[str]
 

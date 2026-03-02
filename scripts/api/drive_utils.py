@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from google.cloud import storage
 from google.oauth2 import service_account
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Configure UTF-8 encoding for Windows console
 if sys.platform == 'win32':
@@ -21,12 +21,16 @@ SCRIPT_DIR = Path(__file__).resolve().parent.parent.parent
 LIB_DIR = SCRIPT_DIR / "lib"
 GCS_KEY_FILE = str(LIB_DIR / "gcs-storage-key.json")
 
-BUCKET_NAME = "vento-save-archive"
+BUCKET_NAME = "vento-archive"
+
+
+def get_credentials():
+    return service_account.Credentials.from_service_account_file(GCS_KEY_FILE)
 
 
 def get_gcs_client():
     """Initialize and return a GCS Storage client using service account credentials."""
-    credentials = service_account.Credentials.from_service_account_file(GCS_KEY_FILE)
+    credentials = get_credentials()
     return storage.Client(credentials=credentials, project=credentials.project_id)
 
 
@@ -35,8 +39,15 @@ def get_bucket():
     return get_gcs_client().bucket(BUCKET_NAME)
 
 
-def _make_public_url(blob_name: str) -> str:
-    return f"https://storage.googleapis.com/{BUCKET_NAME}/{blob_name}"
+def _make_signed_url(blob, expiration_days: int = 7) -> str:
+    """Generate a signed URL valid for expiration_days."""
+    credentials = get_credentials()
+    return blob.generate_signed_url(
+        expiration=timedelta(days=expiration_days),
+        method="GET",
+        version="v4",
+        credentials=credentials,
+    )
 
 
 def upload_photo(bucket, file_content: bytes, blob_name: str, mime_type: str = 'image/jpeg') -> dict:
@@ -55,14 +66,9 @@ def upload_photo(bucket, file_content: bytes, blob_name: str, mime_type: str = '
     try:
         blob = bucket.blob(blob_name)
         blob.upload_from_string(file_content, content_type=mime_type)
-        try:
-            blob.make_public()
-        except Exception:
-            pass  # Bucket may use uniform access; URL works if bucket is publicly readable
-
-        public_url = _make_public_url(blob_name)
+        signed_url = _make_signed_url(blob)
         print(f"✅ Uploaded: {blob_name}")
-        return {"blob_name": blob_name, "public_url": public_url}
+        return {"blob_name": blob_name, "public_url": signed_url}
 
     except Exception as error:
         print(f"❌ Error uploading {blob_name}: {error}")
@@ -194,9 +200,9 @@ def list_gcs_photos_by_folio(client_name: str, folio: str) -> dict:
                 continue
 
             category = parts[0]
-            public_url = _make_public_url(blob.name)
-            by_category.setdefault(category, []).append(public_url)
-            flat.append(public_url)
+            signed_url = _make_signed_url(blob)
+            by_category.setdefault(category, []).append(signed_url)
+            flat.append(signed_url)
 
         return {"by_category": by_category, "flat": flat}
 
