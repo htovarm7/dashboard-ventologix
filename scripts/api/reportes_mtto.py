@@ -438,10 +438,12 @@ def finalizar_reporte(folio: str = Path(..., description="Folio del reporte")):
 
         # ── Semáforo: reset y alta automática ──────────────────────────────
         # 1. Resolve id_compresor and tipo_compresor from ordenes_servicio
+        # COLLATE forces a consistent collation to avoid utf8mb4 mismatch errors
         cursor.execute(
             """SELECT c.id AS id_compresor, o.tipo
                FROM ordenes_servicio o
-               JOIN compresores c ON o.numero_serie = c.numero_serie
+               JOIN compresores c
+                 ON o.numero_serie COLLATE utf8mb4_unicode_ci = c.numero_serie COLLATE utf8mb4_unicode_ci
                WHERE o.folio = %s
                LIMIT 1""",
             (folio,)
