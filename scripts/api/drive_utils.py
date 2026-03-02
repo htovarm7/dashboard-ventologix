@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from google.cloud import storage
 from google.oauth2 import service_account
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Configure UTF-8 encoding for Windows console
 if sys.platform == 'win32':
@@ -39,17 +39,6 @@ def get_bucket():
     return get_gcs_client().bucket(BUCKET_NAME)
 
 
-def _make_signed_url(blob, expiration_days: int = 7) -> str:
-    """Generate a signed URL valid for expiration_days."""
-    credentials = get_credentials()
-    return blob.generate_signed_url(
-        expiration=timedelta(days=expiration_days),
-        method="GET",
-        version="v4",
-        credentials=credentials,
-    )
-
-
 def upload_photo(bucket, file_content: bytes, blob_name: str, mime_type: str = 'image/jpeg') -> dict:
     """
     Upload a single photo to GCS and return its public URL.
@@ -66,9 +55,8 @@ def upload_photo(bucket, file_content: bytes, blob_name: str, mime_type: str = '
     try:
         blob = bucket.blob(blob_name)
         blob.upload_from_string(file_content, content_type=mime_type)
-        signed_url = _make_signed_url(blob)
         print(f"✅ Uploaded: {blob_name}")
-        return {"blob_name": blob_name, "public_url": signed_url}
+        return {"blob_name": blob_name}
 
     except Exception as error:
         print(f"❌ Error uploading {blob_name}: {error}")
@@ -148,7 +136,6 @@ def upload_maintenance_photos(client_name: str, folio: str, photos_by_category: 
                     "blob_name": file_info["blob_name"],
                     "filename": unique_filename,
                     "category": standard_category,
-                    "public_url": file_info["public_url"],
                 })
 
         print(f"\n✅ Successfully uploaded all photos for folio {folio}")
@@ -200,9 +187,8 @@ def list_gcs_photos_by_folio(client_name: str, folio: str) -> dict:
                 continue
 
             category = parts[0]
-            signed_url = _make_signed_url(blob)
-            by_category.setdefault(category, []).append(signed_url)
-            flat.append(signed_url)
+            by_category.setdefault(category, []).append(blob.name)
+            flat.append(blob.name)
 
         return {"by_category": by_category, "flat": flat}
 

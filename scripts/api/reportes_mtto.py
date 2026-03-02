@@ -12,7 +12,7 @@ from datetime import datetime
 import json
 
 from .clases import Modulos, PreMantenimientoRequest, PostMantenimientoRequest
-from .drive_utils import upload_maintenance_photos, list_gcs_photos_by_folio, BUCKET_NAME
+from .drive_utils import upload_maintenance_photos, list_gcs_photos_by_folio, get_gcs_client, BUCKET_NAME
 from .pdf_playwright import generate_pdf_from_react
 
 load_dotenv()
@@ -22,6 +22,25 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_DATABASE = os.getenv("DB_DATABASE")
 
 reportes_mtto = APIRouter(prefix="/reporte_mtto", tags=["Reportes de Mantenimiento"])
+
+
+def _foto_url(request: Request, blob_name: str) -> str:
+    base = str(request.base_url).rstrip("/")
+    return f"{base}/reporte_mtto/foto?blob={blob_name}"
+
+
+@reportes_mtto.get("/foto")
+def get_foto(blob: str, request: Request):
+    """Proxy endpoint: descarga una foto de GCS y la sirve al cliente."""
+    try:
+        client = get_gcs_client()
+        gcs_blob = client.bucket(BUCKET_NAME).blob(blob)
+        content = gcs_blob.download_as_bytes()
+        content_type = gcs_blob.content_type or "image/jpeg"
+        return StreamingResponse(io.BytesIO(content), media_type=content_type)
+    except Exception as err:
+        raise HTTPException(status_code=404, detail=f"Photo not found: {str(err)}")
+
 
 @reportes_mtto.get("/status")
 def get_reporte_status():
@@ -195,6 +214,7 @@ def save_pre_mantenimiento(data: PreMantenimientoRequest):
 
 @reportes_mtto.post("/upload-photos")
 async def upload_photos(
+    request: Request,
     folio: str = Form(...),
     client_name: str = Form(...),
     category: str = Form(...),
@@ -249,10 +269,14 @@ async def upload_photos(
         
         if result.get("success"):
             print(f"✅ [DEBUG] Upload succeeded!")
+            uploaded_with_urls = {
+                cat: [{**f, "public_url": _foto_url(request, f["blob_name"])} for f in files]
+                for cat, files in result["uploaded_files"].items()
+            }
             return {
                 "success": True,
                 "message": f"Successfully uploaded {len(files)} photo(s) to Google Cloud Storage",
-                "uploaded_files": result["uploaded_files"],
+                "uploaded_files": uploaded_with_urls,
                 "gcs_prefix": result["gcs_prefix"]
             }
         else:
@@ -629,7 +653,7 @@ def get_report_history():
 
 
 @reportes_mtto.get("/reporte-completo/{folio}")
-def get_full_report(folio: str = Path(..., description="Folio del reporte")):
+def get_full_report(request: Request, folio: str = Path(..., description="Folio del reporte")):
     """
     Get all report data (pre, maintenance, post) for PDF generation and client view.
     Includes photos from Google Drive if available.
@@ -686,8 +710,11 @@ def get_full_report(folio: str = Path(..., description="Folio del reporte")):
             client_name = (orden.get("nombre_cliente") or "").strip().replace('/', '-')
             if client_name:
                 gcs_result = list_gcs_photos_by_folio(client_name, folio)
-                fotos_by_category = gcs_result["by_category"]
-                fotos_drive_flat = gcs_result["flat"]
+                fotos_by_category = {
+                    cat: [_foto_url(request, b) for b in blobs]
+                    for cat, blobs in gcs_result["by_category"].items()
+                }
+                fotos_drive_flat = [_foto_url(request, b) for b in gcs_result["flat"]]
         except Exception as e:
             print(f"Warning: Could not fetch photos from GCS: {str(e)}")
 
