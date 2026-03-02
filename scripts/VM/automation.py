@@ -4,14 +4,10 @@ from contextlib import contextmanager
 from email.message import EmailMessage
 from email.utils import make_msgid
 from dotenv import load_dotenv
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.cloud import storage
+from google.oauth2 import service_account
 import mysql.connector
 import smtplib
-import pickle
 import time
 import os
 import locale
@@ -39,11 +35,8 @@ SMTP_PORT = 587
 LOGO_PATH = os.path.join(PROJECT_ROOT, "public", "Logo vento firma.jpg")
 VENTOLOGIX_LOGO_PATH = os.path.join(PROJECT_ROOT, "public", "ventologix firma.jpg")
 
-GOOGLE_DRIVE_FOLDER_ID = "19YM9co-kyogK7iXeJ-Wwq1VnrICr50Xk"
-GDRIVE_SCOPES = ['https://www.googleapis.com/auth/drive.file']
-CREDENTIALS_FILE = os.path.join(PROJECT_ROOT, "lib", "oauth_credentials.json")
-TOKEN_JSON = os.path.join(PROJECT_ROOT, "lib", "token.json")
-TOKEN_PICKLE = os.path.join(PROJECT_ROOT, "lib", "token.pickle")
+GCS_KEY_FILE = os.path.join(PROJECT_ROOT, "lib", "gcs-storage-key.json")
+GCS_BUCKET_NAME = "vento-save-archive"
 
 ADMIN_CORREOS = [
     # "hector.tovar@ventologix.com",
@@ -73,77 +66,31 @@ def db_connection():
         conn.close()
 
 
-_drive_service_cache = None
-
-def get_drive_service():
-    """Autenticacion Google Drive unificada (token.json o token.pickle)."""
-    global _drive_service_cache
-    if _drive_service_cache is not None:
-        return _drive_service_cache
-
-    creds = None
-
-    # Intentar token.json primero
-    if os.path.exists(TOKEN_JSON):
-        try:
-            creds = Credentials.from_authorized_user_file(TOKEN_JSON, GDRIVE_SCOPES)
-        except Exception:
-            creds = None
-
-    # Fallback a token.pickle
-    if not creds and os.path.exists(TOKEN_PICKLE):
-        try:
-            with open(TOKEN_PICKLE, 'rb') as f:
-                creds = pickle.load(f)
-        except Exception:
-            creds = None
-
-    # Refrescar si expirado
-    if creds and not creds.valid and creds.expired and creds.refresh_token:
-        try:
-            creds.refresh(Request())
-        except Exception:
-            creds = None
-
-    # OAuth interactivo si no hay credenciales validas
-    if not creds or not creds.valid:
-        if not os.path.exists(CREDENTIALS_FILE):
-            print(f"Error: credentials.json no encontrado en {CREDENTIALS_FILE}")
-            return None
-        flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, GDRIVE_SCOPES)
-        creds = flow.run_local_server(port=8080, open_browser=True)
-
-    # Guardar token
+def upload_to_gcs(file_path: str, client_name: str = "", folio: str = "") -> bool:
+    """Sube un archivo PDF a Google Cloud Storage dentro de la carpeta del folio.
+    Path: mantenimiento/{year}/{month}/{client_name}/{folio}/{filename}
+    """
     try:
-        with open(TOKEN_JSON, 'w') as f:
-            f.write(creds.to_json())
-    except Exception:
+        credentials = service_account.Credentials.from_service_account_file(GCS_KEY_FILE)
+        gcs_client = storage.Client(credentials=credentials, project=credentials.project_id)
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        now = datetime.now()
+        clean_client = client_name.strip().replace('/', '-') if client_name else "sin-cliente"
+        clean_folio = folio.strip().replace('/', '-') if folio else "sin-folio"
+        blob_name = (
+            f"mantenimiento/{now.strftime('%Y')}/{now.strftime('%m')}"
+            f"/{clean_client}/{clean_folio}/{os.path.basename(file_path)}"
+        )
+        blob = bucket.blob(blob_name)
+        blob.upload_from_filename(file_path, content_type='application/pdf')
         try:
-            with open(TOKEN_PICKLE, 'wb') as f:
-                pickle.dump(creds, f)
+            blob.make_public()
         except Exception:
             pass
-
-    _drive_service_cache = build('drive', 'v3', credentials=creds)
-    return _drive_service_cache
-
-
-def upload_to_drive(file_path: str, folder_id: str = GOOGLE_DRIVE_FOLDER_ID) -> bool:
-    """Sube un archivo PDF a Google Drive."""
-    try:
-        service = get_drive_service()
-        if not service:
-            return False
-        media = MediaFileUpload(file_path, mimetype='application/pdf')
-        result = service.files().create(
-            body={'name': os.path.basename(file_path), 'parents': [folder_id]},
-            media_body=media,
-            fields='id',
-        ).execute()
-        print(f"  Subido a Drive: {os.path.basename(file_path)} (ID: {result.get('id')})")
+        print(f"  Subido a GCS: {blob_name}")
         return True
     except Exception as e:
-        print(f"  Error subiendo a Drive: {e}")
+        print(f"  Error subiendo a GCS: {e}")
         return False
 
 
@@ -469,7 +416,7 @@ def generar_todos_los_pdfs(clientes: list[dict], tipo: str) -> tuple[dict, list]
         if pdf_path:
             generados[(id_cliente, linea)] = pdf_path
             if tipo == "semanal":
-                upload_to_drive(pdf_path)
+                upload_to_gcs(pdf_path, client_name=nombre_cliente, folio=etiqueta)
             print(f"  OK ({elapsed:.1f}s)")
         else:
             fallidos.append({
@@ -555,9 +502,7 @@ def procesar_mantenimientos() -> tuple[int, int]:
 
         pdf_path = generar_pdf_mantenimiento(registro_id, numero_serie, cliente, fecha)
         if pdf_path:
-            carpeta = reg.get('carpeta_fotos')
-            if carpeta:
-                upload_to_drive(pdf_path)
+            upload_to_gcs(pdf_path, client_name=cliente, folio=str(registro_id))
             exitosos += 1
         else:
             fallidos_count += 1

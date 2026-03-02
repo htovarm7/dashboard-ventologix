@@ -1234,6 +1234,7 @@ function FillReport() {
               body: JSON.stringify({
                 frecuencia_horas: matchingRecord.frecuencia_horas,
                 ultimo_mantenimiento: today,
+                horas_acumuladas: 0,
                 activo: matchingRecord.activo ?? true,
                 observaciones: matchingRecord.observaciones || `Actualizado desde reporte técnico - ${formData.folio}`,
                 editado_por: "Técnico Ventologix (Auto-actualizado desde reporte)",

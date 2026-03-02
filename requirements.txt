@@ -29,3 +29,4 @@ langchain-openai
 langchain-core
 langchain-community
 langgraph
+google-cloud-storage

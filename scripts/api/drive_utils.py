@@ -1,17 +1,11 @@
 """
-Google Drive utilities for photo uploads organized by client/folio/category
-Uses OAuth 2.0 with user credentials for accessing Google Drive
+Google Cloud Storage utilities for photo uploads organized by client/folio/category.
+Uses Service Account credentials (gcs-storage-key.json).
 """
-import os
 import sys
-import pickle
 from pathlib import Path
-from google.auth.transport.requests import Request
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
-from googleapiclient.errors import HttpError
-import io
+from google.cloud import storage
+from google.oauth2 import service_account
 from datetime import datetime
 
 # Configure UTF-8 encoding for Windows console
@@ -25,217 +19,62 @@ if sys.platform == 'win32':
 # Configuration
 SCRIPT_DIR = Path(__file__).resolve().parent.parent.parent
 LIB_DIR = SCRIPT_DIR / "lib"
-OAUTH_CREDENTIALS_FILE = str(LIB_DIR / "oauth_credentials.json")
-TOKEN_FILE = str(LIB_DIR / "token.pickle")
+GCS_KEY_FILE = str(LIB_DIR / "gcs-storage-key.json")
 
-# Root folder ID for maintenance reports photos
-ROOT_FOLDER_ID = "1go0dsxXDmJ5FyHiUmVa4oXwacIh690g5"
+BUCKET_NAME = "vento-save-archive"
 
-SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
-def get_drive_service():
-    """Initialize and return Google Drive service using OAuth 2.0."""
-    print(f"🔐 Initializing Google Drive service with OAuth 2.0...")
-    print(f"   Token file: {TOKEN_FILE}")
+def get_gcs_client():
+    """Initialize and return a GCS Storage client using service account credentials."""
+    credentials = service_account.Credentials.from_service_account_file(GCS_KEY_FILE)
+    return storage.Client(credentials=credentials, project=credentials.project_id)
 
-    try:
-        creds = None
 
-        # Load existing token if available
-        if os.path.exists(TOKEN_FILE):
-            with open(TOKEN_FILE, 'rb') as token:
-                creds = pickle.load(token)
-                print(f"   ✓ Loaded existing token")
+def get_bucket():
+    """Return the GCS bucket instance."""
+    return get_gcs_client().bucket(BUCKET_NAME)
 
-        # If no valid credentials, need to login
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                print(f"   ⟳ Refreshing expired token...")
-                creds.refresh(Request())
-                print(f"   ✓ Token refreshed")
-            else:
-                if not os.path.exists(OAUTH_CREDENTIALS_FILE):
-                    raise FileNotFoundError(
-                        f"OAuth credentials not found at {OAUTH_CREDENTIALS_FILE}\n"
-                        "Please create OAuth credentials in Google Cloud Console"
-                    )
 
-                print(f"   ⚠ No valid token found, authentication required")
-                print(f"   Opening browser for authentication...")
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    OAUTH_CREDENTIALS_FILE, SCOPES
-                )
-                creds = flow.run_local_server(port=0)
-                print(f"   ✓ Authentication successful")
+def _make_public_url(blob_name: str) -> str:
+    return f"https://storage.googleapis.com/{BUCKET_NAME}/{blob_name}"
 
-            # Save the credentials for next run
-            with open(TOKEN_FILE, 'wb') as token:
-                pickle.dump(creds, token)
-                print(f"   ✓ Token saved")
 
-        service = build('drive', 'v3', credentials=creds)
-        print(f"✅ Google Drive service initialized successfully")
-        return service
-
-    except FileNotFoundError as e:
-        print(f"❌ File not found: {e}")
-        raise
-    except Exception as e:
-        print(f"❌ Error initializing Google Drive service: {e}")
-        import traceback
-        traceback.print_exc()
-        raise
-
-def get_or_create_folder(drive_service, parent_id: str, folder_name: str) -> str:
+def upload_photo(bucket, file_content: bytes, blob_name: str, mime_type: str = 'image/jpeg') -> dict:
     """
-    Get folder ID if exists, create it if not.
-    
-    Args:
-        drive_service: Google Drive service instance
-        parent_id: Parent folder ID
-        folder_name: Name of folder to get/create
-    
-    Returns:
-        Folder ID
-    """
-    try:
-        # Search for existing folder
-        query = f"'{parent_id}' in parents and name='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
-        
-        results = drive_service.files().list(
-            q=query,
-            fields="files(id, name)",
-            spaces='drive',
-            pageSize=10
-        ).execute()
-        
-        files = results.get('files', [])
-        
-        if files:
-            print(f"📁 Found existing folder: {folder_name} (ID: {files[0]['id']})")
-            return files[0]['id']
-        
-        # Create folder if not exists
-        file_metadata = {
-            'name': folder_name,
-            'mimeType': 'application/vnd.google-apps.folder',
-            'parents': [parent_id]
-        }
-        
-        folder = drive_service.files().create(
-            body=file_metadata,
-            fields='id'
-        ).execute()
-        
-        print(f"✅ Created new folder: {folder_name} (ID: {folder['id']})")
-        return folder['id']
-        
-    except HttpError as error:
-        print(f"❌ Error creating/getting folder {folder_name}: {error}")
-        raise
-
-def create_folder_structure(drive_service, client_name: str, folio: str, categories_with_photos: list = None) -> dict:
-    """
-    Create the folder structure: Root / Client Name / Folio / PHOTOS / Categories
-    Only creates category folders that actually have photos to upload.
+    Upload a single photo to GCS and return its public URL.
 
     Args:
-        drive_service: Google Drive service instance
-        client_name: Client name
-        folio: Folio number
-        categories_with_photos: List of category names that have photos.
-            Only these category folders will be created.
-            If None or empty, no category folders are created.
+        bucket: GCS bucket instance
+        file_content: Photo file content (bytes)
+        blob_name: Full GCS object path
+        mime_type: MIME type of the file
 
     Returns:
-        Dictionary with folder IDs for each category
+        Dictionary with blob_name and public_url
     """
     try:
-        # Clean client name and folio for folder names
-        clean_client = client_name.strip().replace('/', '-')
-        clean_folio = folio.strip().replace('/', '-')
+        blob = bucket.blob(blob_name)
+        blob.upload_from_string(file_content, content_type=mime_type)
+        try:
+            blob.make_public()
+        except Exception:
+            pass  # Bucket may use uniform access; URL works if bucket is publicly readable
 
-        # Create client folder
-        client_folder_id = get_or_create_folder(drive_service, ROOT_FOLDER_ID, clean_client)
-
-        # Create folio folder
-        folio_folder_id = get_or_create_folder(drive_service, client_folder_id, clean_folio)
-
-        # Create PHOTOS folder
-        photos_folder_id = get_or_create_folder(drive_service, folio_folder_id, "PHOTOS")
-
-        folder_structure = {
-            "client_folder_id": client_folder_id,
-            "folio_folder_id": folio_folder_id,
-            "photos_folder_id": photos_folder_id,
-            "categories": {}
-        }
-
-        # Only create folders for categories that actually have photos
-        if categories_with_photos:
-            for category in categories_with_photos:
-                category_folder_id = get_or_create_folder(drive_service, photos_folder_id, category)
-                folder_structure["categories"][category] = category_folder_id
-                print(f"   📁 Created folder for {category} (has photos)")
-        else:
-            print(f"   ℹ️ No categories with photos, skipping category folder creation")
-
-        return folder_structure
+        public_url = _make_public_url(blob_name)
+        print(f"✅ Uploaded: {blob_name}")
+        return {"blob_name": blob_name, "public_url": public_url}
 
     except Exception as error:
-        print(f"❌ Error creating folder structure: {error}")
+        print(f"❌ Error uploading {blob_name}: {error}")
         raise
 
-def upload_photo(drive_service, file_content: bytes, filename: str, folder_id: str, mime_type: str = 'image/jpeg') -> dict:
-    """
-    Upload a photo to a specific folder in Google Drive.
-    
-    Args:
-        drive_service: Google Drive service instance
-        file_content: Photo file content (bytes)
-        filename: Name for the file
-        folder_id: Destination folder ID
-        mime_type: MIME type of the file
-    
-    Returns:
-        Dictionary with file ID and web view link
-    """
-    try:
-        file_metadata = {
-            'name': filename,
-            'parents': [folder_id]
-        }
-        
-        # Create media upload from bytes
-        media = MediaIoBaseUpload(
-            io.BytesIO(file_content),
-            mimetype=mime_type,
-            resumable=True
-        )
-        
-        # Upload file
-        file = drive_service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields='id, name, webViewLink, webContentLink'
-        ).execute()
-        
-        print(f"✅ Uploaded: {filename} (ID: {file['id']})")
-        return {
-            "file_id": file['id'],
-            "name": file['name'],
-            "web_view_link": file.get('webViewLink', ''),
-            "web_content_link": file.get('webContentLink', '')
-        }
-        
-    except HttpError as error:
-        print(f"❌ Error uploading photo {filename}: {error}")
-        raise
 
 def upload_maintenance_photos(client_name: str, folio: str, photos_by_category: dict) -> dict:
     """
-    Upload maintenance report photos organized by category.
-    
+    Upload maintenance report photos organized by category to GCS.
+
+    Path structure: {client_name}/{folio}/PHOTOS/{category}/{unique_filename}
+
     Args:
         client_name: Client name
         folio: Folio number
@@ -245,103 +84,122 @@ def upload_maintenance_photos(client_name: str, folio: str, photos_by_category: 
                 "CONDICIONES_AMBIENTALES": [...],
                 ...
             }
-    
+
     Returns:
-        Dictionary with uploaded file IDs by category
+        Dictionary with uploaded file URLs by category
     """
+    category_map = {
+        "ACEITE": "ACEITE",
+        "OIL": "ACEITE",
+        "CONDICIONES_AMBIENTALES": "CONDICIONES_AMBIENTALES",
+        "ENVIRONMENTAL": "CONDICIONES_AMBIENTALES",
+        "DISPLAY": "DISPLAY_HORAS",
+        "DISPLAY_HORAS": "DISPLAY_HORAS",
+        "PLACAS": "PLACAS_EQUIPO",
+        "PLACAS_EQUIPO": "PLACAS_EQUIPO",
+        "TEMPERATURAS": "TEMPERATURAS",
+        "TEMPERATURES": "TEMPERATURAS",
+        "PRESIONES": "PRESIONES",
+        "PRESSURES": "PRESIONES",
+        "TANQUES": "TANQUES",
+        "TANKS": "TANQUES",
+        "MANTENIMIENTO": "MANTENIMIENTO",
+        "MAINTENANCE": "MANTENIMIENTO",
+        "OTROS": "OTROS",
+        "OTHER": "OTROS",
+    }
+
     try:
-        drive_service = get_drive_service()
-
-        # Map to standard category names
-        category_map = {
-            "ACEITE": "ACEITE",
-            "OIL": "ACEITE",
-            "CONDICIONES_AMBIENTALES": "CONDICIONES_AMBIENTALES",
-            "ENVIRONMENTAL": "CONDICIONES_AMBIENTALES",
-            "DISPLAY": "DISPLAY_HORAS",
-            "DISPLAY_HORAS": "DISPLAY_HORAS",
-            "PLACAS": "PLACAS_EQUIPO",
-            "PLACAS_EQUIPO": "PLACAS_EQUIPO",
-            "TEMPERATURAS": "TEMPERATURAS",
-            "TEMPERATURES": "TEMPERATURAS",
-            "PRESIONES": "PRESIONES",
-            "PRESSURES": "PRESIONES",
-            "TANQUES": "TANQUES",
-            "TANKS": "TANQUES",
-            "MANTENIMIENTO": "MANTENIMIENTO",
-            "MAINTENANCE": "MANTENIMIENTO",
-            "OTROS": "OTROS",
-            "OTHER": "OTROS"
-        }
-
-        # Determine which standard categories actually have photos
-        categories_needed = set()
-        for category, photos in photos_by_category.items():
-            if photos:
-                category_key = category.upper().replace(" ", "_")
-                standard_category = category_map.get(category_key, "OTROS")
-                categories_needed.add(standard_category)
-
-        # Create folder structure only for categories with photos
-        print(f"\n📁 Creating folder structure for {client_name} / {folio}")
-        print(f"   Only creating folders for categories with photos: {list(categories_needed)}")
-        folder_structure = create_folder_structure(drive_service, client_name, folio, list(categories_needed))
+        bucket = get_bucket()
+        now = datetime.now()
+        year = now.strftime("%Y")
+        month = now.strftime("%m")
+        clean_client = client_name.strip().replace('/', '-')
+        clean_folio = folio.strip().replace('/', '-')
+        # Path: mantenimiento/{year}/{month}/{client_name}/{folio}/{category}/{filename}
+        base_prefix = f"mantenimiento/{year}/{month}/{clean_client}/{clean_folio}"
 
         uploaded_files = {}
 
-        # Upload photos to their respective categories
         for category, photos in photos_by_category.items():
             if not photos:
                 continue
 
             category_key = category.upper().replace(" ", "_")
             standard_category = category_map.get(category_key, "OTROS")
-
-            if standard_category not in folder_structure["categories"]:
-                # This shouldn't happen now, but just in case
-                print(f"⚠️ Category {standard_category} folder missing, creating it now")
-                folder_id = get_or_create_folder(
-                    drive_service, folder_structure["photos_folder_id"], standard_category
-                )
-                folder_structure["categories"][standard_category] = folder_id
-
-            folder_id = folder_structure["categories"][standard_category]
             uploaded_files[category] = []
 
             print(f"\n📤 Uploading {len(photos)} photo(s) to {standard_category}")
 
             for idx, (filename, file_content, mime_type) in enumerate(photos):
-                # Add timestamp to filename to avoid duplicates
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                unique_filename = f"{folio}_{timestamp}_{idx}_{filename}"
+                timestamp = now.strftime("%Y%m%d_%H%M%S")
+                unique_filename = f"{clean_folio}_{timestamp}_{idx}_{filename}"
+                blob_name = f"{base_prefix}/{standard_category}/{unique_filename}"
 
-                file_info = upload_photo(
-                    drive_service,
-                    file_content,
-                    unique_filename,
-                    folder_id,
-                    mime_type
-                )
+                file_info = upload_photo(bucket, file_content, blob_name, mime_type)
 
                 uploaded_files[category].append({
-                    "file_id": file_info["file_id"],
+                    "blob_name": file_info["blob_name"],
                     "filename": unique_filename,
                     "category": standard_category,
-                    "web_view_link": file_info.get("web_view_link", ""),
-                    "web_content_link": file_info.get("web_content_link", "")
+                    "public_url": file_info["public_url"],
                 })
-        
+
         print(f"\n✅ Successfully uploaded all photos for folio {folio}")
-        
         return {
             "success": True,
-            "folder_structure": folder_structure,
-            "uploaded_files": uploaded_files
+            "gcs_prefix": base_prefix,
+            "bucket": BUCKET_NAME,
+            "uploaded_files": uploaded_files,
         }
-        
+
     except Exception as error:
         print(f"❌ Error uploading maintenance photos: {error}")
-        return {
-            "success": False,
-            "error": str(error)
+        return {"success": False, "error": str(error)}
+
+
+def list_gcs_photos_by_folio(client_name: str, folio: str) -> dict:
+    """
+    List photos from GCS organized by category for a given client/folio.
+
+    Path structure: mantenimiento/{year}/{month}/{client_name}/{folio}/{category}/{filename}
+    Searches across all year/month combinations under mantenimiento/.
+
+    Returns:
+        {
+            "by_category": {"ACEITE": ["url1", ...], ...},
+            "flat": ["url1", "url2", ...]
         }
+    """
+    try:
+        client = get_gcs_client()
+        clean_client = client_name.strip().replace('/', '-')
+        clean_folio = folio.strip().replace('/', '-')
+
+        # Search under mantenimiento/ and match /{client_name}/{folio}/ anywhere in path
+        target_segment = f"/{clean_client}/{clean_folio}/"
+        blobs = client.list_blobs(BUCKET_NAME, prefix="mantenimiento/")
+
+        by_category = {}
+        flat = []
+
+        for blob in blobs:
+            if target_segment not in blob.name:
+                continue
+
+            # Extract category: everything after {folio}/
+            after_folio = blob.name.split(target_segment, 1)[1]
+            parts = after_folio.split('/', 1)
+            if len(parts) < 2 or not parts[1]:
+                continue
+
+            category = parts[0]
+            public_url = _make_public_url(blob.name)
+            by_category.setdefault(category, []).append(public_url)
+            flat.append(public_url)
+
+        return {"by_category": by_category, "flat": flat}
+
+    except Exception as error:
+        print(f"⚠️ Could not list GCS photos: {error}")
+        return {"by_category": {}, "flat": []}

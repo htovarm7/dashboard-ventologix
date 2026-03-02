@@ -50,9 +50,9 @@ scripts/__pycache__
 
 pdfs
 
-# Google Drive API credentials - NEVER commit these files!
 lib/credentials.json
 lib/oauth_credentials.json
+lib/gcs-storage-key.json
 lib/token.pickle
 lib/token.json
 scripts/VM/credentials.json

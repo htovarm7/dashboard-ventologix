@@ -16,12 +16,8 @@ from typing import List, Tuple, Optional
 from pydantic import BaseModel, EmailStr
 import sys
 from pathlib import Path
-import pickle
-
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google.auth.transport.requests import Request
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.cloud import storage
+from google.oauth2 import service_account
 
 # Agregar el directorio de scripts al path para importar maintenance_reports
 SCRIPT_DIR = Path(__file__).resolve().parent.parent
@@ -29,10 +25,8 @@ sys.path.insert(0, str(SCRIPT_DIR))
 PROJECT_ROOT = SCRIPT_DIR.parent
 LIB_DIR = PROJECT_ROOT / "lib"
 
-OAUTH_CREDENTIALS_FILE = str(LIB_DIR / "credentials.json")
-TOKEN_FILE = str(LIB_DIR / "token.pickle")
-
-SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
+GCS_KEY_FILE = str(LIB_DIR / "gcs-storage-key.json")
+BUCKET_NAME = "vento-save-archive"
 
 # Modelos para las actualizaciones
 class UpdateClientNumberRequest(BaseModel):
@@ -58,6 +52,7 @@ class UpdateMaintenanceRequest(BaseModel):
     id_mantenimiento: Optional[int] = None
     frecuencia_horas: Optional[int] = None
     ultimo_mantenimiento: Optional[date] = None
+    horas_acumuladas: Optional[float] = None
     activo: Optional[bool] = None
     observaciones: Optional[str] = None
     costo: Optional[float] = None
@@ -1319,6 +1314,9 @@ def update_maintenance(maintenance_id: int, request: UpdateMaintenanceRequest):
         if request.ultimo_mantenimiento is not None:
             update_fields.append("ultimo_mantenimiento = %s")
             update_values.append(request.ultimo_mantenimiento)
+        if request.horas_acumuladas is not None:
+            update_fields.append("horas_acumuladas = %s")
+            update_values.append(request.horas_acumuladas)
         if request.activo is not None:
             update_fields.append("activo = %s")
             update_values.append(request.activo)
@@ -1928,70 +1926,23 @@ def generate_predictions_fast(series: pd.Series, days: int = 3) -> Tuple[List[fl
         promedio = np.mean(hist_valores)
         return [promedio] * days, "Promedio (modelo falló)"
     
-def get_public_image_url(file_id: str):
-    return f"https://lh3.googleusercontent.com/d/{file_id}"
-
-def get_drive_folder_images(folder_url: str):
+def get_drive_folder_images(prefix: str):
     """
-    Conecta a Google Drive usando OAuth, renueva tokens automáticamente,
-    extrae las imágenes dentro de una carpeta y regresa URLs visibles.
+    List images from a GCS prefix path.
+    Returns empty list for legacy Drive URLs or missing prefix.
     """
-
-    if not folder_url:
+    if not prefix or prefix.startswith("https://drive.google.com"):
         return []
 
-    # ------------------------------------------
-    # 1. Extraer folderId del URL de Google Drive
-    # ------------------------------------------
     try:
-        folder_id = folder_url.split("/folders/")[1].split("?")[0]
+        credentials = service_account.Credentials.from_service_account_file(GCS_KEY_FILE)
+        client = storage.Client(credentials=credentials, project=credentials.project_id)
+        clean_prefix = prefix.rstrip('/') + '/'
+        blobs = list(client.list_blobs(BUCKET_NAME, prefix=clean_prefix))
+
+        return [
+            f"https://storage.googleapis.com/{BUCKET_NAME}/{blob.name}"
+            for blob in blobs
+        ]
     except Exception:
         return []
-
-    # ------------------------------------------
-    # 2. Cargar credenciales/tokens
-    # ------------------------------------------
-    creds = None
-
-    if os.path.exists(TOKEN_FILE):
-        with open(TOKEN_FILE, "rb") as token:
-            creds = pickle.load(token)
-
-    # Si no hay token válido → pedir login / refrescar
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                OAUTH_CREDENTIALS_FILE, SCOPES
-            )
-            creds = flow.run_local_server(port=0)
-
-        # Guardar token actualizado
-        with open(TOKEN_FILE, "wb") as token:
-            pickle.dump(creds, token)
-
-    # ------------------------------------------
-    # 3. Crear cliente Drive
-    # ------------------------------------------
-    service = build("drive", "v3", credentials=creds)
-
-    # ------------------------------------------
-    # 4. Buscar solo imágenes dentro de la carpeta
-    # ------------------------------------------
-    results = service.files().list(
-        q=f"'{folder_id}' in parents and mimeType contains 'image/'",
-        fields="files(id, name)"
-    ).execute()
-
-    files = results.get("files", [])
-
-    # ------------------------------------------
-    # 5. Convertir a URLs visibles
-    # ------------------------------------------
-    images = [
-        f"https://lh3.googleusercontent.com/d/{f['id']}"
-        for f in files
-    ]
-
-    return images

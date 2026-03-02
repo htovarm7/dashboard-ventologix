@@ -12,8 +12,7 @@ from datetime import datetime
 import json
 
 from .clases import Modulos, PreMantenimientoRequest, PostMantenimientoRequest
-from .drive_utils import upload_maintenance_photos, get_drive_service, ROOT_FOLDER_ID, get_or_create_folder
-from .maintenance_web import get_drive_folder_images
+from .drive_utils import upload_maintenance_photos, list_gcs_photos_by_folio, BUCKET_NAME
 from .pdf_playwright import generate_pdf_from_react
 
 load_dotenv()
@@ -252,7 +251,7 @@ async def upload_photos(
             print(f"✅ [DEBUG] Upload succeeded!")
             return {
                 "success": True,
-                "message": f"Successfully uploaded {len(files)} photo(s) to Google Drive",
+                "message": f"Successfully uploaded {len(files)} photo(s) to Google Cloud Storage",
                 "uploaded_files": result["uploaded_files"],
                 "folder_structure": result["folder_structure"]
             }
@@ -377,8 +376,9 @@ def save_post_mantenimiento(data: PostMantenimientoRequest):
 @reportes_mtto.post("/finalizar-reporte/{folio}")
 def finalizar_reporte(folio: str = Path(..., description="Folio del reporte")):
     """
-    Mark a report as 'terminado' (finished).
-    This should only be called when the user explicitly clicks "Terminar Reporte".
+    Mark a report as 'terminado' (finished) and resets the semaforo
+    (horas_acumuladas = 0) for all maintenance items performed.
+    Also auto-registers the compressor in mantenimientos if not found.
     """
     conn = None
     try:
@@ -388,7 +388,7 @@ def finalizar_reporte(folio: str = Path(..., description="Folio del reporte")):
             database=DB_DATABASE,
             host=DB_HOST
         )
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
 
         # Update orden_servicio status to 'terminado'
         cursor.execute(
@@ -411,6 +411,113 @@ def finalizar_reporte(folio: str = Path(..., description="Folio del reporte")):
             "UPDATE reportes SET estado = 'enviado' WHERE folio = %s",
             (folio,)
         )
+
+        # ── Semáforo: reset y alta automática ──────────────────────────────
+        # 1. Resolve id_compresor and tipo_compresor from ordenes_servicio
+        cursor.execute(
+            """SELECT c.id AS id_compresor, o.tipo
+               FROM ordenes_servicio o
+               JOIN compresores c ON o.numero_serie = c.numero_serie
+               WHERE o.folio = %s
+               LIMIT 1""",
+            (folio,)
+        )
+        comp_row = cursor.fetchone()
+
+        if comp_row:
+            id_compresor = comp_row["id_compresor"]
+            tipo_compresor = comp_row["tipo"]  # 'tornillo' or 'piston'
+            today = datetime.now().date()
+
+            # Map report DB columns → nombre_tipo in mantenimientos_tipo
+            column_to_tipo = {
+                "cambio_aceite":                  "Cambio de aceite",
+                "cambio_filtro_aceite":            "Cambio de filtro de aceite",
+                "cambio_filtro_aire":              "Cambio de filtro de aire",
+                "cambio_separador_aceite":         "Cambio de separador de aceite",
+                "revision_valvula_admision":       "Revisión de válvula de admisión",
+                "revision_valvula_descarga":       "Revisión de válvula de descarga",
+                "limpieza_radiador":               "Limpieza de radiador",
+                "revision_bandas_correas":         "Revisión de bandas/correas",
+                "revision_fugas_aire":             "Revisión de fugas de aire",
+                "revision_fugas_aceite":           "Revisión de fugas de aceite",
+                "revision_conexiones_electricas":  "Revisión de conexiones eléctricas",
+                "revision_presostato":             "Revisión de presostato",
+                "revision_manometros":             "Revisión de manómetros",
+                "lubricacion_general":             "Lubricación general",
+                "limpieza_general":                "Limpieza general del equipo",
+            }
+
+            # 2. Get ALL maintenance types defined for this compressor type
+            cursor.execute(
+                "SELECT * FROM mantenimientos_tipo WHERE tipo_compresor = %s",
+                (tipo_compresor,)
+            )
+            all_tipos = cursor.fetchall()
+
+            # 3. Get which id_mantenimiento records already exist for this compressor
+            cursor.execute(
+                "SELECT id_mantenimiento FROM mantenimientos WHERE id_compresor = %s",
+                (id_compresor,)
+            )
+            existing_ids = {r["id_mantenimiento"] for r in cursor.fetchall()}
+
+            # 4. Get the maintenance items actually performed in this report
+            cursor.execute(
+                "SELECT * FROM reportes_mantenimiento WHERE folio = %s LIMIT 1",
+                (folio,)
+            )
+            mtto_items = cursor.fetchone() or {}
+
+            # Build set of nombre_tipo that were performed (column value == "Sí")
+            done_nombres = {
+                tipo_nombre
+                for col, tipo_nombre in column_to_tipo.items()
+                if mtto_items.get(col) == "Sí"
+            }
+
+            # 5. Process every type defined for this compressor type
+            for tipo in all_tipos:
+                id_m = tipo["id_mantenimiento"]
+                nombre = tipo.get("nombre_tipo", "")
+                # frecuencia: try common column names, default 2000
+                freq = (
+                    tipo.get("frecuencia_horas")
+                    or tipo.get("frecuencia")
+                    or 2000
+                )
+                is_done = nombre in done_nombres
+
+                if id_m not in existing_ids:
+                    # Compressor not registered for this type → INSERT
+                    cursor.execute(
+                        """INSERT INTO mantenimientos
+                           (id_compresor, id_mantenimiento, frecuencia_horas,
+                            ultimo_mantenimiento, horas_acumuladas, activo,
+                            observaciones, creado_por, fecha_creacion)
+                           VALUES (%s, %s, %s, %s, 0, 1, %s, %s, %s)""",
+                        (
+                            id_compresor,
+                            id_m,
+                            freq,
+                            today if is_done else None,
+                            f"Auto-registrado desde reporte {folio}",
+                            "Sistema",
+                            today,
+                        )
+                    )
+                elif is_done:
+                    # Already registered AND performed → reset semáforo
+                    cursor.execute(
+                        """UPDATE mantenimientos
+                           SET horas_acumuladas = 0,
+                               ultimo_mantenimiento = %s
+                           WHERE id_compresor = %s
+                             AND id_mantenimiento = %s""",
+                        (today, id_compresor, id_m)
+                    )
+                # else: already registered, not done → leave untouched
+        # ── End semáforo ───────────────────────────────────────────────────
 
         conn.commit()
         cursor.close()
@@ -572,69 +679,17 @@ def get_full_report(folio: str = Path(..., description="Folio del reporte")):
         if not orden:
             return {"success": False, "error": "Folio not found"}
 
-        # Get photos from Google Drive organized by category
+        # Get photos from Google Cloud Storage organized by category
         fotos_by_category = {}
         fotos_drive_flat = []
         try:
-            drive_service = get_drive_service()
             client_name = (orden.get("nombre_cliente") or "").strip().replace('/', '-')
-            clean_folio = folio.strip().replace('/', '-')
-
             if client_name:
-                # Find client folder
-                query = f"'{ROOT_FOLDER_ID}' in parents and name='{client_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
-                results = drive_service.files().list(q=query, fields="files(id)", spaces='drive', pageSize=1).execute()
-                client_folders = results.get('files', [])
-
-                if client_folders:
-                    client_folder_id = client_folders[0]['id']
-                    # Find folio folder
-                    query2 = f"'{client_folder_id}' in parents and name='{clean_folio}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
-                    results2 = drive_service.files().list(q=query2, fields="files(id)", spaces='drive', pageSize=1).execute()
-                    folio_folders = results2.get('files', [])
-
-                    if folio_folders:
-                        folio_folder_id = folio_folders[0]['id']
-
-                        # Get photos from root folio folder (uncategorized)
-                        folio_folder_url = f"https://drive.google.com/drive/folders/{folio_folder_id}"
-                        root_images = get_drive_folder_images(folio_folder_url)
-                        if root_images:
-                            root_urls = [foto.get('url', '') for foto in root_images if foto.get('url')]
-                            if root_urls:
-                                fotos_by_category["OTROS"] = root_urls
-                                fotos_drive_flat.extend(root_urls)
-
-                        # Navigate: Folio -> PHOTOS -> Category folders
-                        # First find the PHOTOS subfolder
-                        query_photos = f"'{folio_folder_id}' in parents and name='PHOTOS' and mimeType='application/vnd.google-apps.folder' and trashed=false"
-                        results_photos = drive_service.files().list(q=query_photos, fields="files(id)", spaces='drive', pageSize=1).execute()
-                        photos_folders = results_photos.get('files', [])
-
-                        # Determine the parent folder for category subfolders
-                        # If PHOTOS folder exists, use it; otherwise fall back to folio folder directly
-                        category_parent_id = photos_folders[0]['id'] if photos_folders else folio_folder_id
-
-                        # Get category subfolders and organize photos by category
-                        query3 = f"'{category_parent_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
-                        results3 = drive_service.files().list(q=query3, fields="files(id, name)", spaces='drive').execute()
-                        subfolders = results3.get('files', [])
-
-                        for subfolder in subfolders:
-                            subfolder_name = subfolder['name']
-                            subfolder_url = f"https://drive.google.com/drive/folders/{subfolder['id']}"
-                            subfolder_images = get_drive_folder_images(subfolder_url)
-                            if subfolder_images:
-                                subfolder_urls = [foto.get('url', '') for foto in subfolder_images if foto.get('url')]
-                                if subfolder_urls:
-                                    if subfolder_name in fotos_by_category:
-                                        fotos_by_category[subfolder_name].extend(subfolder_urls)
-                                    else:
-                                        fotos_by_category[subfolder_name] = subfolder_urls
-                                    fotos_drive_flat.extend(subfolder_urls)
+                gcs_result = list_gcs_photos_by_folio(client_name, folio)
+                fotos_by_category = gcs_result["by_category"]
+                fotos_drive_flat = gcs_result["flat"]
         except Exception as e:
-            print(f"Warning: Could not fetch photos from Drive: {str(e)}")
-            # Continue without photos if Drive fetch fails
+            print(f"Warning: Could not fetch photos from GCS: {str(e)}")
 
         return {
             "success": True,
@@ -976,37 +1031,31 @@ async def download_report_pdf_old(folio: str = Path(..., description="Folio del 
 
             elements.append(Spacer(1, 12))
 
-        # ===== GOOGLE DRIVE PHOTOS LINK =====
-        drive_folder_url = None
+        # ===== GOOGLE CLOUD STORAGE PHOTOS LINK =====
+        gcs_photos_url = None
         try:
-            drive_service = get_drive_service()
+            from datetime import datetime as _dt
             client_name = (orden.get("nombre_cliente") or "").strip().replace('/', '-')
             clean_folio = folio.strip().replace('/', '-')
             if client_name:
-                # Find client folder
-                query = f"'{ROOT_FOLDER_ID}' in parents and name='{client_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
-                results = drive_service.files().list(q=query, fields="files(id)", spaces='drive', pageSize=1).execute()
-                client_folders = results.get('files', [])
-                if client_folders:
-                    # Find folio folder inside client folder
-                    query2 = f"'{client_folders[0]['id']}' in parents and name='{clean_folio}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
-                    results2 = drive_service.files().list(q=query2, fields="files(id)", spaces='drive', pageSize=1).execute()
-                    folio_folders = results2.get('files', [])
-                    if folio_folders:
-                        drive_folder_url = f"https://drive.google.com/drive/folders/{folio_folders[0]['id']}"
+                now = _dt.now()
+                gcs_photos_url = (
+                    f"https://storage.googleapis.com/{BUCKET_NAME}"
+                    f"/mantenimiento/{now.strftime('%Y')}/{now.strftime('%m')}"
+                    f"/{client_name}/{clean_folio}"
+                )
         except Exception:
-            # If Drive is not available, fall back to root folder
-            drive_folder_url = f"https://drive.google.com/drive/folders/{ROOT_FOLDER_ID}"
+            pass
 
-        if drive_folder_url:
+        if gcs_photos_url:
             elements.append(Spacer(1, 12))
             elements.append(Paragraph("EVIDENCIAS FOTOGRÁFICAS", styles["SectionHeader"]))
             elements.append(Spacer(1, 4))
             elements.append(Paragraph(
-                f'Las fotografías del servicio se encuentran disponibles en Google Drive:<br/>'
-                f'<a href="{drive_folder_url}" color="blue"><u>{drive_folder_url}</u></a>',
+                f'Las fotografías del servicio se encuentran disponibles en Google Cloud Storage:<br/>'
+                f'<a href="{gcs_photos_url}" color="blue"><u>{gcs_photos_url}</u></a>',
                 ParagraphStyle(
-                    name="DriveLink", parent=styles["Normal"],
+                    name="GCSLink", parent=styles["Normal"],
                     fontSize=9, leading=14, alignment=TA_CENTER,
                     spaceAfter=8
                 )

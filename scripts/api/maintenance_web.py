@@ -6,26 +6,22 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date
 import os
-import pickle
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from googleapiclient.discovery import build
-from google.auth.transport.requests import Request
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.cloud import storage
+from google.oauth2 import service_account
 from pathlib import Path
 
 from .db_utils import get_db_connection
 
 
-# Paths para OAuth
-SCRIPT_DIR = Path(__file__).resolve().parent.parent
-PROJECT_ROOT = SCRIPT_DIR.parent
-LIB_DIR = PROJECT_ROOT / "lib"
-OAUTH_CREDENTIALS_FILE = str(LIB_DIR / "credentials.json")
-TOKEN_FILE = str(LIB_DIR / "token.pickle")
-SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
+# GCS configuration
+SCRIPT_DIR = Path(__file__).resolve().parent.parent.parent
+LIB_DIR = SCRIPT_DIR / "lib"
+GCS_KEY_FILE = str(LIB_DIR / "gcs-storage-key.json")
+BUCKET_NAME = "vento-save-archive"
 
 NOTIFICATION_EMAIL = "Ivan.reyes@ventologix.com" 
 
@@ -131,6 +127,7 @@ class UpdateMaintenanceRequest(BaseModel):
     id_mantenimiento: Optional[int] = None
     frecuencia_horas: Optional[int] = None
     ultimo_mantenimiento: Optional[date] = None
+    horas_acumuladas: Optional[float] = None
     activo: Optional[bool] = None
     observaciones: Optional[str] = None
     costo: Optional[float] = None
@@ -162,54 +159,32 @@ class UpdateMaintenanceReportRequest(BaseModel):
 maintenance_web = APIRouter(prefix="/web", tags=["🛠️ Mantenimiento de Compresores"])
 
 
-def get_public_image_url(file_id: str) -> str:
-    return f"https://lh3.googleusercontent.com/d/{file_id}"
+def get_gcs_client():
+    credentials = service_account.Credentials.from_service_account_file(GCS_KEY_FILE)
+    return storage.Client(credentials=credentials, project=credentials.project_id)
 
 
-def get_drive_folder_images(folder_url: str) -> List[dict]:
-    """Conecta a Google Drive y extrae imágenes de una carpeta"""
-    if not folder_url:
+def get_gcs_folder_images(prefix: str) -> List[dict]:
+    """List images from a GCS prefix path. Returns empty list for Drive URLs or missing prefix."""
+    if not prefix or prefix.startswith("https://drive.google.com"):
         return []
 
     try:
-        folder_id = folder_url.split("/folders/")[1].split("?")[0]
-    except Exception:
-        return []
+        client = get_gcs_client()
+        clean_prefix = prefix.rstrip('/') + '/'
+        blobs = list(client.list_blobs(BUCKET_NAME, prefix=clean_prefix))
 
-    creds = None
-    if os.path.exists(TOKEN_FILE):
-        with open(TOKEN_FILE, "rb") as token:
-            creds = pickle.load(token)
-
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(OAUTH_CREDENTIALS_FILE, SCOPES)
-            creds = flow.run_local_server(port=0)
-
-        with open(TOKEN_FILE, "wb") as token:
-            pickle.dump(creds, token)
-
-    service = build("drive", "v3", credentials=creds)
-
-    try:
-        results = service.files().list(
-            q=f"'{folder_id}' in parents and mimeType contains 'image/'",
-            fields="files(id, name, mimeType)",
-            pageSize=100
-        ).execute()
-
-        files = results.get('files', [])
-        return [
-            {
-                "id": f["id"],
-                "name": f["name"],
-                "url": get_public_image_url(f["id"]),
-                "mimeType": f.get("mimeType", "image/jpeg")
-            }
-            for f in files
-        ]
+        results = []
+        for blob in blobs:
+            name = blob.name.split('/')[-1]
+            public_url = f"https://storage.googleapis.com/{BUCKET_NAME}/{blob.name}"
+            results.append({
+                "id": blob.name,
+                "name": name,
+                "url": public_url,
+                "mimeType": blob.content_type or "image/jpeg",
+            })
+        return results
     except Exception:
         return []
 
@@ -504,6 +479,9 @@ def update_maintenance(maintenance_id: int, request: UpdateMaintenanceRequest):
         if request.ultimo_mantenimiento is not None:
             update_fields.append("ultimo_mantenimiento = %s")
             update_values.append(request.ultimo_mantenimiento)
+        if request.horas_acumuladas is not None:
+            update_fields.append("horas_acumuladas = %s")
+            update_values.append(request.horas_acumuladas)
         if request.activo is not None:
             update_fields.append("activo = %s")
             update_values.append(request.activo)
@@ -606,7 +584,7 @@ def get_maintenance_report_data_by_id(registro_id: str):
         if not registro:
             raise HTTPException(status_code=404, detail=f"No se encontró registro con ID {registro_id}")
 
-        fotos_drive = get_drive_folder_images(registro.get("carpeta_fotos"))
+        fotos_drive = get_gcs_folder_images(registro.get("carpeta_fotos"))
 
         mantenimientos_realizados = []
         for columna_bd, nombre_mantenimiento in MAINTENANCE_COLUMN_MAPPING.items():
