@@ -64,6 +64,11 @@ function FillReport() {
     [category: string]: File[];
   }>({
     ACEITE: [],
+    DISPLAY_HORAS_POST: [],
+    ACEITE_POST: [],
+    TEMPERATURAS_POST: [],
+    PRESIONES_POST: [],
+    OTROS_POST: [],
     CONDICIONES_AMBIENTALES: [],
     DISPLAY_HORAS: [],
     PLACAS_EQUIPO: [],
@@ -87,6 +92,11 @@ function FillReport() {
     TANQUES: false,
     MANTENIMIENTO: false,
     OTROS: false,
+    DISPLAY_HORAS_POST: false,
+    ACEITE_POST: false,
+    TEMPERATURAS_POST: false,
+    PRESIONES_POST: false,
+    OTROS_POST: false,
   });
 
   const [maintenanceData, setMaintenanceData] = useState({
@@ -3433,6 +3443,18 @@ function FillReport() {
                       placeholder="0"
                     />
                   </div>
+                  <div className="md:col-span-2">
+                    <PhotoUploadSection
+                      category="DISPLAY_HORAS_POST"
+                      label="Fotos Display / Horas de Trabajo Post-Mantenimiento"
+                      photos={photosByCategory.DISPLAY_HORAS_POST}
+                      onPhotoAdd={handleCategorizedPhotoChange}
+                      onPhotoRemove={removeCategorizedPhoto}
+                      uploadStatus={uploadStatus.DISPLAY_HORAS_POST || "idle"}
+                      uploadProgress={uploadProgress.DISPLAY_HORAS_POST || 0}
+                      multiple={true}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -3522,6 +3544,18 @@ function FillReport() {
                       <option value="Sí">Sí</option>
                       <option value="No">No</option>
                     </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <PhotoUploadSection
+                      category="ACEITE_POST"
+                      label="Fotos Aceite Post-Mantenimiento"
+                      photos={photosByCategory.ACEITE_POST}
+                      onPhotoAdd={handleCategorizedPhotoChange}
+                      onPhotoRemove={removeCategorizedPhoto}
+                      uploadStatus={uploadStatus.ACEITE_POST || "idle"}
+                      uploadProgress={uploadProgress.ACEITE_POST || 0}
+                      multiple={true}
+                    />
                   </div>
                 </div>
               </div>
@@ -3630,6 +3664,18 @@ function FillReport() {
                       placeholder="0.0"
                     />
                   </div>
+                  <div className="md:col-span-2 lg:col-span-3">
+                    <PhotoUploadSection
+                      category="TEMPERATURAS_POST"
+                      label="Fotos Temperaturas Post-Mantenimiento"
+                      photos={photosByCategory.TEMPERATURAS_POST}
+                      onPhotoAdd={handleCategorizedPhotoChange}
+                      onPhotoRemove={removeCategorizedPhoto}
+                      uploadStatus={uploadStatus.TEMPERATURAS_POST || "idle"}
+                      uploadProgress={uploadProgress.TEMPERATURAS_POST || 0}
+                      multiple={true}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -3681,6 +3727,18 @@ function FillReport() {
                       placeholder="0.00"
                     />
                   </div>
+                  <div className="md:col-span-2">
+                    <PhotoUploadSection
+                      category="PRESIONES_POST"
+                      label="Fotos Manómetros / Presiones Post-Mantenimiento"
+                      photos={photosByCategory.PRESIONES_POST}
+                      onPhotoAdd={handleCategorizedPhotoChange}
+                      onPhotoRemove={removeCategorizedPhoto}
+                      uploadStatus={uploadStatus.PRESIONES_POST || "idle"}
+                      uploadProgress={uploadProgress.PRESIONES_POST || 0}
+                      multiple={true}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -3708,19 +3766,19 @@ function FillReport() {
                 </div>
               </div>
 
-              {/* SECCIÓN 7: Evidencias Fotográficas */}
+              {/* SECCIÓN 7: Otras Evidencias Fotográficas */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-white bg-orange-600 px-4 py-2 rounded font-bold mb-4">
-                  EVIDENCIAS FOTOGRÁFICAS - POST-MANTENIMIENTO
+                  OTRAS EVIDENCIAS - POST-MANTENIMIENTO
                 </h2>
                 <PhotoUploadSection
-                  category="OTROS"
-                  label="Fotos de Evidencia Post-Mantenimiento"
-                  photos={photosByCategory.OTROS}
+                  category="OTROS_POST"
+                  label="Otras Fotos de Evidencia Post-Mantenimiento"
+                  photos={photosByCategory.OTROS_POST}
                   onPhotoAdd={handleCategorizedPhotoChange}
                   onPhotoRemove={removeCategorizedPhoto}
-                  uploadStatus={uploadStatus.OTROS || "idle"}
-                  uploadProgress={uploadProgress.OTROS || 0}
+                  uploadStatus={uploadStatus.OTROS_POST || "idle"}
+                  uploadProgress={uploadProgress.OTROS_POST || 0}
                   multiple={true}
                 />
               </div>

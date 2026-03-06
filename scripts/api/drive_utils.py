@@ -102,6 +102,11 @@ def upload_maintenance_photos(client_name: str, folio: str, photos_by_category: 
         "MAINTENANCE": "MANTENIMIENTO",
         "OTROS": "OTROS",
         "OTHER": "OTROS",
+        "DISPLAY_HORAS_POST": "DISPLAY_HORAS_POST",
+        "ACEITE_POST": "ACEITE_POST",
+        "TEMPERATURAS_POST": "TEMPERATURAS_POST",
+        "PRESIONES_POST": "PRESIONES_POST",
+        "OTROS_POST": "OTROS_POST",
     }
 
     # Descriptive label used in the filename for each category
@@ -115,6 +120,11 @@ def upload_maintenance_photos(client_name: str, folio: str, photos_by_category: 
         "TANQUES": "Tanque",
         "MANTENIMIENTO": "Mantenimiento",
         "OTROS": "Otro",
+        "DISPLAY_HORAS_POST": "DisplayPost",
+        "ACEITE_POST": "AceitePost",
+        "TEMPERATURAS_POST": "TempPost",
+        "PRESIONES_POST": "PresionPost",
+        "OTROS_POST": "OtroPost",
     }
 
     try:
