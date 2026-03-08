@@ -433,10 +433,19 @@ function ViewReportContent() {
     { key: "MANTENIMIENTO", label: "Fotos del Mantenimiento" },
   ];
 
+  const postMaintenanceCategories = [
+    { key: "DISPLAY_HORAS_POST", label: "Display / Horas" },
+    { key: "ACEITE_POST", label: "Aceite" },
+    { key: "TEMPERATURAS_POST", label: "Temperaturas" },
+    { key: "PRESIONES_POST", label: "Presiones" },
+    { key: "OTROS_POST", label: "Otros" },
+  ];
+
   // All known inline categories
   const inlineKeys = new Set([
     ...preMaintenanceCategories.map((c) => c.key),
     ...maintenanceCategories.map((c) => c.key),
+    ...postMaintenanceCategories.map((c) => c.key),
   ]);
 
   // Remaining categories (OTROS, or anything unexpected)
@@ -994,6 +1003,13 @@ function ViewReportContent() {
           maintenanceCategories,
           "FOTOS DEL MANTENIMIENTO",
           "bg-green-600",
+        )}
+
+        {/* Post-Maintenance Photos Section */}
+        {renderPhotoSection(
+          postMaintenanceCategories,
+          "FOTOS POST-MANTENIMIENTO",
+          "bg-purple-600",
         )}
 
         {/* Comments */}
