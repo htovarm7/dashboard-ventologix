@@ -23,6 +23,7 @@ from scripts.api.maintenance_web import maintenance_web
 from scripts.api.reports_daily import reports_daily
 from scripts.api.reports_weekly import reports_weekly
 from scripts.api.reports_static import reports_static
+from scripts.api.dooble import dooble_router
 
 # Load environment variables
 load_dotenv()
@@ -94,3 +95,4 @@ app.include_router(maintenance_web)
 app.include_router(reports_daily)
 app.include_router(reports_weekly)
 app.include_router(reports_static)
+app.include_router(dooble_router)
