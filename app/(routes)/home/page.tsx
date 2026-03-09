@@ -260,13 +260,20 @@ const Home = () => {
 
           {/* Para rol 2 (VAST): Mostrar botón directamente sin necesidad de seleccionar compresor */}
           {rol === 2 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-1 max-w-md gap-6 md:gap-8 mx-auto px-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 max-w-xl gap-6 md:gap-8 mx-auto px-4">
               <button
                 className="w-full text-lg text-green-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-green-200 p-4 rounded-xl hover:bg-green-50 hover:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
                 onClick={() => router.push("/features/compressor-maintenance")}
                 style={{ WebkitTapHighlightColor: "transparent" }}
               >
                 <span className="font-medium">Sistema de Mantenimiento</span>
+              </button>
+              <button
+                className="w-full text-lg text-orange-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-orange-200 p-4 rounded-xl hover:bg-orange-50 hover:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
+                onClick={() => router.push("/dooble")}
+                style={{ WebkitTapHighlightColor: "transparent" }}
+              >
+                <span className="font-medium">Dooble</span>
               </button>
             </div>
           ) : (
@@ -314,6 +321,15 @@ const Home = () => {
                     <span className="font-medium">
                       Monitoreo de Consumo KWH
                     </span>
+                  </button>
+                )}
+                {rol !== null && [0, 1, 9].includes(rol) && (
+                  <button
+                    className="w-full text-lg text-orange-600 hover:scale-105 cursor-pointer transition-transform flex items-center justify-center gap-3 bg-white border-2 border-orange-200 p-4 rounded-xl hover:bg-orange-50 hover:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-100 shadow-sm"
+                    onClick={() => router.push("/dooble")}
+                    style={{ WebkitTapHighlightColor: "transparent" }}
+                  >
+                    <span className="font-medium">Dooble</span>
                   </button>
                 )}
               </div>
