@@ -1,12 +1,14 @@
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form, Body
+from fastapi.responses import JSONResponse, StreamingResponse
 from typing import Optional, List
 import mysql.connector
 import os
+import io
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, date
 
-from .drive_utils import upload_maintenance_photos
+from .drive_utils import upload_maintenance_photos, get_gcs_client, BUCKET_NAME
+from .pdf_playwright import generate_pdf_from_react
 
 load_dotenv()
 DB_HOST = os.getenv("DB_HOST")
@@ -15,6 +17,8 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_DATABASE = os.getenv("DB_DATABASE")
 
 reportes_secadora = APIRouter(prefix="/reporte_secadora", tags=["Reportes de Secadora"])
+
+DRYER_VIEW_PATH = "/features/compressor-maintenance/reports/view-dryer"
 
 
 def _get_conn():
@@ -25,6 +29,42 @@ def _get_conn():
         database=DB_DATABASE,
     )
 
+
+def _serialize_row(row: dict) -> dict:
+    """Convert non-JSON-serializable types in a DB row."""
+    for k, v in row.items():
+        if isinstance(v, (datetime, date)):
+            row[k] = v.isoformat()
+    return row
+
+
+def _list_secadora_photos(client_name: str, folio: str, request: Request) -> dict:
+    """List photos from GCS organized by category under Secadoras/ prefix."""
+    try:
+        client = get_gcs_client()
+        clean_client = client_name.strip().replace("/", "-")
+        clean_folio = folio.strip().replace("/", "-")
+        target_segment = f"/{clean_client}/{clean_folio}/"
+        blobs = client.list_blobs(BUCKET_NAME, prefix="Secadoras/")
+        by_category = {}
+        base = str(request.base_url).rstrip("/")
+        for blob in blobs:
+            if target_segment not in blob.name:
+                continue
+            after_folio = blob.name.split(target_segment, 1)[1]
+            parts = after_folio.split("/", 1)
+            if len(parts) < 2 or not parts[1]:
+                continue
+            category = parts[0]
+            url = f"{base}/reporte_mtto/foto?blob={blob.name}"
+            by_category.setdefault(category, []).append(url)
+        return by_category
+    except Exception as e:
+        print(f"Warning: could not list GCS photos for secadora: {e}")
+        return {}
+
+
+# ── POST /guardar ────────────────────────────────────────────────────────────
 
 @reportes_secadora.post("/guardar")
 async def guardar_reporte_secadora(
@@ -107,9 +147,27 @@ async def guardar_reporte_secadora(
                 parent_folder="Secadoras",
             )
 
-        # Upsert: insert or update
+        # Upsert
         cursor.execute("SELECT id FROM reportes_secadora WHERE folio = %s", (folio,))
         existing = cursor.fetchone()
+
+        fields = (
+            cliente, numero_cliente, rfc, direccion,
+            ingeniero_obra, ingeniero_ventologix, fecha or None,
+            equipo, modelo, no_serie, ubicacion, horometro or None,
+            voltaje or None, amperaje or None,
+            ciclo_refrigeracion or None, ciclo_drenado or None,
+            tiempo_drenado or None, tiempo_ciclo or None,
+            presion_alta or None, presion_baja or None,
+            temp_entrada_aire or None, temp_salida_aire or None, punto_rocio or None,
+            drenaje_condensado, intercambiador_calor, evaporadora,
+            valvula_expansion, filtro_deshidratador, condensador,
+            ventiladores_condensador, motor_ventilador,
+            compresor_refrigeracion, cableado_electrico,
+            contactores_relevadores, tarjeta_control,
+            drenaje_automatico, sensor_punto_rocio,
+            estado_general, observaciones,
+        )
 
         if existing:
             cursor.execute(
@@ -132,24 +190,7 @@ async def guardar_reporte_secadora(
                     updated_at=NOW()
                 WHERE folio=%s
                 """,
-                (
-                    cliente, numero_cliente, rfc, direccion,
-                    ingeniero_obra, ingeniero_ventologix, fecha or None,
-                    equipo, modelo, no_serie, ubicacion, horometro or None,
-                    voltaje or None, amperaje or None,
-                    ciclo_refrigeracion or None, ciclo_drenado or None,
-                    tiempo_drenado or None, tiempo_ciclo or None,
-                    presion_alta or None, presion_baja or None,
-                    temp_entrada_aire or None, temp_salida_aire or None, punto_rocio or None,
-                    drenaje_condensado, intercambiador_calor, evaporadora,
-                    valvula_expansion, filtro_deshidratador, condensador,
-                    ventiladores_condensador, motor_ventilador,
-                    compresor_refrigeracion, cableado_electrico,
-                    contactores_relevadores, tarjeta_control,
-                    drenaje_automatico, sensor_punto_rocio,
-                    estado_general, observaciones,
-                    folio,
-                ),
+                (*fields, folio),
             )
         else:
             cursor.execute(
@@ -169,7 +210,7 @@ async def guardar_reporte_secadora(
                     contactores_relevadores, tarjeta_control,
                     drenaje_automatico, sensor_punto_rocio,
                     estado_general, observaciones,
-                    created_at, updated_at
+                    estado, created_at, updated_at
                 ) VALUES (
                     %s, %s, %s, %s, %s,
                     %s, %s, %s,
@@ -185,26 +226,10 @@ async def guardar_reporte_secadora(
                     %s, %s,
                     %s, %s,
                     %s, %s,
-                    NOW(), NOW()
+                    'en_progreso', NOW(), NOW()
                 )
                 """,
-                (
-                    folio, cliente, numero_cliente, rfc, direccion,
-                    ingeniero_obra, ingeniero_ventologix, fecha or None,
-                    equipo, modelo, no_serie, ubicacion, horometro or None,
-                    voltaje or None, amperaje or None,
-                    ciclo_refrigeracion or None, ciclo_drenado or None,
-                    tiempo_drenado or None, tiempo_ciclo or None,
-                    presion_alta or None, presion_baja or None,
-                    temp_entrada_aire or None, temp_salida_aire or None, punto_rocio or None,
-                    drenaje_condensado, intercambiador_calor, evaporadora,
-                    valvula_expansion, filtro_deshidratador, condensador,
-                    ventiladores_condensador, motor_ventilador,
-                    compresor_refrigeracion, cableado_electrico,
-                    contactores_relevadores, tarjeta_control,
-                    drenaje_automatico, sensor_punto_rocio,
-                    estado_general, observaciones,
-                ),
+                (folio, *fields),
             )
 
         conn.commit()
@@ -218,6 +243,112 @@ async def guardar_reporte_secadora(
         conn.close()
 
 
+# ── GET /reporte-completo/{folio} ────────────────────────────────────────────
+
+@reportes_secadora.get("/reporte-completo/{folio}")
+def get_reporte_completo(folio: str, request: Request):
+    conn = _get_conn()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM reportes_secadora WHERE folio = %s", (folio,))
+        row = cursor.fetchone()
+        if not row:
+            return {"success": False, "error": "Reporte no encontrado"}
+        row = _serialize_row(row)
+        row["fotos_por_categoria"] = _list_secadora_photos(
+            row.get("cliente", ""), folio, request
+        )
+        return {"success": True, "data": row}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ── POST /firmar ─────────────────────────────────────────────────────────────
+
+@reportes_secadora.post("/firmar")
+def firmar_reporte(body: dict = Body(...)):
+    folio = body.get("folio")
+    if not folio:
+        raise HTTPException(status_code=400, detail="folio requerido")
+    conn = _get_conn()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            UPDATE reportes_secadora
+            SET firma_persona_cargo=%s,
+                firma_tecnico_ventologix=%s,
+                nombre_persona_cargo=%s,
+                updated_at=NOW()
+            WHERE folio=%s
+            """,
+            (
+                body.get("firma_persona_cargo"),
+                body.get("firma_tecnico_ventologix"),
+                body.get("nombre_persona_cargo"),
+                folio,
+            ),
+        )
+        conn.commit()
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Reporte no encontrado")
+        return {"ok": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ── POST /finalizar-reporte/{folio} ─────────────────────────────────────────
+
+@reportes_secadora.post("/finalizar-reporte/{folio}")
+def finalizar_reporte(folio: str):
+    conn = _get_conn()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE reportes_secadora SET estado='terminado', updated_at=NOW() WHERE folio=%s",
+            (folio,),
+        )
+        conn.commit()
+        if cursor.rowcount == 0:
+            return {"success": False, "error": "Reporte no encontrado"}
+        return {"success": True}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ── GET /descargar-pdf/{folio} ───────────────────────────────────────────────
+
+@reportes_secadora.get("/descargar-pdf/{folio}")
+async def descargar_pdf_secadora(folio: str):
+    frontend_url = os.getenv("FRONTEND_URL", "https://dashboard.ventologix.com")
+    pdf_bytes = await generate_pdf_from_react(
+        folio, frontend_url, view_path=DRYER_VIEW_PATH
+    )
+    clean_folio = folio.replace("/", "-").replace("\\", "-")
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="Reporte_Secadora_{clean_folio}.pdf"'
+        },
+    )
+
+
+# ── GET /{folio} (simple, sin fotos) ─────────────────────────────────────────
+
 @reportes_secadora.get("/{folio}")
 def get_reporte_secadora(folio: str):
     conn = _get_conn()
@@ -227,11 +358,7 @@ def get_reporte_secadora(folio: str):
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Reporte no encontrado")
-        # Convert non-serializable types
-        for k, v in row.items():
-            if isinstance(v, datetime):
-                row[k] = v.isoformat()
-        return row
+        return _serialize_row(row)
     finally:
         cursor.close()
         conn.close()

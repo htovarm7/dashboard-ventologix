@@ -13,7 +13,8 @@ from playwright.async_api import async_playwright
 async def main() -> None:
     folio = sys.argv[1]
     frontend_url = sys.argv[2]
-    view_url = f"{frontend_url}/features/compressor-maintenance/reports/view?folio={folio}"
+    view_path = sys.argv[3] if len(sys.argv) > 3 else "/features/compressor-maintenance/reports/view"
+    view_url = f"{frontend_url}{view_path}?folio={folio}"
 
     print(f"📄 Opening: {view_url}", file=sys.stderr)
 
