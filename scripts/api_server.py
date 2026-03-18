@@ -24,6 +24,7 @@ from scripts.api.reports_daily import reports_daily
 from scripts.api.reports_weekly import reports_weekly
 from scripts.api.reports_static import reports_static
 from scripts.api.dooble import dooble_router
+from scripts.api.reportes_secadora import reportes_secadora
 
 # Load environment variables
 load_dotenv()
@@ -96,3 +97,4 @@ app.include_router(reports_daily)
 app.include_router(reports_weekly)
 app.include_router(reports_static)
 app.include_router(dooble_router)
+app.include_router(reportes_secadora)
