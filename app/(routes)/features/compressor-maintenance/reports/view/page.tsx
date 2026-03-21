@@ -418,6 +418,120 @@ function ViewReportContent() {
     );
   };
 
+  // Generate automatic diagnostic based on pre-maintenance data
+  const generateDiagnostico = () => {
+    if (!preMaintenanceData) return null;
+
+    const positivos: string[] = [];
+    const causas: string[] = [];
+    const acciones: string[] = [];
+    const consecuencias: { [key: string]: number } = {};
+
+    const agregar_consecuencia = (desc: string, grav: number) => {
+      if (consecuencias[desc]) {
+        consecuencias[desc] = Math.max(consecuencias[desc], grav);
+      } else {
+        consecuencias[desc] = grav;
+      }
+    };
+
+    // Temperatura de compresión
+    const tempComp = parseFloat(
+      String(preMaintenanceData.temp_compresion_display || preMaintenanceData.temp_compresion_laser || "0"),
+    );
+    if (tempComp >= 80 && tempComp <= 95) {
+      positivos.push("Temperatura de compresión dentro de rango óptimo");
+    } else if (tempComp > 95 && tempComp <= 105) {
+      positivos.push("Temperatura de compresión aceptable para operación continua");
+    } else if (tempComp > 0) {
+      causas.push("Temperatura de compresión fuera de rango");
+      agregar_consecuencia("Riesgo de paro por alta temperatura", 3);
+      agregar_consecuencia("Degradación acelerada del aceite", 2);
+      acciones.push("Revisar enfriadores, ventilación y aceite");
+    }
+
+    // Temperatura del separador
+    const tempSep = parseFloat(String(preMaintenanceData.temp_separador_aceite || "0"));
+    if (tempSep > 0 && tempSep <= 90) {
+      positivos.push("Temperatura del separador aire-aceite adecuada");
+    } else if (tempSep <= 95) {
+      positivos.push("Temperatura del separador cercana al límite, pero aceptable");
+    } else if (tempSep > 95) {
+      causas.push("Separador aire-aceite sobrecalentado");
+      agregar_consecuencia("Arrastre de aceite a la red", 3);
+      acciones.push("Revisar estado del separador y retorno de aceite");
+    }
+
+    // Delta T enfriador de aceite
+    const deltaT = parseFloat(String(preMaintenanceData.delta_t_enfriador_aceite || "0"));
+    if (deltaT >= 15) {
+      positivos.push("Enfriador de aceite operando con buena eficiencia térmica");
+    } else if (deltaT >= 10 && deltaT < 15) {
+      positivos.push("Enfriador de aceite con eficiencia térmica aceptable");
+    } else if (deltaT > 0) {
+      causas.push("Baja eficiencia del enfriador de aceite");
+      agregar_consecuencia("Alta temperatura interna del compresor", 2);
+      acciones.push("Limpiar enfriador y revisar ventilador");
+    }
+
+    // Diferencial de presión del separador
+    const deltaP = parseFloat(String(preMaintenanceData.delta_p_separador || "0"));
+    if (deltaP > 0 && deltaP <= 0.2) {
+      positivos.push("Separador aire-aceite en condición óptima");
+    } else if (deltaP <= 0.7) {
+      positivos.push("Separador aire-aceite en condición aceptable");
+    } else if (deltaP > 0.7) {
+      causas.push("Separador aire-aceite saturado");
+      agregar_consecuencia("Incremento en consumo eléctrico", 1);
+      agregar_consecuencia("Sobrecarga térmica del compresor", 2);
+      acciones.push("Reemplazar separador aire-aceite");
+    }
+
+    // Temperatura del motor
+    const tempMotor = parseFloat(String(preMaintenanceData.temp_motor_electrico || "0"));
+    if (tempMotor > 0 && tempMotor <= 85) {
+      positivos.push("Temperatura del motor eléctrico dentro de rango normal");
+    } else if (tempMotor <= 90) {
+      positivos.push("Temperatura del motor elevada pero aceptable");
+    } else if (tempMotor > 90) {
+      causas.push("Sobrecalentamiento del motor eléctrico");
+      agregar_consecuencia("Disparo de protecciones térmicas", 3);
+      agregar_consecuencia("Reducción de vida útil del motor", 2);
+      acciones.push("Revisar amperajes, voltaje y presión");
+    }
+
+    // Condiciones ambientales
+    const polvo = preMaintenanceData.operacion_muchos_polvos === "Sí";
+    const ventDeficiente = preMaintenanceData.expulsion_aire_caliente === "Interno al cuarto";
+    if (!polvo && !ventDeficiente) {
+      positivos.push("Condiciones ambientales y ventilación adecuadas");
+    } else {
+      causas.push("Condiciones ambientales desfavorables");
+      agregar_consecuencia("Ensuciamiento acelerado de enfriadores", 1);
+      acciones.push("Mejorar limpieza y ventilación del cuarto");
+    }
+
+    // Condición del aceite
+    if (preMaintenanceData.aceite_oscuro_degradado === "No") {
+      positivos.push("Aceite en buen estado visual");
+    } else if (preMaintenanceData.aceite_oscuro_degradado === "Sí") {
+      causas.push("Aceite degradado");
+      agregar_consecuencia("Lubricación deficiente del tornillo", 3);
+      acciones.push("Cambio de aceite y revisión térmica");
+    }
+
+    const gravedadGlobal = Math.max(...Object.values(consecuencias), 0);
+    const estadoEquipo =
+      {
+        0: "CONDICIÓN GENERAL BUENA",
+        1: "CONDICIÓN ACEPTABLE",
+        2: "REQUIERE ATENCIÓN",
+        3: "CONDICIÓN CRÍTICA",
+      }[gravedadGlobal] || "Sin diagnóstico";
+
+    return { positivos, causas, acciones, consecuencias, estadoEquipo };
+  };
+
   // Categories grouped by report section
   const preMaintenanceCategories = [
     { key: "PLACAS_EQUIPO", label: "Placas del Equipo" },
@@ -959,6 +1073,104 @@ function ViewReportContent() {
 
           </div>
         )}
+
+        {/* Automatic Diagnostic Summary */}
+        {preMaintenanceData && (() => {
+          const diagnostico = generateDiagnostico();
+          if (!diagnostico) return null;
+          return (
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+              <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                RESUMEN DE DIAGNÓSTICO AUTOMÁTICO - PRE-MANTENIMIENTO
+              </h2>
+              <div className="space-y-4">
+                {/* Estado General */}
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-bold text-lg mb-2">
+                    Estado General del Equipo
+                  </h3>
+                  <p className="text-xl font-bold">
+                    {diagnostico.estadoEquipo}
+                  </p>
+                </div>
+
+                {/* Aspectos Positivos */}
+                {diagnostico.positivos.length > 0 && (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <h3 className="font-bold text-green-900 mb-3">
+                      ✔️ Aspectos Positivos Detectados
+                    </h3>
+                    <ul className="space-y-2">
+                      {diagnostico.positivos.map((item, idx) => (
+                        <li key={idx} className="flex items-start">
+                          <span className="text-green-600 mr-2">✔️</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Causas Detectadas */}
+                {diagnostico.causas.length > 0 && (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <h3 className="font-bold text-yellow-900 mb-3">
+                      ⚠️ Causas Detectadas
+                    </h3>
+                    <ul className="space-y-2">
+                      {diagnostico.causas.map((item, idx) => (
+                        <li key={idx} className="flex items-start">
+                          <span className="text-yellow-600 mr-2">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Consecuencias Probables */}
+                {Object.keys(diagnostico.consecuencias).length > 0 && (
+                  <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <h3 className="font-bold text-orange-900 mb-3">
+                      ⚠️ Consecuencias Probables
+                    </h3>
+                    <ul className="space-y-2">
+                      {Object.entries(diagnostico.consecuencias).map(
+                        ([cons, grav], idx) => {
+                          const icono =
+                            { 1: "🟡", 2: "🟠", 3: "🔴" }[grav] || "⚠️";
+                          return (
+                            <li key={idx} className="flex items-start">
+                              <span className="mr-2">{icono}</span>
+                              <span>{cons}</span>
+                            </li>
+                          );
+                        },
+                      )}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Acciones Recomendadas */}
+                {diagnostico.acciones.length > 0 && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h3 className="font-bold text-blue-900 mb-3">
+                      🔧 Acciones Recomendadas
+                    </h3>
+                    <ul className="space-y-2">
+                      {diagnostico.acciones.map((item, idx) => (
+                        <li key={idx} className="flex items-start">
+                          <span className="text-blue-600 mr-2">➤</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Pre-Maintenance Photos Section */}
         {renderPhotoSection(
