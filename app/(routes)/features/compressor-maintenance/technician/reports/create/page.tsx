@@ -146,7 +146,7 @@ function FillReport() {
     equipmentPowers: "",
     displayPowers: "",
     generalHours: "",
-    loadHours: "",
+    loadHours: "",  
     unloadHours: "",
     maintenance2000: false,
     maintenance4000: false,
@@ -1014,24 +1014,6 @@ function FillReport() {
             }
           }
 
-          // Then, upload categorized photos to Google Drive
-          const hasPhotosToUpload = Object.values(photosByCategory).some(
-            (photos) => photos.length > 0,
-          );
-
-          if (hasPhotosToUpload) {
-            console.log("📸 Uploading photos to Google Drive...");
-            const photoUploadResult = await uploadAllPhotos();
-
-            if (!photoUploadResult.success) {
-              console.warn(
-                "⚠️ Some photos failed to upload, but draft was saved",
-              );
-            } else {
-              console.log("✅ Photos uploaded successfully");
-            }
-          }
-
           setLastSaved(new Date());
           setHasUnsavedChanges(false);
           if (showAlert) {
@@ -1791,7 +1773,7 @@ function FillReport() {
             name="equipmentPowers"
             value={formData.equipmentPowers}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg"
             required
           >
             <option value="">-- Seleccionar --</option>
@@ -1843,55 +1825,6 @@ function FillReport() {
           </div>
         </div>
 
-        {/* Navegación Rápida entre Secciones */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
-          <h3 className="text-sm font-semibold text-gray-600 mb-3">
-            NAVEGACIÓN RÁPIDA
-          </h3>
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              className="px-4 py-2 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors text-sm font-medium"
-            >
-              📋 Pre-Mantenimiento
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowMaintenanceSection(true);
-                setTimeout(() => {
-                  const section = document.getElementById(
-                    "maintenance-section",
-                  );
-                  section?.scrollIntoView({ behavior: "smooth" });
-                }, 100);
-              }}
-              className="px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition-colors text-sm font-medium"
-            >
-              🔧 Mantenimiento
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowMaintenanceSection(true);
-                setShowPostMaintenanceSection(true);
-                setTimeout(() => {
-                  const section = document.getElementById(
-                    "post-maintenance-section",
-                  );
-                  section?.scrollIntoView({ behavior: "smooth" });
-                }, 100);
-              }}
-              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
-            >
-              ✅ Post-Mantenimiento
-            </button>
-          </div>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-6">
           {renderClientSelection()}
           {/* Header Reporte de Mantenimiento */}
@@ -1921,7 +1854,7 @@ function FillReport() {
                       name="displayPowers"
                       value={formData.displayPowers}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       required
                     >
                       <option value="">-- Seleccionar --</option>
@@ -3353,7 +3286,7 @@ function FillReport() {
                       e.target.value,
                     )
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-l"
                   rows={6}
                   placeholder="Describa las observaciones, hallazgos y trabajos realizados durante el mantenimiento..."
                 />
@@ -3372,7 +3305,7 @@ function FillReport() {
                       e.target.value,
                     )
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   rows={4}
                   placeholder="Comentarios o solicitudes del cliente..."
                 />
@@ -3627,7 +3560,7 @@ function FillReport() {
                       name="displayPowersFinal"
                       value={formData.displayPowersFinal}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     >
                       <option value="">-- Seleccionar --</option>
                       <option value="Sí">Sí</option>
@@ -4172,6 +4105,20 @@ function FillReport() {
                               formData.folio,
                           );
                           return;
+                        }
+
+                        // Upload all photos before sending to signature
+                        const hasPhotosToUpload = Object.values(photosByCategory).some(
+                          (photos) => photos.length > 0,
+                        );
+                        if (hasPhotosToUpload) {
+                          console.log("📸 Subiendo fotos a Google Cloud Storage...");
+                          const photoUploadResult = await uploadAllPhotos();
+                          if (!photoUploadResult.success) {
+                            console.warn("⚠️ Algunas fotos fallaron al subir, continuando...");
+                          } else {
+                            console.log("✅ Fotos subidas exitosamente");
+                          }
                         }
 
                         // Update order status to por_firmar
