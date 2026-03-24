@@ -2,6 +2,42 @@ import { useState } from "react";
 
 const URL_API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+const compressImage = (file: File, maxWidth = 1280, maxHeight = 720, quality = 0.75): Promise<File> => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith("image/")) {
+      resolve(file);
+      return;
+    }
+    const img = new window.Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      const ratio = Math.min(1, maxWidth / width, maxHeight / height);
+      width = Math.round(width * ratio);
+      height = Math.round(height * ratio);
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const name = file.name.replace(/\.[^.]+$/, ".jpg");
+            resolve(new File([blob], name, { type: "image/jpeg", lastModified: Date.now() }));
+          } else {
+            resolve(file);
+          }
+        },
+        "image/jpeg",
+        quality,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+};
+
 export interface PhotoUploadResult {
   success: boolean;
   message?: string;
@@ -47,8 +83,9 @@ export const usePhotoUpload = () => {
       formData.append("client_name", clientName);
       formData.append("category", category);
 
-      // Add all files
-      files.forEach((file, index) => {
+      // Compress and add all files
+      const compressed = await Promise.all(files.map((f) => compressImage(f)));
+      compressed.forEach((file, index) => {
         console.log(
           `  📄 Adding file ${index + 1}: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`
         );
