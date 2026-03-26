@@ -11,6 +11,7 @@ import {
   Building2,
   Eye,
   Download,
+  Pencil,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/BackButton";
@@ -38,6 +39,19 @@ interface OrdenServicio {
   reporte_url: string;
 }
 
+interface DryerReport {
+  id: number;
+  folio: string;
+  cliente: string;
+  numero_cliente: string;
+  equipo: string;
+  modelo: string;
+  no_serie: string;
+  fecha: string;
+  estado: string;
+  created_at: string;
+}
+
 interface ReportsByClient {
   clientName: string;
   numeroCliente: number;
@@ -54,6 +68,8 @@ const Reports = () => {
   );
   const [loading, setLoading] = useState(true);
   const [downloadingFolio, setDownloadingFolio] = useState<string | null>(null);
+  const [dryerReports, setDryerReports] = useState<DryerReport[]>([]);
+  const [activeTab, setActiveTab] = useState<"compresores" | "secadoras">("compresores");
 
   useEffect(() => {
     loadUserDataAndReports();
@@ -85,11 +101,9 @@ const Reports = () => {
       const result = await response.json();
       const ordenes: OrdenServicio[] = result.data || [];
 
-      // Clients (rol 3 & 4) see terminado + por_firmar; admins/techs see only terminado
-      const visibleOrdenes = ordenes.filter((orden) =>
-        (rol === 3 || rol === 4)
-          ? orden.estado === "terminado" || orden.estado === "por_firmar"
-          : orden.estado === "terminado",
+      // All roles see terminado + por_firmar reports
+      const visibleOrdenes = ordenes.filter(
+        (orden) => orden.estado === "terminado" || orden.estado === "por_firmar",
       );
 
       // Filter by role - roles 3 and 4 can only see their own client's reports
@@ -140,6 +154,21 @@ const Reports = () => {
           .sort((a, b) => a.clientName.localeCompare(b.clientName));
 
         setReportsByClient(groupedReports);
+      }
+
+      // Load dryer reports (only for technician/admin roles)
+      if (rol !== 3 && rol !== 4) {
+        try {
+          const dryerRes = await fetch(`${URL_API}/reporte_secadora/listar`);
+          if (dryerRes.ok) {
+            const dryerResult = await dryerRes.json();
+            if (dryerResult.success) {
+              setDryerReports(dryerResult.data || []);
+            }
+          }
+        } catch (dryerError) {
+          console.error("Error loading dryer reports:", dryerError);
+        }
       }
     } catch (error) {
       console.error("Error loading reports:", error);
@@ -211,8 +240,35 @@ const Reports = () => {
     );
   }
 
+  const handleDownloadDryerPdf = async (folio: string) => {
+    setDownloadingFolio(folio);
+    try {
+      const response = await fetch(`${URL_API}/reporte_secadora/descargar-pdf/${folio}`);
+      if (!response.ok) {
+        alert("Error al descargar el PDF");
+        return;
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Reporte_Secadora_${folio.replace(/\//g, "-")}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      alert("Error al descargar el PDF");
+    } finally {
+      setDownloadingFolio(null);
+    }
+  };
+
   const isClientRole = userRole === 3 || userRole === 4;
-  const hasNoReports = isClientRole ? flatReports.length === 0 : reportsByClient.length === 0;
+  const hasNoReports = isClientRole
+    ? flatReports.length === 0
+    : reportsByClient.length === 0 && dryerReports.length === 0;
 
   if (hasNoReports) {
     return (
@@ -232,12 +288,38 @@ const Reports = () => {
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <BackButton />
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-gray-900">
+        <h1 className="text-3xl font-bold mb-6 text-gray-900">
           Reportes de Mantenimiento
         </h1>
 
+        {/* Tabs for technician/admin roles */}
+        {!isClientRole && dryerReports.length > 0 && (
+          <div className="flex space-x-1 bg-gray-200 rounded-lg p-1 mb-6 max-w-md">
+            <button
+              onClick={() => setActiveTab("compresores")}
+              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === "compresores"
+                  ? "bg-white text-blue-700 shadow-sm"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              Compresores
+            </button>
+            <button
+              onClick={() => setActiveTab("secadoras")}
+              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === "secadoras"
+                  ? "bg-white text-cyan-700 shadow-sm"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              Secadoras ({dryerReports.length})
+            </button>
+          </div>
+        )}
+
         {/* Reports list */}
-        <div className="space-y-4">
+        <div className="space-y-4" style={{ display: activeTab === "compresores" || isClientRole ? undefined : "none" }}>
           {isClientRole ? (
             /* Flat list for client roles (3 & 4) */
             <div className="bg-white rounded-lg shadow-md overflow-hidden p-6">
@@ -371,10 +453,14 @@ const Reports = () => {
                       {clientGroup.reports.map((orden) => (
                         <div
                           key={orden.folio}
-                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                          className={`flex items-center justify-between p-4 rounded-lg transition-colors border ${
+                            orden.estado === "por_firmar"
+                              ? "bg-yellow-50 border-yellow-300 hover:bg-yellow-100"
+                              : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                          }`}
                         >
                           <div className="flex-1">
-                            <div className="flex items-center space-x-6 mb-2">
+                            <div className="flex items-center space-x-6 mb-2 flex-wrap gap-y-1">
                               <div className="flex items-center space-x-2 text-gray-700">
                                 <Wrench size={18} />
                                 <span className="font-semibold">
@@ -389,6 +475,11 @@ const Reports = () => {
                               <span className="text-sm text-blue-600 font-medium">
                                 Folio: {orden.folio}
                               </span>
+                              {orden.estado === "por_firmar" && (
+                                <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-semibold rounded-full">
+                                  Pendiente de firma
+                                </span>
+                              )}
                             </div>
                             <div className="flex items-center space-x-6 text-sm text-gray-600">
                               <div className="flex items-center space-x-2">
@@ -410,10 +501,33 @@ const Reports = () => {
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => handleDownloadPdf(orden.folio)}
-                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                              disabled={downloadingFolio === orden.folio}
+                              className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium flex items-center space-x-2 ${
+                                downloadingFolio === orden.folio
+                                  ? "bg-red-400 cursor-not-allowed"
+                                  : "bg-red-600 hover:bg-red-700"
+                              }`}
                             >
-                              <Download size={16} />
-                              <span>PDF</span>
+                              {downloadingFolio === orden.folio ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                                  <span>Generando...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Download size={16} />
+                                  <span>PDF</span>
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => router.push(
+                                `/features/compressor-maintenance/reports/view?folio=${orden.folio}&edit=true`,
+                              )}
+                              className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                            >
+                              <Pencil size={16} />
+                              <span>Editar</span>
                             </button>
                             <button
                               onClick={() => handleViewReport(orden)}
@@ -432,6 +546,110 @@ const Reports = () => {
             ))
           )}
         </div>
+
+        {/* Dryer Reports Section */}
+        {!isClientRole && activeTab === "secadoras" && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow-md overflow-hidden p-6">
+              <div className="space-y-3">
+                {dryerReports.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileText className="mx-auto text-gray-300 mb-4" size={48} />
+                    <p className="text-gray-500">No hay reportes de secadoras</p>
+                  </div>
+                ) : (
+                  dryerReports.map((report) => (
+                    <div
+                      key={report.folio}
+                      className={`flex items-center justify-between p-4 rounded-lg transition-colors border ${
+                        report.estado === "por_firmar"
+                          ? "bg-yellow-50 border-yellow-300 hover:bg-yellow-100"
+                          : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-4 mb-2 flex-wrap gap-y-1">
+                          <div className="flex items-center space-x-2 text-gray-700">
+                            <Wrench size={18} />
+                            <span className="font-semibold">
+                              {report.equipo || "Secadora"}
+                            </span>
+                          </div>
+                          {report.modelo && (
+                            <span className="text-sm text-gray-500">
+                              Modelo: {report.modelo}
+                            </span>
+                          )}
+                          {report.no_serie && (
+                            <span className="text-sm text-gray-500">
+                              S/N: {report.no_serie}
+                            </span>
+                          )}
+                          <span className="text-sm text-blue-600 font-medium">
+                            Folio: {report.folio}
+                          </span>
+                          {report.estado === "por_firmar" && (
+                            <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-semibold rounded-full">
+                              Pendiente de firma
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-6 text-sm text-gray-600">
+                          <div className="flex items-center space-x-2">
+                            <Calendar size={16} />
+                            <span>{formatDate(report.fecha || report.created_at)}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Building2 size={16} />
+                            <span>{report.cliente || "N/A"}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <FileText size={16} />
+                            <span>Secadora</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleDownloadDryerPdf(report.folio)}
+                          disabled={downloadingFolio === report.folio}
+                          className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium flex items-center space-x-2 ${
+                            downloadingFolio === report.folio
+                              ? "bg-red-400 cursor-not-allowed"
+                              : "bg-red-600 hover:bg-red-700"
+                          }`}
+                        >
+                          {downloadingFolio === report.folio ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                              <span>Generando...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Download size={16} />
+                              <span>PDF</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() =>
+                            router.push(
+                              `/features/compressor-maintenance/reports/view-dryer?folio=${report.folio}`,
+                            )
+                          }
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                        >
+                          <Eye size={16} />
+                          <span>Ver Reporte</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

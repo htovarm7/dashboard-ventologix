@@ -64,6 +64,31 @@ def _list_secadora_photos(client_name: str, folio: str, request: Request) -> dic
         return {}
 
 
+# ── GET /listar ──────────────────────────────────────────────────────────────
+
+@reportes_secadora.get("/listar")
+def listar_reportes_secadora():
+    """List all dryer reports (summary for the listing page)."""
+    conn = _get_conn()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """SELECT id, folio, cliente, numero_cliente, equipo, modelo,
+                      no_serie, fecha, estado, created_at
+               FROM reportes_secadora
+               ORDER BY created_at DESC"""
+        )
+        rows = cursor.fetchall()
+        for r in rows:
+            _serialize_row(r)
+        return {"success": True, "data": rows}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+    finally:
+        cursor.close()
+        conn.close()
+
+
 # ── POST /guardar ────────────────────────────────────────────────────────────
 
 @reportes_secadora.post("/guardar")

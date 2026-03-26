@@ -201,9 +201,32 @@ function ViewDryerReportContent() {
       .finally(() => setLoading(false));
   }, [folio]);
 
-  const handleDownloadPdf = () => {
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
+  const handleDownloadPdf = async () => {
     if (!folio) return;
-    window.open(`${URL_API}/reporte_secadora/descargar-pdf/${folio}`, "_blank");
+    setIsDownloadingPdf(true);
+    try {
+      const response = await fetch(`${URL_API}/reporte_secadora/descargar-pdf/${folio}`);
+      if (!response.ok) {
+        alert("Error al generar el PDF. Inténtalo de nuevo.");
+        return;
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Reporte_Secadora_${folio.replace(/\//g, "-")}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      alert("Error al descargar el PDF.");
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
   const handleSaveSignatureAndFinish = async () => {
@@ -604,10 +627,22 @@ function ViewDryerReportContent() {
           </button>
           <button
             onClick={handleDownloadPdf}
-            className="px-5 py-2.5 bg-cyan-700 text-white rounded-xl hover:bg-cyan-800 font-medium text-sm flex items-center space-x-2 shadow-sm"
+            disabled={isDownloadingPdf}
+            className={`px-5 py-2.5 text-white rounded-xl font-medium text-sm flex items-center space-x-2 shadow-sm ${
+              isDownloadingPdf ? "bg-cyan-400 cursor-not-allowed" : "bg-cyan-700 hover:bg-cyan-800"
+            }`}
           >
-            <FileText size={18} />
-            <span>Descargar PDF</span>
+            {isDownloadingPdf ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                <span>Generando PDF...</span>
+              </>
+            ) : (
+              <>
+                <FileText size={18} />
+                <span>Descargar PDF</span>
+              </>
+            )}
           </button>
         </div>
       </div>

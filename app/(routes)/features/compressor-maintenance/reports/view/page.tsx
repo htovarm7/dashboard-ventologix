@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import BackButton from "@/components/BackButton";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import { URL_API } from "@/lib/global";
-import { CheckCircle, XCircle, FileText, X } from "lucide-react";
+import { CheckCircle, XCircle, FileText, X, Pencil, Save, XOctagon } from "lucide-react";
 import SignatureCanvas from "react-signature-canvas";
 
 interface MaintenanceItem {
@@ -188,6 +188,13 @@ function ViewReportContent() {
   const [nombrePersonaCargo, setNombrePersonaCargo] = useState("");
   const clientSignatureRef = useRef<SignatureCanvas>(null);
 
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editedPre, setEditedPre] = useState<PreMaintenanceData | null>(null);
+  const [editedMaintenance, setEditedMaintenance] = useState<MaintenanceData | null>(null);
+  const [editedPost, setEditedPost] = useState<PostMaintenanceData | null>(null);
+
   useEffect(() => {
     const folio = searchParams.get("folio");
     if (folio) {
@@ -195,6 +202,10 @@ function ViewReportContent() {
     } else {
       setError("No se proporcionó un folio");
       setLoading(false);
+    }
+    // Auto-enter edit mode if ?edit=true
+    if (searchParams.get("edit") === "true") {
+      setIsEditing(true);
     }
   }, [searchParams]);
 
@@ -240,8 +251,14 @@ function ViewReportContent() {
       if (reportData.fotos_por_categoria && Object.keys(reportData.fotos_por_categoria).length > 0) {
         setFotosPorCategoria(reportData.fotos_por_categoria);
       } else if (reportData.fotos_drive && reportData.fotos_drive.length > 0) {
-        // Fallback: if only flat array is available, show all under OTROS
         setFotosPorCategoria({ OTROS: reportData.fotos_drive });
+      }
+
+      // If edit mode was requested, populate edited data
+      if (searchParams.get("edit") === "true") {
+        if (reportData.pre_mantenimiento) setEditedPre({ ...reportData.pre_mantenimiento });
+        if (reportData.mantenimiento) setEditedMaintenance({ ...reportData.mantenimiento });
+        if (reportData.post_mantenimiento) setEditedPost({ ...reportData.post_mantenimiento });
       }
     } catch (err) {
       console.error("Error loading report data:", err);
@@ -361,6 +378,149 @@ function ViewReportContent() {
     if (typeof value === "boolean") return value ? "Sí" : "No";
     return suffix ? `${value}${suffix}` : String(value);
   };
+
+  // Start editing - clone all data
+  const startEditing = () => {
+    setEditedPre(preMaintenanceData ? { ...preMaintenanceData } : null);
+    setEditedMaintenance(maintenanceData ? { ...maintenanceData } : null);
+    setEditedPost(postMaintenanceData ? { ...postMaintenanceData } : null);
+    setIsEditing(true);
+  };
+
+  // Cancel editing
+  const cancelEditing = () => {
+    setEditedPre(null);
+    setEditedMaintenance(null);
+    setEditedPost(null);
+    setIsEditing(false);
+  };
+
+  // Save all edited data
+  const saveEdits = async () => {
+    const folio = searchParams.get("folio");
+    if (!folio) return;
+
+    setIsSaving(true);
+    try {
+      const promises: Promise<Response>[] = [];
+
+      if (editedPre) {
+        promises.push(
+          fetch(`${URL_API}/reporte_mtto/pre-mtto`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(editedPre),
+          }),
+        );
+      }
+
+      if (editedMaintenance) {
+        promises.push(
+          fetch(`${URL_API}/reporte_mantenimiento/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(editedMaintenance),
+          }),
+        );
+      }
+
+      if (editedPost) {
+        promises.push(
+          fetch(`${URL_API}/reporte_mtto/post-mtto`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(editedPost),
+          }),
+        );
+      }
+
+      const results = await Promise.all(promises);
+      const allOk = results.every((r) => r.ok);
+
+      if (allOk) {
+        alert("Reporte actualizado exitosamente");
+        setIsEditing(false);
+        setEditedPre(null);
+        setEditedMaintenance(null);
+        setEditedPost(null);
+        loadAllReportData(folio);
+      } else {
+        alert("Error al guardar algunos cambios. Inténtalo de nuevo.");
+      }
+    } catch (err) {
+      console.error("Error saving edits:", err);
+      alert("Error al guardar los cambios.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Editable field renderer
+  const renderField = (
+    dataObj: Record<string, unknown> | null,
+    field: string,
+    editedObj: Record<string, unknown> | null,
+    setEditedObj: (obj: Record<string, unknown> | null) => void,
+    options?: { suffix?: string; type?: "text" | "number" | "select"; selectOptions?: string[] },
+  ) => {
+    const value = dataObj ? dataObj[field] : undefined;
+
+    if (!isEditing || !editedObj) {
+      return (
+        <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
+          {renderValue(value as string | number | boolean | undefined | null, options?.suffix)}
+        </p>
+      );
+    }
+
+    const editValue = editedObj[field] ?? "";
+
+    if (options?.type === "select" && options.selectOptions) {
+      return (
+        <select
+          value={String(editValue)}
+          onChange={(e) => setEditedObj({ ...editedObj, [field]: e.target.value })}
+          className="w-full p-2 border border-blue-300 rounded bg-blue-50 font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
+          <option value="">—</option>
+          {options.selectOptions.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      );
+    }
+
+    return (
+      <input
+        type={options?.type === "number" ? "number" : "text"}
+        value={String(editValue)}
+        onChange={(e) => {
+          const val = options?.type === "number" ? (e.target.value === "" ? null : Number(e.target.value)) : e.target.value;
+          setEditedObj({ ...editedObj, [field]: val });
+        }}
+        className="w-full p-2 border border-blue-300 rounded bg-blue-50 font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+      />
+    );
+  };
+
+  // Shortcut helpers
+  const preField = (field: string, opts?: { suffix?: string; type?: "text" | "number" | "select"; selectOptions?: string[] }) =>
+    renderField(
+      preMaintenanceData as unknown as Record<string, unknown>,
+      field,
+      editedPre as unknown as Record<string, unknown>,
+      (obj) => setEditedPre(obj as unknown as PreMaintenanceData),
+      opts,
+    );
+
+  const postField = (field: string, opts?: { suffix?: string; type?: "text" | "number" | "select"; selectOptions?: string[] }) =>
+    renderField(
+      postMaintenanceData as unknown as Record<string, unknown>,
+      field,
+      editedPost as unknown as Record<string, unknown>,
+      (obj) => setEditedPost(obj as unknown as PostMaintenanceData),
+      opts,
+    );
 
   // Convert maintenance data to display items
   const getMaintenanceItems = (): MaintenanceItem[] => {
@@ -619,6 +779,34 @@ function ViewReportContent() {
       </div>
 
       <div className="max-w-7xl mx-auto mt-4">
+        {/* Edit Mode Banner */}
+        {isEditing && (
+          <div className="no-print bg-amber-50 border-2 border-amber-400 rounded-lg p-4 mb-4 flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Pencil className="text-amber-600" size={24} />
+              <div>
+                <p className="font-bold text-amber-900">Modo Edición</p>
+                <p className="text-sm text-amber-700">Los campos editables se muestran con fondo azul. Haz clic en &quot;Guardar Cambios&quot; cuando termines.</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={cancelEditing}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveEdits}
+                disabled={isSaving}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium disabled:opacity-50"
+              >
+                {isSaving ? "Guardando..." : "Guardar Cambios"}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Header Principal */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
           <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white p-6">
@@ -824,25 +1012,19 @@ function ViewReportContent() {
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     ¿Equipo enciende?
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.equipo_enciende)}
-                  </p>
+                  {preField("equipo_enciende", { type: "select", selectOptions: ["Sí", "No"] })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     ¿Display enciende?
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.display_enciende)}
-                  </p>
+                  {preField("display_enciende", { type: "select", selectOptions: ["Sí", "No"] })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Compresor es Master/Slave
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.compresor_es_master)}
-                  </p>
+                  {preField("compresor_es_master", { type: "select", selectOptions: ["Master", "Slave", "Independiente"] })}
                 </div>
               </div>
             </div>
@@ -857,25 +1039,19 @@ function ViewReportContent() {
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Horas Totales
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.horas_totales, " hrs")}
-                  </p>
+                  {preField("horas_totales", { suffix: " hrs", type: "number" })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Horas en Carga
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.horas_carga, " hrs")}
-                  </p>
+                  {preField("horas_carga", { suffix: " hrs", type: "number" })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Horas en Descarga
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.horas_descarga, " hrs")}
-                  </p>
+                  {preField("horas_descarga", { suffix: " hrs", type: "number" })}
                 </div>
               </div>
             </div>
@@ -890,25 +1066,19 @@ function ViewReportContent() {
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Voltaje de Alimentación
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.voltaje_alimentacion, " V")}
-                  </p>
+                  {preField("voltaje_alimentacion", { suffix: " V", type: "number" })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Amperaje Motor en Carga
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.amperaje_motor_carga, " A")}
-                  </p>
+                  {preField("amperaje_motor_carga", { suffix: " A", type: "number" })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Amperaje Ventilador
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.amperaje_ventilador, " A")}
-                  </p>
+                  {preField("amperaje_ventilador", { suffix: " A", type: "number" })}
                 </div>
               </div>
             </div>
@@ -923,64 +1093,37 @@ function ViewReportContent() {
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Temp. Compresión (Display)
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      preMaintenanceData.temp_compresion_display,
-                      " °C",
-                    )}
-                  </p>
+                  {preField("temp_compresion_display", { suffix: " °C", type: "number" })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Temp. Compresión (Láser)
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      preMaintenanceData.temp_compresion_laser,
-                      " °C",
-                    )}
-                  </p>
+                  {preField("temp_compresion_laser", { suffix: " °C", type: "number" })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Temp. Separador Aceite
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      preMaintenanceData.temp_separador_aceite,
-                      " °C",
-                    )}
-                  </p>
+                  {preField("temp_separador_aceite", { suffix: " °C", type: "number" })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Temp. Interna Cuarto
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.temp_interna_cuarto, " °C")}
-                  </p>
+                  {preField("temp_interna_cuarto", { suffix: " °C", type: "number" })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Delta T Enfriador Aceite
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      preMaintenanceData.delta_t_enfriador_aceite,
-                      " °C",
-                    )}
-                  </p>
+                  {preField("delta_t_enfriador_aceite", { suffix: " °C", type: "number" })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Temp. Motor Eléctrico
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      preMaintenanceData.temp_motor_electrico,
-                      " °C",
-                    )}
-                  </p>
+                  {preField("temp_motor_electrico", { suffix: " °C", type: "number" })}
                 </div>
               </div>
             </div>
@@ -995,33 +1138,25 @@ function ViewReportContent() {
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Método Control Presión
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.metodo_control_presion)}
-                  </p>
+                  {preField("metodo_control_presion")}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Presión en Carga
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.presion_carga, " Psi")}
-                  </p>
+                  {preField("presion_carga", { suffix: " Psi", type: "number" })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Presión en Descarga
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.presion_descarga, " Psi")}
-                  </p>
+                  {preField("presion_descarga", { suffix: " Psi", type: "number" })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Delta P Separador
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.delta_p_separador, " Psi")}
-                  </p>
+                  {preField("delta_p_separador", { suffix: " Psi", type: "number" })}
                 </div>
               </div>
             </div>
@@ -1036,25 +1171,19 @@ function ViewReportContent() {
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Fugas de Aceite Visibles
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.fugas_aceite_visibles)}
-                  </p>
+                  {preField("fugas_aceite_visibles", { type: "select", selectOptions: ["Sí", "No"] })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Fugas de Aire Audibles
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.fugas_aire_audibles)}
-                  </p>
+                  {preField("fugas_aire_audibles", { type: "select", selectOptions: ["Sí", "No"] })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Aceite Oscuro/Degradado
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.aceite_oscuro_degradado)}
-                  </p>
+                  {preField("aceite_oscuro_degradado", { type: "select", selectOptions: ["Sí", "No"] })}
                 </div>
               </div>
             </div>
@@ -1069,25 +1198,19 @@ function ViewReportContent() {
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Ubicación del Compresor
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.ubicacion_compresor)}
-                  </p>
+                  {preField("ubicacion_compresor")}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Expulsión Aire Caliente
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.expulsion_aire_caliente)}
-                  </p>
+                  {preField("expulsion_aire_caliente", { type: "select", selectOptions: ["Al exterior", "Interno al cuarto"] })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Operación con Muchos Polvos
                   </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(preMaintenanceData.operacion_muchos_polvos)}
-                  </p>
+                  {preField("operacion_muchos_polvos", { type: "select", selectOptions: ["Sí", "No"] })}
                 </div>
               </div>
             </div>
@@ -1207,25 +1330,51 @@ function ViewReportContent() {
               TRABAJOS REALIZADOS
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
-              {maintenanceItems.map((item, index) => (
-                <div
-                  key={index}
-                  className={`flex items-center justify-between p-3 rounded-lg border ${
-                    item.realizado
-                      ? "bg-green-50 border-green-200"
-                      : "bg-gray-50 border-gray-200"
-                  }`}
-                >
-                  <span className="text-gray-900 font-medium">
-                    {item.nombre}
-                  </span>
-                  {item.realizado ? (
-                    <CheckCircle className="text-green-600" size={24} />
-                  ) : (
-                    <XCircle className="text-gray-400" size={24} />
-                  )}
-                </div>
-              ))}
+              {isEditing && editedMaintenance
+                ? Object.entries(maintenanceFieldsMap).map(([field, displayName]) => {
+                    const value = (editedMaintenance as unknown as Record<string, string>)[field];
+                    const isChecked = value === "Sí";
+                    return (
+                      <div
+                        key={field}
+                        className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer ${
+                          isChecked ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
+                        }`}
+                        onClick={() => {
+                          setEditedMaintenance({
+                            ...editedMaintenance,
+                            [field]: isChecked ? "No" : "Sí",
+                          } as MaintenanceData);
+                        }}
+                      >
+                        <span className="text-gray-900 font-medium">{displayName}</span>
+                        {isChecked ? (
+                          <CheckCircle className="text-green-600" size={24} />
+                        ) : (
+                          <XCircle className="text-gray-400" size={24} />
+                        )}
+                      </div>
+                    );
+                  })
+                : maintenanceItems.map((item, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-center justify-between p-3 rounded-lg border ${
+                        item.realizado
+                          ? "bg-green-50 border-green-200"
+                          : "bg-gray-50 border-gray-200"
+                      }`}
+                    >
+                      <span className="text-gray-900 font-medium">
+                        {item.nombre}
+                      </span>
+                      {item.realizado ? (
+                        <CheckCircle className="text-green-600" size={24} />
+                      ) : (
+                        <XCircle className="text-gray-400" size={24} />
+                      )}
+                    </div>
+                  ))}
             </div>
 
           </div>
@@ -1247,36 +1396,53 @@ function ViewReportContent() {
 
         {/* Comments */}
         {(maintenanceData?.comentarios_generales ||
-          maintenanceData?.comentario_cliente) && (
+          maintenanceData?.comentario_cliente ||
+          isEditing) && (
           <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
             <h2 className="text-white bg-gray-700 px-4 py-2 rounded font-bold mb-4">
               COMENTARIOS
             </h2>
             <div className="space-y-4 p-4">
-              {maintenanceData?.comentarios_generales && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Comentarios del Técnico
-                  </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Comentarios del Técnico
+                </label>
+                {isEditing && editedMaintenance ? (
+                  <textarea
+                    value={editedMaintenance.comentarios_generales || ""}
+                    onChange={(e) =>
+                      setEditedMaintenance({ ...editedMaintenance, comentarios_generales: e.target.value })
+                    }
+                    className="w-full p-4 border border-blue-300 rounded-lg bg-blue-50 text-gray-800 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                ) : maintenanceData?.comentarios_generales ? (
                   <div className="bg-gray-100 p-4 rounded-lg">
                     <p className="text-gray-800 whitespace-pre-wrap">
                       {maintenanceData.comentarios_generales}
                     </p>
                   </div>
-                </div>
-              )}
-              {maintenanceData?.comentario_cliente && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Comentarios del Cliente
-                  </label>
+                ) : null}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Comentarios del Cliente
+                </label>
+                {isEditing && editedMaintenance ? (
+                  <textarea
+                    value={editedMaintenance.comentario_cliente || ""}
+                    onChange={(e) =>
+                      setEditedMaintenance({ ...editedMaintenance, comentario_cliente: e.target.value })
+                    }
+                    className="w-full p-4 border border-blue-300 rounded-lg bg-blue-50 text-gray-800 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                ) : maintenanceData?.comentario_cliente ? (
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <p className="text-gray-800 whitespace-pre-wrap">
                       {maintenanceData.comentario_cliente}
                     </p>
                   </div>
-                </div>
-              )}
+                ) : null}
+              </div>
             </div>
           </div>
         )}
@@ -1397,209 +1563,84 @@ function ViewReportContent() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Display Enciende (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.display_enciende_final)}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Display Enciende (Final)</label>
+                  {postField("display_enciende_final", { type: "select", selectOptions: ["Sí", "No"] })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Horas Totales (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      postMaintenanceData.horas_totales_final,
-                      " hrs",
-                    )}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Horas Totales (Final)</label>
+                  {postField("horas_totales_final", { suffix: " hrs", type: "number" })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Horas Carga (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.horas_carga_final, " hrs")}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Horas Carga (Final)</label>
+                  {postField("horas_carga_final", { suffix: " hrs", type: "number" })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Horas Descarga (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      postMaintenanceData.horas_descarga_final,
-                      " hrs",
-                    )}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Horas Descarga (Final)</label>
+                  {postField("horas_descarga_final", { suffix: " hrs", type: "number" })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Voltaje (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      postMaintenanceData.voltaje_alimentacion_final,
-                      " V",
-                    )}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Voltaje (Final)</label>
+                  {postField("voltaje_alimentacion_final", { suffix: " V", type: "number" })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Amperaje Motor (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      postMaintenanceData.amperaje_motor_carga_final,
-                      " A",
-                    )}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Amperaje Motor (Final)</label>
+                  {postField("amperaje_motor_carga_final", { suffix: " A", type: "number" })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Amperaje Ventilador (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      postMaintenanceData.amperaje_ventilador_final,
-                      " A",
-                    )}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Amperaje Ventilador (Final)</label>
+                  {postField("amperaje_ventilador_final", { suffix: " A", type: "number" })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Fugas Aceite (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.fugas_aceite_final)}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Fugas Aceite (Final)</label>
+                  {postField("fugas_aceite_final", { type: "select", selectOptions: ["Sí", "No"] })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Aceite Oscuro (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.aceite_oscuro_final)}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Aceite Oscuro (Final)</label>
+                  {postField("aceite_oscuro_final", { type: "select", selectOptions: ["Sí", "No"] })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Temp. Ambiente (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      postMaintenanceData.temp_ambiente_final,
-                      " °C",
-                    )}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Temp. Ambiente (Final)</label>
+                  {postField("temp_ambiente_final", { suffix: " °C", type: "number" })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Temp. Compresión Display (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      postMaintenanceData.temp_compresion_display_final,
-                      " °C",
-                    )}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Temp. Compresión Display (Final)</label>
+                  {postField("temp_compresion_display_final", { suffix: " °C", type: "number" })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Temp. Compresión Láser (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      postMaintenanceData.temp_compresion_laser_final,
-                      " °C",
-                    )}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Temp. Compresión Láser (Final)</label>
+                  {postField("temp_compresion_laser_final", { suffix: " °C", type: "number" })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Temp. Separador Aceite (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      postMaintenanceData.temp_separador_aceite_final,
-                      " °C",
-                    )}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Temp. Separador Aceite (Final)</label>
+                  {postField("temp_separador_aceite_final", { suffix: " °C", type: "number" })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Temp. Interna Cuarto (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      postMaintenanceData.temp_interna_cuarto_final,
-                      " °C",
-                    )}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Temp. Interna Cuarto (Final)</label>
+                  {postField("temp_interna_cuarto_final", { suffix: " °C", type: "number" })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Delta T Enfriador Aceite (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      postMaintenanceData.delta_t_enfriador_aceite_final,
-                      " °C",
-                    )}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Delta T Enfriador Aceite (Final)</label>
+                  {postField("delta_t_enfriador_aceite_final", { suffix: " °C", type: "number" })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Temp. Motor Eléctrico (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      postMaintenanceData.temp_motor_electrico_final,
-                      " °C",
-                    )}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Temp. Motor Eléctrico (Final)</label>
+                  {postField("temp_motor_electrico_final", { suffix: " °C", type: "number" })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Presión Carga (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      postMaintenanceData.presion_carga_final,
-                      " bar",
-                    )}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Presión Carga (Final)</label>
+                  {postField("presion_carga_final", { suffix: " bar", type: "number" })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Presión Descarga (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      postMaintenanceData.presion_descarga_final,
-                      " bar",
-                    )}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Presión Descarga (Final)</label>
+                  {postField("presion_descarga_final", { suffix: " bar", type: "number" })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Delta P Separador (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(
-                      postMaintenanceData.delta_p_separador_final,
-                      " bar",
-                    )}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Delta P Separador (Final)</label>
+                  {postField("delta_p_separador_final", { suffix: " bar", type: "number" })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">
-                    Fugas Aire (Final)
-                  </label>
-                  <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-                    {renderValue(postMaintenanceData.fugas_aire_final)}
-                  </p>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">Fugas Aire (Final)</label>
+                  {postField("fugas_aire_final", { type: "select", selectOptions: ["Sí", "No"] })}
                 </div>
               </div>
             </div>
@@ -1769,27 +1810,69 @@ function ViewReportContent() {
           >
             Volver
           </button>
-          <button
-            onClick={handleViewPdf}
-            disabled={isDownloadingPdf}
-            className={`px-6 py-3 text-white rounded-lg transition-colors font-medium flex items-center space-x-2 ${
-              isDownloadingPdf
-                ? "bg-red-400 cursor-not-allowed"
-                : "bg-red-600 hover:bg-red-700"
-            }`}
-          >
-            {isDownloadingPdf ? (
+          <div className="flex items-center space-x-3">
+            {isEditing ? (
               <>
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-                <span>Generando PDF...</span>
+                <button
+                  onClick={cancelEditing}
+                  className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium flex items-center space-x-2"
+                >
+                  <X size={20} />
+                  <span>Cancelar</span>
+                </button>
+                <button
+                  onClick={saveEdits}
+                  disabled={isSaving}
+                  className={`px-6 py-3 text-white rounded-lg transition-colors font-medium flex items-center space-x-2 ${
+                    isSaving ? "bg-green-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+                  }`}
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save size={20} />
+                      <span>Guardar Cambios</span>
+                    </>
+                  )}
+                </button>
               </>
             ) : (
               <>
-                <FileText size={20} />
-                <span>Descargar PDF</span>
+                <button
+                  onClick={startEditing}
+                  className="px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium flex items-center space-x-2"
+                >
+                  <Pencil size={20} />
+                  <span>Editar Reporte</span>
+                </button>
+                <button
+                  onClick={handleViewPdf}
+                  disabled={isDownloadingPdf}
+                  className={`px-6 py-3 text-white rounded-lg transition-colors font-medium flex items-center space-x-2 ${
+                    isDownloadingPdf
+                      ? "bg-red-400 cursor-not-allowed"
+                      : "bg-red-600 hover:bg-red-700"
+                  }`}
+                >
+                  {isDownloadingPdf ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                      <span>Generando PDF...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileText size={20} />
+                      <span>Descargar PDF</span>
+                    </>
+                  )}
+                </button>
               </>
             )}
-          </button>
+          </div>
         </div>
       </div>
 
