@@ -576,7 +576,7 @@ const Compresors = () => {
                         >
                           <td className="border border-gray-300 p-3 text-gray-700">
                             {compresor.nombre_cliente &&
-                            !compresor.nombre_cliente.match(
+                            !String(compresor.nombre_cliente).match(
                               /^\d{4}-\d{2}-\d{2}/,
                             )
                               ? compresor.nombre_cliente
