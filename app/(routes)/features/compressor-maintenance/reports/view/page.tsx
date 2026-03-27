@@ -7,6 +7,7 @@ import LoadingOverlay from "@/components/LoadingOverlay";
 import { URL_API } from "@/lib/global";
 import { CheckCircle, XCircle, FileText, X, Pencil, Save, XOctagon } from "lucide-react";
 import SignatureCanvas from "react-signature-canvas";
+import { useDialog } from "@/hooks/useDialog";
 
 interface MaintenanceItem {
   nombre: string;
@@ -168,6 +169,7 @@ const maintenanceFieldsMap: { [key: string]: string } = {
 function ViewReportContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { showSuccess, showError, showWarning } = useDialog();
 
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [preMaintenanceData, setPreMaintenanceData] =
@@ -296,7 +298,7 @@ function ViewReportContent() {
         `${URL_API}/reporte_mtto/descargar-pdf-react/${folio}`,
       );
       if (!response.ok) {
-        alert("Error al generar el PDF. Inténtalo de nuevo.");
+        showError("Error", "No se pudo generar el PDF. Inténtalo de nuevo.");
         return;
       }
       const blob = await response.blob();
@@ -310,7 +312,7 @@ function ViewReportContent() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error downloading PDF:", error);
-      alert("Error al descargar el PDF. Inténtalo de nuevo.");
+      showError("Error", "No se pudo descargar el PDF. Inténtalo de nuevo.");
     } finally {
       setIsDownloadingPdf(false);
     }
@@ -321,7 +323,7 @@ function ViewReportContent() {
     if (!folio) return;
 
     if (!clientSignatureRef.current || clientSignatureRef.current.isEmpty()) {
-      alert("Por favor agregue la firma del cliente/persona a cargo antes de guardar.");
+      showWarning("Firma requerida", "Por favor agregue la firma del cliente/persona a cargo antes de guardar.");
       return;
     }
 
@@ -344,7 +346,7 @@ function ViewReportContent() {
 
       if (!saveSignResponse.ok) {
         const signResult = await saveSignResponse.json();
-        alert("❌ Error al guardar la firma: " + (signResult?.error || signResult?.detail || "Error desconocido"));
+        showError("Error al guardar firma", signResult?.error || signResult?.detail || "Error desconocido");
         return;
       }
 
@@ -356,15 +358,15 @@ function ViewReportContent() {
       const finalizeResult = await finalizeResponse.json();
 
       if (finalizeResult?.success) {
-        alert("✅ Reporte firmado y terminado exitosamente!");
+        showSuccess("Reporte Finalizado", "El reporte fue firmado y terminado exitosamente");
         loadAllReportData(folio);
       } else {
         const errorMsg = finalizeResult?.error || "Error desconocido al finalizar";
-        alert("❌ Error al finalizar el reporte: " + errorMsg);
+        showError("Error al finalizar reporte", errorMsg);
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      alert("❌ Error: " + errorMsg);
+      showError("Error", errorMsg);
     } finally {
       setIsSavingSignature(false);
     }
@@ -453,18 +455,18 @@ function ViewReportContent() {
       }
 
       if (errors.length === 0) {
-        alert("Reporte actualizado exitosamente");
+        showSuccess("Reporte Actualizado", "Los cambios se guardaron correctamente");
         setIsEditing(false);
         setEditedPre(null);
         setEditedMaintenance(null);
         setEditedPost(null);
         loadAllReportData(folio);
       } else {
-        alert("Error al guardar cambios:\n" + errors.join("\n"));
+        showError("Error al guardar cambios", errors.join("\n"));
       }
     } catch (err) {
       console.error("Error saving edits:", err);
-      alert("Error al guardar los cambios.");
+      showError("Error", "No se pudieron guardar los cambios.");
     } finally {
       setIsSaving(false);
     }

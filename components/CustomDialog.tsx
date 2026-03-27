@@ -38,34 +38,44 @@ const iconMap = {
 
 const colorMap = {
   success: {
-    bg: "bg-green-50 dark:bg-green-900/20",
-    border: "border-green-200 dark:border-green-800",
-    icon: "text-green-600 dark:text-green-400",
+    bg: "bg-white",
+    border: "border-green-300",
+    iconBg: "bg-green-100",
+    icon: "text-green-600",
     button: "bg-green-600 hover:bg-green-700 text-white",
+    accent: "border-t-green-500",
   },
   error: {
-    bg: "bg-red-50 dark:bg-red-900/20",
-    border: "border-red-200 dark:border-red-800",
-    icon: "text-red-600 dark:text-red-400",
+    bg: "bg-white",
+    border: "border-red-300",
+    iconBg: "bg-red-100",
+    icon: "text-red-600",
     button: "bg-red-600 hover:bg-red-700 text-white",
+    accent: "border-t-red-500",
   },
   warning: {
-    bg: "bg-orange-50 dark:bg-orange-900/20",
-    border: "border-orange-200 dark:border-orange-800",
-    icon: "text-orange-600 dark:text-orange-400",
+    bg: "bg-white",
+    border: "border-orange-300",
+    iconBg: "bg-orange-100",
+    icon: "text-orange-600",
     button: "bg-orange-600 hover:bg-orange-700 text-white",
+    accent: "border-t-orange-500",
   },
   info: {
-    bg: "bg-blue-50 dark:bg-blue-900/20",
-    border: "border-blue-200 dark:border-blue-800",
-    icon: "text-blue-600 dark:text-blue-400",
+    bg: "bg-white",
+    border: "border-blue-300",
+    iconBg: "bg-blue-100",
+    icon: "text-blue-600",
     button: "bg-blue-600 hover:bg-blue-700 text-white",
+    accent: "border-t-blue-500",
   },
   confirmation: {
-    bg: "bg-gray-50 dark:bg-gray-900/20",
-    border: "border-gray-200 dark:border-gray-800",
-    icon: "text-gray-600 dark:text-gray-400",
-    button: "bg-gray-600 hover:bg-gray-700 text-white",
+    bg: "bg-white",
+    border: "border-indigo-300",
+    iconBg: "bg-indigo-100",
+    icon: "text-indigo-600",
+    button: "bg-indigo-600 hover:bg-indigo-700 text-white",
+    accent: "border-t-indigo-500",
   },
 };
 
@@ -128,60 +138,62 @@ export default function CustomDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={handleBackdropClick}
     >
       <div
         ref={dialogRef}
         className={`
-          relative mx-4 w-full max-w-md transform rounded-lg border bg-white p-6 shadow-xl transition-all dark:bg-gray-900
-          ${colors.bg} ${colors.border}
+          relative mx-4 w-full max-w-lg transform overflow-hidden rounded-2xl border-t-4 ${colors.accent}
+          ${colors.bg} ${colors.border} border shadow-2xl
         `}
         style={{
-          animation: isOpen ? "slideIn 0.3s ease-out" : undefined,
+          animation: isOpen ? "dialogSlideIn 0.3s ease-out" : undefined,
         }}
       >
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+          className="absolute right-4 top-4 rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
         >
-          <X size={20} />
+          <X size={22} />
         </button>
 
         {/* Content */}
-        <div className="flex items-start gap-4">
-          {/* Icon */}
-          <div className={`flex-shrink-0 ${colors.icon}`}>
-            <Icon size={24} />
-          </div>
+        <div className="px-8 pt-8 pb-6">
+          <div className="flex flex-col items-center text-center gap-4">
+            {/* Icon */}
+            <div className={`flex items-center justify-center w-16 h-16 rounded-full ${colors.iconBg}`}>
+              <Icon size={32} className={colors.icon} strokeWidth={2.5} />
+            </div>
 
-          {/* Text content */}
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {dialog.title}
-            </h3>
-            {dialog.message && (
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                {dialog.message}
-              </p>
-            )}
+            {/* Text content */}
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 leading-tight">
+                {dialog.title}
+              </h3>
+              {dialog.message && (
+                <p className="mt-3 text-base text-gray-600 leading-relaxed whitespace-pre-line">
+                  {dialog.message}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Action buttons */}
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="px-8 pb-8 flex justify-center gap-3">
           {isConfirmation ? (
             <>
               <button
                 onClick={handleCancel}
-                className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                className="rounded-xl border border-gray-300 bg-white px-6 py-2.5 text-base font-semibold text-gray-700 transition-all hover:bg-gray-50 active:scale-95"
               >
                 {dialog.cancelText || "Cancelar"}
               </button>
               <button
                 onClick={handleConfirm}
-                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${colors.button}`}
+                className={`rounded-xl px-6 py-2.5 text-base font-semibold transition-all active:scale-95 shadow-md hover:shadow-lg ${colors.button}`}
               >
                 {dialog.confirmText || "Confirmar"}
               </button>
@@ -189,7 +201,7 @@ export default function CustomDialog({
           ) : (
             <button
               onClick={onClose}
-              className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${colors.button}`}
+              className={`rounded-xl px-8 py-2.5 text-base font-semibold transition-all active:scale-95 shadow-md hover:shadow-lg ${colors.button}`}
             >
               Entendido
             </button>
@@ -198,10 +210,10 @@ export default function CustomDialog({
       </div>
 
       <style jsx>{`
-        @keyframes slideIn {
+        @keyframes dialogSlideIn {
           from {
             opacity: 0;
-            transform: scale(0.95) translateY(-20px);
+            transform: scale(0.9) translateY(-30px);
           }
           to {
             opacity: 1;

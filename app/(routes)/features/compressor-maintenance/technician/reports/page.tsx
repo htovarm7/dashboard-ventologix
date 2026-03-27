@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { URL_API } from "@/lib/global";
+import { useDialog } from "@/hooks/useDialog";
 
 interface CompressorSearchResult {
   hp: number;
@@ -93,6 +94,7 @@ const formatTime = (timeString: string) => {
 
 const TypeReportes = () => {
   const router = useRouter();
+  const { showSuccess, showError } = useDialog();
   const [rol, setRol] = useState<number | null>(null);
   const [isClienteEventual, setIsClienteEventual] = useState(false);
   const [isNewEventual, setIsNewEventual] = useState(true);
@@ -218,7 +220,7 @@ const TypeReportes = () => {
       }
     } catch (error) {
       console.error("Error fetching ordenes de servicio:", error);
-      alert("Error al cargar las órdenes de servicio");
+      showError("Error", "No se pudieron cargar las órdenes de servicio");
     } finally {
       setLoadingOrdenes(false);
     }
@@ -516,7 +518,7 @@ const TypeReportes = () => {
       const result = await response.json();
 
       if (response.ok) {
-        alert(`✅ Ticket creado exitosamente con folio: ${ticketData.folio}`);
+        showSuccess("Ticket Creado", `Folio: ${ticketData.folio}`);
         // Reset form
         setSelectedCompressor(null);
         setIsClienteEventual(false);
@@ -564,11 +566,11 @@ const TypeReportes = () => {
           errorMessage = result.error;
         }
 
-        alert(`❌ Error al crear el ticket: ${errorMessage}`);
+        showError("Error al crear ticket", errorMessage);
       }
     } catch (error) {
       console.error("Error submitting ticket:", error);
-      alert("❌ Error al enviar el ticket. Por favor, intente nuevamente.");
+      showError("Error", "No se pudo enviar el ticket. Por favor, intente nuevamente.");
     }
   };
 
@@ -598,23 +600,16 @@ const TypeReportes = () => {
       const result = await response.json();
 
       if (response.ok) {
-        alert(`✅ Ticket actualizado exitosamente`);
+        showSuccess("Ticket Actualizado", "Los cambios se guardaron correctamente");
         setShowEditModal(false);
         setEditingTicket(null);
         fetchAllOrdenes();
       } else {
-        alert(
-          `❌ Error al actualizar el ticket: ${
-            result.detail ||
-            result.message ||
-            result.error ||
-            "Error desconocido"
-          }`,
-        );
+        showError("Error al actualizar ticket", result.detail || result.message || result.error || "Error desconocido");
       }
     } catch (error) {
       console.error("Error updating ticket:", error);
-      alert("❌ Error al actualizar el ticket. Por favor, intente nuevamente.");
+      showError("Error", "No se pudo actualizar el ticket. Por favor, intente nuevamente.");
     }
   };
 
@@ -630,21 +625,14 @@ const TypeReportes = () => {
       const result = await response.json();
 
       if (response.ok) {
-        alert(`✅ Ticket eliminado exitosamente`);
+        showSuccess("Ticket Eliminado", "El ticket fue eliminado correctamente");
         fetchAllOrdenes();
       } else {
-        alert(
-          `❌ Error al eliminar el ticket: ${
-            result.detail ||
-            result.message ||
-            result.error ||
-            "Error desconocido"
-          }`,
-        );
+        showError("Error al eliminar ticket", result.detail || result.message || result.error || "Error desconocido");
       }
     } catch (error) {
       console.error("Error deleting ticket:", error);
-      alert("❌ Error al eliminar el ticket. Por favor, intente nuevamente.");
+      showError("Error", "No se pudo eliminar el ticket. Por favor, intente nuevamente.");
     }
   };
 
@@ -695,11 +683,11 @@ const TypeReportes = () => {
           errorMessage = result.error;
         }
 
-        alert(`❌ Error al actualizar el estado: ${errorMessage}`);
+        showError("Error al actualizar estado", errorMessage);
       }
     } catch (error) {
       console.error("Error updating orden estado:", error);
-      alert("❌ Error al actualizar el estado. Por favor, intente nuevamente.");
+      showError("Error", "No se pudo actualizar el estado. Por favor, intente nuevamente.");
     }
   };
 
