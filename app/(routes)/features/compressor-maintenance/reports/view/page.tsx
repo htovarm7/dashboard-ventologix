@@ -402,42 +402,57 @@ function ViewReportContent() {
 
     setIsSaving(true);
     try {
-      const promises: Promise<Response>[] = [];
+      const sections: { name: string; promise: Promise<Response> }[] = [];
 
       if (editedPre) {
-        promises.push(
-          fetch(`${URL_API}/reporte_mtto/pre-mtto`, {
+        sections.push({
+          name: "Pre-mantenimiento",
+          promise: fetch(`${URL_API}/reporte_mtto/pre-mtto`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(editedPre),
           }),
-        );
+        });
       }
 
       if (editedMaintenance) {
-        promises.push(
-          fetch(`${URL_API}/reporte_mantenimiento/`, {
+        sections.push({
+          name: "Mantenimiento",
+          promise: fetch(`${URL_API}/reporte_mantenimiento/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(editedMaintenance),
           }),
-        );
+        });
       }
 
       if (editedPost) {
-        promises.push(
-          fetch(`${URL_API}/reporte_mtto/post-mtto`, {
+        sections.push({
+          name: "Post-mantenimiento",
+          promise: fetch(`${URL_API}/reporte_mtto/post-mtto`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(editedPost),
           }),
-        );
+        });
       }
 
-      const results = await Promise.all(promises);
-      const allOk = results.every((r) => r.ok);
+      const results = await Promise.all(sections.map((s) => s.promise));
+      const errors: string[] = [];
 
-      if (allOk) {
+      for (let i = 0; i < results.length; i++) {
+        const res = results[i];
+        if (!res.ok) {
+          errors.push(`${sections[i].name}: Error HTTP ${res.status}`);
+          continue;
+        }
+        const body = await res.json();
+        if (body.success === false) {
+          errors.push(`${sections[i].name}: ${body.error || "Error desconocido"}`);
+        }
+      }
+
+      if (errors.length === 0) {
         alert("Reporte actualizado exitosamente");
         setIsEditing(false);
         setEditedPre(null);
@@ -445,7 +460,7 @@ function ViewReportContent() {
         setEditedPost(null);
         loadAllReportData(folio);
       } else {
-        alert("Error al guardar algunos cambios. Inténtalo de nuevo.");
+        alert("Error al guardar cambios:\n" + errors.join("\n"));
       }
     } catch (err) {
       console.error("Error saving edits:", err);
