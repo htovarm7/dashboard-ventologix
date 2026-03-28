@@ -58,6 +58,12 @@ interface ReportsByClient {
   reports: OrdenServicio[];
 }
 
+interface DryerReportsByClient {
+  clientName: string;
+  numeroCliente: string;
+  reports: DryerReport[];
+}
+
 const Reports = () => {
   const router = useRouter();
   const [reportsByClient, setReportsByClient] = useState<ReportsByClient[]>([]);
@@ -68,8 +74,9 @@ const Reports = () => {
   );
   const [loading, setLoading] = useState(true);
   const [downloadingFolio, setDownloadingFolio] = useState<string | null>(null);
-  const [dryerReports, setDryerReports] = useState<DryerReport[]>([]);
+  const [dryerReportsByClient, setDryerReportsByClient] = useState<DryerReportsByClient[]>([]);
   const [activeTab, setActiveTab] = useState<"compresores" | "secadoras">("compresores");
+  const [expandedDryerClients, setExpandedDryerClients] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadUserDataAndReports();
@@ -163,7 +170,35 @@ const Reports = () => {
           if (dryerRes.ok) {
             const dryerResult = await dryerRes.json();
             if (dryerResult.success) {
-              setDryerReports(dryerResult.data || []);
+              const dryerData: DryerReport[] = dryerResult.data || [];
+
+              // Group dryer reports by client
+              const dryerClientsMap = new Map<string, DryerReportsByClient>();
+              dryerData.forEach((report) => {
+                const clientName = report.cliente || "Sin cliente";
+                const clientKey = `${clientName}-${report.numero_cliente}`;
+                if (!dryerClientsMap.has(clientKey)) {
+                  dryerClientsMap.set(clientKey, {
+                    clientName,
+                    numeroCliente: report.numero_cliente,
+                    reports: [],
+                  });
+                }
+                dryerClientsMap.get(clientKey)!.reports.push(report);
+              });
+
+              const groupedDryer = Array.from(dryerClientsMap.values())
+                .map((group) => ({
+                  ...group,
+                  reports: group.reports.sort(
+                    (a, b) =>
+                      new Date(b.created_at || "").getTime() -
+                      new Date(a.created_at || "").getTime(),
+                  ),
+                }))
+                .sort((a, b) => a.clientName.localeCompare(b.clientName));
+
+              setDryerReportsByClient(groupedDryer);
             }
           }
         } catch (dryerError) {
@@ -185,6 +220,16 @@ const Reports = () => {
       newExpanded.add(clientName);
     }
     setExpandedClients(newExpanded);
+  };
+
+  const toggleDryerClient = (clientName: string) => {
+    const newExpanded = new Set(expandedDryerClients);
+    if (newExpanded.has(clientName)) {
+      newExpanded.delete(clientName);
+    } else {
+      newExpanded.add(clientName);
+    }
+    setExpandedDryerClients(newExpanded);
   };
 
   const handleViewReport = (orden: OrdenServicio) => {
@@ -268,7 +313,7 @@ const Reports = () => {
   const isClientRole = userRole === 3 || userRole === 4;
   const hasNoReports = isClientRole
     ? flatReports.length === 0
-    : reportsByClient.length === 0 && dryerReports.length === 0;
+    : reportsByClient.length === 0 && dryerReportsByClient.length === 0;
 
   if (hasNoReports) {
     return (
@@ -293,7 +338,7 @@ const Reports = () => {
         </h1>
 
         {/* Tabs for technician/admin roles */}
-        {!isClientRole && dryerReports.length > 0 && (
+        {!isClientRole && dryerReportsByClient.length > 0 && (
           <div className="flex space-x-1 bg-gray-200 rounded-lg p-1 mb-6 max-w-md">
             <button
               onClick={() => setActiveTab("compresores")}
@@ -313,7 +358,7 @@ const Reports = () => {
                   : "text-gray-600 hover:text-gray-800"
               }`}
             >
-              Secadoras ({dryerReports.length})
+              Secadoras ({dryerReportsByClient.reduce((sum, g) => sum + g.reports.length, 0)})
             </button>
           </div>
         )}
@@ -547,107 +592,139 @@ const Reports = () => {
           )}
         </div>
 
-        {/* Dryer Reports Section */}
+        {/* Dryer Reports Section - Grouped by Client */}
         {!isClientRole && activeTab === "secadoras" && (
           <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow-md overflow-hidden p-6">
-              <div className="space-y-3">
-                {dryerReports.length === 0 ? (
-                  <div className="text-center py-8">
-                    <FileText className="mx-auto text-gray-300 mb-4" size={48} />
-                    <p className="text-gray-500">No hay reportes de secadoras</p>
-                  </div>
-                ) : (
-                  dryerReports.map((report) => (
-                    <div
-                      key={report.folio}
-                      className={`flex items-center justify-between p-4 rounded-lg transition-colors border ${
-                        report.estado === "por_firmar"
-                          ? "bg-yellow-50 border-yellow-300 hover:bg-yellow-100"
-                          : "bg-gray-50 border-gray-200 hover:bg-gray-100"
-                      }`}
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-4 mb-2 flex-wrap gap-y-1">
-                          <div className="flex items-center space-x-2 text-gray-700">
-                            <Wrench size={18} />
-                            <span className="font-semibold">
-                              {report.equipo || "Secadora"}
-                            </span>
-                          </div>
-                          {report.modelo && (
-                            <span className="text-sm text-gray-500">
-                              Modelo: {report.modelo}
-                            </span>
-                          )}
-                          {report.no_serie && (
-                            <span className="text-sm text-gray-500">
-                              S/N: {report.no_serie}
-                            </span>
-                          )}
-                          <span className="text-sm text-blue-600 font-medium">
-                            Folio: {report.folio}
-                          </span>
-                          {report.estado === "por_firmar" && (
-                            <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-semibold rounded-full">
-                              Pendiente de firma
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-6 text-sm text-gray-600">
-                          <div className="flex items-center space-x-2">
-                            <Calendar size={16} />
-                            <span>{formatDate(report.fecha || report.created_at)}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Building2 size={16} />
-                            <span>{report.cliente || "N/A"}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <FileText size={16} />
-                            <span>Secadora</span>
-                          </div>
-                        </div>
+            {dryerReportsByClient.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-md overflow-hidden p-6">
+                <div className="text-center py-8">
+                  <FileText className="mx-auto text-gray-300 mb-4" size={48} />
+                  <p className="text-gray-500">No hay reportes de secadoras</p>
+                </div>
+              </div>
+            ) : (
+              dryerReportsByClient.map((clientGroup) => (
+                <div
+                  key={`dryer-${clientGroup.clientName}-${clientGroup.numeroCliente}`}
+                  className="bg-white rounded-lg shadow-md overflow-hidden"
+                >
+                  {/* Client header */}
+                  <div
+                    className="p-6 bg-cyan-50 border-b-2 border-cyan-200 cursor-pointer hover:bg-cyan-100 transition-all"
+                    onClick={() => toggleDryerClient(clientGroup.clientName)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        {expandedDryerClients.has(clientGroup.clientName) ? (
+                          <ChevronDown className="text-cyan-700" size={24} />
+                        ) : (
+                          <ChevronRight className="text-cyan-700" size={24} />
+                        )}
+                        <Building2 className="text-cyan-600" size={24} />
+                        <h2 className="text-2xl font-bold text-gray-900">
+                          {clientGroup.clientName}
+                        </h2>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleDownloadDryerPdf(report.folio)}
-                          disabled={downloadingFolio === report.folio}
-                          className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium flex items-center space-x-2 ${
-                            downloadingFolio === report.folio
-                              ? "bg-red-400 cursor-not-allowed"
-                              : "bg-red-600 hover:bg-red-700"
-                          }`}
-                        >
-                          {downloadingFolio === report.folio ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                              <span>Generando...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Download size={16} />
-                              <span>PDF</span>
-                            </>
-                          )}
-                        </button>
-                        <button
-                          onClick={() =>
-                            router.push(
-                              `/features/compressor-maintenance/reports/view-dryer?folio=${report.folio}`,
-                            )
-                          }
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
-                        >
-                          <Eye size={16} />
-                          <span>Ver Reporte</span>
-                        </button>
+                      <span className="bg-cyan-600 text-white px-4 py-2 rounded-full text-sm font-medium">
+                        {clientGroup.reports.length} reporte
+                        {clientGroup.reports.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Reports list */}
+                  {expandedDryerClients.has(clientGroup.clientName) && (
+                    <div className="p-6 bg-white">
+                      <div className="space-y-3">
+                        {clientGroup.reports.map((report) => (
+                          <div
+                            key={report.folio}
+                            className={`flex items-center justify-between p-4 rounded-lg transition-colors border ${
+                              report.estado === "por_firmar"
+                                ? "bg-yellow-50 border-yellow-300 hover:bg-yellow-100"
+                                : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                            }`}
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-4 mb-2 flex-wrap gap-y-1">
+                                <div className="flex items-center space-x-2 text-gray-700">
+                                  <Wrench size={18} />
+                                  <span className="font-semibold">
+                                    {report.equipo || "Secadora"}
+                                  </span>
+                                </div>
+                                {report.modelo && (
+                                  <span className="text-sm text-gray-500">
+                                    Modelo: {report.modelo}
+                                  </span>
+                                )}
+                                {report.no_serie && (
+                                  <span className="text-sm text-gray-500">
+                                    S/N: {report.no_serie}
+                                  </span>
+                                )}
+                                <span className="text-sm text-blue-600 font-medium">
+                                  Folio: {report.folio}
+                                </span>
+                                {report.estado === "por_firmar" && (
+                                  <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-semibold rounded-full">
+                                    Pendiente de firma
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-6 text-sm text-gray-600">
+                                <div className="flex items-center space-x-2">
+                                  <Calendar size={16} />
+                                  <span>{formatDate(report.fecha || report.created_at)}</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <FileText size={16} />
+                                  <span>Secadora</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => handleDownloadDryerPdf(report.folio)}
+                                disabled={downloadingFolio === report.folio}
+                                className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium flex items-center space-x-2 ${
+                                  downloadingFolio === report.folio
+                                    ? "bg-red-400 cursor-not-allowed"
+                                    : "bg-red-600 hover:bg-red-700"
+                                }`}
+                              >
+                                {downloadingFolio === report.folio ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                                    <span>Generando...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Download size={16} />
+                                    <span>PDF</span>
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={() =>
+                                  router.push(
+                                    `/features/compressor-maintenance/reports/view-dryer?folio=${report.folio}`,
+                                  )
+                                }
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                              >
+                                <Eye size={16} />
+                                <span>Ver Reporte</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>

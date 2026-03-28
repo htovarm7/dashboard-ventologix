@@ -97,6 +97,11 @@ function FillReport() {
     comentario_cliente: "",
   });
 
+  // Photos per maintenance item (keyed by index), max 2 per item
+  const [photosByMaintenanceItem, setPhotosByMaintenanceItem] = useState<{
+    [key: number]: File[];
+  }>({});
+
   const [maintenanceTypesLoaded, setMaintenanceTypesLoaded] = useState(false);
 
   // Load maintenance types from database based on compressor type
@@ -884,6 +889,39 @@ function FillReport() {
         }
       }
 
+      // Upload per-maintenance-item photos
+      for (const [indexStr, files] of Object.entries(photosByMaintenanceItem)) {
+        if (files.length > 0) {
+          const idx = Number(indexStr);
+          const itemName = maintenanceData.mantenimientos[idx]?.nombre || `item_${idx}`;
+          const category = `MTTO_${itemName.replace(/\s+/g, "_").toUpperCase()}`;
+          hasPhotos = true;
+          console.log(`📤 Uploading ${files.length} maintenance item photo(s) to ${category}`);
+
+          const result = await uploadPhotos(
+            formData.folio,
+            clientName,
+            category,
+            files,
+          );
+
+          if (result.success) {
+            totalUploaded += files.length;
+            results[category] = result as unknown as Record<string, unknown>;
+            console.log(`✅ ${category} upload successful`);
+            // Clear uploaded maintenance item photos
+            setPhotosByMaintenanceItem((prev) => {
+              const updated = { ...prev };
+              delete updated[idx];
+              return updated;
+            });
+          } else {
+            totalFailed += files.length;
+            console.error(`❌ Failed to upload ${category}:`, result.error);
+          }
+        }
+      }
+
       if (!hasPhotos) {
         console.log(
           "ℹ️ No new photos to upload (all categories empty or already uploaded)",
@@ -907,7 +945,7 @@ function FillReport() {
       console.error("Error uploading photos:", errorMsg);
       return { success: false, error: errorMsg };
     }
-  }, [formData, photosByCategory, uploadedPhotosByCategory, uploadPhotos]);
+  }, [formData, photosByCategory, uploadedPhotosByCategory, uploadPhotos, photosByMaintenanceItem, maintenanceData.mantenimientos]);
 
   const handleSaveDraft = useCallback(
     async (showAlert: boolean = true) => {
@@ -1088,10 +1126,47 @@ function FillReport() {
     const updatedMantenimientos = [...maintenanceData.mantenimientos];
     updatedMantenimientos[index].realizado =
       !updatedMantenimientos[index].realizado;
+    // Clear photos when unchecking a maintenance item
+    if (!updatedMantenimientos[index].realizado) {
+      setPhotosByMaintenanceItem((prev) => {
+        const updated = { ...prev };
+        delete updated[index];
+        return updated;
+      });
+    }
     setMaintenanceData({
       ...maintenanceData,
       mantenimientos: updatedMantenimientos,
     });
+  };
+
+  const handleMaintenanceItemPhotoAdd = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index: number,
+  ) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const fileArray = Array.from(files);
+      setPhotosByMaintenanceItem((prev) => {
+        const existing = prev[index] || [];
+        const remaining = 2 - existing.length;
+        if (remaining <= 0) return prev;
+        const newFiles = fileArray.slice(0, remaining);
+        return { ...prev, [index]: [...existing, ...newFiles] };
+      });
+      setHasUnsavedChanges(true);
+    }
+  };
+
+  const handleMaintenanceItemPhotoRemove = (
+    index: number,
+    photoIdx: number,
+  ) => {
+    setPhotosByMaintenanceItem((prev) => ({
+      ...prev,
+      [index]: (prev[index] || []).filter((_, i) => i !== photoIdx),
+    }));
+    setHasUnsavedChanges(true);
   };
 
   const handleMaintenanceInputChange = (field: string, value: string) => {
@@ -3311,21 +3386,39 @@ function FillReport() {
                 />
               </div>
 
-              {/* Fotos del Mantenimiento */}
+              {/* Fotos del Mantenimiento - una sección por cada mantenimiento realizado */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-white bg-teal-800 px-4 py-2 rounded font-bold mb-4">
                   FOTOS DEL MANTENIMIENTO - MANTENIMIENTO
                 </h2>
-                <PhotoUploadSection
-                  category="MANTENIMIENTO"
-                  label="Fotos del Mantenimiento Realizado"
-                  photos={photosByCategory.MANTENIMIENTO}
-                  onPhotoAdd={handleCategorizedPhotoChange}
-                  onPhotoRemove={removeCategorizedPhoto}
-                  uploadStatus={uploadStatus.MANTENIMIENTO || "idle"}
-                  uploadProgress={uploadProgress.MANTENIMIENTO || 0}
-                  multiple={true}
-                />
+                {maintenanceData.mantenimientos.filter((item) => item.realizado).length === 0 ? (
+                  <p className="text-gray-500 text-sm italic">
+                    Seleccione al menos un mantenimiento realizado para habilitar la subida de fotos.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {maintenanceData.mantenimientos.map((item, index) =>
+                      item.realizado ? (
+                        <div key={index} className="border border-teal-200 rounded-lg p-4 bg-teal-50">
+                          <PhotoUploadSection
+                            category={`MTTO_${index}`}
+                            label={`${item.nombre} (máx. 2 fotos)`}
+                            photos={photosByMaintenanceItem[index] || []}
+                            onPhotoAdd={(e) => handleMaintenanceItemPhotoAdd(e, index)}
+                            onPhotoRemove={(_cat, photoIdx) => handleMaintenanceItemPhotoRemove(index, photoIdx)}
+                            icon="🔧"
+                            multiple={true}
+                          />
+                          {(photosByMaintenanceItem[index]?.length || 0) >= 2 && (
+                            <p className="text-xs text-amber-600 mt-1 font-medium">
+                              Máximo de 2 fotos alcanzado para este mantenimiento.
+                            </p>
+                          )}
+                        </div>
+                      ) : null
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Spacer removed - "Siguiente Sección" button at the bottom handles navigation to post-maintenance */}

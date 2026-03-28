@@ -152,7 +152,14 @@ function DryerReportForm() {
     >,
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+      // Auto-generate folio when no_serie changes and client is selected but no folio yet
+      if (name === "no_serie" && prev.numero_cliente && !prev.folio) {
+        updated.folio = generateDryerFolio(prev.numero_cliente, value);
+      }
+      return updated;
+    });
   };
 
   // Cargar lista de clientes (no requiere auth)
@@ -195,15 +202,36 @@ function DryerReportForm() {
     );
   });
 
+  // Generate folio for dryer reports: SEC-{clientId}-{last4serial}-{YYYYMMDD}-{HHMM}
+  const generateDryerFolio = (
+    numCliente: string | number,
+    noSerie: string,
+  ): string => {
+    const clientId = String(numCliente || "00").padStart(2, "0");
+    const last4 = (noSerie ?? "").slice(-4).padStart(4, "0");
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    return `SEC-${clientId}-${last4}-${year}${month}${day}-${hours}${minutes}`;
+  };
+
   const selectClient = (client: ClientOption) => {
-    setFormData((prev) => ({
-      ...prev,
-      numero_cliente: String(client.numero_cliente),
-      cliente: client.nombre_cliente || "",
-      rfc: client.RFC || "",
-      direccion: client.direccion || "",
-      ingeniero_obra: client.champion || "",
-    }));
+    const numCliente = String(client.numero_cliente);
+    setFormData((prev) => {
+      const folio = prev.folio || generateDryerFolio(numCliente, prev.no_serie);
+      return {
+        ...prev,
+        numero_cliente: numCliente,
+        cliente: client.nombre_cliente || "",
+        rfc: client.RFC || "",
+        direccion: client.direccion || "",
+        ingeniero_obra: client.champion || "",
+        folio,
+      };
+    });
     setClientSearch("");
     setShowClientDropdown(false);
   };
@@ -262,9 +290,21 @@ function DryerReportForm() {
     setIsSaving(true);
     try {
       const token = await getAccessTokenSilently();
+
+      // Ensure folio exists before saving
+      let currentFormData = formData;
+      if (!currentFormData.folio) {
+        const folio = generateDryerFolio(
+          currentFormData.numero_cliente,
+          currentFormData.no_serie,
+        );
+        currentFormData = { ...currentFormData, folio };
+        setFormData(currentFormData);
+      }
+
       const form = new FormData();
 
-      Object.entries(formData).forEach(([key, value]) => {
+      Object.entries(currentFormData).forEach(([key, value]) => {
         form.append(key, value as string);
       });
 
