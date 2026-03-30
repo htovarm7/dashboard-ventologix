@@ -74,9 +74,15 @@ const Reports = () => {
   );
   const [loading, setLoading] = useState(true);
   const [downloadingFolio, setDownloadingFolio] = useState<string | null>(null);
-  const [dryerReportsByClient, setDryerReportsByClient] = useState<DryerReportsByClient[]>([]);
-  const [activeTab, setActiveTab] = useState<"compresores" | "secadoras">("compresores");
-  const [expandedDryerClients, setExpandedDryerClients] = useState<Set<string>>(new Set());
+  const [dryerReportsByClient, setDryerReportsByClient] = useState<
+    DryerReportsByClient[]
+  >([]);
+  const [activeTab, setActiveTab] = useState<"compresores" | "secadoras">(
+    "compresores",
+  );
+  const [expandedDryerClients, setExpandedDryerClients] = useState<Set<string>>(
+    new Set(),
+  );
 
   useEffect(() => {
     loadUserDataAndReports();
@@ -110,7 +116,8 @@ const Reports = () => {
 
       // All roles see terminado + por_firmar reports
       const visibleOrdenes = ordenes.filter(
-        (orden) => orden.estado === "terminado" || orden.estado === "por_firmar",
+        (orden) =>
+          orden.estado === "terminado" || orden.estado === "por_firmar",
       );
 
       // Filter by role - roles 3 and 4 can only see their own client's reports
@@ -149,7 +156,9 @@ const Reports = () => {
         });
 
         // Convert map to array and sort
-        const groupedReports: ReportsByClient[] = Array.from(clientsMap.values())
+        const groupedReports: ReportsByClient[] = Array.from(
+          clientsMap.values(),
+        )
           .map((group) => ({
             ...group,
             reports: group.reports.sort(
@@ -252,7 +261,9 @@ const Reports = () => {
   const handleDownloadPdf = async (folio: string) => {
     setDownloadingFolio(folio);
     try {
-      const response = await fetch(`${URL_API}/reporte_mtto/descargar-pdf/${folio}`);
+      const response = await fetch(
+        `${URL_API}/reporte_mtto/descargar-pdf/${folio}`,
+      );
       if (!response.ok) {
         alert("Error al descargar el PDF");
         return;
@@ -288,7 +299,9 @@ const Reports = () => {
   const handleDownloadDryerPdf = async (folio: string) => {
     setDownloadingFolio(folio);
     try {
-      const response = await fetch(`${URL_API}/reporte_secadora/descargar-pdf/${folio}`);
+      const response = await fetch(
+        `${URL_API}/reporte_secadora/descargar-pdf/${folio}`,
+      );
       if (!response.ok) {
         alert("Error al descargar el PDF");
         return;
@@ -358,13 +371,24 @@ const Reports = () => {
                   : "text-gray-600 hover:text-gray-800"
               }`}
             >
-              Secadoras ({dryerReportsByClient.reduce((sum, g) => sum + g.reports.length, 0)})
+              Secadoras (
+              {dryerReportsByClient.reduce(
+                (sum, g) => sum + g.reports.length,
+                0,
+              )}
+              )
             </button>
           </div>
         )}
 
         {/* Reports list */}
-        <div className="space-y-4" style={{ display: activeTab === "compresores" || isClientRole ? undefined : "none" }}>
+        <div
+          className="space-y-4"
+          style={{
+            display:
+              activeTab === "compresores" || isClientRole ? undefined : "none",
+          }}
+        >
           {isClientRole ? (
             /* Flat list for client roles (3 & 4) */
             <div className="bg-white rounded-lg shadow-md overflow-hidden p-6">
@@ -529,7 +553,9 @@ const Reports = () => {
                             <div className="flex items-center space-x-6 text-sm text-gray-600">
                               <div className="flex items-center space-x-2">
                                 <Calendar size={16} />
-                                <span>{formatDate(orden.fecha_programada)}</span>
+                                <span>
+                                  {formatDate(orden.fecha_programada)}
+                                </span>
                               </div>
                               <div className="flex items-center space-x-2">
                                 <FileText size={16} />
@@ -566,9 +592,11 @@ const Reports = () => {
                               )}
                             </button>
                             <button
-                              onClick={() => router.push(
-                                `/features/compressor-maintenance/reports/view?folio=${orden.folio}&edit=true`,
-                              )}
+                              onClick={() =>
+                                router.push(
+                                  `/features/compressor-maintenance/reports/view?folio=${orden.folio}&edit=true`,
+                                )
+                              }
                               className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium flex items-center space-x-2"
                             >
                               <Pencil size={16} />
@@ -610,22 +638,22 @@ const Reports = () => {
                 >
                   {/* Client header */}
                   <div
-                    className="p-6 bg-cyan-50 border-b-2 border-cyan-200 cursor-pointer hover:bg-cyan-100 transition-all"
+                    className="p-6"
                     onClick={() => toggleDryerClient(clientGroup.clientName)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         {expandedDryerClients.has(clientGroup.clientName) ? (
-                          <ChevronDown className="text-cyan-700" size={24} />
+                          <ChevronDown className="text-blue-700" size={24} />
                         ) : (
-                          <ChevronRight className="text-cyan-700" size={24} />
+                          <ChevronRight className="text-blue-700" size={24} />
                         )}
-                        <Building2 className="text-cyan-600" size={24} />
+                        <Building2 className="text-blue-600" size={24} />
                         <h2 className="text-2xl font-bold text-gray-900">
                           {clientGroup.clientName}
                         </h2>
                       </div>
-                      <span className="bg-cyan-600 text-white px-4 py-2 rounded-full text-sm font-medium">
+                      <span className="bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium">
                         {clientGroup.reports.length} reporte
                         {clientGroup.reports.length !== 1 ? "s" : ""}
                       </span>
@@ -675,7 +703,11 @@ const Reports = () => {
                               <div className="flex items-center space-x-6 text-sm text-gray-600">
                                 <div className="flex items-center space-x-2">
                                   <Calendar size={16} />
-                                  <span>{formatDate(report.fecha || report.created_at)}</span>
+                                  <span>
+                                    {formatDate(
+                                      report.fecha || report.created_at,
+                                    )}
+                                  </span>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <FileText size={16} />
@@ -685,7 +717,9 @@ const Reports = () => {
                             </div>
                             <div className="flex items-center space-x-2">
                               <button
-                                onClick={() => handleDownloadDryerPdf(report.folio)}
+                                onClick={() =>
+                                  handleDownloadDryerPdf(report.folio)
+                                }
                                 disabled={downloadingFolio === report.folio}
                                 className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium flex items-center space-x-2 ${
                                   downloadingFolio === report.folio
