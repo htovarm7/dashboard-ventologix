@@ -34,6 +34,7 @@ interface DryerReport {
   equipo: string;
   modelo: string;
   no_serie: string;
+  tipo_refrigerante: string | null;
   ubicacion: string;
   horometro: string | number | null;
   voltaje: string | number | null;
@@ -374,6 +375,7 @@ function ViewDryerReportContent() {
             <DataCard label="Equipo" value={report.equipo} />
             <DataCard label="Modelo" value={report.modelo} />
             <DataCard label="No. Serie" value={report.no_serie} />
+            <DataCard label="Tipo Refrigerante / Desecante" value={report.tipo_refrigerante} />
             <DataCard label="Ubicación" value={report.ubicacion} />
             <DataCard label="Horómetro" value={report.horometro} suffix=" h" icon={<Clock size={16} />} />
           </div>

@@ -134,6 +134,7 @@ async def guardar_reporte_secadora(
     sensor_punto_rocio: str = Form(""),
     estado_general: str = Form(""),
     observaciones: str = Form(""),
+    tipo_refrigerante: str = Form(""),
     fotos_PLACAS_EQUIPO: List[UploadFile] = File(default=[]),
     fotos_DISPLAY_HORAS: List[UploadFile] = File(default=[]),
     fotos_COMPONENTES: List[UploadFile] = File(default=[]),
@@ -192,6 +193,7 @@ async def guardar_reporte_secadora(
             contactores_relevadores, tarjeta_control,
             drenaje_automatico, sensor_punto_rocio,
             estado_general, observaciones,
+            tipo_refrigerante or None,
         )
 
         if existing:
@@ -212,6 +214,7 @@ async def guardar_reporte_secadora(
                     contactores_relevadores=%s, tarjeta_control=%s,
                     drenaje_automatico=%s, sensor_punto_rocio=%s,
                     estado_general=%s, observaciones=%s,
+                    tipo_refrigerante=%s,
                     updated_at=NOW()
                 WHERE folio=%s
                 """,
@@ -235,6 +238,7 @@ async def guardar_reporte_secadora(
                     contactores_relevadores, tarjeta_control,
                     drenaje_automatico, sensor_punto_rocio,
                     estado_general, observaciones,
+                    tipo_refrigerante,
                     estado, created_at, updated_at
                 ) VALUES (
                     %s, %s, %s, %s, %s,
@@ -251,6 +255,7 @@ async def guardar_reporte_secadora(
                     %s, %s,
                     %s, %s,
                     %s, %s,
+                    %s,
                     'en_progreso', NOW(), NOW()
                 )
                 """,

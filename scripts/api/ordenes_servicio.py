@@ -60,6 +60,7 @@ def get_all_ordenes():
                 "estado": row[17],
                 "fecha_creacion": row[18],
                 "reporte_url": row[19],
+                "tipo_equipo": row[20] if len(row) > 20 else "compresor",
             }
             for row in res
         ]
@@ -93,7 +94,7 @@ def get_ordenes_by_folio(folio: str = Path(..., description="The folio of the or
 
         if not res:
             return {"error": "Check connection to DB or the .env"}
-        
+
         clients = [
             {
                 "folio": row[0],
@@ -116,6 +117,7 @@ def get_ordenes_by_folio(folio: str = Path(..., description="The folio of the or
                 "estado": row[17],
                 "fecha_creacion": row[18],
                 "reporte_url": row[19],
+                "tipo_equipo": row[20] if len(row) > 20 else "compresor",
             }
             for row in res
         ]
@@ -143,8 +145,8 @@ def create_orden_servicio(request: OrdenServicio):
             (folio, id_cliente, id_cliente_eventual, nombre_cliente,
             numero_cliente, alias_compresor, numero_serie, hp, tipo, marca, anio,
             tipo_visita, tipo_mantenimiento, descripcion_proyecto, prioridad, fecha_programada, hora_programada,
-            estado, fecha_creacion, reporte_url)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            estado, fecha_creacion, reporte_url, tipo_equipo)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """,
             (
             request.folio,
@@ -166,7 +168,8 @@ def create_orden_servicio(request: OrdenServicio):
             request.hora_programada,
             request.estado,
             request.fecha_creacion,
-            request.reporte_url
+            request.reporte_url,
+            request.tipo_equipo
             )
         )
 
@@ -266,7 +269,8 @@ def update_orden_servicio(folio: str, request: OrdenServicio):
                 id_cliente = %s, id_cliente_eventual = %s, nombre_cliente = %s, numero_cliente = %s,
                 alias_compresor = %s, numero_serie = %s, hp = %s, tipo = %s, marca = %s, anio = %s,
                 tipo_visita = %s, tipo_mantenimiento = %s, descripcion_proyecto = %s, prioridad = %s,
-                fecha_programada = %s, hora_programada = %s, estado = %s, fecha_creacion = %s, reporte_url = %s
+                fecha_programada = %s, hora_programada = %s, estado = %s, fecha_creacion = %s, reporte_url = %s,
+                tipo_equipo = %s
                 WHERE folio = %s
             """,
             (
@@ -289,6 +293,7 @@ def update_orden_servicio(folio: str, request: OrdenServicio):
                 request.estado,
                 request.fecha_creacion,
                 request.reporte_url,
+                request.tipo_equipo,
                 folio
             )
         )

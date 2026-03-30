@@ -38,6 +38,7 @@ interface OrdenServicio {
   estado: string;
   fecha_creacion: string;
   reporte_url: string;
+  tipo_equipo: string;
 }
 
 interface EventualClient {
@@ -48,6 +49,14 @@ interface EventualClient {
   contacto?: string;
   telefono?: string;
   email?: string;
+}
+
+interface ClientOption {
+  numero_cliente: string | number;
+  nombre_cliente: string;
+  RFC: string;
+  direccion: string;
+  champion: string;
 }
 
 interface TicketFormData {
@@ -142,6 +151,15 @@ const TypeReportes = () => {
   const [showTicketsList, setShowTicketsList] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
+
+  // Equipment type toggle (compresor vs secadora)
+  const [tipoEquipo, setTipoEquipo] = useState<"compresor" | "secadora">("compresor");
+
+  // Client search for dryer orders
+  const [allClients, setAllClients] = useState<ClientOption[]>([]);
+  const [dryerClientSearch, setDryerClientSearch] = useState("");
+  const [showDryerClientDropdown, setShowDryerClientDropdown] = useState(false);
+  const [selectedDryerClient, setSelectedDryerClient] = useState<ClientOption | null>(null);
 
   // Load user role on mount and check authorization
   useEffect(() => {
@@ -288,6 +306,62 @@ const TypeReportes = () => {
     return `${clientId}-${last4Digits}-${year}${month}${day}-${hours}${minutes}`;
   };
 
+  // Generate folio for dryer: SEC-{clientId}-{last4serial}-{YYYYMMDD}-{HHMM}
+  const generateDryerFolio = (
+    numCliente: string | number,
+    noSerie: string,
+  ): string => {
+    const clientId = String(numCliente || "00").padStart(2, "0");
+    const last4 = (noSerie ?? "").slice(-4).padStart(4, "0");
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    return `SEC-${clientId}-${last4}-${year}${month}${day}-${hours}${minutes}`;
+  };
+
+  // Load clients for dryer orders
+  useEffect(() => {
+    const loadClients = async () => {
+      try {
+        const res = await fetch(`${URL_API}/clients/`);
+        if (res.ok) {
+          const response = await res.json();
+          setAllClients(response.data || []);
+        }
+      } catch (error) {
+        console.error("Error cargando clientes:", error);
+      }
+    };
+    loadClients();
+  }, []);
+
+  // Filter clients for dryer search
+  const filteredDryerClients = allClients.filter((c) => {
+    if (!dryerClientSearch.trim()) return true;
+    const q = dryerClientSearch.toLowerCase();
+    return (
+      String(c.numero_cliente).toLowerCase().includes(q) ||
+      (c.nombre_cliente || "").toLowerCase().includes(q)
+    );
+  });
+
+  // Select client for dryer order
+  const handleSelectDryerClient = (client: ClientOption) => {
+    setSelectedDryerClient(client);
+    setShowDryerClientDropdown(false);
+    setDryerClientSearch("");
+    const numCliente = String(client.numero_cliente);
+    setTicketData((prev) => ({
+      ...prev,
+      clientName: client.nombre_cliente || "",
+      numeroCliente: numCliente,
+      folio: "", // Will be generated when serial is entered
+    }));
+  };
+
   // Select compressor from search results
   const handleSelectCompressor = (compressor: CompressorSearchResult) => {
     setSelectedCompressor(compressor);
@@ -383,6 +457,11 @@ const TypeReportes = () => {
       // Regenerate folio for eventual clients when serial number changes
       if (isClienteEventual && name === "serialNumber" && value.length >= 4) {
         updated.folio = generateFolio("EVENTUAL", value);
+      }
+
+      // Regenerate folio for dryer orders when serial number changes
+      if (tipoEquipo === "secadora" && name === "serialNumber" && value.length >= 4) {
+        updated.folio = generateDryerFolio(updated.numeroCliente, value);
       }
 
       return updated;
@@ -484,7 +563,9 @@ const TypeReportes = () => {
       // Prepare the data for the API
       const ordenData = {
         folio: ticketData.folio,
-        id_cliente: isClienteEventual ? 0 : selectedCompressor?.id_cliente || 0,
+        id_cliente: tipoEquipo === "secadora"
+          ? (selectedDryerClient ? parseInt(String(selectedDryerClient.numero_cliente)) || 0 : 0)
+          : (isClienteEventual ? 0 : selectedCompressor?.id_cliente || 0),
         id_cliente_eventual: isClienteEventual ? eventualClientId : 0,
         nombre_cliente: ticketData.clientName,
         numero_cliente: parseInt(ticketData.numeroCliente) || 0,
@@ -505,6 +586,7 @@ const TypeReportes = () => {
         estado: "no_iniciado",
         fecha_creacion: new Date().toISOString(),
         reporte_url: "",
+        tipo_equipo: tipoEquipo,
       };
 
       console.log("Sending ticket data:", ordenData);
@@ -523,9 +605,12 @@ const TypeReportes = () => {
         showSuccess("Ticket Creado", `Folio: ${ticketData.folio}`);
         // Reset form
         setSelectedCompressor(null);
+        setSelectedDryerClient(null);
         setIsClienteEventual(false);
         setSearchQuery("");
+        setDryerClientSearch("");
         setShowResults(false);
+        setTipoEquipo("compresor");
         setTicketData({
           folio: "",
           clientName: "",
@@ -658,13 +743,14 @@ const TypeReportes = () => {
       );
 
       if (response.ok) {
-        // Navegar a la página de crear reporte
+        // Navegar a la página de crear reporte según tipo de equipo
         const params = new URLSearchParams({
           folio: orden.folio,
         });
-        router.push(
-          `/features/compressor-maintenance/technician/reports/create?${params.toString()}`,
-        );
+        const basePath = orden.tipo_equipo === "secadora"
+          ? `/features/compressor-maintenance/technician/reports/create-dryer`
+          : `/features/compressor-maintenance/technician/reports/create`;
+        router.push(`${basePath}?${params.toString()}`);
       } else {
         const result = await response.json();
         console.error("Error response:", result);
@@ -954,8 +1040,15 @@ const TypeReportes = () => {
                                     </p>
                                     <p className="text-blue-800">
                                       <span className="text-blue-600">
-                                        Compresor:
+                                        Equipo:
                                       </span>{" "}
+                                      <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium mr-1 ${
+                                        orden.tipo_equipo === "secadora"
+                                          ? "bg-purple-100 text-purple-700"
+                                          : "bg-blue-100 text-blue-700"
+                                      }`}>
+                                        {orden.tipo_equipo === "secadora" ? "Secadora" : "Compresor"}
+                                      </span>
                                       {orden.alias_compresor}
                                     </p>
                                     <p className="text-blue-800">
@@ -1000,15 +1093,16 @@ const TypeReportes = () => {
                                 </div>
                                 {orden.estado === "por_firmar" ? (
                                   <button
-                                    onClick={() =>
-                                      router.push(
-                                        `/features/compressor-maintenance/reports/view?folio=${orden.folio}`,
-                                      )
-                                    }
+                                    onClick={() => {
+                                      const viewPath = orden.tipo_equipo === "secadora"
+                                        ? `/features/compressor-maintenance/reports/view-dryer?folio=${orden.folio}`
+                                        : `/features/compressor-maintenance/reports/view?folio=${orden.folio}`;
+                                      router.push(viewPath);
+                                    }}
                                     className="w-full px-4 py-3 bg-yellow-600 text-white text-base font-medium rounded-lg hover:bg-yellow-700 transition-colors"
                                     title="Firmar Reporte"
                                   >
-                                    ✍️ Firmar Reporte
+                                    Firmar Reporte
                                   </button>
                                 ) : (
                                   <button
@@ -1123,27 +1217,126 @@ const TypeReportes = () => {
               {/* Search Section */}
               <div className="mb-6">
                 <div className="bg-white rounded-lg border border-blue-200 p-6">
-                  <h2 className="text-xl font-semibold text-blue-900 mb-4">
-                    Buscar Compresor
-                  </h2>
-
-                  <div className="flex gap-3 mb-4">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => handleSearch(e.target.value)}
-                        placeholder="Buscar por nombre de cliente, alias, número de serie o número de cliente..."
-                        className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
-                      />
+                  {/* Equipment Type Toggle */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <h2 className="text-xl font-semibold text-blue-900">
+                      Tipo de Equipo
+                    </h2>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTipoEquipo("compresor");
+                          setSelectedDryerClient(null);
+                          setDryerClientSearch("");
+                          setSelectedCompressor(null);
+                          setIsClienteEventual(false);
+                          setSearchQuery("");
+                          setShowResults(false);
+                          setTicketData((prev) => ({ ...prev, folio: "", clientName: "", numeroCliente: "", alias: "", serialNumber: "", hp: "", tipo: "", marca: "", anio: "" }));
+                        }}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors text-base ${
+                          tipoEquipo === "compresor"
+                            ? "bg-blue-800 text-white"
+                            : "bg-white text-blue-800 border border-blue-300 hover:bg-blue-50"
+                        }`}
+                      >
+                        Compresor
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTipoEquipo("secadora");
+                          setSelectedCompressor(null);
+                          setIsClienteEventual(false);
+                          setSearchQuery("");
+                          setShowResults(false);
+                          setSelectedDryerClient(null);
+                          setDryerClientSearch("");
+                          setTicketData((prev) => ({ ...prev, folio: "", clientName: "", numeroCliente: "", alias: "", serialNumber: "", hp: "", tipo: "", marca: "", anio: "" }));
+                        }}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors text-base ${
+                          tipoEquipo === "secadora"
+                            ? "bg-purple-700 text-white"
+                            : "bg-white text-purple-700 border border-purple-300 hover:bg-purple-50"
+                        }`}
+                      >
+                        Secadora
+                      </button>
                     </div>
-                    <button
-                      onClick={handleClienteEventual}
-                      className="px-5 py-3 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors font-medium border border-blue-300 text-base"
-                    >
-                      Cliente Eventual
-                    </button>
                   </div>
+
+                  {/* Compressor Search (only when tipoEquipo === "compresor") */}
+                  {tipoEquipo === "compresor" && (
+                    <>
+                      <h2 className="text-lg font-semibold text-blue-900 mb-3">
+                        Buscar Compresor
+                      </h2>
+                      <div className="flex gap-3 mb-4">
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => handleSearch(e.target.value)}
+                            placeholder="Buscar por nombre de cliente, alias, número de serie o número de cliente..."
+                            className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
+                          />
+                        </div>
+                        <button
+                          onClick={handleClienteEventual}
+                          className="px-5 py-3 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors font-medium border border-blue-300 text-base"
+                        >
+                          Cliente Eventual
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Dryer Client Search (only when tipoEquipo === "secadora") */}
+                  {tipoEquipo === "secadora" && (
+                    <>
+                      <h2 className="text-lg font-semibold text-blue-900 mb-3">
+                        Buscar Cliente para Secadora
+                      </h2>
+                      <div className="relative mb-4">
+                        <input
+                          type="text"
+                          value={dryerClientSearch}
+                          onChange={(e) => {
+                            setDryerClientSearch(e.target.value);
+                            setShowDryerClientDropdown(true);
+                          }}
+                          onFocus={() => setShowDryerClientDropdown(true)}
+                          placeholder="Buscar por nombre o número de cliente..."
+                          className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
+                        />
+                        {showDryerClientDropdown && filteredDryerClients.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 max-h-60 overflow-y-auto bg-white border border-blue-200 rounded-lg shadow-lg">
+                            {filteredDryerClients.slice(0, 20).map((client) => (
+                              <button
+                                key={String(client.numero_cliente)}
+                                type="button"
+                                onClick={() => handleSelectDryerClient(client)}
+                                className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-blue-100 last:border-b-0"
+                              >
+                                <p className="font-medium text-blue-900">{client.nombre_cliente}</p>
+                                <p className="text-sm text-blue-600">#{client.numero_cliente}</p>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {selectedDryerClient && (
+                        <div className="p-3 bg-purple-50 rounded-lg border border-purple-200 mb-4">
+                          <p className="text-purple-900 font-medium">{selectedDryerClient.nombre_cliente}</p>
+                          <p className="text-purple-700 text-sm">Cliente #{selectedDryerClient.numero_cliente}</p>
+                          {selectedDryerClient.direccion && (
+                            <p className="text-purple-700 text-sm">{selectedDryerClient.direccion}</p>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
 
                   {/* Search Results */}
                   {showResults && searchResults.length > 0 && (
@@ -1192,7 +1385,7 @@ const TypeReportes = () => {
               </div>
 
               {/* Ticket Form */}
-              {(selectedCompressor || isClienteEventual) && (
+              {(selectedCompressor || isClienteEventual || selectedDryerClient) && (
                 <div className="mb-6">
                   <div className="bg-white rounded-lg border border-blue-200 p-6">
                     <div className="flex items-center justify-between mb-4">
@@ -1441,10 +1634,10 @@ const TypeReportes = () => {
                           />
                         </div>
 
-                        {/* Compressor Info */}
+                        {/* Equipment Info */}
                         <div>
                           <label className="block text-blue-800 text-base font-medium mb-1">
-                            Alias del Compresor *
+                            {tipoEquipo === "secadora" ? "Nombre del Equipo *" : "Alias del Compresor *"}
                           </label>
                           <input
                             type="text"
@@ -1453,7 +1646,7 @@ const TypeReportes = () => {
                             onChange={handleInputChange}
                             required
                             className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
-                            placeholder="Alias"
+                            placeholder={tipoEquipo === "secadora" ? "Nombre del equipo" : "Alias"}
                           />
                         </div>
 
@@ -1472,34 +1665,49 @@ const TypeReportes = () => {
                           />
                         </div>
 
-                        <div>
-                          <label className="block text-blue-800 text-base font-medium mb-1">
-                            HP *
-                          </label>
-                          <input
-                            type="text"
-                            name="hp"
-                            value={ticketData.hp}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
-                            placeholder="HP"
-                          />
-                        </div>
+                        {tipoEquipo === "compresor" && (
+                          <div>
+                            <label className="block text-blue-800 text-base font-medium mb-1">
+                              HP *
+                            </label>
+                            <input
+                              type="text"
+                              name="hp"
+                              value={ticketData.hp}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
+                              placeholder="HP"
+                            />
+                          </div>
+                        )}
 
                         <div>
                           <label className="block text-blue-800 text-base font-medium mb-1">
-                            Tipo *
+                            {tipoEquipo === "secadora" ? "Tipo de Secadora *" : "Tipo *"}
                           </label>
-                          <select
-                            name="tipo"
-                            value={ticketData.tipo}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
-                          >
-                            <option value="">Seleccionar tipo</option>
-                            <option value="tornillo">Tornillo</option>
-                            <option value="piston">Piston</option>
-                          </select>
+                          {tipoEquipo === "secadora" ? (
+                            <select
+                              name="tipo"
+                              value={ticketData.tipo}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
+                            >
+                              <option value="">Seleccionar tipo</option>
+                              <option value="refrigeracion">Refrigeración</option>
+                              <option value="desecante">Desecante</option>
+                            </select>
+                          ) : (
+                            <select
+                              name="tipo"
+                              value={ticketData.tipo}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
+                            >
+                              <option value="">Seleccionar tipo</option>
+                              <option value="tornillo">Tornillo</option>
+                              <option value="piston">Piston</option>
+                            </select>
+                          )}
                         </div>
 
                         <div>
@@ -1692,8 +1900,10 @@ const TypeReportes = () => {
                           type="button"
                           onClick={() => {
                             setSelectedCompressor(null);
+                            setSelectedDryerClient(null);
                             setIsClienteEventual(false);
                             setSearchQuery("");
+                            setDryerClientSearch("");
                             setShowResults(false);
                           }}
                           className="px-5 py-3 bg-white text-blue-800 rounded-lg hover:bg-blue-50 transition-colors font-medium border border-blue-300 text-base"
@@ -1842,6 +2052,13 @@ const TypeReportes = () => {
                                           >
                                             {orden.prioridad}
                                           </span>
+                                          <span className={`px-2 py-1 rounded text-sm font-medium ${
+                                            orden.tipo_equipo === "secadora"
+                                              ? "bg-purple-100 text-purple-700"
+                                              : "bg-blue-100 text-blue-700"
+                                          }`}>
+                                            {orden.tipo_equipo === "secadora" ? "Secadora" : "Compresor"}
+                                          </span>
                                         </div>
                                         <p className="text-blue-900 font-medium text-base">
                                           {orden.nombre_cliente} -{" "}
@@ -1962,13 +2179,20 @@ const TypeReportes = () => {
                 </div>
 
                 <form onSubmit={handleUpdateTicket} className="p-5 space-y-4">
-                  <div className="p-4 bg-blue-100 rounded-lg border border-blue-200">
+                  <div className="p-4 bg-blue-100 rounded-lg border border-blue-200 flex items-center gap-3">
                     <p className="text-base font-medium text-blue-800">
                       Folio:{" "}
                       <span className="font-mono text-blue-900">
                         {editingTicket.folio}
                       </span>
                     </p>
+                    <span className={`px-2 py-1 rounded text-sm font-medium ${
+                      editingTicket.tipo_equipo === "secadora"
+                        ? "bg-purple-100 text-purple-700"
+                        : "bg-blue-200 text-blue-700"
+                    }`}>
+                      {editingTicket.tipo_equipo === "secadora" ? "Secadora" : "Compresor"}
+                    </span>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

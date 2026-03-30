@@ -130,6 +130,7 @@ export interface OrdenServicio {
   fecha_creacion: string;
   reporte_url: string;
   tipo_mantenimiento: string;
+  tipo_equipo: string;
 }
 
 export interface ReportFormData {

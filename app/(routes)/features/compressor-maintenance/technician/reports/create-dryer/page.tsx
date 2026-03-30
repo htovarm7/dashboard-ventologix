@@ -29,6 +29,7 @@ interface DryerFormData {
   equipo: string;
   modelo: string;
   no_serie: string;
+  tipo_refrigerante: string;
   ubicacion: string;
   horometro: string;
   voltaje: string;
@@ -115,6 +116,7 @@ function DryerReportForm() {
     equipo: "",
     modelo: "",
     no_serie: "",
+    tipo_refrigerante: "",
     ubicacion: "",
     horometro: "",
     voltaje: "",
@@ -236,13 +238,60 @@ function DryerReportForm() {
     setShowClientDropdown(false);
   };
 
-  // Cargar reporte existente
+  // Cargar reporte existente o pre-llenar desde orden de servicio
   useEffect(() => {
     const loadReport = async () => {
       if (!folioParam || !isAuthenticated) return;
       setLoading(true);
       try {
         const token = await getAccessTokenSilently();
+
+        // 1. Try loading from order to pre-fill client info
+        try {
+          const orderRes = await fetch(`${URL_API}/ordenes/${folioParam}`);
+          if (orderRes.ok) {
+            const orderResult = await orderRes.json();
+            if (orderResult.data?.length > 0) {
+              const orden = orderResult.data[0];
+              // Pre-fill client info from order
+              setFormData((prev) => ({
+                ...prev,
+                folio: orden.folio,
+                numero_cliente: String(orden.numero_cliente || ""),
+                cliente: orden.nombre_cliente || "",
+                equipo: orden.alias_compresor || "",
+                no_serie: orden.numero_serie || "",
+              }));
+              // Also fetch client details for RFC, direccion
+              if (orden.numero_cliente) {
+                try {
+                  const clientRes = await fetch(`${URL_API}/clients/`);
+                  if (clientRes.ok) {
+                    const clientData = await clientRes.json();
+                    const client = (clientData.data || []).find(
+                      (c: { numero_cliente: number | string }) =>
+                        String(c.numero_cliente) === String(orden.numero_cliente),
+                    );
+                    if (client) {
+                      setFormData((prev) => ({
+                        ...prev,
+                        rfc: client.RFC || prev.rfc,
+                        direccion: client.direccion || prev.direccion,
+                        ingeniero_obra: client.champion || prev.ingeniero_obra,
+                      }));
+                    }
+                  }
+                } catch {
+                  // Client details are non-critical
+                }
+              }
+            }
+          }
+        } catch {
+          // Order pre-fill is non-critical
+        }
+
+        // 2. Then try loading existing dryer report (overrides order data if exists)
         const res = await fetch(`${URL_API}/reporte_secadora/${folioParam}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -610,6 +659,19 @@ function DryerReportForm() {
                     onChange={handleInputChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     placeholder="Número de serie"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo de Refrigerante / Desecante
+                  </label>
+                  <input
+                    type="text"
+                    name="tipo_refrigerante"
+                    value={formData.tipo_refrigerante}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Ej: R-134a, R-410A, Desecante, etc."
                   />
                 </div>
                 <div>

@@ -66,8 +66,8 @@ class OrdenServicio(BaseModel):
     numero_cliente: int
     alias_compresor: str
     numero_serie: str
-    hp: int
-    tipo: Literal["tornillo","piston"]
+    hp: Optional[int] = 0
+    tipo: str
     marca: str
     anio: Optional[int] = None
     tipo_visita: Literal['1era Visita comercial','Diagnostico','Mantenimiento']
@@ -79,6 +79,7 @@ class OrdenServicio(BaseModel):
     estado: Literal['no_iniciado','en_progreso','terminado','enviado','por_firmar']
     fecha_creacion: datetime
     reporte_url: Optional[str]
+    tipo_equipo: Literal['compresor','secadora'] = 'compresor'
 
 class Modulos(BaseModel):
     numero_cliente: int

@@ -37,6 +37,7 @@ interface OrdenServicio {
   estado: string;
   fecha_creacion: string;
   reporte_url: string;
+  tipo_equipo: string;
 }
 
 interface DryerReport {
