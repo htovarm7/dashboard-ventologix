@@ -5,7 +5,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { Compressor } from "@/lib/types";
 import { URL_API } from "@/lib/global";
 import Image from "next/image";
-import { Database, BookUser, UserPen } from "lucide-react";
+import { Database, BookUser, UserPen, StickyNote } from "lucide-react";
 
 interface SideBarProps {
   compresores?: Compressor[];
@@ -218,6 +218,12 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
             title: "Habilitar modulos a cliente",
             icon: <UserPen />,
             route: "/modules",
+          },
+          {
+            id: "notas-compresores",
+            title: "Notas de Compresores",
+            icon: <StickyNote />,
+            route: "/notas-compresores",
           },
         ]
       : []),

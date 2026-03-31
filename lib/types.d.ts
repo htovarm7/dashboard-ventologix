@@ -109,6 +109,19 @@ export type EngineerFormData = {
   rol?: number; // 0 = SuperAdmin, 1 = Gerente VT, 2 = VAST, 3 = Gerente Cliente, 4 = Cliente
 };
 
+/* ===== Notas Compresores ======= */
+export interface NotaCompresor {
+  id: number;
+  numero_serie: string;
+  nota: string;
+  creado_por: string | null;
+  fecha_creacion: string;
+  fecha_actualizacion: string;
+  alias_compresor: string | null;
+  nombre_cliente: string | null;
+  numero_cliente: number | null;
+}
+
 /* ===== Ordenes de Servicio ======= */
 export interface OrdenServicio {
   folio: string;

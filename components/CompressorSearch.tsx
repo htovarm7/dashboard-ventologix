@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { URL_API } from "@/lib/global";
+import { NotaCompresor } from "@/lib/types";
 
 interface CompressorSearchResult {
   hp: number;
@@ -23,6 +24,28 @@ export default function CompressorSearch() {
     [],
   );
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [notasCompresor, setNotasCompresor] = useState<
+    Record<string, NotaCompresor[]>
+  >({});
+
+  // Fetch notes for a compressor
+  const fetchNotas = async (numero_serie: string) => {
+    if (notasCompresor[numero_serie]) return;
+    try {
+      const res = await fetch(
+        `${URL_API}/notas-compresores/${encodeURIComponent(numero_serie)}`
+      );
+      const data = await res.json();
+      if (data.data) {
+        setNotasCompresor((prev) => ({
+          ...prev,
+          [numero_serie]: data.data,
+        }));
+      }
+    } catch (error) {
+      console.error("Error al obtener notas:", error);
+    }
+  };
 
   // Search for compressors
   const handleSearch = async (query: string) => {
@@ -43,6 +66,10 @@ export default function CompressorSearch() {
       if (data.data) {
         setSearchResults(data.data);
         setShowSearchResults(true);
+        // Fetch notes for each result
+        for (const comp of data.data) {
+          fetchNotas(String(comp.numero_serie));
+        }
       } else {
         setSearchResults([]);
         setShowSearchResults(true);
@@ -137,6 +164,30 @@ export default function CompressorSearch() {
                     </p>
                   </div>
                 </div>
+                {/* Notas del compresor */}
+                {notasCompresor[String(result.numero_serie)]?.length > 0 && (
+                  <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm font-semibold text-yellow-800 mb-1">
+                      Notas del compresor:
+                    </p>
+                    {notasCompresor[String(result.numero_serie)].map((nota) => (
+                      <div
+                        key={nota.id}
+                        className="text-sm text-yellow-700 mb-1 last:mb-0"
+                      >
+                        <p className="whitespace-pre-wrap">{nota.nota}</p>
+                        <p className="text-xs text-yellow-500">
+                          {nota.creado_por && `${nota.creado_por} — `}
+                          {nota.fecha_creacion &&
+                            new Date(nota.fecha_creacion).toLocaleDateString(
+                              "es-MX"
+                            )}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <button
                   onClick={() => handleSelectCompressor(result)}
                   className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"

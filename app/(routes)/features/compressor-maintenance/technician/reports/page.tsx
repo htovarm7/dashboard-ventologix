@@ -153,13 +153,16 @@ const TypeReportes = () => {
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   // Equipment type toggle (compresor vs secadora)
-  const [tipoEquipo, setTipoEquipo] = useState<"compresor" | "secadora">("compresor");
+  const [tipoEquipo, setTipoEquipo] = useState<"compresor" | "secadora">(
+    "compresor",
+  );
 
   // Client search for dryer orders
   const [allClients, setAllClients] = useState<ClientOption[]>([]);
   const [dryerClientSearch, setDryerClientSearch] = useState("");
   const [showDryerClientDropdown, setShowDryerClientDropdown] = useState(false);
-  const [selectedDryerClient, setSelectedDryerClient] = useState<ClientOption | null>(null);
+  const [selectedDryerClient, setSelectedDryerClient] =
+    useState<ClientOption | null>(null);
 
   // Load user role on mount and check authorization
   useEffect(() => {
@@ -460,7 +463,11 @@ const TypeReportes = () => {
       }
 
       // Regenerate folio for dryer orders when serial number changes
-      if (tipoEquipo === "secadora" && name === "serialNumber" && value.length >= 4) {
+      if (
+        tipoEquipo === "secadora" &&
+        name === "serialNumber" &&
+        value.length >= 4
+      ) {
         updated.folio = generateDryerFolio(updated.numeroCliente, value);
       }
 
@@ -563,9 +570,14 @@ const TypeReportes = () => {
       // Prepare the data for the API
       const ordenData = {
         folio: ticketData.folio,
-        id_cliente: tipoEquipo === "secadora"
-          ? (selectedDryerClient ? parseInt(String(selectedDryerClient.numero_cliente)) || 0 : 0)
-          : (isClienteEventual ? 0 : selectedCompressor?.id_cliente || 0),
+        id_cliente:
+          tipoEquipo === "secadora"
+            ? selectedDryerClient
+              ? parseInt(String(selectedDryerClient.numero_cliente)) || 0
+              : 0
+            : isClienteEventual
+              ? 0
+              : selectedCompressor?.id_cliente || 0,
         id_cliente_eventual: isClienteEventual ? eventualClientId : 0,
         nombre_cliente: ticketData.clientName,
         numero_cliente: parseInt(ticketData.numeroCliente) || 0,
@@ -657,7 +669,10 @@ const TypeReportes = () => {
       }
     } catch (error) {
       console.error("Error submitting ticket:", error);
-      showError("Error", "No se pudo enviar el ticket. Por favor, intente nuevamente.");
+      showError(
+        "Error",
+        "No se pudo enviar el ticket. Por favor, intente nuevamente.",
+      );
     }
   };
 
@@ -687,16 +702,28 @@ const TypeReportes = () => {
       const result = await response.json();
 
       if (response.ok) {
-        showSuccess("Ticket Actualizado", "Los cambios se guardaron correctamente");
+        showSuccess(
+          "Ticket Actualizado",
+          "Los cambios se guardaron correctamente",
+        );
         setShowEditModal(false);
         setEditingTicket(null);
         fetchAllOrdenes();
       } else {
-        showError("Error al actualizar ticket", result.detail || result.message || result.error || "Error desconocido");
+        showError(
+          "Error al actualizar ticket",
+          result.detail ||
+            result.message ||
+            result.error ||
+            "Error desconocido",
+        );
       }
     } catch (error) {
       console.error("Error updating ticket:", error);
-      showError("Error", "No se pudo actualizar el ticket. Por favor, intente nuevamente.");
+      showError(
+        "Error",
+        "No se pudo actualizar el ticket. Por favor, intente nuevamente.",
+      );
     }
   };
 
@@ -712,14 +739,26 @@ const TypeReportes = () => {
       const result = await response.json();
 
       if (response.ok) {
-        showSuccess("Ticket Eliminado", "El ticket fue eliminado correctamente");
+        showSuccess(
+          "Ticket Eliminado",
+          "El ticket fue eliminado correctamente",
+        );
         fetchAllOrdenes();
       } else {
-        showError("Error al eliminar ticket", result.detail || result.message || result.error || "Error desconocido");
+        showError(
+          "Error al eliminar ticket",
+          result.detail ||
+            result.message ||
+            result.error ||
+            "Error desconocido",
+        );
       }
     } catch (error) {
       console.error("Error deleting ticket:", error);
-      showError("Error", "No se pudo eliminar el ticket. Por favor, intente nuevamente.");
+      showError(
+        "Error",
+        "No se pudo eliminar el ticket. Por favor, intente nuevamente.",
+      );
     }
   };
 
@@ -747,9 +786,10 @@ const TypeReportes = () => {
         const params = new URLSearchParams({
           folio: orden.folio,
         });
-        const basePath = orden.tipo_equipo === "secadora"
-          ? `/features/compressor-maintenance/technician/reports/create-dryer`
-          : `/features/compressor-maintenance/technician/reports/create`;
+        const basePath =
+          orden.tipo_equipo === "secadora"
+            ? `/features/compressor-maintenance/technician/reports/create-dryer`
+            : `/features/compressor-maintenance/technician/reports/create`;
         router.push(`${basePath}?${params.toString()}`);
       } else {
         const result = await response.json();
@@ -775,7 +815,10 @@ const TypeReportes = () => {
       }
     } catch (error) {
       console.error("Error updating orden estado:", error);
-      showError("Error", "No se pudo actualizar el estado. Por favor, intente nuevamente.");
+      showError(
+        "Error",
+        "No se pudo actualizar el estado. Por favor, intente nuevamente.",
+      );
     }
   };
 
@@ -1042,12 +1085,16 @@ const TypeReportes = () => {
                                       <span className="text-blue-600">
                                         Equipo:
                                       </span>{" "}
-                                      <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium mr-1 ${
-                                        orden.tipo_equipo === "secadora"
-                                          ? "bg-purple-100 text-purple-700"
-                                          : "bg-blue-100 text-blue-700"
-                                      }`}>
-                                        {orden.tipo_equipo === "secadora" ? "Secadora" : "Compresor"}
+                                      <span
+                                        className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium mr-1 ${
+                                          orden.tipo_equipo === "secadora"
+                                            ? "bg-purple-100 text-purple-700"
+                                            : "bg-blue-100 text-blue-700"
+                                        }`}
+                                      >
+                                        {orden.tipo_equipo === "secadora"
+                                          ? "Secadora"
+                                          : "Compresor"}
                                       </span>
                                       {orden.alias_compresor}
                                     </p>
@@ -1094,9 +1141,10 @@ const TypeReportes = () => {
                                 {orden.estado === "por_firmar" ? (
                                   <button
                                     onClick={() => {
-                                      const viewPath = orden.tipo_equipo === "secadora"
-                                        ? `/features/compressor-maintenance/reports/view-dryer?folio=${orden.folio}`
-                                        : `/features/compressor-maintenance/reports/view?folio=${orden.folio}`;
+                                      const viewPath =
+                                        orden.tipo_equipo === "secadora"
+                                          ? `/features/compressor-maintenance/reports/view-dryer?folio=${orden.folio}`
+                                          : `/features/compressor-maintenance/reports/view?folio=${orden.folio}`;
                                       router.push(viewPath);
                                     }}
                                     className="w-full px-4 py-3 bg-yellow-600 text-white text-base font-medium rounded-lg hover:bg-yellow-700 transition-colors"
@@ -1233,7 +1281,18 @@ const TypeReportes = () => {
                           setIsClienteEventual(false);
                           setSearchQuery("");
                           setShowResults(false);
-                          setTicketData((prev) => ({ ...prev, folio: "", clientName: "", numeroCliente: "", alias: "", serialNumber: "", hp: "", tipo: "", marca: "", anio: "" }));
+                          setTicketData((prev) => ({
+                            ...prev,
+                            folio: "",
+                            clientName: "",
+                            numeroCliente: "",
+                            alias: "",
+                            serialNumber: "",
+                            hp: "",
+                            tipo: "",
+                            marca: "",
+                            anio: "",
+                          }));
                         }}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors text-base ${
                           tipoEquipo === "compresor"
@@ -1253,7 +1312,18 @@ const TypeReportes = () => {
                           setShowResults(false);
                           setSelectedDryerClient(null);
                           setDryerClientSearch("");
-                          setTicketData((prev) => ({ ...prev, folio: "", clientName: "", numeroCliente: "", alias: "", serialNumber: "", hp: "", tipo: "", marca: "", anio: "" }));
+                          setTicketData((prev) => ({
+                            ...prev,
+                            folio: "",
+                            clientName: "",
+                            numeroCliente: "",
+                            alias: "",
+                            serialNumber: "",
+                            hp: "",
+                            tipo: "",
+                            marca: "",
+                            anio: "",
+                          }));
                         }}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors text-base ${
                           tipoEquipo === "secadora"
@@ -1310,28 +1380,43 @@ const TypeReportes = () => {
                           placeholder="Buscar por nombre o número de cliente..."
                           className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                         />
-                        {showDryerClientDropdown && filteredDryerClients.length > 0 && (
-                          <div className="absolute z-10 w-full mt-1 max-h-60 overflow-y-auto bg-white border border-blue-200 rounded-lg shadow-lg">
-                            {filteredDryerClients.slice(0, 20).map((client) => (
-                              <button
-                                key={String(client.numero_cliente)}
-                                type="button"
-                                onClick={() => handleSelectDryerClient(client)}
-                                className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-blue-100 last:border-b-0"
-                              >
-                                <p className="font-medium text-blue-900">{client.nombre_cliente}</p>
-                                <p className="text-sm text-blue-600">#{client.numero_cliente}</p>
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                        {showDryerClientDropdown &&
+                          filteredDryerClients.length > 0 && (
+                            <div className="absolute z-10 w-full mt-1 max-h-60 overflow-y-auto bg-white border border-blue-200 rounded-lg shadow-lg">
+                              {filteredDryerClients
+                                .slice(0, 20)
+                                .map((client) => (
+                                  <button
+                                    key={String(client.numero_cliente)}
+                                    type="button"
+                                    onClick={() =>
+                                      handleSelectDryerClient(client)
+                                    }
+                                    className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-blue-100 last:border-b-0"
+                                  >
+                                    <p className="font-medium text-blue-900">
+                                      {client.nombre_cliente}
+                                    </p>
+                                    <p className="text-sm text-blue-600">
+                                      #{client.numero_cliente}
+                                    </p>
+                                  </button>
+                                ))}
+                            </div>
+                          )}
                       </div>
                       {selectedDryerClient && (
                         <div className="p-3 bg-purple-50 rounded-lg border border-purple-200 mb-4">
-                          <p className="text-purple-900 font-medium">{selectedDryerClient.nombre_cliente}</p>
-                          <p className="text-purple-700 text-sm">Cliente #{selectedDryerClient.numero_cliente}</p>
+                          <p className="text-purple-900 font-medium">
+                            {selectedDryerClient.nombre_cliente}
+                          </p>
+                          <p className="text-purple-700 text-sm">
+                            Cliente #{selectedDryerClient.numero_cliente}
+                          </p>
                           {selectedDryerClient.direccion && (
-                            <p className="text-purple-700 text-sm">{selectedDryerClient.direccion}</p>
+                            <p className="text-purple-700 text-sm">
+                              {selectedDryerClient.direccion}
+                            </p>
                           )}
                         </div>
                       )}
@@ -1385,7 +1470,9 @@ const TypeReportes = () => {
               </div>
 
               {/* Ticket Form */}
-              {(selectedCompressor || isClienteEventual || selectedDryerClient) && (
+              {(selectedCompressor ||
+                isClienteEventual ||
+                selectedDryerClient) && (
                 <div className="mb-6">
                   <div className="bg-white rounded-lg border border-blue-200 p-6">
                     <div className="flex items-center justify-between mb-4">
@@ -1637,7 +1724,9 @@ const TypeReportes = () => {
                         {/* Equipment Info */}
                         <div>
                           <label className="block text-blue-800 text-base font-medium mb-1">
-                            {tipoEquipo === "secadora" ? "Nombre del Equipo *" : "Alias del Compresor *"}
+                            {tipoEquipo === "secadora"
+                              ? "Nombre del Equipo *"
+                              : "Alias del Compresor *"}
                           </label>
                           <input
                             type="text"
@@ -1646,7 +1735,11 @@ const TypeReportes = () => {
                             onChange={handleInputChange}
                             required
                             className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
-                            placeholder={tipoEquipo === "secadora" ? "Nombre del equipo" : "Alias"}
+                            placeholder={
+                              tipoEquipo === "secadora"
+                                ? "Nombre del equipo"
+                                : "Alias"
+                            }
                           />
                         </div>
 
@@ -1683,7 +1776,9 @@ const TypeReportes = () => {
 
                         <div>
                           <label className="block text-blue-800 text-base font-medium mb-1">
-                            {tipoEquipo === "secadora" ? "Tipo de Secadora *" : "Tipo *"}
+                            {tipoEquipo === "secadora"
+                              ? "Tipo de Secadora *"
+                              : "Tipo *"}
                           </label>
                           {tipoEquipo === "secadora" ? (
                             <select
@@ -1693,7 +1788,9 @@ const TypeReportes = () => {
                               className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                             >
                               <option value="">Seleccionar tipo</option>
-                              <option value="refrigeracion">Refrigeración</option>
+                              <option value="refrigeracion">
+                                Refrigeración
+                              </option>
                               <option value="desecante">Desecante</option>
                             </select>
                           ) : (
@@ -1872,7 +1969,8 @@ const TypeReportes = () => {
                       </div>
 
                       {/* Descripción de Proyecto (solo para Mantenimiento Especial) */}
-                      {ticketData.tipoMantenimiento === "Mantenimiento Especial" && (
+                      {ticketData.tipoMantenimiento ===
+                        "Mantenimiento Especial" && (
                         <div>
                           <label className="block text-blue-800 text-base font-medium mb-1">
                             Descripción del Proyecto
@@ -2052,12 +2150,16 @@ const TypeReportes = () => {
                                           >
                                             {orden.prioridad}
                                           </span>
-                                          <span className={`px-2 py-1 rounded text-sm font-medium ${
-                                            orden.tipo_equipo === "secadora"
-                                              ? "bg-purple-100 text-purple-700"
-                                              : "bg-blue-100 text-blue-700"
-                                          }`}>
-                                            {orden.tipo_equipo === "secadora" ? "Secadora" : "Compresor"}
+                                          <span
+                                            className={`px-2 py-1 rounded text-sm font-medium ${
+                                              orden.tipo_equipo === "secadora"
+                                                ? "bg-purple-100 text-purple-700"
+                                                : "bg-blue-100 text-blue-700"
+                                            }`}
+                                          >
+                                            {orden.tipo_equipo === "secadora"
+                                              ? "Secadora"
+                                              : "Compresor"}
                                           </span>
                                         </div>
                                         <p className="text-blue-900 font-medium text-base">
@@ -2186,12 +2288,16 @@ const TypeReportes = () => {
                         {editingTicket.folio}
                       </span>
                     </p>
-                    <span className={`px-2 py-1 rounded text-sm font-medium ${
-                      editingTicket.tipo_equipo === "secadora"
-                        ? "bg-purple-100 text-purple-700"
-                        : "bg-blue-200 text-blue-700"
-                    }`}>
-                      {editingTicket.tipo_equipo === "secadora" ? "Secadora" : "Compresor"}
+                    <span
+                      className={`px-2 py-1 rounded text-sm font-medium ${
+                        editingTicket.tipo_equipo === "secadora"
+                          ? "bg-purple-100 text-purple-700"
+                          : "bg-blue-200 text-blue-700"
+                      }`}
+                    >
+                      {editingTicket.tipo_equipo === "secadora"
+                        ? "Secadora"
+                        : "Compresor"}
                     </span>
                   </div>
 

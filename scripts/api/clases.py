@@ -81,6 +81,14 @@ class OrdenServicio(BaseModel):
     reporte_url: Optional[str]
     tipo_equipo: Literal['compresor','secadora'] = 'compresor'
 
+class NotaCompresor(BaseModel):
+    numero_serie: str
+    nota: str
+    creado_por: Optional[str] = None
+
+class NotaCompresorUpdate(BaseModel):
+    nota: str
+
 class Modulos(BaseModel):
     numero_cliente: int
     nombre_cliente: str
