@@ -22,8 +22,8 @@ async def main() -> None:
         browser = await p.chromium.launch(headless=True)
         try:
             page = await browser.new_page()
-            await page.goto(view_url, wait_until="networkidle", timeout=60000)
-            await page.wait_for_selector(".bg-white", timeout=15000)
+            await page.goto(view_url, wait_until="domcontentloaded", timeout=30000)
+            await page.wait_for_selector(".bg-white", timeout=30000)
 
             # Scroll through the full page to trigger lazy-loaded images
             await page.evaluate("""async () => {
