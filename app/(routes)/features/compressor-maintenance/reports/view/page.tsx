@@ -5,7 +5,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import BackButton from "@/components/BackButton";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import { URL_API } from "@/lib/global";
-import { CheckCircle, XCircle, FileText, X, Pencil, Save, XOctagon } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  FileText,
+  X,
+  Pencil,
+  Save,
+  XOctagon,
+} from "lucide-react";
 import SignatureCanvas from "react-signature-canvas";
 import { useDialog } from "@/hooks/useDialog";
 
@@ -178,7 +186,9 @@ function ViewReportContent() {
     useState<MaintenanceData | null>(null);
   const [postMaintenanceData, setPostMaintenanceData] =
     useState<PostMaintenanceData | null>(null);
-  const [fotosPorCategoria, setFotosPorCategoria] = useState<FotosPorCategoria>({});
+  const [fotosPorCategoria, setFotosPorCategoria] = useState<FotosPorCategoria>(
+    {},
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageModal, setImageModal] = useState<ImageModalState>({
@@ -194,8 +204,11 @@ function ViewReportContent() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editedPre, setEditedPre] = useState<PreMaintenanceData | null>(null);
-  const [editedMaintenance, setEditedMaintenance] = useState<MaintenanceData | null>(null);
-  const [editedPost, setEditedPost] = useState<PostMaintenanceData | null>(null);
+  const [editedMaintenance, setEditedMaintenance] =
+    useState<MaintenanceData | null>(null);
+  const [editedPost, setEditedPost] = useState<PostMaintenanceData | null>(
+    null,
+  );
 
   useEffect(() => {
     const folio = searchParams.get("folio");
@@ -250,7 +263,10 @@ function ViewReportContent() {
       if (reportData.post_mantenimiento) {
         setPostMaintenanceData(reportData.post_mantenimiento);
       }
-      if (reportData.fotos_por_categoria && Object.keys(reportData.fotos_por_categoria).length > 0) {
+      if (
+        reportData.fotos_por_categoria &&
+        Object.keys(reportData.fotos_por_categoria).length > 0
+      ) {
         setFotosPorCategoria(reportData.fotos_por_categoria);
       } else if (reportData.fotos_drive && reportData.fotos_drive.length > 0) {
         setFotosPorCategoria({ OTROS: reportData.fotos_drive });
@@ -258,9 +274,12 @@ function ViewReportContent() {
 
       // If edit mode was requested, populate edited data
       if (searchParams.get("edit") === "true") {
-        if (reportData.pre_mantenimiento) setEditedPre({ ...reportData.pre_mantenimiento });
-        if (reportData.mantenimiento) setEditedMaintenance({ ...reportData.mantenimiento });
-        if (reportData.post_mantenimiento) setEditedPost({ ...reportData.post_mantenimiento });
+        if (reportData.pre_mantenimiento)
+          setEditedPre({ ...reportData.pre_mantenimiento });
+        if (reportData.mantenimiento)
+          setEditedMaintenance({ ...reportData.mantenimiento });
+        if (reportData.post_mantenimiento)
+          setEditedPost({ ...reportData.post_mantenimiento });
       }
     } catch (err) {
       console.error("Error loading report data:", err);
@@ -324,7 +343,10 @@ function ViewReportContent() {
     if (!folio) return;
 
     if (!clientSignatureRef.current || clientSignatureRef.current.isEmpty()) {
-      showWarning("Firma requerida", "Por favor agregue la firma del cliente/persona a cargo antes de guardar.");
+      showWarning(
+        "Firma requerida",
+        "Por favor agregue la firma del cliente/persona a cargo antes de guardar.",
+      );
       return;
     }
 
@@ -334,35 +356,45 @@ function ViewReportContent() {
       const clientSignatureData = clientCanvas.toDataURL("image/png");
 
       // Save client signature + static technician signature
-      const saveSignResponse = await fetch(`${URL_API}/reporte_mtto/post-mtto`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          folio,
-          firma_tecnico_ventologix: "/firma_ivan.png",
-          firma_persona_cargo: clientSignatureData,
-          nombre_persona_cargo: nombrePersonaCargo || undefined,
-        }),
-      });
+      const saveSignResponse = await fetch(
+        `${URL_API}/reporte_mtto/post-mtto`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            folio,
+            firma_tecnico_ventologix: "/firma_ivan.png",
+            firma_persona_cargo: clientSignatureData,
+            nombre_persona_cargo: nombrePersonaCargo || undefined,
+          }),
+        },
+      );
 
       if (!saveSignResponse.ok) {
         const signResult = await saveSignResponse.json();
-        showError("Error al guardar firma", signResult?.error || signResult?.detail || "Error desconocido");
+        showError(
+          "Error al guardar firma",
+          signResult?.error || signResult?.detail || "Error desconocido",
+        );
         return;
       }
 
       // Finalize the report (sets status to terminado)
       const finalizeResponse = await fetch(
         `${URL_API}/reporte_mtto/finalizar-reporte/${folio}`,
-        { method: "POST", headers: { "Content-Type": "application/json" } }
+        { method: "POST", headers: { "Content-Type": "application/json" } },
       );
       const finalizeResult = await finalizeResponse.json();
 
       if (finalizeResult?.success) {
-        showSuccess("Reporte Finalizado", "El reporte fue firmado y terminado exitosamente");
+        showSuccess(
+          "Reporte Finalizado",
+          "El reporte fue firmado y terminado exitosamente",
+        );
         loadAllReportData(folio);
       } else {
-        const errorMsg = finalizeResult?.error || "Error desconocido al finalizar";
+        const errorMsg =
+          finalizeResult?.error || "Error desconocido al finalizar";
         showError("Error al finalizar reporte", errorMsg);
       }
     } catch (err) {
@@ -451,12 +483,17 @@ function ViewReportContent() {
         }
         const body = await res.json();
         if (body.success === false) {
-          errors.push(`${sections[i].name}: ${body.error || "Error desconocido"}`);
+          errors.push(
+            `${sections[i].name}: ${body.error || "Error desconocido"}`,
+          );
         }
       }
 
       if (errors.length === 0) {
-        showSuccess("Reporte Actualizado", "Los cambios se guardaron correctamente");
+        showSuccess(
+          "Reporte Actualizado",
+          "Los cambios se guardaron correctamente",
+        );
         setIsEditing(false);
         setEditedPre(null);
         setEditedMaintenance(null);
@@ -479,14 +516,21 @@ function ViewReportContent() {
     field: string,
     editedObj: Record<string, unknown> | null,
     setEditedObj: (obj: Record<string, unknown> | null) => void,
-    options?: { suffix?: string; type?: "text" | "number" | "select"; selectOptions?: string[] },
+    options?: {
+      suffix?: string;
+      type?: "text" | "number" | "select";
+      selectOptions?: string[];
+    },
   ) => {
     const value = dataObj ? dataObj[field] : undefined;
 
     if (!isEditing || !editedObj) {
       return (
         <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded">
-          {renderValue(value as string | number | boolean | undefined | null, options?.suffix)}
+          {renderValue(
+            value as string | number | boolean | undefined | null,
+            options?.suffix,
+          )}
         </p>
       );
     }
@@ -497,12 +541,16 @@ function ViewReportContent() {
       return (
         <select
           value={String(editValue)}
-          onChange={(e) => setEditedObj({ ...editedObj, [field]: e.target.value })}
+          onChange={(e) =>
+            setEditedObj({ ...editedObj, [field]: e.target.value })
+          }
           className="w-full p-2 border border-blue-300 rounded bg-blue-50 font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
         >
           <option value="">—</option>
           {options.selectOptions.map((opt) => (
-            <option key={opt} value={opt}>{opt}</option>
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
           ))}
         </select>
       );
@@ -513,7 +561,12 @@ function ViewReportContent() {
         type={options?.type === "number" ? "number" : "text"}
         value={String(editValue)}
         onChange={(e) => {
-          const val = options?.type === "number" ? (e.target.value === "" ? null : Number(e.target.value)) : e.target.value;
+          const val =
+            options?.type === "number"
+              ? e.target.value === ""
+                ? null
+                : Number(e.target.value)
+              : e.target.value;
           setEditedObj({ ...editedObj, [field]: val });
         }}
         className="w-full p-2 border border-blue-300 rounded bg-blue-50 font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -522,7 +575,14 @@ function ViewReportContent() {
   };
 
   // Shortcut helpers
-  const preField = (field: string, opts?: { suffix?: string; type?: "text" | "number" | "select"; selectOptions?: string[] }) =>
+  const preField = (
+    field: string,
+    opts?: {
+      suffix?: string;
+      type?: "text" | "number" | "select";
+      selectOptions?: string[];
+    },
+  ) =>
     renderField(
       preMaintenanceData as unknown as Record<string, unknown>,
       field,
@@ -531,7 +591,14 @@ function ViewReportContent() {
       opts,
     );
 
-  const postField = (field: string, opts?: { suffix?: string; type?: "text" | "number" | "select"; selectOptions?: string[] }) =>
+  const postField = (
+    field: string,
+    opts?: {
+      suffix?: string;
+      type?: "text" | "number" | "select";
+      selectOptions?: string[];
+    },
+  ) =>
     renderField(
       postMaintenanceData as unknown as Record<string, unknown>,
       field,
@@ -635,12 +702,18 @@ function ViewReportContent() {
 
     // Temperatura de compresión
     const tempComp = parseFloat(
-      String(preMaintenanceData.temp_compresion_display || preMaintenanceData.temp_compresion_laser || "0"),
+      String(
+        preMaintenanceData.temp_compresion_display ||
+          preMaintenanceData.temp_compresion_laser ||
+          "0",
+      ),
     );
     if (tempComp >= 80 && tempComp <= 95) {
       positivos.push("Temperatura de compresión dentro de rango óptimo");
     } else if (tempComp > 95 && tempComp <= 105) {
-      positivos.push("Temperatura de compresión aceptable para operación continua");
+      positivos.push(
+        "Temperatura de compresión aceptable para operación continua",
+      );
     } else if (tempComp > 0) {
       causas.push("Temperatura de compresión fuera de rango");
       agregar_consecuencia("Riesgo de paro por alta temperatura", 3);
@@ -649,11 +722,15 @@ function ViewReportContent() {
     }
 
     // Temperatura del separador
-    const tempSep = parseFloat(String(preMaintenanceData.temp_separador_aceite || "0"));
+    const tempSep = parseFloat(
+      String(preMaintenanceData.temp_separador_aceite || "0"),
+    );
     if (tempSep > 0 && tempSep <= 90) {
       positivos.push("Temperatura del separador aire-aceite adecuada");
     } else if (tempSep <= 95) {
-      positivos.push("Temperatura del separador cercana al límite, pero aceptable");
+      positivos.push(
+        "Temperatura del separador cercana al límite, pero aceptable",
+      );
     } else if (tempSep > 95) {
       causas.push("Separador aire-aceite sobrecalentado");
       agregar_consecuencia("Arrastre de aceite a la red", 3);
@@ -661,9 +738,13 @@ function ViewReportContent() {
     }
 
     // Delta T enfriador de aceite
-    const deltaT = parseFloat(String(preMaintenanceData.delta_t_enfriador_aceite || "0"));
+    const deltaT = parseFloat(
+      String(preMaintenanceData.delta_t_enfriador_aceite || "0"),
+    );
     if (deltaT >= 15) {
-      positivos.push("Enfriador de aceite operando con buena eficiencia térmica");
+      positivos.push(
+        "Enfriador de aceite operando con buena eficiencia térmica",
+      );
     } else if (deltaT >= 10 && deltaT < 15) {
       positivos.push("Enfriador de aceite con eficiencia térmica aceptable");
     } else if (deltaT > 0) {
@@ -673,7 +754,9 @@ function ViewReportContent() {
     }
 
     // Diferencial de presión del separador
-    const deltaP = parseFloat(String(preMaintenanceData.delta_p_separador || "0"));
+    const deltaP = parseFloat(
+      String(preMaintenanceData.delta_p_separador || "0"),
+    );
     if (deltaP > 0 && deltaP <= 0.2) {
       positivos.push("Separador aire-aceite en condición óptima");
     } else if (deltaP <= 0.7) {
@@ -686,7 +769,9 @@ function ViewReportContent() {
     }
 
     // Temperatura del motor
-    const tempMotor = parseFloat(String(preMaintenanceData.temp_motor_electrico || "0"));
+    const tempMotor = parseFloat(
+      String(preMaintenanceData.temp_motor_electrico || "0"),
+    );
     if (tempMotor > 0 && tempMotor <= 85) {
       positivos.push("Temperatura del motor eléctrico dentro de rango normal");
     } else if (tempMotor <= 90) {
@@ -700,7 +785,8 @@ function ViewReportContent() {
 
     // Condiciones ambientales
     const polvo = preMaintenanceData.operacion_muchos_polvos === "Sí";
-    const ventDeficiente = preMaintenanceData.expulsion_aire_caliente === "Interno al cuarto";
+    const ventDeficiente =
+      preMaintenanceData.expulsion_aire_caliente === "Interno al cuarto";
     if (!polvo && !ventDeficiente) {
       positivos.push("Condiciones ambientales y ventilación adecuadas");
     } else {
@@ -804,7 +890,10 @@ function ViewReportContent() {
               <Pencil className="text-amber-600" size={24} />
               <div>
                 <p className="font-bold text-amber-900">Modo Edición</p>
-                <p className="text-sm text-amber-700">Los campos editables se muestran con fondo azul. Haz clic en &quot;Guardar Cambios&quot; cuando termines.</p>
+                <p className="text-sm text-amber-700">
+                  Los campos editables se muestran con fondo azul. Haz clic en
+                  &quot;Guardar Cambios&quot; cuando termines.
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -1030,19 +1119,28 @@ function ViewReportContent() {
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     ¿Equipo enciende?
                   </label>
-                  {preField("equipo_enciende", { type: "select", selectOptions: ["Sí", "No"] })}
+                  {preField("equipo_enciende", {
+                    type: "select",
+                    selectOptions: ["Sí", "No"],
+                  })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     ¿Display enciende?
                   </label>
-                  {preField("display_enciende", { type: "select", selectOptions: ["Sí", "No"] })}
+                  {preField("display_enciende", {
+                    type: "select",
+                    selectOptions: ["Sí", "No"],
+                  })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Compresor es Master/Slave
                   </label>
-                  {preField("compresor_es_master", { type: "select", selectOptions: ["Master", "Slave", "Independiente"] })}
+                  {preField("compresor_es_master", {
+                    type: "select",
+                    selectOptions: ["Master", "Slave", "Independiente"],
+                  })}
                 </div>
               </div>
             </div>
@@ -1057,7 +1155,10 @@ function ViewReportContent() {
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Horas Totales
                   </label>
-                  {preField("horas_totales", { suffix: " hrs", type: "number" })}
+                  {preField("horas_totales", {
+                    suffix: " hrs",
+                    type: "number",
+                  })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
@@ -1069,7 +1170,10 @@ function ViewReportContent() {
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Horas en Descarga
                   </label>
-                  {preField("horas_descarga", { suffix: " hrs", type: "number" })}
+                  {preField("horas_descarga", {
+                    suffix: " hrs",
+                    type: "number",
+                  })}
                 </div>
               </div>
             </div>
@@ -1084,19 +1188,28 @@ function ViewReportContent() {
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Voltaje de Alimentación
                   </label>
-                  {preField("voltaje_alimentacion", { suffix: " V", type: "number" })}
+                  {preField("voltaje_alimentacion", {
+                    suffix: " V",
+                    type: "number",
+                  })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Amperaje Motor en Carga
                   </label>
-                  {preField("amperaje_motor_carga", { suffix: " A", type: "number" })}
+                  {preField("amperaje_motor_carga", {
+                    suffix: " A",
+                    type: "number",
+                  })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Amperaje Ventilador
                   </label>
-                  {preField("amperaje_ventilador", { suffix: " A", type: "number" })}
+                  {preField("amperaje_ventilador", {
+                    suffix: " A",
+                    type: "number",
+                  })}
                 </div>
               </div>
             </div>
@@ -1111,37 +1224,55 @@ function ViewReportContent() {
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Temp. Compresión (Display)
                   </label>
-                  {preField("temp_compresion_display", { suffix: " °C", type: "number" })}
+                  {preField("temp_compresion_display", {
+                    suffix: " °C",
+                    type: "number",
+                  })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Temp. Compresión (Láser)
                   </label>
-                  {preField("temp_compresion_laser", { suffix: " °C", type: "number" })}
+                  {preField("temp_compresion_laser", {
+                    suffix: " °C",
+                    type: "number",
+                  })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Temp. Separador Aceite
                   </label>
-                  {preField("temp_separador_aceite", { suffix: " °C", type: "number" })}
+                  {preField("temp_separador_aceite", {
+                    suffix: " °C",
+                    type: "number",
+                  })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Temp. Interna Cuarto
                   </label>
-                  {preField("temp_interna_cuarto", { suffix: " °C", type: "number" })}
+                  {preField("temp_interna_cuarto", {
+                    suffix: " °C",
+                    type: "number",
+                  })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Delta T Enfriador Aceite
                   </label>
-                  {preField("delta_t_enfriador_aceite", { suffix: " °C", type: "number" })}
+                  {preField("delta_t_enfriador_aceite", {
+                    suffix: " °C",
+                    type: "number",
+                  })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Temp. Motor Eléctrico
                   </label>
-                  {preField("temp_motor_electrico", { suffix: " °C", type: "number" })}
+                  {preField("temp_motor_electrico", {
+                    suffix: " °C",
+                    type: "number",
+                  })}
                 </div>
               </div>
             </div>
@@ -1162,19 +1293,28 @@ function ViewReportContent() {
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Presión en Carga
                   </label>
-                  {preField("presion_carga", { suffix: " Psi", type: "number" })}
+                  {preField("presion_carga", {
+                    suffix: " Psi",
+                    type: "number",
+                  })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Presión en Descarga
                   </label>
-                  {preField("presion_descarga", { suffix: " Psi", type: "number" })}
+                  {preField("presion_descarga", {
+                    suffix: " Psi",
+                    type: "number",
+                  })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Delta P Separador
                   </label>
-                  {preField("delta_p_separador", { suffix: " Psi", type: "number" })}
+                  {preField("delta_p_separador", {
+                    suffix: " Psi",
+                    type: "number",
+                  })}
                 </div>
               </div>
             </div>
@@ -1189,19 +1329,28 @@ function ViewReportContent() {
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Fugas de Aceite Visibles
                   </label>
-                  {preField("fugas_aceite_visibles", { type: "select", selectOptions: ["Sí", "No"] })}
+                  {preField("fugas_aceite_visibles", {
+                    type: "select",
+                    selectOptions: ["Sí", "No"],
+                  })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Fugas de Aire Audibles
                   </label>
-                  {preField("fugas_aire_audibles", { type: "select", selectOptions: ["Sí", "No"] })}
+                  {preField("fugas_aire_audibles", {
+                    type: "select",
+                    selectOptions: ["Sí", "No"],
+                  })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Aceite Oscuro/Degradado
                   </label>
-                  {preField("aceite_oscuro_degradado", { type: "select", selectOptions: ["Sí", "No"] })}
+                  {preField("aceite_oscuro_degradado", {
+                    type: "select",
+                    selectOptions: ["Sí", "No"],
+                  })}
                 </div>
               </div>
             </div>
@@ -1222,117 +1371,123 @@ function ViewReportContent() {
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Expulsión Aire Caliente
                   </label>
-                  {preField("expulsion_aire_caliente", { type: "select", selectOptions: ["Al exterior", "Interno al cuarto"] })}
+                  {preField("expulsion_aire_caliente", {
+                    type: "select",
+                    selectOptions: ["Al exterior", "Interno al cuarto"],
+                  })}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-purple-800 mb-1">
                     Operación con Muchos Polvos
                   </label>
-                  {preField("operacion_muchos_polvos", { type: "select", selectOptions: ["Sí", "No"] })}
+                  {preField("operacion_muchos_polvos", {
+                    type: "select",
+                    selectOptions: ["Sí", "No"],
+                  })}
                 </div>
               </div>
             </div>
-
           </div>
         )}
 
         {/* Automatic Diagnostic Summary */}
-        {preMaintenanceData && (() => {
-          const diagnostico = generateDiagnostico();
-          if (!diagnostico) return null;
-          return (
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-              <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
-                RESUMEN DE DIAGNÓSTICO AUTOMÁTICO - PRE-MANTENIMIENTO
-              </h2>
-              <div className="space-y-4">
-                {/* Estado General */}
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-bold text-lg mb-2">
-                    Estado General del Equipo
-                  </h3>
-                  <p className="text-xl font-bold">
-                    {diagnostico.estadoEquipo}
-                  </p>
+        {preMaintenanceData &&
+          (() => {
+            const diagnostico = generateDiagnostico();
+            if (!diagnostico) return null;
+            return (
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-white bg-purple-800 px-4 py-2 rounded font-bold mb-4">
+                  RESUMEN DE DIAGNÓSTICO AUTOMÁTICO - PRE-MANTENIMIENTO
+                </h2>
+                <div className="space-y-4">
+                  {/* Estado General */}
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <h3 className="font-bold text-lg mb-2">
+                      Estado General del Equipo
+                    </h3>
+                    <p className="text-xl font-bold">
+                      {diagnostico.estadoEquipo}
+                    </p>
+                  </div>
+
+                  {/* Aspectos Positivos */}
+                  {diagnostico.positivos.length > 0 && (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <h3 className="font-bold text-green-900 mb-3">
+                        ✔️ Aspectos Positivos Detectados
+                      </h3>
+                      <ul className="space-y-2">
+                        {diagnostico.positivos.map((item, idx) => (
+                          <li key={idx} className="flex items-start">
+                            <span className="text-green-600 mr-2">✔️</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Causas Detectadas */}
+                  {diagnostico.causas.length > 0 && (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <h3 className="font-bold text-yellow-900 mb-3">
+                        ⚠️ Causas Detectadas
+                      </h3>
+                      <ul className="space-y-2">
+                        {diagnostico.causas.map((item, idx) => (
+                          <li key={idx} className="flex items-start">
+                            <span className="text-yellow-600 mr-2">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Consecuencias Probables */}
+                  {Object.keys(diagnostico.consecuencias).length > 0 && (
+                    <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                      <h3 className="font-bold text-orange-900 mb-3">
+                        ⚠️ Consecuencias Probables
+                      </h3>
+                      <ul className="space-y-2">
+                        {Object.entries(diagnostico.consecuencias).map(
+                          ([cons, grav], idx) => {
+                            const icono =
+                              { 1: "🟡", 2: "🟠", 3: "🔴" }[grav] || "⚠️";
+                            return (
+                              <li key={idx} className="flex items-start">
+                                <span className="mr-2">{icono}</span>
+                                <span>{cons}</span>
+                              </li>
+                            );
+                          },
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Acciones Recomendadas */}
+                  {diagnostico.acciones.length > 0 && (
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <h3 className="font-bold text-blue-900 mb-3">
+                        🔧 Acciones Recomendadas
+                      </h3>
+                      <ul className="space-y-2">
+                        {diagnostico.acciones.map((item, idx) => (
+                          <li key={idx} className="flex items-start">
+                            <span className="text-blue-600 mr-2">➤</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-
-                {/* Aspectos Positivos */}
-                {diagnostico.positivos.length > 0 && (
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <h3 className="font-bold text-green-900 mb-3">
-                      ✔️ Aspectos Positivos Detectados
-                    </h3>
-                    <ul className="space-y-2">
-                      {diagnostico.positivos.map((item, idx) => (
-                        <li key={idx} className="flex items-start">
-                          <span className="text-green-600 mr-2">✔️</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Causas Detectadas */}
-                {diagnostico.causas.length > 0 && (
-                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <h3 className="font-bold text-yellow-900 mb-3">
-                      ⚠️ Causas Detectadas
-                    </h3>
-                    <ul className="space-y-2">
-                      {diagnostico.causas.map((item, idx) => (
-                        <li key={idx} className="flex items-start">
-                          <span className="text-yellow-600 mr-2">•</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Consecuencias Probables */}
-                {Object.keys(diagnostico.consecuencias).length > 0 && (
-                  <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                    <h3 className="font-bold text-orange-900 mb-3">
-                      ⚠️ Consecuencias Probables
-                    </h3>
-                    <ul className="space-y-2">
-                      {Object.entries(diagnostico.consecuencias).map(
-                        ([cons, grav], idx) => {
-                          const icono =
-                            { 1: "🟡", 2: "🟠", 3: "🔴" }[grav] || "⚠️";
-                          return (
-                            <li key={idx} className="flex items-start">
-                              <span className="mr-2">{icono}</span>
-                              <span>{cons}</span>
-                            </li>
-                          );
-                        },
-                      )}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Acciones Recomendadas */}
-                {diagnostico.acciones.length > 0 && (
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <h3 className="font-bold text-blue-900 mb-3">
-                      🔧 Acciones Recomendadas
-                    </h3>
-                    <ul className="space-y-2">
-                      {diagnostico.acciones.map((item, idx) => (
-                        <li key={idx} className="flex items-start">
-                          <span className="text-blue-600 mr-2">➤</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </div>
-            </div>
-          );
-        })()}
+            );
+          })()}
 
         {/* Pre-Maintenance Photos Section */}
         {renderPhotoSection(
@@ -1349,31 +1504,39 @@ function ViewReportContent() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
               {isEditing && editedMaintenance
-                ? Object.entries(maintenanceFieldsMap).map(([field, displayName]) => {
-                    const value = (editedMaintenance as unknown as Record<string, string>)[field];
-                    const isChecked = value === "Sí";
-                    return (
-                      <div
-                        key={field}
-                        className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer ${
-                          isChecked ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
-                        }`}
-                        onClick={() => {
-                          setEditedMaintenance({
-                            ...editedMaintenance,
-                            [field]: isChecked ? "No" : "Sí",
-                          } as MaintenanceData);
-                        }}
-                      >
-                        <span className="text-gray-900 font-medium">{displayName}</span>
-                        {isChecked ? (
-                          <CheckCircle className="text-green-600" size={24} />
-                        ) : (
-                          <XCircle className="text-gray-400" size={24} />
-                        )}
-                      </div>
-                    );
-                  })
+                ? Object.entries(maintenanceFieldsMap).map(
+                    ([field, displayName]) => {
+                      const value = (
+                        editedMaintenance as unknown as Record<string, string>
+                      )[field];
+                      const isChecked = value === "Sí";
+                      return (
+                        <div
+                          key={field}
+                          className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer ${
+                            isChecked
+                              ? "bg-green-50 border-green-200"
+                              : "bg-gray-50 border-gray-200"
+                          }`}
+                          onClick={() => {
+                            setEditedMaintenance({
+                              ...editedMaintenance,
+                              [field]: isChecked ? "No" : "Sí",
+                            } as MaintenanceData);
+                          }}
+                        >
+                          <span className="text-gray-900 font-medium">
+                            {displayName}
+                          </span>
+                          {isChecked ? (
+                            <CheckCircle className="text-green-600" size={24} />
+                          ) : (
+                            <XCircle className="text-gray-400" size={24} />
+                          )}
+                        </div>
+                      );
+                    },
+                  )
                 : maintenanceItems.map((item, index) => (
                     <div
                       key={index}
@@ -1394,7 +1557,6 @@ function ViewReportContent() {
                     </div>
                   ))}
             </div>
-
           </div>
         )}
 
@@ -1429,7 +1591,10 @@ function ViewReportContent() {
                   <textarea
                     value={editedMaintenance.comentarios_generales || ""}
                     onChange={(e) =>
-                      setEditedMaintenance({ ...editedMaintenance, comentarios_generales: e.target.value })
+                      setEditedMaintenance({
+                        ...editedMaintenance,
+                        comentarios_generales: e.target.value,
+                      })
                     }
                     className="w-full p-4 border border-blue-300 rounded-lg bg-blue-50 text-gray-800 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-400"
                   />
@@ -1449,7 +1614,10 @@ function ViewReportContent() {
                   <textarea
                     value={editedMaintenance.comentario_cliente || ""}
                     onChange={(e) =>
-                      setEditedMaintenance({ ...editedMaintenance, comentario_cliente: e.target.value })
+                      setEditedMaintenance({
+                        ...editedMaintenance,
+                        comentario_cliente: e.target.value,
+                      })
                     }
                     className="w-full p-4 border border-blue-300 rounded-lg bg-blue-50 text-gray-800 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-400"
                   />
@@ -1472,7 +1640,8 @@ function ViewReportContent() {
               COMPARATIVA PRE vs POST MANTENIMIENTO
             </h2>
             <p className="text-sm text-gray-500 mb-4">
-              Resumen de las mediciones tomadas antes y después del mantenimiento.
+              Resumen de las mediciones tomadas antes y después del
+              mantenimiento.
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
@@ -1491,43 +1660,140 @@ function ViewReportContent() {
                 </thead>
                 <tbody>
                   {[
-                    { label: "Display Enciende", pre: preMaintenanceData.display_enciende, post: postMaintenanceData.display_enciende_final },
-                    { label: "Horas Totales", pre: preMaintenanceData.horas_totales, post: postMaintenanceData.horas_totales_final, unit: " hrs" },
-                    { label: "Horas en Carga", pre: preMaintenanceData.horas_carga, post: postMaintenanceData.horas_carga_final, unit: " hrs" },
-                    { label: "Horas en Descarga", pre: preMaintenanceData.horas_descarga, post: postMaintenanceData.horas_descarga_final, unit: " hrs" },
-                    { label: "Voltaje Alimentación (V)", pre: preMaintenanceData.voltaje_alimentacion, post: postMaintenanceData.voltaje_alimentacion_final },
-                    { label: "Amperaje Motor en Carga (A)", pre: preMaintenanceData.amperaje_motor_carga, post: postMaintenanceData.amperaje_motor_carga_final },
-                    { label: "Amperaje Ventilador (A)", pre: preMaintenanceData.amperaje_ventilador, post: postMaintenanceData.amperaje_ventilador_final },
-                    { label: "Fugas de Aceite", pre: preMaintenanceData.fugas_aceite_visibles, post: postMaintenanceData.fugas_aceite_final },
-                    { label: "Aceite Oscuro/Degradado", pre: preMaintenanceData.aceite_oscuro_degradado, post: postMaintenanceData.aceite_oscuro_final },
-                    { label: "Fugas de Aire", pre: preMaintenanceData.fugas_aire_audibles, post: postMaintenanceData.fugas_aire_final },
-                    { label: "Temp. Compresión Display (°C)", pre: preMaintenanceData.temp_compresion_display, post: postMaintenanceData.temp_compresion_display_final },
-                    { label: "Temp. Compresión Láser (°C)", pre: preMaintenanceData.temp_compresion_laser, post: postMaintenanceData.temp_compresion_laser_final },
-                    { label: "Temp. Separador Aceite (°C)", pre: preMaintenanceData.temp_separador_aceite, post: postMaintenanceData.temp_separador_aceite_final },
-                    { label: "Temp. Interna Cuarto (°C)", pre: preMaintenanceData.temp_interna_cuarto, post: postMaintenanceData.temp_interna_cuarto_final },
-                    { label: "Delta T Enfriador Aceite (°C)", pre: preMaintenanceData.delta_t_enfriador_aceite, post: postMaintenanceData.delta_t_enfriador_aceite_final },
-                    { label: "Temp. Motor Eléctrico (°C)", pre: preMaintenanceData.temp_motor_electrico, post: postMaintenanceData.temp_motor_electrico_final },
-                    { label: "Presión Carga (PSI)", pre: preMaintenanceData.presion_carga, post: postMaintenanceData.presion_carga_final },
-                    { label: "Presión Descarga (PSI)", pre: preMaintenanceData.presion_descarga, post: postMaintenanceData.presion_descarga_final },
-                    { label: "Delta P Separador (PSI)", pre: preMaintenanceData.delta_p_separador, post: postMaintenanceData.delta_p_separador_final },
+                    {
+                      label: "Display Enciende",
+                      pre: preMaintenanceData.display_enciende,
+                      post: postMaintenanceData.display_enciende_final,
+                    },
+                    {
+                      label: "Horas Totales",
+                      pre: preMaintenanceData.horas_totales,
+                      post: postMaintenanceData.horas_totales_final,
+                      unit: " hrs",
+                    },
+                    {
+                      label: "Horas en Carga",
+                      pre: preMaintenanceData.horas_carga,
+                      post: postMaintenanceData.horas_carga_final,
+                      unit: " hrs",
+                    },
+                    {
+                      label: "Horas en Descarga",
+                      pre: preMaintenanceData.horas_descarga,
+                      post: postMaintenanceData.horas_descarga_final,
+                      unit: " hrs",
+                    },
+                    {
+                      label: "Voltaje Alimentación (V)",
+                      pre: preMaintenanceData.voltaje_alimentacion,
+                      post: postMaintenanceData.voltaje_alimentacion_final,
+                    },
+                    {
+                      label: "Amperaje Motor en Carga (A)",
+                      pre: preMaintenanceData.amperaje_motor_carga,
+                      post: postMaintenanceData.amperaje_motor_carga_final,
+                    },
+                    {
+                      label: "Amperaje Ventilador (A)",
+                      pre: preMaintenanceData.amperaje_ventilador,
+                      post: postMaintenanceData.amperaje_ventilador_final,
+                    },
+                    {
+                      label: "Fugas de Aceite",
+                      pre: preMaintenanceData.fugas_aceite_visibles,
+                      post: postMaintenanceData.fugas_aceite_final,
+                    },
+                    {
+                      label: "Aceite Oscuro/Degradado",
+                      pre: preMaintenanceData.aceite_oscuro_degradado,
+                      post: postMaintenanceData.aceite_oscuro_final,
+                    },
+                    {
+                      label: "Fugas de Aire",
+                      pre: preMaintenanceData.fugas_aire_audibles,
+                      post: postMaintenanceData.fugas_aire_final,
+                    },
+                    {
+                      label: "Temp. Compresión Display (°C)",
+                      pre: preMaintenanceData.temp_compresion_display,
+                      post: postMaintenanceData.temp_compresion_display_final,
+                    },
+                    {
+                      label: "Temp. Compresión Láser (°C)",
+                      pre: preMaintenanceData.temp_compresion_laser,
+                      post: postMaintenanceData.temp_compresion_laser_final,
+                    },
+                    {
+                      label: "Temp. Separador Aceite (°C)",
+                      pre: preMaintenanceData.temp_separador_aceite,
+                      post: postMaintenanceData.temp_separador_aceite_final,
+                    },
+                    {
+                      label: "Temp. Interna Cuarto (°C)",
+                      pre: preMaintenanceData.temp_interna_cuarto,
+                      post: postMaintenanceData.temp_interna_cuarto_final,
+                    },
+                    {
+                      label: "Delta T Enfriador Aceite (°C)",
+                      pre: preMaintenanceData.delta_t_enfriador_aceite,
+                      post: postMaintenanceData.delta_t_enfriador_aceite_final,
+                    },
+                    {
+                      label: "Temp. Motor Eléctrico (°C)",
+                      pre: preMaintenanceData.temp_motor_electrico,
+                      post: postMaintenanceData.temp_motor_electrico_final,
+                    },
+                    {
+                      label: "Presión Carga (PSI)",
+                      pre: preMaintenanceData.presion_carga,
+                      post: postMaintenanceData.presion_carga_final,
+                    },
+                    {
+                      label: "Presión Descarga (PSI)",
+                      pre: preMaintenanceData.presion_descarga,
+                      post: postMaintenanceData.presion_descarga_final,
+                    },
+                    {
+                      label: "Delta P Separador (PSI)",
+                      pre: preMaintenanceData.delta_p_separador,
+                      post: postMaintenanceData.delta_p_separador_final,
+                    },
                   ].map((row, idx) => {
-                    const preStr = row.pre !== undefined && row.pre !== null ? String(row.pre) + (row.unit || "") : "—";
-                    const postStr = row.post !== undefined && row.post !== null ? String(row.post) + (row.unit || "") : "—";
+                    const preStr =
+                      row.pre !== undefined && row.pre !== null
+                        ? String(row.pre) + (row.unit || "")
+                        : "—";
+                    const postStr =
+                      row.post !== undefined && row.post !== null
+                        ? String(row.post) + (row.unit || "")
+                        : "—";
                     const hasPost = row.post !== undefined && row.post !== null;
-                    const changed = hasPost && String(row.pre) !== String(row.post);
+                    const changed =
+                      hasPost && String(row.pre) !== String(row.post);
                     const worsened =
                       hasPost &&
                       String(row.post) === "Sí" &&
                       String(row.pre) === "No" &&
-                      ["Fugas de Aceite", "Aceite Oscuro/Degradado", "Fugas de Aire"].includes(row.label);
+                      [
+                        "Fugas de Aceite",
+                        "Aceite Oscuro/Degradado",
+                        "Fugas de Aire",
+                      ].includes(row.label);
                     const improved =
                       hasPost &&
                       String(row.post) === "No" &&
                       String(row.pre) === "Sí" &&
-                      ["Fugas de Aceite", "Aceite Oscuro/Degradado", "Fugas de Aire"].includes(row.label);
+                      [
+                        "Fugas de Aceite",
+                        "Aceite Oscuro/Degradado",
+                        "Fugas de Aire",
+                      ].includes(row.label);
 
                     return (
-                      <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                      <tr
+                        key={idx}
+                        className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                      >
                         <td className="border border-gray-300 px-3 py-2 font-medium text-gray-700">
                           {row.label}
                         </td>
@@ -1539,10 +1805,10 @@ function ViewReportContent() {
                             worsened
                               ? "bg-red-100 text-red-700"
                               : improved
-                              ? "bg-green-100 text-green-700"
-                              : changed
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "text-gray-700"
+                                ? "bg-green-100 text-green-700"
+                                : changed
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : "text-gray-700"
                           }`}
                         >
                           {postStr}
@@ -1555,13 +1821,16 @@ function ViewReportContent() {
             </div>
             <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-600">
               <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-green-200 inline-block"></span> Mejorado
+                <span className="w-3 h-3 rounded bg-green-200 inline-block"></span>{" "}
+                Mejorado
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-yellow-200 inline-block"></span> Cambió
+                <span className="w-3 h-3 rounded bg-yellow-200 inline-block"></span>{" "}
+                Cambió
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-red-200 inline-block"></span> Empeoró
+                <span className="w-3 h-3 rounded bg-red-200 inline-block"></span>{" "}
+                Empeoró
               </span>
             </div>
           </div>
@@ -1581,84 +1850,184 @@ function ViewReportContent() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Display Enciende (Final)</label>
-                  {postField("display_enciende_final", { type: "select", selectOptions: ["Sí", "No"] })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Display Enciende (Final)
+                  </label>
+                  {postField("display_enciende_final", {
+                    type: "select",
+                    selectOptions: ["Sí", "No"],
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Horas Totales (Final)</label>
-                  {postField("horas_totales_final", { suffix: " hrs", type: "number" })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Horas Totales (Final)
+                  </label>
+                  {postField("horas_totales_final", {
+                    suffix: " hrs",
+                    type: "number",
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Horas Carga (Final)</label>
-                  {postField("horas_carga_final", { suffix: " hrs", type: "number" })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Horas Carga (Final)
+                  </label>
+                  {postField("horas_carga_final", {
+                    suffix: " hrs",
+                    type: "number",
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Horas Descarga (Final)</label>
-                  {postField("horas_descarga_final", { suffix: " hrs", type: "number" })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Horas Descarga (Final)
+                  </label>
+                  {postField("horas_descarga_final", {
+                    suffix: " hrs",
+                    type: "number",
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Voltaje (Final)</label>
-                  {postField("voltaje_alimentacion_final", { suffix: " V", type: "number" })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Voltaje (Final)
+                  </label>
+                  {postField("voltaje_alimentacion_final", {
+                    suffix: " V",
+                    type: "number",
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Amperaje Motor (Final)</label>
-                  {postField("amperaje_motor_carga_final", { suffix: " A", type: "number" })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Amperaje Motor (Final)
+                  </label>
+                  {postField("amperaje_motor_carga_final", {
+                    suffix: " A",
+                    type: "number",
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Amperaje Ventilador (Final)</label>
-                  {postField("amperaje_ventilador_final", { suffix: " A", type: "number" })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Amperaje Ventilador (Final)
+                  </label>
+                  {postField("amperaje_ventilador_final", {
+                    suffix: " A",
+                    type: "number",
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Fugas Aceite (Final)</label>
-                  {postField("fugas_aceite_final", { type: "select", selectOptions: ["Sí", "No"] })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Fugas Aceite (Final)
+                  </label>
+                  {postField("fugas_aceite_final", {
+                    type: "select",
+                    selectOptions: ["Sí", "No"],
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Aceite Oscuro (Final)</label>
-                  {postField("aceite_oscuro_final", { type: "select", selectOptions: ["Sí", "No"] })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Aceite Oscuro (Final)
+                  </label>
+                  {postField("aceite_oscuro_final", {
+                    type: "select",
+                    selectOptions: ["Sí", "No"],
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Temp. Ambiente (Final)</label>
-                  {postField("temp_ambiente_final", { suffix: " °C", type: "number" })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Temp. Ambiente (Final)
+                  </label>
+                  {postField("temp_ambiente_final", {
+                    suffix: " °C",
+                    type: "number",
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Temp. Compresión Display (Final)</label>
-                  {postField("temp_compresion_display_final", { suffix: " °C", type: "number" })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Temp. Compresión Display (Final)
+                  </label>
+                  {postField("temp_compresion_display_final", {
+                    suffix: " °C",
+                    type: "number",
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Temp. Compresión Láser (Final)</label>
-                  {postField("temp_compresion_laser_final", { suffix: " °C", type: "number" })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Temp. Compresión Láser (Final)
+                  </label>
+                  {postField("temp_compresion_laser_final", {
+                    suffix: " °C",
+                    type: "number",
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Temp. Separador Aceite (Final)</label>
-                  {postField("temp_separador_aceite_final", { suffix: " °C", type: "number" })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Temp. Separador Aceite (Final)
+                  </label>
+                  {postField("temp_separador_aceite_final", {
+                    suffix: " °C",
+                    type: "number",
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Temp. Interna Cuarto (Final)</label>
-                  {postField("temp_interna_cuarto_final", { suffix: " °C", type: "number" })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Temp. Interna Cuarto (Final)
+                  </label>
+                  {postField("temp_interna_cuarto_final", {
+                    suffix: " °C",
+                    type: "number",
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Delta T Enfriador Aceite (Final)</label>
-                  {postField("delta_t_enfriador_aceite_final", { suffix: " °C", type: "number" })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Delta T Enfriador Aceite (Final)
+                  </label>
+                  {postField("delta_t_enfriador_aceite_final", {
+                    suffix: " °C",
+                    type: "number",
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Temp. Motor Eléctrico (Final)</label>
-                  {postField("temp_motor_electrico_final", { suffix: " °C", type: "number" })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Temp. Motor Eléctrico (Final)
+                  </label>
+                  {postField("temp_motor_electrico_final", {
+                    suffix: " °C",
+                    type: "number",
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Presión Carga (Final)</label>
-                  {postField("presion_carga_final", { suffix: " bar", type: "number" })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Presión Carga (Final)
+                  </label>
+                  {postField("presion_carga_final", {
+                    suffix: " bar",
+                    type: "number",
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Presión Descarga (Final)</label>
-                  {postField("presion_descarga_final", { suffix: " bar", type: "number" })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Presión Descarga (Final)
+                  </label>
+                  {postField("presion_descarga_final", {
+                    suffix: " bar",
+                    type: "number",
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Delta P Separador (Final)</label>
-                  {postField("delta_p_separador_final", { suffix: " bar", type: "number" })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Delta P Separador (Final)
+                  </label>
+                  {postField("delta_p_separador_final", {
+                    suffix: " bar",
+                    type: "number",
+                  })}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-orange-800 mb-1">Fugas Aire (Final)</label>
-                  {postField("fugas_aire_final", { type: "select", selectOptions: ["Sí", "No"] })}
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Fugas Aire (Final)
+                  </label>
+                  {postField("fugas_aire_final", {
+                    type: "select",
+                    selectOptions: ["Sí", "No"],
+                  })}
                 </div>
               </div>
             </div>
@@ -1720,7 +2089,10 @@ function ViewReportContent() {
               OTRAS FOTOS
             </h2>
             {remainingCategories.map((cat) => (
-              <div key={cat} className={remainingCategories.indexOf(cat) > 0 ? "mt-6" : ""}>
+              <div
+                key={cat}
+                className={remainingCategories.indexOf(cat) > 0 ? "mt-6" : ""}
+              >
                 {remainingCategories.length > 1 && (
                   <h3 className="font-semibold text-gray-700 mb-3 text-base px-2">
                     {cat.replace(/_/g, " ")}
@@ -1755,15 +2127,20 @@ function ViewReportContent() {
               FIRMA DEL CLIENTE — PENDIENTE DE FIRMA
             </h2>
             <p className="text-gray-600 mb-6">
-              Para finalizar el reporte se requiere la firma del cliente o persona a cargo.
+              Para finalizar el reporte se requiere la firma del cliente o
+              persona a cargo.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
               {/* Client signature */}
               <div>
-                <h3 className="font-semibold text-gray-800 mb-2">Firma del Cliente / Persona a Cargo</h3>
+                <h3 className="font-semibold text-gray-800 mb-2">
+                  Firma del Cliente / Persona a Cargo
+                </h3>
                 <div className="mb-3">
-                  <label className="block text-sm text-gray-600 mb-1">Nombre</label>
+                  <label className="block text-sm text-gray-600 mb-1">
+                    Nombre
+                  </label>
                   <input
                     type="text"
                     value={nombrePersonaCargo}
@@ -1795,8 +2172,13 @@ function ViewReportContent() {
 
               {/* Static technician signature preview */}
               <div>
-                <h3 className="font-semibold text-gray-800 mb-2">Técnico Ventologix</h3>
-                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 flex items-center justify-center" style={{ height: 220 }}>
+                <h3 className="font-semibold text-gray-800 mb-2">
+                  Técnico Ventologix
+                </h3>
+                <div
+                  className="border border-gray-200 rounded-lg p-4 bg-gray-50 flex items-center justify-center"
+                  style={{ height: 220 }}
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/firma_ivan.png"
@@ -1814,7 +2196,9 @@ function ViewReportContent() {
                 disabled={isSavingSignature}
                 className="px-8 py-3 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSavingSignature ? "Guardando..." : "✅ Guardar Firma y Terminar Reporte"}
+                {isSavingSignature
+                  ? "Guardando..."
+                  : "✅ Guardar Firma y Terminar Reporte"}
               </button>
             </div>
           </div>
@@ -1842,7 +2226,9 @@ function ViewReportContent() {
                   onClick={saveEdits}
                   disabled={isSaving}
                   className={`px-6 py-3 text-white rounded-lg transition-colors font-medium flex items-center space-x-2 ${
-                    isSaving ? "bg-green-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+                    isSaving
+                      ? "bg-green-400 cursor-not-allowed"
+                      : "bg-green-600 hover:bg-green-700"
                   }`}
                 >
                   {isSaving ? (

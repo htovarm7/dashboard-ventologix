@@ -19,7 +19,7 @@ def _run_worker(folio: str, frontend_url: str, view_path: str = "/features/compr
     result = subprocess.run(
         [sys.executable, _WORKER, folio, frontend_url, view_path],
         capture_output=True,
-        timeout=180,
+        timeout=300,
     )
     stderr_text = result.stderr.decode("utf-8", errors="replace")
     if stderr_text:
