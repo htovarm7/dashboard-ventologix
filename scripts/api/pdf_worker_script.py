@@ -22,8 +22,8 @@ async def main() -> None:
         browser = await p.chromium.launch(headless=True)
         try:
             page = await browser.new_page()
-            await page.goto(view_url, wait_until="networkidle", timeout=30000)
-            await page.wait_for_selector(".bg-white", timeout=10000)
+            await page.goto(view_url, wait_until="networkidle", timeout=60000)
+            await page.wait_for_selector(".bg-white", timeout=15000)
 
             # Scroll through the full page to trigger lazy-loaded images
             await page.evaluate("""async () => {
@@ -42,15 +42,18 @@ async def main() -> None:
                 });
             }""")
 
-            # Wait for every <img> to finish loading
+            # Wait for every <img> to finish loading (max 30s per image)
             await page.evaluate("""async () => {
                 const imgs = Array.from(document.querySelectorAll('img'));
                 await Promise.all(imgs.map(img => {
                     if (img.complete) return Promise.resolve();
-                    return new Promise(resolve => {
-                        img.addEventListener('load', resolve);
-                        img.addEventListener('error', resolve);
-                    });
+                    return Promise.race([
+                        new Promise(resolve => {
+                            img.addEventListener('load', resolve);
+                            img.addEventListener('error', resolve);
+                        }),
+                        new Promise(resolve => setTimeout(resolve, 30000))
+                    ]);
                 }));
             }""")
 

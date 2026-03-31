@@ -296,6 +296,7 @@ function ViewReportContent() {
     try {
       const response = await fetch(
         `${URL_API}/reporte_mtto/descargar-pdf-react/${folio}`,
+        { signal: AbortSignal.timeout(120000) }, // 2 minutos de timeout para reportes con muchas fotos
       );
       if (!response.ok) {
         showError("Error", "No se pudo generar el PDF. Inténtalo de nuevo.");

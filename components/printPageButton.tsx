@@ -101,7 +101,7 @@ const PrintPageButton: React.FC<PrintPageButtonProps> = ({
           await new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => {
               reject(new Error("Timeout al cargar la imagen para el PDF"));
-            }, 10000); // 10 segundos de timeout
+            }, 30000); // 30 segundos de timeout
 
             img.onload = () => {
               clearTimeout(timeout);
