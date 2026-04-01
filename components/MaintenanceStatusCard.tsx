@@ -2,6 +2,7 @@
 
 import { AlertCircle, Clock, CheckCircle, Calendar } from "lucide-react";
 import { MaintenanceRecord } from "@/lib/types";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 interface MaintenanceStatusCardProps {
   record: MaintenanceRecord;
@@ -26,8 +27,9 @@ const MaintenanceStatusCard = ({
       };
     }
 
-    const nextDate = new Date(record.nextMaintenanceDate);
+    const nextDate = parseLocalDate(record.nextMaintenanceDate);
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const daysUntil = Math.ceil(
       (nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
     );
@@ -81,7 +83,7 @@ const MaintenanceStatusCard = ({
   const StatusIcon = statusInfo.icon;
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("es-ES", {
+    return parseLocalDate(dateString).toLocaleDateString("es-ES", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -179,9 +181,10 @@ const MaintenanceStatusCard = ({
             </span>
             <span className={`${statusInfo.textColor} opacity-80`}>
               {(() => {
-                const lastDate = new Date(record.lastMaintenanceDate);
-                const nextDate = new Date(record.nextMaintenanceDate);
+                const lastDate = parseLocalDate(record.lastMaintenanceDate);
+                const nextDate = parseLocalDate(record.nextMaintenanceDate);
                 const today = new Date();
+                today.setHours(0, 0, 0, 0);
                 const totalDays = Math.ceil(
                   (nextDate.getTime() - lastDate.getTime()) /
                     (1000 * 60 * 60 * 24)
@@ -210,9 +213,10 @@ const MaintenanceStatusCard = ({
               }`}
               style={{
                 width: `${(() => {
-                  const lastDate = new Date(record.lastMaintenanceDate);
-                  const nextDate = new Date(record.nextMaintenanceDate);
+                  const lastDate = parseLocalDate(record.lastMaintenanceDate);
+                  const nextDate = parseLocalDate(record.nextMaintenanceDate);
                   const today = new Date();
+                  today.setHours(0, 0, 0, 0);
                   const totalDays = Math.ceil(
                     (nextDate.getTime() - lastDate.getTime()) /
                       (1000 * 60 * 60 * 24)

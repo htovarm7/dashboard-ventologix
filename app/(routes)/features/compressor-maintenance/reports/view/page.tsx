@@ -1,5 +1,6 @@
 "use client";
 
+import { parseLocalDate } from "@/lib/dateUtils";
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import BackButton from "@/components/BackButton";
@@ -291,7 +292,7 @@ function ViewReportContent() {
 
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return "N/A";
-    const date = new Date(dateString);
+    const date = parseLocalDate(dateString);
     return date.toLocaleDateString("es-MX", {
       year: "numeric",
       month: "long",

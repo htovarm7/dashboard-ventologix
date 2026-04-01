@@ -10,10 +10,11 @@ import { URL_API } from "@/lib/global";
 import BackButton from "@/components/BackButton";
 import { PressureStats } from "@/lib/types";
 import DateNavigator from "@/components/DateNavigator";
+import { formatLocalDate } from "@/lib/dateUtils";
 
 // Helper function outside component to avoid re-creation
 const formatDateForAPI = (date: Date): string => {
-  return date.toISOString().split("T")[0];
+  return formatLocalDate(date);
 };
 
 const PressureAnalysis = () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { todayString } from "@/lib/dateUtils";
 import {
   ChevronDown,
   ChevronRight,
@@ -976,7 +977,7 @@ const CompressorMaintenance = () => {
         observaciones: maintenanceData.description || "",
         costo: 0,
         creado_por: userData?.name || "Usuario desconocido",
-        fecha_creacion: new Date().toISOString().split("T")[0],
+        fecha_creacion: todayString(),
       };
 
       const addResponse = await fetch(`${URL_API}/web/maintenance/add`, {
@@ -1035,7 +1036,7 @@ const CompressorMaintenance = () => {
       // Crear registros de mantenimiento en la base de datos usando el API
       const maintenanceRecords: MaintenanceRecord[] = [];
       const createdByName = userData?.name || "Usuario desconocido";
-      const today = new Date().toISOString().split("T")[0]; // Formato YYYY-MM-DD
+      const today = todayString(); // Formato YYYY-MM-DD
 
       for (const type of data.maintenance_types) {
         const maintenanceRequest = {

@@ -14,6 +14,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState, Suspense } from "react";
+import { parseLocalDate } from "@/lib/dateUtils";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams } from "next/navigation";
@@ -196,7 +197,7 @@ function MainContent() {
 
       shiftRes.data.forEach(
         (item: { fecha: string; Turno: number; kwhTurno: number }) => {
-          const fecha = new Date(item.fecha);
+          const fecha = parseLocalDate(item.fecha);
           const dia = fecha.getDay();
           const diaSemana = 6 - dia;
 

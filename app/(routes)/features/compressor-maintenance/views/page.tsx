@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/BackButton";
+import { parseLocalDate } from "@/lib/dateUtils";
 import { URL_API } from "@/lib/global";
 import { Visit } from "@/lib/types";
 
@@ -312,7 +313,7 @@ const Visitas = () => {
 
     for (const registro of registros) {
       try {
-        const fecha = new Date(registro.date).toISOString().split("T")[0];
+        const fecha = registro.date;
         const numeroCliente = registro.numero_cliente || 0;
         const numeroSerie = registro.numero_serie || "";
 
@@ -338,7 +339,7 @@ const Visitas = () => {
 
   // Función para obtener el link de reporte de una visita
   const getReportLink = (visit: Visit): string | null => {
-    const fecha = new Date(visit.date).toISOString().split("T")[0];
+    const fecha = visit.date;
     const numeroCliente = visit.numero_cliente || 0;
     const numeroSerie = visit.numero_serie || "";
     const key = `${numeroCliente}-${numeroSerie}-${fecha}`;
@@ -481,7 +482,7 @@ const Visitas = () => {
                               <div className="flex items-center space-x-2 text-gray-600">
                                 <Calendar size={16} />
                                 <span className="font-medium">
-                                  {new Date(visit.date).toLocaleDateString(
+                                  {parseLocalDate(visit.date).toLocaleDateString(
                                     "es-MX",
                                     {
                                       year: "numeric",
@@ -679,7 +680,7 @@ const Visitas = () => {
                     <div className="flex items-center space-x-2">
                       <Calendar size={16} />
                       <span>
-                        {new Date(selectedVisit.date).toLocaleDateString(
+                        {parseLocalDate(selectedVisit.date).toLocaleDateString(
                           "es-MX",
                           {
                             year: "numeric",

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Calendar, Clock, Type, Tag, FileText, Users } from "lucide-react";
 import { Compressor, MaintenanceRecord } from "@/lib/types";
+import { parseLocalDate, formatLocalDate } from "@/lib/dateUtils";
 
 interface MaintenanceFormProps {
   compressors: Compressor[];
@@ -89,14 +90,14 @@ const MaintenanceForm = ({
     lastDate: string,
     frequency: number
   ): string => {
-    const last = new Date(lastDate);
+    const last = parseLocalDate(lastDate);
     // Asumiendo que cada hora de trabajo equivale aproximadamente a 1 día
     // En una implementación real, esto dependería de las horas de operación del compresor
     const estimatedDays = Math.floor(frequency / 24); // Asumiendo 24 horas de operación por día
     const nextDate = new Date(
       last.getTime() + estimatedDays * 24 * 60 * 60 * 1000
     );
-    return nextDate.toISOString().split("T")[0];
+    return formatLocalDate(nextDate);
   };
 
   const validateForm = () => {
@@ -119,8 +120,9 @@ const MaintenanceForm = ({
       newErrors.lastMaintenanceDate =
         "Debe seleccionar la fecha del último mantenimiento";
     } else {
-      const selectedDate = new Date(formData.lastMaintenanceDate);
+      const selectedDate = parseLocalDate(formData.lastMaintenanceDate);
       const today = new Date();
+      today.setHours(0, 0, 0, 0);
       if (selectedDate > today) {
         newErrors.lastMaintenanceDate = "La fecha no puede ser futura";
       }
@@ -296,7 +298,7 @@ const MaintenanceForm = ({
               onChange={(e) =>
                 handleInputChange("lastMaintenanceDate", e.target.value)
               }
-              max={new Date().toISOString().split("T")[0]}
+              max={formatLocalDate(new Date())}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.lastMaintenanceDate
                   ? "border-red-500"

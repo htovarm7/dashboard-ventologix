@@ -13,6 +13,7 @@ import BackButton from "@/components/BackButton";
 import Image from "next/image";
 import { URL_API } from "@/lib/global";
 import { ReportFormData } from "@/lib/types";
+import { todayString } from "@/lib/dateUtils";
 import { usePreMantenimiento } from "@/hooks/usePreMantenimiento";
 import { usePostMantenimiento } from "@/hooks/usePostMantenimiento";
 import { usePhotoUpload } from "@/hooks/usePhotoUpload";
@@ -146,7 +147,7 @@ function FillReport() {
   );
 
   const [formData, setFormData] = useState<ReportFormData>({
-    reportDate: new Date().toISOString().split("T")[0],
+    reportDate: todayString(),
     diagnosticType: "",
     equipmentPowers: "",
     displayPowers: "",
@@ -1265,7 +1266,7 @@ function FillReport() {
 
       // Step 5: Update or create maintenance records for each completed maintenance
       // Since the form now loads items directly from the DB, names match exactly
-      const today = new Date().toISOString().split("T")[0]; // Format: YYYY-MM-DD
+      const today = todayString(); // Format: YYYY-MM-DD
       const completedMaintenances = maintenanceData.mantenimientos.filter(
         (item) => item.realizado,
       );

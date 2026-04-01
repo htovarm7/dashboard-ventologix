@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import BackButton from "@/components/BackButton";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import { URL_API } from "@/lib/global";
+import { parseLocalDate } from "@/lib/dateUtils";
 import Image from "next/image";
 import {
   FileText,
@@ -110,7 +111,7 @@ function statusBadgeClass(value: string | null | undefined) {
 
 function formatDate(s: string | null | undefined) {
   if (!s) return "N/A";
-  return new Date(s).toLocaleDateString("es-MX", {
+  return parseLocalDate(s).toLocaleDateString("es-MX", {
     year: "numeric",
     month: "long",
     day: "numeric",

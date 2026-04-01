@@ -1,5 +1,6 @@
 "use client";
 
+import { parseLocalDate, todayString } from "@/lib/dateUtils";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { URL_API } from "@/lib/global";
@@ -81,7 +82,7 @@ interface TicketFormData {
 // Helper function to format date to DD/MM/YYYY
 const formatDate = (dateString: string) => {
   if (!dateString) return "";
-  const date = new Date(dateString);
+  const date = parseLocalDate(dateString);
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const year = date.getFullYear();
@@ -592,7 +593,7 @@ const TypeReportes = () => {
         descripcion_proyecto: ticketData.descripcionProyecto || null,
         prioridad: ticketData.priority,
         fecha_programada:
-          ticketData.scheduledDate || new Date().toISOString().split("T")[0],
+          ticketData.scheduledDate || todayString(),
         hora_programada:
           ticketData.hora !== "no-aplica" ? ticketData.hora : "00:00:00",
         estado: "no_iniciado",

@@ -8,6 +8,7 @@ import LoadingOverlay from "@/components/LoadingOverlay";
 import BackButton from "@/components/BackButton";
 import { PhotoUploadSection } from "@/components/PhotoUploadSection";
 import Image from "next/image";
+import { todayString } from "@/lib/dateUtils";
 
 interface ClientOption {
   numero_cliente: string | number;
@@ -112,7 +113,7 @@ function DryerReportForm() {
     direccion: "",
     ingeniero_obra: "",
     ingeniero_ventologix: "",
-    fecha: new Date().toISOString().split("T")[0],
+    fecha: todayString(),
     equipo: "",
     modelo: "",
     no_serie: "",

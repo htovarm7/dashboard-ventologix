@@ -2,6 +2,7 @@
 
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { todayString, formatLocalDate } from "@/lib/dateUtils";
 
 interface DateNavigatorProps {
   currentDate: string;
@@ -28,20 +29,20 @@ export default function DateNavigator({
       } else {
         date.setDate(date.getDate() - 7);
       }
-      onDateChange(date.toISOString().split("T")[0]);
+      onDateChange(formatLocalDate(date));
     }
   };
 
   const handleNext = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split("T")[0];
+    const todayStr = todayString();
 
     if (type === "week" && onWeekChange && weekNumber !== undefined) {
       const date = new Date(currentDate + "T00:00:00");
       const nextWeekDate = new Date(date);
       nextWeekDate.setDate(date.getDate() + 7);
-      const nextWeekStr = nextWeekDate.toISOString().split("T")[0];
+      const nextWeekStr = formatLocalDate(nextWeekDate);
 
       if (nextWeekStr <= todayStr) {
         onWeekChange(weekNumber + 1);
@@ -54,7 +55,7 @@ export default function DateNavigator({
       } else {
         nextDate.setDate(date.getDate() + 7);
       }
-      const nextDateStr = nextDate.toISOString().split("T")[0];
+      const nextDateStr = formatLocalDate(nextDate);
 
       if (nextDateStr <= todayStr) {
         onDateChange(nextDateStr);
@@ -84,7 +85,7 @@ export default function DateNavigator({
   const isToday = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split("T")[0];
+    const todayStr = todayString();
 
     if (type === "day") {
       return currentDate === todayStr;

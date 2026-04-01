@@ -14,6 +14,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState, Suspense } from "react";
+import { parseLocalDate, todayString, formatLocalDate } from "@/lib/dateUtils";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -153,7 +154,7 @@ function MainContent() {
     const mondayOfWeek = new Date(firstMonday);
     mondayOfWeek.setDate(firstMonday.getDate() + (weekNumber - 1) * 7);
 
-    const newDate = mondayOfWeek.toISOString().split("T")[0];
+    const newDate = formatLocalDate(mondayOfWeek);
     setSelectedDate(newDate);
 
     // Refresh la página después de cambiar la semana
@@ -166,7 +167,7 @@ function MainContent() {
     async (id: string, linea: string, date: string) => {
       setIsLoading(true);
       try {
-        const formattedDate = new Date(date).toISOString().split("T")[0];
+        const formattedDate = formatLocalDate(parseLocalDate(date));
 
         const [pieRes, shiftRes, clientRes, compressorRes, summaryRes] =
           await Promise.all([
@@ -309,7 +310,7 @@ function MainContent() {
 
         shiftRes.data.forEach(
           (item: { fecha: string; Turno: number; kwhTurno: number }) => {
-            const fecha = new Date(item.fecha);
+            const fecha = parseLocalDate(item.fecha);
             const dia = fecha.getDay();
             const diaSemana = 6 - dia;
 
@@ -370,7 +371,7 @@ function MainContent() {
         id_cliente = searchParams.get("id_cliente");
         linea = searchParams.get("linea") || "A";
         date =
-          searchParams.get("date") || new Date().toISOString().split("T")[0];
+          searchParams.get("date") || todayString();
         weekNumber = searchParams.get("weekNumber");
         setSelectedDate(date);
         if (weekNumber) {

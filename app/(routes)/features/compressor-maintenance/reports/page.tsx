@@ -1,5 +1,6 @@
 "use client";
 
+import { parseLocalDate } from "@/lib/dateUtils";
 import { useState, useEffect } from "react";
 import {
   ChevronDown,
@@ -133,8 +134,8 @@ const Reports = () => {
       if ((rol === 3 || rol === 4) && numeroCliente) {
         const sortedReports = filteredOrdenes.sort(
           (a, b) =>
-            new Date(b.fecha_creacion || "").getTime() -
-            new Date(a.fecha_creacion || "").getTime(),
+            parseLocalDate(b.fecha_creacion || "").getTime() -
+            parseLocalDate(a.fecha_creacion || "").getTime(),
         );
         setFlatReports(sortedReports);
       } else {
@@ -164,8 +165,8 @@ const Reports = () => {
             ...group,
             reports: group.reports.sort(
               (a, b) =>
-                new Date(b.fecha_creacion || "").getTime() -
-                new Date(a.fecha_creacion || "").getTime(),
+                parseLocalDate(b.fecha_creacion || "").getTime() -
+                parseLocalDate(a.fecha_creacion || "").getTime(),
             ),
           }))
           .sort((a, b) => a.clientName.localeCompare(b.clientName));
@@ -251,7 +252,7 @@ const Reports = () => {
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";
-    const date = new Date(dateString);
+    const date = parseLocalDate(dateString);
     return date.toLocaleDateString("es-MX", {
       year: "numeric",
       month: "long",

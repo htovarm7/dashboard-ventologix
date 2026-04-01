@@ -13,6 +13,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState, Suspense } from "react";
+import { todayString, formatLocalDate } from "@/lib/dateUtils";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -276,7 +277,7 @@ function MainContent() {
         id_cliente = searchParams.get("id_cliente");
         linea = searchParams.get("linea") || "A";
         date =
-          searchParams.get("date") || new Date().toISOString().split("T")[0]; // Fecha actual como fallback
+          searchParams.get("date") || todayString(); // Fecha actual como fallback
         setCompresorAlias(`Compresor ${id_cliente}-${linea}`);
         setSelectedDate(date);
       }
@@ -573,7 +574,7 @@ function MainContent() {
             onClick={() => {
               const date = new Date(selectedDate + "T00:00:00");
               date.setDate(date.getDate() - 1);
-              handleDateChange(date.toISOString().split("T")[0]);
+              handleDateChange(formatLocalDate(date));
             }}
             className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors"
             title="Día anterior"
@@ -611,7 +612,7 @@ function MainContent() {
                 onClick={() => {
                   const date = new Date(selectedDate + "T00:00:00");
                   date.setDate(date.getDate() + 1);
-                  handleDateChange(date.toISOString().split("T")[0]);
+                  handleDateChange(formatLocalDate(date));
                 }}
                 className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors"
                 title="Día siguiente"

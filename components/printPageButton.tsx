@@ -3,6 +3,7 @@
 import React from "react";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
+import { todayString, formatLocalDate } from "@/lib/dateUtils";
 
 interface PrintPageButtonProps {
   reportType?: "reporte" | "reporte-visita";
@@ -152,9 +153,7 @@ const PrintPageButton: React.FC<PrintPageButtonProps> = ({
                 }
 
                 const reportData = sessionStorage.getItem("currentReportData");
-                let fileName = `Reporte_Mantenimiento_${
-                  new Date().toISOString().split("T")[0]
-                }.pdf`;
+                let fileName = `Reporte_Mantenimiento_${todayString()}.pdf`;
 
                 if (reportData) {
                   try {
@@ -165,8 +164,8 @@ const PrintPageButton: React.FC<PrintPageButtonProps> = ({
                       "_"
                     );
                     const fecha = data.timestamp
-                      ? new Date(data.timestamp).toISOString().split("T")[0]
-                      : new Date().toISOString().split("T")[0];
+                      ? formatLocalDate(new Date(data.timestamp))
+                      : todayString();
                     fileName = `Reporte_Mantenimiento_${numeroCliente}_${cliente}_${fecha}.pdf`;
                   } catch (e) {
                     console.error("Error parsing report data:", e);
@@ -299,7 +298,7 @@ const PrintPageButton: React.FC<PrintPageButtonProps> = ({
         // Generar nombre del archivo basado en el tipo de reporte
         const generateFileName = () => {
           const currentPath = window.location.pathname;
-          const currentDate = new Date().toISOString().split("T")[0];
+          const currentDate = todayString();
 
           // Obtener información del compresor del sessionStorage
           const savedCompresor = sessionStorage.getItem("selectedCompresor");

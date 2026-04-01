@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { Compressor } from "@/lib/types";
+import { formatLocalDate } from "@/lib/dateUtils";
 
 type ValuePiece = Date | null;
 type Value = ValuePiece | [ValuePiece, ValuePiece];
@@ -196,7 +197,7 @@ const DateReportDropdown: React.FC<DateReportDropdownProps> = ({
 
   const handleCalendarChange = (value: Value) => {
     if (value instanceof Date) {
-      const dateString = value.toISOString().split("T")[0];
+      const dateString = formatLocalDate(value);
       setSelectedDate(dateString);
       setCalendarValue(value);
       setShowCalendar(false); // Cerrar calendario al seleccionar fecha

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { URL_API } from "@/lib/global";
 import { NotaCompresor } from "@/lib/types";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 interface CompressorSearchResult {
   hp: number;
@@ -179,7 +180,7 @@ export default function CompressorSearch() {
                         <p className="text-xs text-yellow-500">
                           {nota.creado_por && `${nota.creado_por} — `}
                           {nota.fecha_creacion &&
-                            new Date(nota.fecha_creacion).toLocaleDateString(
+                            parseLocalDate(nota.fecha_creacion).toLocaleDateString(
                               "es-MX"
                             )}
                         </p>
