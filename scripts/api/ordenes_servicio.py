@@ -25,7 +25,7 @@ def get_all_ordenes():
             password=DB_PASSWORD,
             database=DB_DATABASE
         )
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
 
         cursor.execute(
             "SELECT * FROM ordenes_servicio"
@@ -37,30 +37,30 @@ def get_all_ordenes():
 
         if not res:
             return {"error": "Check connection to DB or the .env"}
-        
+
         clients = [
             {
-                "folio": row[0],
-                "id_cliente": row[1],
-                "id_cliente_eventual": row[2],
-                "nombre_cliente": row[3],
-                "numero_cliente": row[4],
-                "alias_compresor": row[5],
-                "numero_serie": row[6],
-                "hp": row[7],
-                "tipo": row[8],
-                "marca": row[9],
-                "anio": row[10],
-                "tipo_visita": row[11],
-                "tipo_mantenimiento": row[12],
-                "descripcion_proyecto": row[13],
-                "prioridad": row[14],
-                "fecha_programada": row[15],
-                "hora_programada": row[16],
-                "estado": row[17],
-                "fecha_creacion": row[18],
-                "reporte_url": row[19],
-                "tipo_equipo": row[20] if len(row) > 20 else "compresor",
+                "folio": row["folio"],
+                "id_cliente": row["id_cliente"],
+                "id_cliente_eventual": row["id_cliente_eventual"],
+                "nombre_cliente": row["nombre_cliente"],
+                "numero_cliente": row["numero_cliente"],
+                "alias_compresor": row["alias_compresor"],
+                "numero_serie": row["numero_serie"],
+                "hp": row["hp"],
+                "tipo": row["tipo"],
+                "marca": row["marca"],
+                "anio": row["anio"],
+                "tipo_visita": row["tipo_visita"],
+                "tipo_mantenimiento": row["tipo_mantenimiento"],
+                "descripcion_proyecto": row["descripcion_proyecto"],
+                "prioridad": row["prioridad"],
+                "fecha_programada": row["fecha_programada"],
+                "hora_programada": row["hora_programada"],
+                "estado": row["estado"],
+                "fecha_creacion": row["fecha_creacion"],
+                "reporte_url": row["reporte_url"],
+                "tipo_equipo": row.get("tipo_equipo", "compresor"),
             }
             for row in res
         ]
@@ -81,7 +81,7 @@ def get_ordenes_by_folio(folio: str = Path(..., description="The folio of the or
             password=DB_PASSWORD,
             database=DB_DATABASE
         )
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
 
         cursor.execute(
             "SELECT * FROM ordenes_servicio WHERE folio = %s",
@@ -97,27 +97,27 @@ def get_ordenes_by_folio(folio: str = Path(..., description="The folio of the or
 
         clients = [
             {
-                "folio": row[0],
-                "id_cliente": row[1],
-                "id_cliente_eventual": row[2],
-                "nombre_cliente": row[3],
-                "numero_cliente": row[4],
-                "alias_compresor": row[5],
-                "numero_serie": row[6],
-                "hp": row[7],
-                "tipo": row[8],
-                "marca": row[9],
-                "anio": row[10],
-                "tipo_visita": row[11],
-                "tipo_mantenimiento": row[12],
-                "descripcion_proyecto": row[13],
-                "prioridad": row[14],
-                "fecha_programada": row[15],
-                "hora_programada": row[16],
-                "estado": row[17],
-                "fecha_creacion": row[18],
-                "reporte_url": row[19],
-                "tipo_equipo": row[20] if len(row) > 20 else "compresor",
+                "folio": row["folio"],
+                "id_cliente": row["id_cliente"],
+                "id_cliente_eventual": row["id_cliente_eventual"],
+                "nombre_cliente": row["nombre_cliente"],
+                "numero_cliente": row["numero_cliente"],
+                "alias_compresor": row["alias_compresor"],
+                "numero_serie": row["numero_serie"],
+                "hp": row["hp"],
+                "tipo": row["tipo"],
+                "marca": row["marca"],
+                "anio": row["anio"],
+                "tipo_visita": row["tipo_visita"],
+                "tipo_mantenimiento": row["tipo_mantenimiento"],
+                "descripcion_proyecto": row["descripcion_proyecto"],
+                "prioridad": row["prioridad"],
+                "fecha_programada": row["fecha_programada"],
+                "hora_programada": row["hora_programada"],
+                "estado": row["estado"],
+                "fecha_creacion": row["fecha_creacion"],
+                "reporte_url": row["reporte_url"],
+                "tipo_equipo": row.get("tipo_equipo", "compresor"),
             }
             for row in res
         ]
