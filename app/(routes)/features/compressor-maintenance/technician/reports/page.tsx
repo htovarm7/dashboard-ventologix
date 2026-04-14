@@ -247,6 +247,12 @@ const TypeReportes = () => {
     }
   }, [rol]);
 
+  // Filter state for orden search
+  const [ordenFilterSearch, setOrdenFilterSearch] = useState("");
+  const [ordenFilterEquipo, setOrdenFilterEquipo] = useState<
+    "todos" | "compresor" | "secadora"
+  >("todos");
+
   // Fetch all ordenes de servicio
   const fetchAllOrdenes = async () => {
     setLoadingOrdenes(true);
@@ -957,7 +963,28 @@ const TypeReportes = () => {
       later: { title: "⚪ Más Adelante", orders: [], priority: 5 },
     };
 
-    ordenesServicio.forEach((orden) => {
+    // Filter ordenes based on search and equipment type filter
+    const filteredOrdenes = ordenesServicio.filter((orden) => {
+      const matchesSearch =
+        ordenFilterSearch === "" ||
+        orden.nombre_cliente
+          .toLowerCase()
+          .includes(ordenFilterSearch.toLowerCase()) ||
+        orden.alias_compresor
+          .toLowerCase()
+          .includes(ordenFilterSearch.toLowerCase()) ||
+        orden.numero_serie
+          .toLowerCase()
+          .includes(ordenFilterSearch.toLowerCase());
+
+      const matchesEquipo =
+        ordenFilterEquipo === "todos" ||
+        orden.tipo_equipo === ordenFilterEquipo;
+
+      return matchesSearch && matchesEquipo;
+    });
+
+    filteredOrdenes.forEach((orden) => {
       // Parse the date from the API (format: YYYY-MM-DD)
       const [year, month, day] = orden.fecha_programada.split("-").map(Number);
       const ordenDate = new Date(year, month - 1, day);
@@ -1090,6 +1117,64 @@ const TypeReportes = () => {
                     )}
                   </div>
 
+                  {/* FILTER SECTION - Search by client and equipment type */}
+                  <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+                    <h3 className="text-lg font-semibold text-blue-900 mb-4">
+                      Filtrar Órdenes
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Search by client/name */}
+                      <div>
+                        <label className="block text-sm font-medium text-blue-800 mb-2">
+                          Buscar por Cliente o Equipo
+                        </label>
+                        <input
+                          type="text"
+                          value={ordenFilterSearch}
+                          onChange={(e) => setOrdenFilterSearch(e.target.value)}
+                          placeholder="Nombre cliente, alias o serie..."
+                          className="w-full px-3 py-2 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-sm"
+                        />
+                      </div>
+
+                      {/* Filter by equipment type */}
+                      <div>
+                        <label className="block text-sm font-medium text-blue-800 mb-2">
+                          Tipo de Equipo
+                        </label>
+                        <select
+                          value={ordenFilterEquipo}
+                          onChange={(e) =>
+                            setOrdenFilterEquipo(
+                              e.target.value as
+                                | "todos"
+                                | "compresor"
+                                | "secadora",
+                            )
+                          }
+                          className="w-full px-3 py-2 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-sm"
+                        >
+                          <option value="todos">Todos los equipos</option>
+                          <option value="compresor">🔵 Compresores</option>
+                          <option value="secadora">🟣 Secadoras</option>
+                        </select>
+                      </div>
+
+                      {/* Clear filters button */}
+                      <div className="flex items-end">
+                        <button
+                          onClick={() => {
+                            setOrdenFilterSearch("");
+                            setOrdenFilterEquipo("todos");
+                          }}
+                          className="w-full px-4 py-2 bg-white text-blue-800 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors font-medium text-sm"
+                        >
+                          Limpiar Filtros
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
                   {loadingOrdenes ? (
                     <div className="text-center py-12">
                       <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-800 mx-auto mb-3"></div>
@@ -1141,9 +1226,22 @@ const TypeReportes = () => {
                             {group.orders.map((orden) => (
                               <div
                                 key={orden.folio}
-                                className="p-5 rounded-lg border border-blue-200 bg-white hover:border-blue-800 hover:shadow-md transition-all"
+                                className={`p-5 rounded-lg border-2 bg-white hover:shadow-md transition-all overflow-hidden relative ${
+                                  orden.tipo_equipo === "secadora"
+                                    ? "border-purple-200 hover:border-purple-800"
+                                    : "border-blue-200 hover:border-blue-800"
+                                }`}
                               >
-                                <div className="mb-4">
+                                {/* Equipment type indicator bar */}
+                                <div
+                                  className={`absolute top-0 left-0 right-0 h-1 ${
+                                    orden.tipo_equipo === "secadora"
+                                      ? "bg-gradient-to-r from-purple-400 to-purple-600"
+                                      : "bg-gradient-to-r from-blue-400 to-blue-600"
+                                  }`}
+                                ></div>
+
+                                <div className="mb-4 pt-2">
                                   <div className="flex items-center justify-between mb-3">
                                     <span
                                       className={`px-2 py-1 text-sm font-medium rounded ${
@@ -1177,6 +1275,42 @@ const TypeReportes = () => {
                                       {orden.prioridad}
                                     </span>
                                   </div>
+
+                                  {/* Equipment Type Badge - PROMINENTLY DISPLAYED */}
+                                  <div className="mb-3">
+                                    <span
+                                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold ${
+                                        orden.tipo_equipo === "secadora"
+                                          ? "bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800"
+                                          : "bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800"
+                                      }`}
+                                    >
+                                      {orden.tipo_equipo === "secadora" ? (
+                                        <>
+                                          <svg
+                                            className="w-4 h-4"
+                                            fill="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5.04-6.71l-2.75 3.54h3.54l4.29-5.79-1.63-1.63-2.75 3.54-1.7-2.85-1.63 1.28 2.88 4.91z" />
+                                          </svg>
+                                          SECADORA
+                                        </>
+                                      ) : (
+                                        <>
+                                          <svg
+                                            className="w-4 h-4"
+                                            fill="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" />
+                                          </svg>
+                                          COMPRESOR
+                                        </>
+                                      )}
+                                    </span>
+                                  </div>
+
                                   <p className="font-semibold text-blue-900 text-lg truncate mb-3">
                                     {orden.nombre_cliente}
                                   </p>
@@ -1191,17 +1325,6 @@ const TypeReportes = () => {
                                       <span className="text-blue-600">
                                         Equipo:
                                       </span>{" "}
-                                      <span
-                                        className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium mr-1 ${
-                                          orden.tipo_equipo === "secadora"
-                                            ? "bg-purple-100 text-purple-700"
-                                            : "bg-blue-100 text-blue-700"
-                                        }`}
-                                      >
-                                        {orden.tipo_equipo === "secadora"
-                                          ? "Secadora"
-                                          : "Compresor"}
-                                      </span>
                                       {orden.alias_compresor}
                                     </p>
                                     <p className="text-blue-800">
@@ -1371,12 +1494,13 @@ const TypeReportes = () => {
               {/* Search Section */}
               <div className="mb-6">
                 <div className="bg-white rounded-lg border border-blue-200 p-6">
-                  {/* Equipment Type Toggle */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <h2 className="text-xl font-semibold text-blue-900">
-                      Tipo de Equipo
+                  {/* Equipment Type Toggle - IMPROVED VISUAL */}
+                  <div className="mb-8">
+                    <h2 className="text-2xl font-bold text-blue-900 mb-4">
+                      Selecciona el Tipo de Equipo
                     </h2>
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Compresor Button */}
                       <button
                         type="button"
                         onClick={() => {
@@ -1404,14 +1528,42 @@ const TypeReportes = () => {
                             anio: "",
                           }));
                         }}
-                        className={`px-4 py-2 rounded-lg font-medium transition-colors text-base ${
+                        className={`p-6 rounded-xl font-semibold transition-all text-lg border-2 flex items-center gap-4 ${
                           tipoEquipo === "compresor"
-                            ? "bg-blue-800 text-white"
-                            : "bg-white text-blue-800 border border-blue-300 hover:bg-blue-50"
+                            ? "bg-gradient-to-br from-blue-50 to-blue-100 border-blue-800 shadow-lg"
+                            : "bg-white text-blue-800 border-blue-300 hover:border-blue-500 hover:bg-blue-50"
                         }`}
                       >
-                        Compresor
+                        <div
+                          className={`p-3 rounded-lg ${tipoEquipo === "compresor" ? "bg-blue-200" : "bg-blue-100"}`}
+                        >
+                          <svg
+                            className="w-8 h-8 text-blue-800"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" />
+                          </svg>
+                        </div>
+                        <div className="text-left">
+                          <div
+                            className={
+                              tipoEquipo === "compresor"
+                                ? "text-blue-900"
+                                : "text-blue-700"
+                            }
+                          >
+                            Compresor
+                          </div>
+                          <div
+                            className={`text-sm ${tipoEquipo === "compresor" ? "text-blue-700" : "text-blue-600"}`}
+                          >
+                            Equipos de compresión
+                          </div>
+                        </div>
                       </button>
+
+                      {/* Secadora Button */}
                       <button
                         type="button"
                         onClick={() => {
@@ -1439,13 +1591,39 @@ const TypeReportes = () => {
                             anio: "",
                           }));
                         }}
-                        className={`px-4 py-2 rounded-lg font-medium transition-colors text-base ${
+                        className={`p-6 rounded-xl font-semibold transition-all text-lg border-2 flex items-center gap-4 ${
                           tipoEquipo === "secadora"
-                            ? "bg-purple-700 text-white"
-                            : "bg-white text-purple-700 border border-purple-300 hover:bg-purple-50"
+                            ? "bg-gradient-to-br from-purple-50 to-purple-100 border-purple-800 shadow-lg"
+                            : "bg-white text-purple-800 border-purple-300 hover:border-purple-500 hover:bg-purple-50"
                         }`}
                       >
-                        Secadora
+                        <div
+                          className={`p-3 rounded-lg ${tipoEquipo === "secadora" ? "bg-purple-200" : "bg-purple-100"}`}
+                        >
+                          <svg
+                            className="w-8 h-8 text-purple-800"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5.04-6.71l-2.75 3.54h3.54l4.29-5.79-1.63-1.63-2.75 3.54-1.7-2.85-1.63 1.28 2.88 4.91z" />
+                          </svg>
+                        </div>
+                        <div className="text-left">
+                          <div
+                            className={
+                              tipoEquipo === "secadora"
+                                ? "text-purple-900"
+                                : "text-purple-700"
+                            }
+                          >
+                            Secadora
+                          </div>
+                          <div
+                            className={`text-sm ${tipoEquipo === "secadora" ? "text-purple-700" : "text-purple-600"}`}
+                          >
+                            Equipos desecantes
+                          </div>
+                        </div>
                       </button>
                     </div>
                   </div>
