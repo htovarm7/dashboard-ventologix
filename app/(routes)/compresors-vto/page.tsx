@@ -54,12 +54,47 @@ interface CompresorFormData {
   fecha_ultimo_mtto: string;
 }
 
+interface Secadora {
+  id: number;
+  tipo: string;
+  alias: string | null;
+  numero_serie: string | null;
+  marca: string | null;
+  anio: number | null;
+  numero_cliente: number | null;
+  fecha_ultimo_mtto: string | null;
+  nombre_cliente: string | null;
+}
+
+interface SecadoraFormData {
+  tipo: string;
+  alias: string;
+  numero_serie: string;
+  marca: string;
+  anio: number | string;
+  numero_cliente: number | string;
+  fecha_ultimo_mtto: string;
+}
+
 const Compresors = () => {
-  const [activeTab, setActiveTab] = useState<"compresores" | "vtos">(
+  const [activeTab, setActiveTab] = useState<"compresores" | "vtos" | "secadoras">(
     "compresores",
   );
   const [compresores, setCompresores] = useState<Compresor[]>([]);
   const [dispositivos, setDispositivos] = useState<Dispositivo[]>([]);
+  const [secadoras, setSecadoras] = useState<Secadora[]>([]);
+  const [selectedSecadora, setSelectedSecadora] = useState<Secadora | null>(null);
+  const [isSecadoraModalOpen, setIsSecadoraModalOpen] = useState(false);
+  const [isSecadoraCreateMode, setIsSecadoraCreateMode] = useState(true);
+  const [secadoraFormData, setSecadoraFormData] = useState<SecadoraFormData>({
+    tipo: "refrigeracion",
+    alias: "",
+    numero_serie: "",
+    marca: "",
+    anio: new Date().getFullYear(),
+    numero_cliente: "",
+    fecha_ultimo_mtto: "",
+  });
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateMode, setIsCreateMode] = useState(true);
@@ -140,13 +175,124 @@ const Compresors = () => {
     }
   };
 
+  const fetchSecadoras = async (): Promise<void> => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${URL_API}/secadoras/`);
+      if (res.ok) {
+        const response = await res.json();
+        setSecadoras(response.data || []);
+      } else {
+        console.error("Failed to fetch secadoras", res.status, res.statusText);
+      }
+    } catch (error) {
+      console.error("Error fetching secadoras", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "compresores") {
       fetchCompresores();
-    } else {
+    } else if (activeTab === "vtos") {
       fetchDispositivos();
+    } else {
+      fetchSecadoras();
     }
   }, [activeTab]);
+
+  const handleOpenCreateSecadoraModal = () => {
+    setIsSecadoraCreateMode(true);
+    setSelectedSecadora(null);
+    setSecadoraFormData({
+      tipo: "refrigeracion",
+      alias: "",
+      numero_serie: "",
+      marca: "",
+      anio: new Date().getFullYear(),
+      numero_cliente: "",
+      fecha_ultimo_mtto: "",
+    });
+    setIsSecadoraModalOpen(true);
+  };
+
+  const handleOpenEditSecadoraModal = (secadora: Secadora) => {
+    setIsSecadoraCreateMode(false);
+    setSelectedSecadora(secadora);
+    setSecadoraFormData({
+      tipo: secadora.tipo,
+      alias: secadora.alias || "",
+      numero_serie: secadora.numero_serie || "",
+      marca: secadora.marca || "",
+      anio: secadora.anio ?? "",
+      numero_cliente: secadora.numero_cliente ?? "",
+      fecha_ultimo_mtto: secadora.fecha_ultimo_mtto || "",
+    });
+    setIsSecadoraModalOpen(true);
+  };
+
+  const handleSecadoraInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+    setSecadoraFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSecadoraSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload = {
+      tipo: secadoraFormData.tipo,
+      alias: secadoraFormData.alias || null,
+      numero_serie: secadoraFormData.numero_serie || null,
+      marca: secadoraFormData.marca || null,
+      anio: secadoraFormData.anio ? Number(secadoraFormData.anio) : null,
+      numero_cliente: secadoraFormData.numero_cliente ? Number(secadoraFormData.numero_cliente) : null,
+      fecha_ultimo_mtto: secadoraFormData.fecha_ultimo_mtto || null,
+    };
+
+    try {
+      const url = isSecadoraCreateMode
+        ? `${URL_API}/secadoras/`
+        : `${URL_API}/secadoras/${selectedSecadora?.id}`;
+      const method = isSecadoraCreateMode ? "POST" : "PUT";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        alert(isSecadoraCreateMode ? "Secadora creada exitosamente" : "Secadora actualizada exitosamente");
+        setIsSecadoraModalOpen(false);
+        fetchSecadoras();
+      } else {
+        const error = await res.json();
+        alert(`Error: ${error.detail || "No se pudo completar la operación"}`);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al procesar la solicitud");
+    }
+  };
+
+  const handleDeleteSecadora = async (id: number) => {
+    if (!confirm(`¿Estás seguro de eliminar la secadora #${id}? Esta acción no se puede deshacer.`)) return;
+    try {
+      const res = await fetch(`${URL_API}/secadoras/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        alert("Secadora eliminada exitosamente");
+        fetchSecadoras();
+      } else {
+        const error = await res.json();
+        alert(`Error: ${error.detail || "No se pudo eliminar la secadora"}`);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al eliminar la secadora");
+    }
+  };
 
   const handleOpenCreateModal = () => {
     setIsCreateMode(true);
@@ -494,6 +640,16 @@ const Compresors = () => {
             >
               VTOs
             </button>
+            <button
+              onClick={() => setActiveTab("secadoras")}
+              className={`px-6 py-3 font-medium transition-colors ${
+                activeTab === "secadoras"
+                  ? "text-purple-600 border-b-2 border-purple-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Secadoras
+            </button>
           </div>
 
           {/* Compresores Tab */}
@@ -780,8 +936,216 @@ const Compresors = () => {
               )}
             </>
           )}
+
+          {/* Secadoras Tab */}
+          {activeTab === "secadoras" && (
+            <>
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-800">Gestión de Secadoras</h1>
+                  <p className="text-gray-600 mt-1">Total de secadoras: {secadoras.length}</p>
+                </div>
+                <button
+                  onClick={handleOpenCreateSecadoraModal}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 shadow-md transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Nueva Secadora
+                </button>
+              </div>
+
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+                  <p className="text-gray-600 mt-4">Cargando secadoras...</p>
+                </div>
+              ) : secadoras.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-purple-600 text-white">
+                        <th className="border border-gray-300 p-3 text-left font-semibold">Cliente</th>
+                        <th className="border border-gray-300 p-3 text-left font-semibold">Alias</th>
+                        <th className="border border-gray-300 p-3 text-left font-semibold">Número Serie</th>
+                        <th className="border border-gray-300 p-3 text-left font-semibold">Tipo</th>
+                        <th className="border border-gray-300 p-3 text-left font-semibold">Marca</th>
+                        <th className="border border-gray-300 p-3 text-left font-semibold">Año</th>
+                        <th className="border border-gray-300 p-3 text-center font-semibold">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {secadoras.map((secadora) => (
+                        <tr key={secadora.id} className="hover:bg-purple-50 transition-colors">
+                          <td className="border border-gray-300 p-3 text-gray-700">
+                            {secadora.nombre_cliente || `#${secadora.numero_cliente ?? "—"}`}
+                          </td>
+                          <td className="border border-gray-300 p-3 font-medium text-gray-800">
+                            {secadora.alias || "—"}
+                          </td>
+                          <td className="border border-gray-300 p-3 text-gray-700">
+                            {secadora.numero_serie || "—"}
+                          </td>
+                          <td className="border border-gray-300 p-3 text-gray-700 capitalize">
+                            {secadora.tipo}
+                          </td>
+                          <td className="border border-gray-300 p-3 text-gray-700">
+                            {secadora.marca || "—"}
+                          </td>
+                          <td className="border border-gray-300 p-3 text-gray-700">
+                            {secadora.anio || "—"}
+                          </td>
+                          <td className="border border-gray-300 p-3">
+                            <div className="flex gap-2 justify-center">
+                              <button
+                                onClick={() => handleOpenEditSecadoraModal(secadora)}
+                                className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                              >
+                                ✏️ Editar
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSecadora(secadora.id)}
+                                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                              >
+                                🗑️ Eliminar
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <div className="text-6xl mb-4">💨</div>
+                  <p className="text-lg font-medium">No hay secadoras registradas</p>
+                  <p className="text-sm mt-2">Haz clic en &quot;Nueva Secadora&quot; para agregar una</p>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
+
+      {/* Modal para Secadoras */}
+      {isSecadoraModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-purple-600 text-white p-6 rounded-t-lg">
+              <h2 className="text-2xl font-bold">
+                {isSecadoraCreateMode ? "Nueva Secadora" : "Editar Secadora"}
+              </h2>
+            </div>
+
+            <form onSubmit={handleSecadoraSubmit} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo *</label>
+                  <select
+                    name="tipo"
+                    value={secadoraFormData.tipo}
+                    onChange={handleSecadoraInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="refrigeracion">Refrigeración</option>
+                    <option value="desecante">Desecante</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Alias</label>
+                  <input
+                    type="text"
+                    name="alias"
+                    value={secadoraFormData.alias}
+                    onChange={handleSecadoraInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Nombre/alias de la secadora"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Número de Serie</label>
+                  <input
+                    type="text"
+                    name="numero_serie"
+                    value={secadoraFormData.numero_serie}
+                    onChange={handleSecadoraInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Número de serie"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Marca</label>
+                  <input
+                    type="text"
+                    name="marca"
+                    value={secadoraFormData.marca}
+                    onChange={handleSecadoraInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Marca"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Año</label>
+                  <input
+                    type="number"
+                    name="anio"
+                    value={secadoraFormData.anio}
+                    onChange={handleSecadoraInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Año"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Número de Cliente</label>
+                  <input
+                    type="number"
+                    name="numero_cliente"
+                    value={secadoraFormData.numero_cliente}
+                    onChange={handleSecadoraInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Número de cliente"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Fecha Último Mantenimiento</label>
+                  <input
+                    type="date"
+                    name="fecha_ultimo_mtto"
+                    value={secadoraFormData.fecha_ultimo_mtto}
+                    onChange={handleSecadoraInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsSecadoraModalOpen(false)}
+                  className="flex-1 px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                >
+                  {isSecadoraCreateMode ? "Crear Secadora" : "Guardar Cambios"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal para Compresores */}
       {isModalOpen && activeTab === "compresores" && (

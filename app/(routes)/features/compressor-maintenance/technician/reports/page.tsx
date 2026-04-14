@@ -58,6 +58,18 @@ interface ClientOption {
   RFC: string;
   direccion: string;
   champion: string;
+  id_cliente?: number;
+}
+
+interface SecadoraSearchResult {
+  id: number;
+  tipo: string;
+  alias: string | null;
+  numero_serie: string | null;
+  marca: string | null;
+  anio: number | null;
+  numero_cliente: number | null;
+  nombre_cliente: string | null;
 }
 
 interface TicketFormData {
@@ -158,11 +170,21 @@ const TypeReportes = () => {
     "compresor",
   );
 
-  // Client search for dryer orders
+  // Dryer search
+  const [dryerSearch, setDryerSearch] = useState("");
+  const [dryerSearchResults, setDryerSearchResults] = useState<
+    SecadoraSearchResult[]
+  >([]);
+  const [showDryerResults, setShowDryerResults] = useState(false);
+  const [selectedDryer, setSelectedDryer] =
+    useState<SecadoraSearchResult | null>(null);
+  const [isNewDryer, setIsNewDryer] = useState(false);
+  // Client picker for new dryer registration
   const [allClients, setAllClients] = useState<ClientOption[]>([]);
-  const [dryerClientSearch, setDryerClientSearch] = useState("");
-  const [showDryerClientDropdown, setShowDryerClientDropdown] = useState(false);
-  const [selectedDryerClient, setSelectedDryerClient] =
+  const [newDryerClientSearch, setNewDryerClientSearch] = useState("");
+  const [showNewDryerClientDropdown, setShowNewDryerClientDropdown] =
+    useState(false);
+  const [selectedNewDryerClient, setSelectedNewDryerClient] =
     useState<ClientOption | null>(null);
 
   // Load user role on mount and check authorization
@@ -342,27 +364,82 @@ const TypeReportes = () => {
     loadClients();
   }, []);
 
-  // Filter clients for dryer search
-  const filteredDryerClients = allClients.filter((c) => {
-    if (!dryerClientSearch.trim()) return true;
-    const q = dryerClientSearch.toLowerCase();
+  // Search dryers from the secadoras table
+  const handleDryerSearch = async (query: string) => {
+    setDryerSearch(query);
+    setSelectedDryer(null);
+    setIsNewDryer(false);
+    if (!query.trim()) {
+      setDryerSearchResults([]);
+      setShowDryerResults(false);
+      return;
+    }
+    try {
+      const res = await fetch(
+        `${URL_API}/secadoras/search/${encodeURIComponent(query)}`,
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setDryerSearchResults(data.data || []);
+        setShowDryerResults(true);
+      }
+    } catch (err) {
+      console.error("Error buscando secadoras:", err);
+    }
+  };
+
+  // Select an existing dryer — auto-fill the form
+  const handleSelectDryer = (dryer: SecadoraSearchResult) => {
+    setSelectedDryer(dryer);
+    setIsNewDryer(false);
+    setShowDryerResults(false);
+    setDryerSearch(dryer.alias || dryer.numero_serie || "");
+    const numCliente = String(dryer.numero_cliente || "");
+    const serial = dryer.numero_serie || "";
+    setTicketData((prev) => ({
+      ...prev,
+      clientName: dryer.nombre_cliente || "",
+      numeroCliente: numCliente,
+      alias: dryer.alias || "",
+      serialNumber: serial,
+      tipo: dryer.tipo || "",
+      marca: dryer.marca || "",
+      anio: dryer.anio ? String(dryer.anio) : "",
+      folio: serial.length >= 4 ? generateDryerFolio(numCliente, serial) : "",
+    }));
+  };
+
+  // Register as a new dryer (not in DB yet)
+  const handleRegisterNewDryer = () => {
+    setIsNewDryer(true);
+    setSelectedDryer(null);
+    setShowDryerResults(false);
+  };
+
+  // Filter clients for new-dryer client picker
+  const filteredNewDryerClients = allClients.filter((c) => {
+    if (!newDryerClientSearch.trim()) return true;
+    const q = newDryerClientSearch.toLowerCase();
     return (
       String(c.numero_cliente).toLowerCase().includes(q) ||
       (c.nombre_cliente || "").toLowerCase().includes(q)
     );
   });
 
-  // Select client for dryer order
-  const handleSelectDryerClient = (client: ClientOption) => {
-    setSelectedDryerClient(client);
-    setShowDryerClientDropdown(false);
-    setDryerClientSearch("");
+  // Select client when registering a new dryer
+  const handleSelectNewDryerClient = (client: ClientOption) => {
+    setSelectedNewDryerClient(client);
+    setShowNewDryerClientDropdown(false);
+    setNewDryerClientSearch("");
     const numCliente = String(client.numero_cliente);
     setTicketData((prev) => ({
       ...prev,
       clientName: client.nombre_cliente || "",
       numeroCliente: numCliente,
-      folio: "", // Will be generated when serial is entered
+      folio:
+        prev.serialNumber.length >= 4
+          ? generateDryerFolio(numCliente, prev.serialNumber)
+          : "",
     }));
   };
 
@@ -568,14 +645,39 @@ const TypeReportes = () => {
         }
       }
 
+      // If it's a new dryer (not yet in DB), register it first
+      if (tipoEquipo === "secadora" && isNewDryer && selectedNewDryerClient) {
+        const newDryerPayload = {
+          tipo: ticketData.tipo || "refrigeracion",
+          alias: ticketData.alias || null,
+          numero_serie: ticketData.serialNumber || null,
+          marca: ticketData.marca || null,
+          anio: ticketData.anio ? parseInt(ticketData.anio) : null,
+          numero_cliente:
+            parseInt(String(selectedNewDryerClient.numero_cliente)) || null,
+        };
+        try {
+          const dryerRes = await fetch(`${URL_API}/secadoras/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newDryerPayload),
+          });
+          if (!dryerRes.ok) {
+            const err = await dryerRes.json();
+            throw new Error(err.detail || "Error al registrar la secadora");
+          }
+        } catch (err) {
+          showError("Error", String(err instanceof Error ? err.message : err));
+          return;
+        }
+      }
+
       // Prepare the data for the API
       const ordenData = {
         folio: ticketData.folio,
         id_cliente:
           tipoEquipo === "secadora"
-            ? selectedDryerClient
-              ? parseInt(String(selectedDryerClient.numero_cliente)) || 0
-              : 0
+            ? 0
             : isClienteEventual
               ? 0
               : selectedCompressor?.id_cliente || 0,
@@ -592,8 +694,7 @@ const TypeReportes = () => {
         tipo_mantenimiento: ticketData.tipoMantenimiento,
         descripcion_proyecto: ticketData.descripcionProyecto || null,
         prioridad: ticketData.priority,
-        fecha_programada:
-          ticketData.scheduledDate || todayString(),
+        fecha_programada: ticketData.scheduledDate || todayString(),
         hora_programada:
           ticketData.hora !== "no-aplica" ? ticketData.hora : "00:00:00",
         estado: "no_iniciado",
@@ -618,10 +719,14 @@ const TypeReportes = () => {
         showSuccess("Ticket Creado", `Folio: ${ticketData.folio}`);
         // Reset form
         setSelectedCompressor(null);
-        setSelectedDryerClient(null);
+        setSelectedDryer(null);
+        setIsNewDryer(false);
+        setDryerSearch("");
+        setDryerSearchResults([]);
+        setSelectedNewDryerClient(null);
+        setNewDryerClientSearch("");
         setIsClienteEventual(false);
         setSearchQuery("");
-        setDryerClientSearch("");
         setShowResults(false);
         setTipoEquipo("compresor");
         setTicketData({
@@ -698,9 +803,7 @@ const TypeReportes = () => {
           },
           body: JSON.stringify({
             ...editingTicket,
-            tipo_equipo: editingTicket.tipo_equipo?.toLowerCase() as
-              | "compresor"
-              | "secadora",
+            tipo_equipo: editingTicket.tipo_equipo,
           }),
         },
       );
@@ -786,7 +889,6 @@ const TypeReportes = () => {
       );
 
       if (response.ok) {
-        // Navegar a la página de crear reporte según tipo de equipo
         const params = new URLSearchParams({
           folio: orden.folio,
         });
@@ -1279,8 +1381,12 @@ const TypeReportes = () => {
                         type="button"
                         onClick={() => {
                           setTipoEquipo("compresor");
-                          setSelectedDryerClient(null);
-                          setDryerClientSearch("");
+                          setSelectedDryer(null);
+                          setIsNewDryer(false);
+                          setDryerSearch("");
+                          setDryerSearchResults([]);
+                          setSelectedNewDryerClient(null);
+                          setNewDryerClientSearch("");
                           setSelectedCompressor(null);
                           setIsClienteEventual(false);
                           setSearchQuery("");
@@ -1314,8 +1420,12 @@ const TypeReportes = () => {
                           setIsClienteEventual(false);
                           setSearchQuery("");
                           setShowResults(false);
-                          setSelectedDryerClient(null);
-                          setDryerClientSearch("");
+                          setSelectedDryer(null);
+                          setIsNewDryer(false);
+                          setDryerSearch("");
+                          setDryerSearchResults([]);
+                          setSelectedNewDryerClient(null);
+                          setNewDryerClientSearch("");
                           setTicketData((prev) => ({
                             ...prev,
                             folio: "",
@@ -1366,60 +1476,143 @@ const TypeReportes = () => {
                     </>
                   )}
 
-                  {/* Dryer Client Search (only when tipoEquipo === "secadora") */}
+                  {/* Dryer Search (only when tipoEquipo === "secadora") */}
                   {tipoEquipo === "secadora" && (
                     <>
                       <h2 className="text-lg font-semibold text-blue-900 mb-3">
-                        Buscar Cliente para Secadora
+                        Buscar Secadora
                       </h2>
                       <div className="relative mb-4">
                         <input
                           type="text"
-                          value={dryerClientSearch}
-                          onChange={(e) => {
-                            setDryerClientSearch(e.target.value);
-                            setShowDryerClientDropdown(true);
-                          }}
-                          onFocus={() => setShowDryerClientDropdown(true)}
-                          placeholder="Buscar por nombre o número de cliente..."
+                          value={dryerSearch}
+                          onChange={(e) => handleDryerSearch(e.target.value)}
+                          onFocus={() =>
+                            dryerSearchResults.length > 0 &&
+                            setShowDryerResults(true)
+                          }
+                          placeholder="Buscar por alias, número de serie o cliente..."
                           className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                         />
-                        {showDryerClientDropdown &&
-                          filteredDryerClients.length > 0 && (
-                            <div className="absolute z-10 w-full mt-1 max-h-60 overflow-y-auto bg-white border border-blue-200 rounded-lg shadow-lg">
-                              {filteredDryerClients
-                                .slice(0, 20)
-                                .map((client) => (
-                                  <button
-                                    key={String(client.numero_cliente)}
-                                    type="button"
-                                    onClick={() =>
-                                      handleSelectDryerClient(client)
-                                    }
-                                    className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-blue-100 last:border-b-0"
-                                  >
-                                    <p className="font-medium text-blue-900">
-                                      {client.nombre_cliente}
-                                    </p>
-                                    <p className="text-sm text-blue-600">
-                                      #{client.numero_cliente}
-                                    </p>
-                                  </button>
-                                ))}
+                        {showDryerResults && dryerSearchResults.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 max-h-60 overflow-y-auto bg-white border border-purple-200 rounded-lg shadow-lg">
+                            {dryerSearchResults.map((dryer) => (
+                              <button
+                                key={dryer.id}
+                                type="button"
+                                onClick={() => handleSelectDryer(dryer)}
+                                className="w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors border-b border-purple-100 last:border-b-0"
+                              >
+                                <p className="font-medium text-purple-900">
+                                  {dryer.alias ||
+                                    dryer.numero_serie ||
+                                    `Secadora #${dryer.id}`}
+                                </p>
+                                <p className="text-sm text-purple-600">
+                                  {dryer.nombre_cliente} · Serie:{" "}
+                                  {dryer.numero_serie || "—"} · {dryer.tipo}
+                                </p>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {showDryerResults &&
+                          dryerSearchResults.length === 0 &&
+                          dryerSearch.trim() && (
+                            <div className="absolute z-10 w-full mt-1 bg-white border border-purple-200 rounded-lg shadow-lg p-4 text-center">
+                              <p className="text-gray-600 text-sm mb-3">
+                                No se encontró ninguna secadora registrada
+                              </p>
+                              <button
+                                type="button"
+                                onClick={handleRegisterNewDryer}
+                                className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+                              >
+                                + Registrar como nueva secadora
+                              </button>
                             </div>
                           )}
                       </div>
-                      {selectedDryerClient && (
+
+                      {/* Selected existing dryer */}
+                      {selectedDryer && (
                         <div className="p-3 bg-purple-50 rounded-lg border border-purple-200 mb-4">
-                          <p className="text-purple-900 font-medium">
-                            {selectedDryerClient.nombre_cliente}
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="text-purple-900 font-medium">
+                                {selectedDryer.alias ||
+                                  `Secadora #${selectedDryer.id}`}
+                              </p>
+                              <p className="text-purple-700 text-sm">
+                                {selectedDryer.nombre_cliente} · Serie:{" "}
+                                {selectedDryer.numero_serie || "—"} ·{" "}
+                                {selectedDryer.tipo}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedDryer(null);
+                                setDryerSearch("");
+                              }}
+                              className="text-purple-400 hover:text-purple-700 text-lg leading-none"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* New dryer: client picker */}
+                      {isNewDryer && (
+                        <div className="p-4 bg-purple-50 rounded-lg border border-purple-200 mb-4">
+                          <p className="text-purple-800 text-sm font-semibold mb-3">
+                            Nueva secadora — selecciona el cliente y completa
+                            los datos del equipo abajo
                           </p>
-                          <p className="text-purple-700 text-sm">
-                            Cliente #{selectedDryerClient.numero_cliente}
-                          </p>
-                          {selectedDryerClient.direccion && (
-                            <p className="text-purple-700 text-sm">
-                              {selectedDryerClient.direccion}
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={newDryerClientSearch}
+                              onChange={(e) => {
+                                setNewDryerClientSearch(e.target.value);
+                                setShowNewDryerClientDropdown(true);
+                              }}
+                              onFocus={() =>
+                                setShowNewDryerClientDropdown(true)
+                              }
+                              placeholder="Buscar cliente por nombre o número..."
+                              className="w-full px-4 py-2 bg-white text-blue-900 border border-purple-300 rounded-lg focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-colors text-sm"
+                            />
+                            {showNewDryerClientDropdown &&
+                              filteredNewDryerClients.length > 0 && (
+                                <div className="absolute z-10 w-full mt-1 max-h-48 overflow-y-auto bg-white border border-purple-200 rounded-lg shadow-lg">
+                                  {filteredNewDryerClients
+                                    .slice(0, 20)
+                                    .map((client) => (
+                                      <button
+                                        key={String(client.numero_cliente)}
+                                        type="button"
+                                        onClick={() =>
+                                          handleSelectNewDryerClient(client)
+                                        }
+                                        className="w-full text-left px-4 py-2 hover:bg-purple-50 transition-colors border-b border-purple-100 last:border-b-0 text-sm"
+                                      >
+                                        <span className="font-medium text-purple-900">
+                                          {client.nombre_cliente}
+                                        </span>
+                                        <span className="text-purple-600 ml-2">
+                                          #{client.numero_cliente}
+                                        </span>
+                                      </button>
+                                    ))}
+                                </div>
+                              )}
+                          </div>
+                          {selectedNewDryerClient && (
+                            <p className="mt-2 text-purple-700 text-sm font-medium">
+                              ✓ {selectedNewDryerClient.nombre_cliente} #
+                              {selectedNewDryerClient.numero_cliente}
                             </p>
                           )}
                         </div>
@@ -1476,7 +1669,8 @@ const TypeReportes = () => {
               {/* Ticket Form */}
               {(selectedCompressor ||
                 isClienteEventual ||
-                selectedDryerClient) && (
+                selectedDryer ||
+                isNewDryer) && (
                 <div className="mb-6">
                   <div className="bg-white rounded-lg border border-blue-200 p-6">
                     <div className="flex items-center justify-between mb-4">
@@ -2002,10 +2196,14 @@ const TypeReportes = () => {
                           type="button"
                           onClick={() => {
                             setSelectedCompressor(null);
-                            setSelectedDryerClient(null);
+                            setSelectedDryer(null);
+                            setIsNewDryer(false);
+                            setDryerSearch("");
+                            setDryerSearchResults([]);
+                            setSelectedNewDryerClient(null);
+                            setNewDryerClientSearch("");
                             setIsClienteEventual(false);
                             setSearchQuery("");
-                            setDryerClientSearch("");
                             setShowResults(false);
                           }}
                           className="px-5 py-3 bg-white text-blue-800 rounded-lg hover:bg-blue-50 transition-colors font-medium border border-blue-300 text-base"

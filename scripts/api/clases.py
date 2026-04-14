@@ -40,6 +40,15 @@ class Compresor(BaseModel):
     fecha_ultimo_mtto: Optional[datetime] = None
     multiplicar_por_dos: Optional[bool] = False
 
+class Secadora(BaseModel):
+    tipo: Literal["refrigeracion", "desecante"]
+    alias: Optional[str] = None
+    numero_serie: Optional[str] = None
+    marca: Optional[str] = None
+    anio: Optional[int] = None
+    numero_cliente: Optional[int] = None
+    fecha_ultimo_mtto: Optional[datetime] = None
+
 class CompresorEventual(BaseModel):
     hp: Optional[int] = None
     tipo: Optional[str] = None

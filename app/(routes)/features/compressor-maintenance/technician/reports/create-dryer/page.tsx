@@ -187,7 +187,10 @@ function DryerReportForm() {
   // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setShowClientDropdown(false);
       }
     };
@@ -271,7 +274,8 @@ function DryerReportForm() {
                     const clientData = await clientRes.json();
                     const client = (clientData.data || []).find(
                       (c: { numero_cliente: number | string }) =>
-                        String(c.numero_cliente) === String(orden.numero_cliente),
+                        String(c.numero_cliente) ===
+                        String(orden.numero_cliente),
                     );
                     if (client) {
                       setFormData((prev) => ({
@@ -473,76 +477,6 @@ function DryerReportForm() {
               </h2>
             </div>
             <div className="p-6">
-              {/* Selección de Cliente */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg print:hidden" ref={dropdownRef}>
-                <h3 className="font-bold text-gray-700 mb-3">
-                  Seleccionar Cliente
-                </h3>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={clientSearch}
-                    onChange={(e) => {
-                      setClientSearch(e.target.value);
-                      setShowClientDropdown(true);
-                    }}
-                    onFocus={() => setShowClientDropdown(true)}
-                    placeholder={loadingClients ? "Cargando clientes..." : "Buscar por nombre o número de cliente..."}
-                    disabled={loadingClients}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                  {showClientDropdown && filteredClients.length > 0 && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                      {filteredClients.map((c, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => selectClient(c)}
-                          className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 transition-colors"
-                        >
-                          <span className="font-semibold text-blue-700">
-                            {c.numero_cliente}
-                          </span>
-                          <span className="text-gray-500 mx-2">—</span>
-                          <span className="text-gray-800">
-                            {c.nombre_cliente}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {showClientDropdown && clientSearch.trim() && filteredClients.length === 0 && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-gray-500 text-center">
-                      No se encontraron clientes
-                    </div>
-                  )}
-                </div>
-                {formData.cliente && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded-lg flex items-center justify-between">
-                    <span className="text-blue-800 font-medium">
-                      Cliente seleccionado: <strong>{formData.numero_cliente}</strong> — {formData.cliente}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          numero_cliente: "",
-                          cliente: "",
-                          rfc: "",
-                          direccion: "",
-                          ingeniero_obra: "",
-                        }));
-                        setClientSearch("");
-                      }}
-                      className="text-red-500 hover:text-red-700 text-sm font-medium ml-4"
-                    >
-                      Cambiar
-                    </button>
-                  </div>
-                )}
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
