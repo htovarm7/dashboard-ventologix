@@ -89,6 +89,7 @@ class OrdenServicio(BaseModel):
     fecha_creacion: datetime
     reporte_url: Optional[str]
     tipo_equipo: Literal['compresor','secadora'] = 'compresor'
+    id_tecnico: Optional[int] = None
 
 class NotaCompresor(BaseModel):
     numero_serie: str
@@ -217,6 +218,28 @@ class PostMantenimientoRequest(BaseModel):
     # Aceite
     fugas_aceite_final: Optional[str] = None
     aceite_oscuro_final: Optional[str] = None
+
+
+class TeamMember(BaseModel):
+    """Modelo para miembros del equipo Ventologix"""
+    id: Optional[int] = None
+    nombre: str
+    puesto: str
+    correo: EmailStr
+    telefono: Optional[str] = None
+    tecnico: int = 0  # 0 o 1
+    rol: int  # 0: SuperADMIN, 1: Ingeniero, 2: Técnico Supervisor, 3: Gerente, 4: Cliente/Ingeniero
+
+
+class TeamMemberResponse(BaseModel):
+    """Respuesta con datos del miembro del equipo"""
+    id: int
+    nombre: str
+    puesto: str
+    correo: str
+    telefono: Optional[str] = None
+    tecnico: int
+    rol: int
 
     # Temperaturas
     temp_ambiente_final: Optional[Decimal] = None

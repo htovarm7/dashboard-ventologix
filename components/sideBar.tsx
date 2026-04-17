@@ -5,7 +5,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { Compressor } from "@/lib/types";
 import { URL_API } from "@/lib/global";
 import Image from "next/image";
-import { Database, BookUser, UserPen, StickyNote } from "lucide-react";
+import { Database, BookUser, UserPen, StickyNote, User } from "lucide-react";
 
 interface SideBarProps {
   compresores?: Compressor[];
@@ -176,6 +176,16 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
             title: "Panel de Administración",
             icon: <UserPen />,
             route: "/admin-view",
+          },
+        ]
+      : []),
+    ...(rol === 0
+      ? [
+          {
+            id: "ventologix-team",
+            title: "Equipo Ventologix",
+            icon: <User />,
+            route: "/ventologix-team",
           },
         ]
       : []),
