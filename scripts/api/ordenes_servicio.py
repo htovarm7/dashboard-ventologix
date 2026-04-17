@@ -61,6 +61,7 @@ def get_all_ordenes():
                 "fecha_creacion": row["fecha_creacion"],
                 "reporte_url": row["reporte_url"],
                 "tipo_equipo": row.get("tipo_equipo") or "compresor",
+                "id_tecnico": row.get("id_tecnico"),
             }
             for row in res
         ]
@@ -118,6 +119,7 @@ def get_ordenes_by_folio(folio: str = Path(..., description="The folio of the or
                 "fecha_creacion": row["fecha_creacion"],
                 "reporte_url": row["reporte_url"],
                 "tipo_equipo": row.get("tipo_equipo") or "compresor",
+                "id_tecnico": row.get("id_tecnico"),
             }
             for row in res
         ]
@@ -145,8 +147,8 @@ def create_orden_servicio(request: OrdenServicio):
             (folio, id_cliente, id_cliente_eventual, nombre_cliente,
             numero_cliente, alias_compresor, numero_serie, hp, tipo, marca, anio,
             tipo_visita, tipo_mantenimiento, descripcion_proyecto, prioridad, fecha_programada, hora_programada,
-            estado, fecha_creacion, reporte_url, tipo_equipo)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            estado, fecha_creacion, reporte_url, tipo_equipo, id_tecnico)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """,
             (
             request.folio,
@@ -169,7 +171,8 @@ def create_orden_servicio(request: OrdenServicio):
             request.estado,
             request.fecha_creacion,
             request.reporte_url,
-            request.tipo_equipo
+            request.tipo_equipo,
+            request.id_tecnico
             )
         )
 
@@ -196,6 +199,40 @@ def create_orden_servicio(request: OrdenServicio):
             cursor.close()
         if conn:
             conn.close()
+
+@ordenes.patch("/{folio}/tecnico")
+def update_orden_tecnico(folio: str, id_tecnico: int = None):
+    conn = None
+    cursor = None
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST, user=DB_USER, password=DB_PASSWORD, database=DB_DATABASE
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT folio FROM ordenes_servicio WHERE folio = %s", (folio,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Folio not found")
+
+        cursor.execute(
+            "UPDATE ordenes_servicio SET id_tecnico = %s WHERE folio = %s",
+            (id_tecnico, folio)
+        )
+        conn.commit()
+        return {"success": True, "message": "Técnico asignado exitosamente"}
+
+    except mysql.connector.Error as err:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(err)}")
+    except HTTPException:
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
 
 @ordenes.patch("/{folio}/estado")
 def update_orden_estado(folio: str, estado: str):
@@ -270,7 +307,7 @@ def update_orden_servicio(folio: str, request: OrdenServicio):
                 alias_compresor = %s, numero_serie = %s, hp = %s, tipo = %s, marca = %s, anio = %s,
                 tipo_visita = %s, tipo_mantenimiento = %s, descripcion_proyecto = %s, prioridad = %s,
                 fecha_programada = %s, hora_programada = %s, estado = %s, fecha_creacion = %s, reporte_url = %s,
-                tipo_equipo = %s
+                tipo_equipo = %s, id_tecnico = %s
                 WHERE folio = %s
             """,
             (
@@ -294,6 +331,7 @@ def update_orden_servicio(folio: str, request: OrdenServicio):
                 request.fecha_creacion,
                 request.reporte_url,
                 request.tipo_equipo,
+                request.id_tecnico,
                 folio
             )
         )

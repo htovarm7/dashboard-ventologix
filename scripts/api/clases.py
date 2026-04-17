@@ -89,6 +89,7 @@ class OrdenServicio(BaseModel):
     fecha_creacion: datetime
     reporte_url: Optional[str]
     tipo_equipo: Literal['compresor','secadora'] = 'compresor'
+    id_tecnico: Optional[int] = None
 
 class NotaCompresor(BaseModel):
     numero_serie: str

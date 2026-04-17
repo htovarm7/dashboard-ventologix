@@ -18,6 +18,15 @@ interface CompressorSearchResult {
   numero_cliente: number;
 }
 
+interface TeamMember {
+  id: number;
+  nombre: string;
+  puesto: string;
+  correo: string;
+  tecnico: number;
+  rol: number;
+}
+
 interface OrdenServicio {
   folio: string;
   id_cliente: number;
@@ -40,6 +49,7 @@ interface OrdenServicio {
   fecha_creacion: string;
   reporte_url: string;
   tipo_equipo: string;
+  id_tecnico?: number | null;
 }
 
 interface EventualClient {
@@ -119,6 +129,7 @@ const TypeReportes = () => {
   const router = useRouter();
   const { showSuccess, showError } = useDialog();
   const [rol, setRol] = useState<number | null>(null);
+  const [technicians, setTechnicians] = useState<TeamMember[]>([]);
   const [isClienteEventual, setIsClienteEventual] = useState(false);
   const [isNewEventual, setIsNewEventual] = useState(true);
   const [eventualClients, setEventualClients] = useState<EventualClient[]>([]);
@@ -231,6 +242,22 @@ const TypeReportes = () => {
   // Load eventual clients when component mounts
   useEffect(() => {
     fetchEventualClients();
+  }, []);
+
+  // Load technicians from ventologix team
+  useEffect(() => {
+    const fetchTechnicians = async () => {
+      try {
+        const res = await fetch(`${URL_API}/ventologix/team`);
+        const data = await res.json();
+        if (data.data) {
+          setTechnicians(data.data.filter((m: TeamMember) => m.tecnico === 1));
+        }
+      } catch (error) {
+        console.error("Error fetching technicians:", error);
+      }
+    };
+    fetchTechnicians();
   }, []);
 
   // Load ordenes for roles 0 and 1
@@ -707,6 +734,7 @@ const TypeReportes = () => {
         fecha_creacion: new Date().toISOString(),
         reporte_url: "",
         tipo_equipo: tipoEquipo,
+        id_tecnico: ticketData.technician ? parseInt(ticketData.technician) : null,
       };
 
       console.log("Sending ticket data:", ordenData);
@@ -2362,6 +2390,26 @@ const TypeReportes = () => {
                         </div>
                       )}
 
+                      {/* Técnico Asignado */}
+                      <div>
+                        <label className="block text-blue-800 text-base font-medium mb-1">
+                          Técnico Asignado
+                        </label>
+                        <select
+                          name="technician"
+                          value={ticketData.technician}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
+                        >
+                          <option value="">— Sin asignar —</option>
+                          {technicians.map((t) => (
+                            <option key={t.id} value={String(t.id)}>
+                              {t.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
                       {/* Action Buttons */}
                       <div className="flex gap-3 pt-4">
                         <button
@@ -2392,8 +2440,8 @@ const TypeReportes = () => {
 
                       <div className="mt-4 p-4 bg-blue-100 border border-blue-200 rounded-lg">
                         <p className="text-blue-800 text-base">
-                          El ticket se creará con estado &quot;No Iniciado&quot;
-                          y podrá ser asignado a un técnico posteriormente.
+                          El ticket se creará con estado &quot;No Iniciado&quot;.
+                          El técnico puede asignarse ahora o editarse posteriormente.
                         </p>
                       </div>
                     </form>
@@ -2567,6 +2615,14 @@ const TypeReportes = () => {
                                               Tipo:
                                             </span>{" "}
                                             {orden.tipo_visita}
+                                          </span>
+                                          <span>
+                                            <span className="text-blue-600">
+                                              Técnico:
+                                            </span>{" "}
+                                            {orden.id_tecnico
+                                              ? technicians.find((t) => t.id === orden.id_tecnico)?.nombre ?? `ID ${orden.id_tecnico}`
+                                              : "Sin asignar"}
                                           </span>
                                         </div>
                                       </div>
@@ -2814,6 +2870,30 @@ const TypeReportes = () => {
                         className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                       />
                     </div>
+                  </div>
+
+                  {/* Técnico Asignado */}
+                  <div>
+                    <label className="block text-blue-800 text-base font-medium mb-1">
+                      Técnico Asignado
+                    </label>
+                    <select
+                      value={editingTicket.id_tecnico ?? ""}
+                      onChange={(e) =>
+                        setEditingTicket({
+                          ...editingTicket,
+                          id_tecnico: e.target.value ? parseInt(e.target.value) : null,
+                        })
+                      }
+                      className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
+                    >
+                      <option value="">— Sin asignar —</option>
+                      {technicians.map((t) => (
+                        <option key={t.id} value={String(t.id)}>
+                          {t.nombre}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="flex gap-3 pt-4 border-t border-blue-200">
