@@ -79,6 +79,7 @@ const Reports = () => {
   const [dryerReportsByClient, setDryerReportsByClient] = useState<
     DryerReportsByClient[]
   >([]);
+  const [flatDryerReports, setFlatDryerReports] = useState<DryerReport[]>([]);
   const [activeTab, setActiveTab] = useState<"compresores" | "secadoras">(
     "compresores",
   );
@@ -174,16 +175,27 @@ const Reports = () => {
         setReportsByClient(groupedReports);
       }
 
-      // Load dryer reports (only for technician/admin roles)
-      if (rol !== 3 && rol !== 4) {
-        try {
-          const dryerRes = await fetch(`${URL_API}/reporte_secadora/listar`);
-          if (dryerRes.ok) {
-            const dryerResult = await dryerRes.json();
-            if (dryerResult.success) {
-              const dryerData: DryerReport[] = dryerResult.data || [];
+      // Load dryer reports for all roles
+      try {
+        const dryerRes = await fetch(`${URL_API}/reporte_secadora/listar`);
+        if (dryerRes.ok) {
+          const dryerResult = await dryerRes.json();
+          if (dryerResult.success) {
+            let dryerData: DryerReport[] = dryerResult.data || [];
 
-              // Group dryer reports by client
+            // Filter by client for roles 3 & 4
+            if ((rol === 3 || rol === 4) && numeroCliente) {
+              dryerData = dryerData.filter(
+                (r) => String(r.numero_cliente) === String(numeroCliente),
+              );
+              const sorted = dryerData.sort(
+                (a, b) =>
+                  new Date(b.created_at || "").getTime() -
+                  new Date(a.created_at || "").getTime(),
+              );
+              setFlatDryerReports(sorted);
+            } else {
+              // Group dryer reports by client for admin/technician
               const dryerClientsMap = new Map<string, DryerReportsByClient>();
               dryerData.forEach((report) => {
                 const clientName = report.cliente || "Sin cliente";
@@ -212,9 +224,9 @@ const Reports = () => {
               setDryerReportsByClient(groupedDryer);
             }
           }
-        } catch (dryerError) {
-          console.error("Error loading dryer reports:", dryerError);
         }
+      } catch (dryerError) {
+        console.error("Error loading dryer reports:", dryerError);
       }
     } catch (error) {
       console.error("Error loading reports:", error);
@@ -327,7 +339,7 @@ const Reports = () => {
 
   const isClientRole = userRole === 3 || userRole === 4;
   const hasNoReports = isClientRole
-    ? flatReports.length === 0
+    ? flatReports.length === 0 && flatDryerReports.length === 0
     : reportsByClient.length === 0 && dryerReportsByClient.length === 0;
 
   if (hasNoReports) {
@@ -352,43 +364,46 @@ const Reports = () => {
           Reportes de Mantenimiento
         </h1>
 
-        {/* Tabs for technician/admin roles */}
-        {!isClientRole && dryerReportsByClient.length > 0 && (
-          <div className="flex space-x-1 bg-gray-200 rounded-lg p-1 mb-6 max-w-md">
-            <button
-              onClick={() => setActiveTab("compresores")}
-              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === "compresores"
-                  ? "bg-white text-blue-700 shadow-sm"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
-            >
-              Compresores
-            </button>
-            <button
-              onClick={() => setActiveTab("secadoras")}
-              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === "secadoras"
-                  ? "bg-white text-cyan-700 shadow-sm"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
-            >
-              Secadoras (
-              {dryerReportsByClient.reduce(
-                (sum, g) => sum + g.reports.length,
-                0,
-              )}
-              )
-            </button>
-          </div>
-        )}
+        {/* Tabs — always shown so clients can navigate between equipment types */}
+        <div className="flex space-x-1 bg-gray-200 rounded-lg p-1 mb-6 max-w-md">
+          <button
+            onClick={() => setActiveTab("compresores")}
+            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "compresores"
+                ? "bg-white text-blue-700 shadow-sm"
+                : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            Compresores (
+            {isClientRole
+              ? flatReports.length
+              : reportsByClient.reduce((sum, g) => sum + g.reports.length, 0)}
+            )
+          </button>
+          <button
+            onClick={() => setActiveTab("secadoras")}
+            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "secadoras"
+                ? "bg-white text-cyan-700 shadow-sm"
+                : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            Secadoras (
+            {isClientRole
+              ? flatDryerReports.length
+              : dryerReportsByClient.reduce(
+                  (sum, g) => sum + g.reports.length,
+                  0,
+                )}
+            )
+          </button>
+        </div>
 
         {/* Reports list */}
         <div
           className="space-y-4"
           style={{
-            display:
-              activeTab === "compresores" || isClientRole ? undefined : "none",
+            display: activeTab === "compresores" ? undefined : "none",
           }}
         >
           {isClientRole ? (
@@ -621,6 +636,104 @@ const Reports = () => {
             ))
           )}
         </div>
+
+        {/* Dryer Reports Section - Flat list for clients */}
+        {isClientRole && activeTab === "secadoras" && (
+          <div className="bg-white rounded-lg shadow-md overflow-hidden p-6">
+            {flatDryerReports.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="mx-auto text-gray-300 mb-4" size={48} />
+                <p className="text-gray-500">No hay reportes de secadoras</p>
+              </div>
+            ) : (
+            <div className="space-y-3">
+              {flatDryerReports.map((report) => (
+                <div
+                  key={report.folio}
+                  className={`flex items-center justify-between p-4 rounded-lg transition-colors border ${
+                    report.estado === "por_firmar"
+                      ? "bg-yellow-50 border-yellow-300 hover:bg-yellow-100"
+                      : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                  }`}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-4 mb-2 flex-wrap gap-y-1">
+                      <div className="flex items-center space-x-2 text-gray-700">
+                        <Wrench size={18} />
+                        <span className="font-semibold">
+                          {report.equipo || "Secadora"}
+                        </span>
+                      </div>
+                      {report.modelo && (
+                        <span className="text-sm text-gray-500">
+                          Modelo: {report.modelo}
+                        </span>
+                      )}
+                      {report.no_serie && (
+                        <span className="text-sm text-gray-500">
+                          S/N: {report.no_serie}
+                        </span>
+                      )}
+                      <span className="text-sm text-blue-600 font-medium">
+                        Folio: {report.folio}
+                      </span>
+                      {report.estado === "por_firmar" && (
+                        <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-semibold rounded-full">
+                          Pendiente de firma
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-6 text-sm text-gray-600">
+                      <div className="flex items-center space-x-2">
+                        <Calendar size={16} />
+                        <span>{formatDate(report.fecha || report.created_at)}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <FileText size={16} />
+                        <span>Secadora</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleDownloadDryerPdf(report.folio)}
+                      disabled={downloadingFolio === report.folio}
+                      className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium flex items-center space-x-2 ${
+                        downloadingFolio === report.folio
+                          ? "bg-red-400 cursor-not-allowed"
+                          : "bg-red-600 hover:bg-red-700"
+                      }`}
+                    >
+                      {downloadingFolio === report.folio ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                          <span>Generando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download size={16} />
+                          <span>PDF</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() =>
+                        router.push(
+                          `/features/compressor-maintenance/reports/view-dryer?folio=${report.folio}`,
+                        )
+                      }
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                    >
+                      <Eye size={16} />
+                      <span>Ver Reporte</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            )}
+          </div>
+        )}
 
         {/* Dryer Reports Section - Grouped by Client */}
         {!isClientRole && activeTab === "secadoras" && (
