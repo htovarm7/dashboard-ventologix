@@ -5,10 +5,16 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { UserData } from "@/lib/types";
+import { UserData, PressureConfig } from "@/lib/types";
 import { URL_API } from "@/lib/global";
 import BackButton from "@/components/BackButton";
 import { PressureStats } from "@/lib/types";
+
+interface RTUDevice {
+  RTU_id: number;
+  numero_serie_topico: string;
+  linea: string;
+}
 import DateNavigator from "@/components/DateNavigator";
 import { formatLocalDate } from "@/lib/dateUtils";
 
@@ -32,34 +38,113 @@ const PressureAnalysis = () => {
   );
   const [imageReady, setImageReady] = useState(false);
   const [statsReady, setStatsReady] = useState(false);
+  const [pressureConfig, setPressureConfig] = useState<PressureConfig>({
+    presion_max: 120,
+    presion_min: 100,
+    presion_alerta: 95,
+    v_tanque: 700,
+  });
+  const [configDraft, setConfigDraft] = useState<PressureConfig>({
+    presion_max: 120,
+    presion_min: 100,
+    presion_alerta: 95,
+    v_tanque: 700,
+  });
+  const [showConfigPanel, setShowConfigPanel] = useState(false);
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [configError, setConfigError] = useState<string | null>(null);
+  const [configSuccess, setConfigSuccess] = useState(false);
+  const [devices, setDevices] = useState<RTUDevice[]>([]);
+  const [selectedDevice, setSelectedDevice] = useState<RTUDevice | null>(null);
   const router = useRouter();
 
   const minDate = new Date("2025-09-30");
   const maxDate = new Date();
 
+  const loadDevices = useCallback(async (numeroCliente: string) => {
+    try {
+      const res = await fetch(
+        `${URL_API}/pressure/devices?numero_cliente=${encodeURIComponent(numeroCliente)}`
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setDevices(data.data);
+        if (data.data.length > 0) setSelectedDevice(data.data[0]);
+      }
+    } catch {
+      // silencioso
+    }
+  }, []);
+
+  const loadPressureConfig = useCallback(async (rtuId: number) => {
+    try {
+      const res = await fetch(`${URL_API}/pressure/config/${rtuId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.success && data.data) {
+        setPressureConfig(data.data);
+        setConfigDraft(data.data);
+      }
+    } catch {
+      // usa defaults si falla
+    }
+  }, []);
+
+  const saveConfig = useCallback(async () => {
+    if (!selectedDevice) return;
+    setSavingConfig(true);
+    setConfigError(null);
+    setConfigSuccess(false);
+    try {
+      const res = await fetch(
+        `${URL_API}/pressure/config/${selectedDevice.RTU_id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(configDraft),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        setConfigError(data.detail || "Error al guardar configuración");
+        return;
+      }
+      setPressureConfig(configDraft);
+      setConfigSuccess(true);
+      setTimeout(() => setConfigSuccess(false), 3000);
+    } catch {
+      setConfigError("Error de conexión al guardar configuración");
+    } finally {
+      setSavingConfig(false);
+    }
+  }, [selectedDevice, configDraft]);
+
   const generateImageUrl = useCallback(
-    (numeroCliente: string, fecha: string) => {
+    (numeroCliente: string, fecha: string, rtuId?: number) => {
       const timestamp = Date.now();
-      return `${URL_API}/pressure/plot?numero_cliente=${encodeURIComponent(
+      const base = `${URL_API}/pressure/plot?numero_cliente=${encodeURIComponent(
         numeroCliente
       )}&fecha=${encodeURIComponent(fecha)}&t=${timestamp}`;
+      return rtuId != null ? `${base}&rtu_id=${rtuId}` : base;
     },
     []
   );
 
   const generateStatsUrl = useCallback(
-    (numeroCliente: string, fecha: string) => {
-      return `${URL_API}/pressure/stats?numero_cliente=${encodeURIComponent(
+    (numeroCliente: string, fecha: string, rtuId?: number) => {
+      const base = `${URL_API}/pressure/stats?numero_cliente=${encodeURIComponent(
         numeroCliente
       )}&fecha=${encodeURIComponent(fecha)}`;
+      return rtuId != null ? `${base}&rtu_id=${rtuId}` : base;
     },
     []
   );
 
   const loadPressureStats = useCallback(
-    async (numeroCliente: string, fecha: string) => {
+    async (numeroCliente: string, fecha: string, rtuId?: number) => {
       try {
-        const url = generateStatsUrl(numeroCliente, fecha);
+        const url = generateStatsUrl(numeroCliente, fecha, rtuId);
         const response = await fetch(url, {
           method: "GET",
         });
@@ -89,9 +174,9 @@ const PressureAnalysis = () => {
   );
 
   const loadPressureImage = useCallback(
-    async (numeroCliente: string, fecha: string) => {
+    async (numeroCliente: string, fecha: string, rtuId?: number) => {
       try {
-        const url = generateImageUrl(numeroCliente, fecha);
+        const url = generateImageUrl(numeroCliente, fecha, rtuId);
 
         const response = await fetch(url, {
           method: "GET",
@@ -128,7 +213,7 @@ const PressureAnalysis = () => {
   );
 
   const loadPressureAnalysis = useCallback(
-    async (numeroCliente: string, fecha: string) => {
+    async (numeroCliente: string, fecha: string, rtuId?: number) => {
       setImageLoading(true);
       setError(null);
       setImageUrl(null);
@@ -149,10 +234,9 @@ const PressureAnalysis = () => {
 
         setLoadingProgress("Cargando imagen y estadísticas en paralelo...");
 
-        // Load both image and stats in parallel
         await Promise.all([
-          loadPressureImage(numeroCliente, fecha),
-          loadPressureStats(numeroCliente, fecha),
+          loadPressureImage(numeroCliente, fecha, rtuId),
+          loadPressureStats(numeroCliente, fecha, rtuId),
         ]);
 
         setLoadingProgress("¡Análisis de presión completado!");
@@ -185,9 +269,13 @@ const PressureAnalysis = () => {
     if (userData?.numero_cliente && selectedDate) {
       setError(null);
       const dateStr = formatDateForAPI(selectedDate);
-      loadPressureAnalysis(userData.numero_cliente.toString(), dateStr);
+      loadPressureAnalysis(
+        userData.numero_cliente.toString(),
+        dateStr,
+        selectedDevice?.RTU_id
+      );
     }
-  }, [userData?.numero_cliente, selectedDate, loadPressureAnalysis]);
+  }, [userData?.numero_cliente, selectedDate, selectedDevice, loadPressureAnalysis]);
 
   const handleDateSubmit = () => {
     if (!selectedDate) {
@@ -201,7 +289,11 @@ const PressureAnalysis = () => {
     }
 
     const dateStr = formatDateForAPI(selectedDate);
-    loadPressureAnalysis(userData.numero_cliente.toString(), dateStr);
+    loadPressureAnalysis(
+      userData.numero_cliente.toString(),
+      dateStr,
+      selectedDevice?.RTU_id
+    );
   };
 
   const handleNewAnalysis = () => {
@@ -215,7 +307,7 @@ const PressureAnalysis = () => {
   };
 
   useEffect(() => {
-    const loadUserData = () => {
+    const loadUserData = async () => {
       try {
         const storedUserData = sessionStorage.getItem("userData");
 
@@ -233,7 +325,8 @@ const PressureAnalysis = () => {
           return;
         }
 
-        // Para todos los usuarios, solo mostrar selector de fecha
+        const clientStr = parsedUserData.numero_cliente.toString();
+        await loadDevices(clientStr);
         setSelectedDate(new Date());
       } catch (err) {
         console.error("Error loading user data:", err);
@@ -244,7 +337,12 @@ const PressureAnalysis = () => {
     };
 
     loadUserData();
-  }, [router]);
+  }, [router, loadDevices]);
+
+  // Recarga la config del dispositivo cada vez que cambia el seleccionado
+  useEffect(() => {
+    if (selectedDevice) loadPressureConfig(selectedDevice.RTU_id);
+  }, [selectedDevice, loadPressureConfig]);
 
   if (loading) {
     return (
@@ -284,12 +382,150 @@ const PressureAnalysis = () => {
             </div>
           </div>
 
+          {/* Panel de Configuración de Métricas */}
+          <div className="mb-6">
+            <button
+              onClick={() => {
+                setShowConfigPanel((prev) => !prev);
+                if (!showConfigPanel) setConfigDraft({ ...pressureConfig });
+              }}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm border ${
+                showConfigPanel
+                  ? "bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300"
+                  : "bg-blue-600 text-white border-blue-700 hover:bg-blue-700"
+              }`}
+            >
+              <span>⚙️</span>
+              {showConfigPanel ? "Cerrar configuración" : "Configurar métricas"}
+            </button>
+
+            {showConfigPanel && (
+              <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-5">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Parámetros operacionales personalizados
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Presión máxima (psi)
+                    </label>
+                    <input
+                      type="number"
+                      value={configDraft.presion_max}
+                      onChange={(e) =>
+                        setConfigDraft((d) => ({
+                          ...d,
+                          presion_max: parseFloat(e.target.value),
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Presión mínima (psi)
+                    </label>
+                    <input
+                      type="number"
+                      value={configDraft.presion_min}
+                      onChange={(e) =>
+                        setConfigDraft((d) => ({
+                          ...d,
+                          presion_min: parseFloat(e.target.value),
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Presión alerta (psi)
+                    </label>
+                    <input
+                      type="number"
+                      value={configDraft.presion_alerta}
+                      onChange={(e) =>
+                        setConfigDraft((d) => ({
+                          ...d,
+                          presion_alerta: parseFloat(e.target.value),
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Volumen tanque (L)
+                    </label>
+                    <input
+                      type="number"
+                      value={configDraft.v_tanque}
+                      onChange={(e) =>
+                        setConfigDraft((d) => ({
+                          ...d,
+                          v_tanque: parseFloat(e.target.value),
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="text-xs text-gray-500 mb-3">
+                  Regla: Presión alerta &lt; Presión mínima &lt; Presión máxima
+                </div>
+
+                {configError && (
+                  <div className="text-sm text-red-600 mb-3">{configError}</div>
+                )}
+                {configSuccess && (
+                  <div className="text-sm text-green-600 mb-3">
+                    ✓ Configuración guardada correctamente
+                  </div>
+                )}
+
+                <button
+                  onClick={saveConfig}
+                  disabled={savingConfig}
+                  className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {savingConfig ? "Guardando..." : "Guardar configuración"}
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Selector de Fecha */}
           {showDateSelector && (
             <div className="bg-blue-50 p-6 rounded-lg border border-blue-200 mb-6">
               <h2 className="text-xl font-semibold text-blue-900 mb-4">
                 Seleccionar Fecha para Análisis
               </h2>
+
+              {/* Selector de dispositivo — solo visible si hay más de uno */}
+              {devices.length > 1 && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Dispositivo
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {devices.map((device) => (
+                      <button
+                        key={device.RTU_id}
+                        onClick={() => setSelectedDevice(device)}
+                        className={`px-4 py-2 rounded-md text-sm font-medium border transition-colors ${
+                          selectedDevice?.RTU_id === device.RTU_id
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-blue-50"
+                        }`}
+                      >
+                        {device.linea}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <div className="flex flex-col">
                   <label className="text-sm font-medium text-gray-700 mb-2">
@@ -397,7 +633,8 @@ const PressureAnalysis = () => {
                     setSelectedDate(newDateObj);
                     loadPressureAnalysis(
                       userData!.numero_cliente.toString(),
-                      newDate
+                      newDate,
+                      selectedDevice?.RTU_id
                     );
                   }}
                   type="day"
@@ -408,6 +645,11 @@ const PressureAnalysis = () => {
                 <h2 className="text-2xl font-semibold text-gray-900">
                   Análisis de Presión -{" "}
                   {selectedDate ? formatDateForAPI(selectedDate) : ""}
+                  {selectedDevice && devices.length > 1 && (
+                    <span className="ml-2 text-lg font-normal text-gray-500">
+                      ({selectedDevice.linea})
+                    </span>
+                  )}
                 </h2>
                 <button
                   onClick={handleNewAnalysis}

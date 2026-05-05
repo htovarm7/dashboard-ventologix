@@ -16,6 +16,72 @@ from .db_utils import obtener_medidores_presion, obtener_datos_presion, get_db_c
 pressure = APIRouter(prefix="/pressure", tags=["📈 Presión"])
 
 
+# ===== Modelo Pydantic para configuración operacional de presión =====
+class PressureConfigModel(BaseModel):
+    presion_max: float = 120.0
+    presion_min: float = 100.0
+    presion_alerta: float = 95.0
+    v_tanque: float = 700.0
+
+
+@pressure.get("/config/{rtu_id}", tags=["⚙️ Configuración"])
+def get_pressure_config_endpoint(rtu_id: int):
+    """Obtiene la configuración operacional de un dispositivo RTU"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT presion_max, presion_min, presion_alerta, v_tanque FROM RTU_device WHERE RTU_id = %s",
+            (rtu_id,)
+        )
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if not row:
+            raise HTTPException(status_code=404, detail="Dispositivo no encontrado")
+        return {"success": True, "data": {
+            "presion_max": row["presion_max"] if row["presion_max"] is not None else 120.0,
+            "presion_min": row["presion_min"] if row["presion_min"] is not None else 100.0,
+            "presion_alerta": row["presion_alerta"] if row["presion_alerta"] is not None else 95.0,
+            "v_tanque": row["v_tanque"] if row["v_tanque"] is not None else 700.0,
+        }}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener configuración: {str(e)}")
+
+
+@pressure.put("/config/{rtu_id}", tags=["⚙️ Configuración"])
+def update_pressure_config(rtu_id: int, config: PressureConfigModel):
+    """Actualiza la configuración operacional de un dispositivo RTU"""
+    if config.presion_alerta >= config.presion_min:
+        raise HTTPException(status_code=400, detail="presion_alerta debe ser menor que presion_min")
+    if config.presion_min >= config.presion_max:
+        raise HTTPException(status_code=400, detail="presion_min debe ser menor que presion_max")
+    if config.v_tanque <= 0:
+        raise HTTPException(status_code=400, detail="v_tanque debe ser mayor que 0")
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE RTU_device
+            SET presion_max = %s, presion_min = %s, presion_alerta = %s, v_tanque = %s
+            WHERE RTU_id = %s
+        """, (config.presion_max, config.presion_min, config.presion_alerta, config.v_tanque, rtu_id))
+        if cursor.rowcount == 0:
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Dispositivo no encontrado")
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"success": True, "message": "Configuración actualizada correctamente", "data": config.model_dump()}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al actualizar configuración: {str(e)}")
+
+
 # ===== Modelos Pydantic para RTU =====
 class RTUSensorModel(BaseModel):
     C: int
@@ -44,10 +110,18 @@ class RTUCreateModel(BaseModel):
     ports: RTUPortModel
 
 
+@pressure.get("/devices", tags=["📈 Presión"])
+def get_client_devices(numero_cliente: int = Query(..., description="Número del cliente")):
+    """Lista todos los dispositivos RTU de un cliente"""
+    dispositivos = obtener_medidores_presion(numero_cliente)
+    return {"success": True, "data": dispositivos}
+
+
 @pressure.get("/plot", tags=["📈 Visualización de Datos"])
 def pressure_analysis_plot(
     numero_cliente: int = Query(..., description="Número del cliente"),
-    fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")
+    fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD"),
+    rtu_id: Optional[int] = Query(None, description="RTU_id del dispositivo (opcional, usa el primero si no se especifica)")
 ):
     """Genera gráfica de análisis de presión"""
     try:
@@ -56,14 +130,19 @@ def pressure_analysis_plot(
         if not dispositivos:
             return {"error": "No se encontraron dispositivos de presión para este cliente"}
 
-        # Constantes
-        presion_min = 100
-        presion_max = 120
-        V_tanque = 700
+        if rtu_id is not None:
+            device = next((d for d in dispositivos if d["RTU_id"] == rtu_id), None)
+            if device is None:
+                return {"error": f"Dispositivo RTU_id={rtu_id} no pertenece a este cliente"}
+        else:
+            device = dispositivos[0]
 
-        first_device = dispositivos[0]
-        RTU_id = first_device["RTU_id"]
-        linea = first_device["linea"]
+        presion_min = device["presion_min"]
+        presion_max = device["presion_max"]
+        presion_alerta = device["presion_alerta"]
+        V_tanque = device["v_tanque"]
+        RTU_id = device["RTU_id"]
+        linea = device["linea"]
 
         df = obtener_datos_presion(RTU_id, fecha=fecha)
 
@@ -137,16 +216,17 @@ def pressure_analysis_plot(
         ax.plot(df_operativa['time'], df_operativa['presion1_psi'], color='blue', label='Presión registrada')
         ax.fill_between(df_operativa['time'], presion_min, presion_max,
                        color='green', alpha=0.1, label=f'Zona Operativa {presion_min}-{presion_max} psi')
-        ax.fill_between(df_operativa['time'], 95, 100, color='yellow', alpha=0.2, label='Zona Riesgo 95–100 psi')
-        ax.axhline(95, color='red', alpha=0.4, label='Alarma Whatsapp psi < 95')
+        ax.fill_between(df_operativa['time'], presion_alerta, presion_min,
+                       color='yellow', alpha=0.2, label=f'Zona Riesgo {presion_alerta}–{presion_min} psi')
+        ax.axhline(presion_alerta, color='red', alpha=0.4, label=f'Alarma Whatsapp psi < {presion_alerta}')
 
-        evento_riesgo = (df_operativa['presion1_psi'] >= 95) & (df_operativa['presion1_psi'] < 100)
+        evento_riesgo = (df_operativa['presion1_psi'] >= presion_alerta) & (df_operativa['presion1_psi'] < presion_min)
         ax.plot(df_operativa['time'][evento_riesgo], df_operativa['presion1_psi'][evento_riesgo],
-               'o', color='orange', label='Evento de Riesgo (95-100 psi)', markersize=4)
+               'o', color='orange', label=f'Evento de Riesgo ({presion_alerta}-{presion_min} psi)', markersize=4)
 
-        fuera_bajo_plot = df_operativa['presion1_psi'] < 95
+        fuera_bajo_plot = df_operativa['presion1_psi'] < presion_alerta
         ax.plot(df_operativa['time'][fuera_bajo_plot], df_operativa['presion1_psi'][fuera_bajo_plot],
-               'o', color='red', label='Evento Crítico (psi < 95)', markersize=4)
+               'o', color='red', label=f'Evento Crítico (psi < {presion_alerta})', markersize=4)
 
         ax.axhline(promedio, color='black', linestyle='-', label='Promedio suavizado')
 
@@ -178,7 +258,8 @@ def pressure_analysis_plot(
 @pressure.get("/stats", tags=["📊 Análisis y Predicciones"])
 def pressure_analysis_stats(
     numero_cliente: int = Query(..., description="Número del cliente"),
-    fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD")
+    fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD"),
+    rtu_id: Optional[int] = Query(None, description="RTU_id del dispositivo (opcional, usa el primero si no se especifica)")
 ):
     """Obtiene estadísticas detalladas de análisis de presión"""
     try:
@@ -187,12 +268,16 @@ def pressure_analysis_stats(
         if not dispositivos:
             return {"error": "No se encontraron dispositivos de presión para este cliente"}
 
-        presion_min = 100
-        presion_max = 120
+        if rtu_id is not None:
+            device = next((d for d in dispositivos if d["RTU_id"] == rtu_id), None)
+            if device is None:
+                return {"error": f"Dispositivo RTU_id={rtu_id} no pertenece a este cliente"}
+        else:
+            device = dispositivos[0]
 
-        first_device = dispositivos[0]
-        RTU_id = first_device["RTU_id"]
-        linea = first_device["linea"]
+        presion_min = device["presion_min"]
+        presion_max = device["presion_max"]
+        RTU_id = device["RTU_id"]
 
         df = obtener_datos_presion(RTU_id, fecha=fecha)
 

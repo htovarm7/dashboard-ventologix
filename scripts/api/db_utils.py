@@ -47,11 +47,12 @@ def convertir_voltaje_a_psi(voltaje, vmin, vmax, lmin, lmax):
 
 
 def obtener_medidores_presion(numero_cliente: int) -> List[dict]:
-    """Consulta todos los dispositivos RTU de presión del cliente"""
+    """Consulta todos los dispositivos RTU de presión del cliente incluyendo su configuración operacional"""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
-        SELECT RTU_id, numero_serie_topico, alias
+        SELECT RTU_id, numero_serie_topico, alias,
+               presion_max, presion_min, presion_alerta, v_tanque
         FROM RTU_device
         WHERE numero_cliente = %s
     """, (numero_cliente,))
@@ -63,7 +64,11 @@ def obtener_medidores_presion(numero_cliente: int) -> List[dict]:
         {
             "RTU_id": col["RTU_id"],
             "numero_serie_topico": col["numero_serie_topico"],
-            "linea": col["alias"] if col["alias"] else f"RTU-{col['RTU_id']}"
+            "linea": col["alias"] if col["alias"] else f"RTU-{col['RTU_id']}",
+            "presion_max": col["presion_max"] if col["presion_max"] is not None else 120.0,
+            "presion_min": col["presion_min"] if col["presion_min"] is not None else 100.0,
+            "presion_alerta": col["presion_alerta"] if col["presion_alerta"] is not None else 95.0,
+            "v_tanque": col["v_tanque"] if col["v_tanque"] is not None else 700.0,
         }
         for col in result
     ]
