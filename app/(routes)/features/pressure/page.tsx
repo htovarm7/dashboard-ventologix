@@ -38,19 +38,12 @@ const PressureAnalysis = () => {
   );
   const [imageReady, setImageReady] = useState(false);
   const [statsReady, setStatsReady] = useState(false);
-  const [pressureConfig, setPressureConfig] = useState<PressureConfig>({
-    presion_max: 120,
-    presion_min: 100,
-    presion_alerta: 95,
-    v_tanque: 700,
-  });
   const [configDraft, setConfigDraft] = useState<PressureConfig>({
     presion_max: 120,
     presion_min: 100,
     presion_alerta: 95,
     v_tanque: 700,
   });
-  const [showConfigPanel, setShowConfigPanel] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
   const [configSuccess, setConfigSuccess] = useState(false);
@@ -83,7 +76,6 @@ const PressureAnalysis = () => {
       if (!res.ok) return;
       const data = await res.json();
       if (data.success && data.data) {
-        setPressureConfig(data.data);
         setConfigDraft(data.data);
       }
     } catch {
@@ -110,7 +102,6 @@ const PressureAnalysis = () => {
         setConfigError(data.detail || "Error al guardar configuración");
         return;
       }
-      setPressureConfig(configDraft);
       setConfigSuccess(true);
       setTimeout(() => setConfigSuccess(false), 3000);
     } catch {
@@ -370,346 +361,443 @@ const PressureAnalysis = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <BackButton />
 
-        <div className="bg-white rounded-lg shadow-lg p-6 mt-6">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Análisis de Presión
-              </h1>
-            </div>
-          </div>
+        {/* Header */}
+        <div className="mt-6 mb-4">
+          <h1 className="text-3xl font-bold text-gray-900">
+            Análisis de Presión
+          </h1>
+          {selectedDevice && (
+            <p className="text-sm text-gray-500 mt-1">
+              Dispositivo:{" "}
+              <span className="font-medium text-gray-700">
+                {selectedDevice.linea}
+              </span>
+            </p>
+          )}
+        </div>
 
-          {/* Panel de Configuración de Métricas */}
-          <div className="mb-6">
-            <button
-              onClick={() => {
-                setShowConfigPanel((prev) => !prev);
-                if (!showConfigPanel) setConfigDraft({ ...pressureConfig });
-              }}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm border ${
-                showConfigPanel
-                  ? "bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300"
-                  : "bg-blue-600 text-white border-blue-700 hover:bg-blue-700"
-              }`}
-            >
-              <span>⚙️</span>
-              {showConfigPanel ? "Cerrar configuración" : "Configurar métricas"}
-            </button>
+        {/* Layout principal + sidebar */}
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
 
-            {showConfigPanel && (
-              <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-5">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  Parámetros operacionales personalizados
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Presión máxima (psi)
-                    </label>
-                    <input
-                      type="number"
-                      value={configDraft.presion_max}
-                      onChange={(e) =>
-                        setConfigDraft((d) => ({
-                          ...d,
-                          presion_max: parseFloat(e.target.value),
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Presión mínima (psi)
-                    </label>
-                    <input
-                      type="number"
-                      value={configDraft.presion_min}
-                      onChange={(e) =>
-                        setConfigDraft((d) => ({
-                          ...d,
-                          presion_min: parseFloat(e.target.value),
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Presión alerta (psi)
-                    </label>
-                    <input
-                      type="number"
-                      value={configDraft.presion_alerta}
-                      onChange={(e) =>
-                        setConfigDraft((d) => ({
-                          ...d,
-                          presion_alerta: parseFloat(e.target.value),
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Volumen tanque (L)
-                    </label>
-                    <input
-                      type="number"
-                      value={configDraft.v_tanque}
-                      onChange={(e) =>
-                        setConfigDraft((d) => ({
-                          ...d,
-                          v_tanque: parseFloat(e.target.value),
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
+          {/* ── Contenido principal ── */}
+          <div className="flex-1 min-w-0 space-y-5">
 
-                <div className="text-xs text-gray-500 mb-3">
-                  Regla: Presión alerta &lt; Presión mínima &lt; Presión máxima
-                </div>
+            {/* Selector de Dispositivo + Fecha */}
+            {showDateSelector && (
+              <div className="space-y-4">
 
-                {configError && (
-                  <div className="text-sm text-red-600 mb-3">{configError}</div>
-                )}
-                {configSuccess && (
-                  <div className="text-sm text-green-600 mb-3">
-                    ✓ Configuración guardada correctamente
+                {/* Selector de dispositivo */}
+                {devices.length > 0 && (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">
+                      Selecciona un dispositivo
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {devices.map((device) => {
+                        const isSelected =
+                          selectedDevice?.RTU_id === device.RTU_id;
+                        return (
+                          <button
+                            key={device.RTU_id}
+                            onClick={() => setSelectedDevice(device)}
+                            className={`relative flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all ${
+                              isSelected
+                                ? "border-blue-500 bg-blue-50 shadow-md"
+                                : "border-gray-200 bg-white hover:border-blue-300 hover:bg-gray-50"
+                            }`}
+                          >
+                            {/* Icono */}
+                            <div
+                              className={`shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
+                                isSelected ? "bg-blue-500" : "bg-gray-100"
+                              }`}
+                            >
+                              <svg
+                                className={`w-5 h-5 ${isSelected ? "text-white" : "text-gray-500"}`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"
+                                />
+                              </svg>
+                            </div>
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className={`font-semibold text-sm truncate ${
+                                  isSelected ? "text-blue-700" : "text-gray-800"
+                                }`}
+                              >
+                                {device.linea}
+                              </p>
+                            </div>
+                            {/* Check seleccionado */}
+                            {isSelected && (
+                              <div className="shrink-0 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                                <svg
+                                  className="w-3 h-3 text-white"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={3}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
-                <button
-                  onClick={saveConfig}
-                  disabled={savingConfig}
-                  className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {savingConfig ? "Guardando..." : "Guardar configuración"}
-                </button>
+                {/* Selector de fecha */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">
+                    Selecciona una fecha
+                  </p>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-4">
+                    <div className="flex-1">
+                      <div
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-colors ${
+                          selectedDate
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-gray-200 bg-gray-50"
+                        }`}
+                      >
+                        <svg
+                          className={`w-5 h-5 shrink-0 ${selectedDate ? "text-blue-500" : "text-gray-400"}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
+                        <DatePicker
+                          selected={selectedDate}
+                          onChange={(date) => setSelectedDate(date)}
+                          dateFormat="yyyy-MM-dd"
+                          minDate={minDate}
+                          maxDate={maxDate}
+                          placeholderText="Selecciona una fecha"
+                          className={`w-full bg-transparent text-sm font-semibold focus:outline-none ${
+                            selectedDate ? "text-blue-700" : "text-gray-500"
+                          }`}
+                          showYearDropdown
+                          showMonthDropdown
+                          dropdownMode="select"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleDateSubmit}
+                      disabled={!selectedDate || !selectedDevice || imageLoading}
+                      className="px-8 py-3 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+                    >
+                      {imageLoading ? "Generando..." : "Generar análisis →"}
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* Loading */}
+            {imageLoading && (
+              <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="relative shrink-0">
+                    <div className="animate-spin rounded-full h-9 w-9 border-2 border-blue-200 border-t-blue-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-800">
+                      Procesando análisis
+                    </p>
+                    <p className="text-sm text-blue-600 mt-0.5">
+                      {loadingProgress}
+                    </p>
+                  </div>
+                </div>
+                <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                  <div
+                    className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-700"
+                    style={{
+                      width: loadingProgress.includes("Iniciando")
+                        ? "10%"
+                        : loadingProgress.includes("Verificando")
+                        ? "25%"
+                        : loadingProgress.includes("Cargando imagen")
+                        ? "70%"
+                        : loadingProgress.includes("completado")
+                        ? "100%"
+                        : "50%",
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  Tiempo estimado: 1–3 minutos
+                </p>
+              </div>
+            )}
+
+            {/* Error */}
+            {error && userData && (
+              <div className="bg-white rounded-xl shadow-sm border border-red-200 p-6">
+                <p className="text-red-700 font-medium mb-4">{error}</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={retryImageLoad}
+                    className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    Reintentar
+                  </button>
+                  <button
+                    onClick={handleNewAnalysis}
+                    className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Nueva fecha
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Resultados */}
+            {imageUrl && pressureStats && imageReady && statsReady && (
+              <div className="space-y-5">
+                {/* Navegador de fechas */}
+                {selectedDate && (
+                  <DateNavigator
+                    currentDate={formatDateForAPI(selectedDate)}
+                    onDateChange={(newDate) => {
+                      const newDateObj = new Date(newDate + "T00:00:00");
+                      setSelectedDate(newDateObj);
+                      loadPressureAnalysis(
+                        userData!.numero_cliente.toString(),
+                        newDate,
+                        selectedDevice?.RTU_id
+                      );
+                    }}
+                    type="day"
+                  />
+                )}
+
+                {/* Título + botón nuevo análisis */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">
+                      {selectedDate ? formatDateForAPI(selectedDate) : ""}
+                    </h2>
+                    {selectedDevice && devices.length > 1 && (
+                      <p className="text-sm text-gray-500">
+                        {selectedDevice.linea}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleNewAnalysis}
+                    className="px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+                  >
+                    ← Nueva fecha
+                  </button>
+                </div>
+
+                {/* Gráfica */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                  <Image
+                    src={imageUrl}
+                    alt={`Análisis de presión para ${
+                      selectedDate ? formatDateForAPI(selectedDate) : ""
+                    }`}
+                    width={1800}
+                    height={1000}
+                    className="w-full h-auto rounded-lg"
+                    unoptimized
+                  />
+                </div>
+
+                {/* Métricas operacionales */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-4">
+                    Métricas operacionales
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {[
+                      {
+                        label: "Presión promedio",
+                        value: `${pressureStats.presion_promedio.toFixed(2)} psi`,
+                        color: "blue",
+                      },
+                      {
+                        label: "Tiempo total",
+                        value: `${pressureStats.tiempo_total_horas}h ${pressureStats.tiempo_total_minutos ?? 0}min`,
+                        color: "indigo",
+                      },
+                      {
+                        label: "Pendiente subida",
+                        value: `${pressureStats.pendiente_subida.toFixed(2)} psi/min`,
+                        color: "green",
+                      },
+                      {
+                        label: "Pendiente bajada",
+                        value: `${pressureStats.pendiente_bajada.toFixed(2)} psi/min`,
+                        color: "orange",
+                      },
+                      {
+                        label: "Variabilidad relativa",
+                        value: pressureStats.variabilidad_relativa.toFixed(3),
+                        color: "purple",
+                      },
+                      {
+                        label: "Estabilidad ±5 psi",
+                        value: `${pressureStats.indice_estabilidad.toFixed(2)}%`,
+                        color: "teal",
+                      },
+                      {
+                        label: "Eventos críticos",
+                        value: pressureStats.eventos_criticos_total.toString(),
+                        color:
+                          pressureStats.eventos_criticos_total > 0
+                            ? "red"
+                            : "green",
+                      },
+                    ].map(({ label, value, color }) => (
+                      <div
+                        key={label}
+                        className="bg-gray-50 rounded-lg p-3 border border-gray-100"
+                      >
+                        <p className="text-xs text-gray-500 mb-1">{label}</p>
+                        <p
+                          className={`text-lg font-bold text-${color}-600`}
+                        >
+                          {value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
 
-          {/* Selector de Fecha */}
-          {showDateSelector && (
-            <div className="bg-blue-50 p-6 rounded-lg border border-blue-200 mb-6">
-              <h2 className="text-xl font-semibold text-blue-900 mb-4">
-                Seleccionar Fecha para Análisis
-              </h2>
-
-              {/* Selector de dispositivo — solo visible si hay más de uno */}
-              {devices.length > 1 && (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Dispositivo
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {devices.map((device) => (
-                      <button
-                        key={device.RTU_id}
-                        onClick={() => setSelectedDevice(device)}
-                        className={`px-4 py-2 rounded-md text-sm font-medium border transition-colors ${
-                          selectedDevice?.RTU_id === device.RTU_id
-                            ? "bg-blue-600 text-white border-blue-600"
-                            : "bg-white text-gray-700 border-gray-300 hover:bg-blue-50"
-                        }`}
-                      >
-                        {device.linea}
-                      </button>
-                    ))}
-                  </div>
+          {/* ── Sidebar derecho: Configuración ── */}
+          <div className="w-full lg:w-72 shrink-0">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 sticky top-6">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="p-1.5 bg-blue-50 rounded-lg">
+                  <svg
+                    className="w-4 h-4 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                    />
+                  </svg>
                 </div>
-              )}
-
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-700 mb-2">
-                    Fecha de análisis:
-                  </label>
-                  <DatePicker
-                    selected={selectedDate}
-                    onChange={(date) => setSelectedDate(date)}
-                    dateFormat="yyyy-MM-dd"
-                    minDate={minDate}
-                    maxDate={maxDate}
-                    placeholderText="Selecciona una fecha"
-                    className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    showYearDropdown
-                    showMonthDropdown
-                    dropdownMode="select"
-                  />
-                </div>
-
-                <button
-                  onClick={handleDateSubmit}
-                  disabled={!selectedDate || imageLoading}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed mt-4 sm:mt-6"
-                >
-                  {imageLoading ? "Generando..." : "Generar Análisis"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Loading Progress */}
-          {imageLoading && (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 mb-6">
-              <div className="flex items-center space-x-4 mb-4">
-                <div className="relative">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <div className="absolute inset-0 rounded-full h-8 w-8 border-t-2 animate-pulse border-blue-300"></div>
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-lg mb-1 text-blue-900">
-                    Procesando Análisis de Presión
-                  </div>
-                  <div className="text-blue-700">{loadingProgress}</div>
-                </div>
-              </div>
-
-              {/* Progress bar */}
-              <div className="rounded-full h-3 overflow-hidden bg-blue-200">
-                <div
-                  className="h-3 rounded-full animate-pulse transition-all duration-1000 bg-gradient-to-r from-blue-500 to-indigo-500"
-                  style={{
-                    width: loadingProgress.includes("Iniciando")
-                      ? "10%"
-                      : loadingProgress.includes("Verificando")
-                      ? "25%"
-                      : loadingProgress.includes(
-                          "Cargando imagen y estadísticas"
-                        )
-                      ? "70%"
-                      : loadingProgress.includes("completado")
-                      ? "100%"
-                      : "50%",
-                  }}
-                ></div>
-              </div>
-
-              <div className="text-xs mt-2 text-blue-600">
-                Tiempo estimado: 1-3 minutos • Cargando imagen
-              </div>
-            </div>
-          )}
-
-          {/* Error Display */}
-          {error && userData && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
-              <div className="text-red-800 font-medium mb-3">
-                Error: {error}
-              </div>
-              <div className="flex space-x-3">
-                <button
-                  onClick={retryImageLoad}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                >
-                  Reintentar
-                </button>
-                <button
-                  onClick={handleNewAnalysis}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-                >
-                  Seleccionar Nueva Fecha
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Image Display - Only show when both image and stats are ready */}
-          {imageUrl && pressureStats && imageReady && statsReady && (
-            <div className="space-y-6">
-              {/* Date Navigator */}
-              {selectedDate && (
-                <DateNavigator
-                  currentDate={formatDateForAPI(selectedDate)}
-                  onDateChange={(newDate) => {
-                    const newDateObj = new Date(newDate + "T00:00:00");
-                    setSelectedDate(newDateObj);
-                    loadPressureAnalysis(
-                      userData!.numero_cliente.toString(),
-                      newDate,
-                      selectedDevice?.RTU_id
-                    );
-                  }}
-                  type="day"
-                />
-              )}
-
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-semibold text-gray-900">
-                  Análisis de Presión -{" "}
-                  {selectedDate ? formatDateForAPI(selectedDate) : ""}
-                  {selectedDevice && devices.length > 1 && (
-                    <span className="ml-2 text-lg font-normal text-gray-500">
-                      ({selectedDevice.linea})
-                    </span>
-                  )}
+                <h2 className="text-sm font-bold text-gray-800">
+                  Parámetros operacionales
                 </h2>
-                <button
-                  onClick={handleNewAnalysis}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                >
-                  Nuevo Análisis
-                </button>
               </div>
 
-              <div className="bg-gray-100 p-4 rounded-lg">
-                <Image
-                  src={imageUrl}
-                  alt={`Análisis de presión para ${
-                    selectedDate ? formatDateForAPI(selectedDate) : ""
-                  }`}
-                  width={1800}
-                  height={1000}
-                  className="w-full h-auto rounded shadow-lg"
-                  unoptimized
-                />
+              <div className="space-y-4">
+                {(
+                  [
+                    {
+                      key: "presion_max",
+                      label: "Presión máxima",
+                      unit: "psi",
+                      color: "green",
+                    },
+                    {
+                      key: "presion_min",
+                      label: "Presión mínima",
+                      unit: "psi",
+                      color: "blue",
+                    },
+                    {
+                      key: "presion_alerta",
+                      label: "Presión alerta",
+                      unit: "psi",
+                      color: "yellow",
+                    },
+                    {
+                      key: "v_tanque",
+                      label: "Volumen tanque",
+                      unit: "L",
+                      color: "purple",
+                    },
+                  ] as const
+                ).map(({ key, label, unit, color }) => (
+                  <div key={key}>
+                    <label className="flex items-center justify-between text-xs font-medium text-gray-500 mb-1.5">
+                      <span>{label}</span>
+                      <span
+                        className={`px-1.5 py-0.5 bg-${color}-50 text-${color}-700 rounded text-xs font-semibold`}
+                      >
+                        {unit}
+                      </span>
+                    </label>
+                    <input
+                      type="number"
+                      value={configDraft[key]}
+                      onChange={(e) =>
+                        setConfigDraft((d) => ({
+                          ...d,
+                          [key]: parseFloat(e.target.value),
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors"
+                    />
+                  </div>
+                ))}
               </div>
 
-              {/* Analysis Info */}
-              <div className="p-4 rounded-lg border bg-blue-50 border-blue-200">
-                <h3 className="text-2xl font-semibold text-blue-900 mb-3">
-                  Métricas Operacionales
-                </h3>
+              <p className="text-xs text-gray-400 mt-3 leading-relaxed">
+                Alerta &lt; Mínima &lt; Máxima
+              </p>
 
-                <div className="text-xl text-black space-y-1">
-                  <div>
-                    • Presión promedio:{" "}
-                    {pressureStats.presion_promedio.toFixed(2)} psi
-                  </div>
-                  <div>
-                    • Tiempo total: {pressureStats.tiempo_total_horas}h{" "}
-                    {pressureStats.tiempo_total_minutos}min
-                  </div>
-                  <div>
-                    • Pendiente subida:{" "}
-                    {pressureStats.pendiente_subida.toFixed(2)} psi/min
-                  </div>
-                  <div>
-                    • Pendiente bajada:{" "}
-                    {pressureStats.pendiente_bajada.toFixed(2)} psi/min
-                  </div>
-                  <div>
-                    • Variabilidad relativa:{" "}
-                    {pressureStats.variabilidad_relativa.toFixed(3)}
-                  </div>
-                  <div>
-                    • Estabilidad ±5 psi:{" "}
-                    {pressureStats.indice_estabilidad.toFixed(2)}%
-                  </div>
-                  <div>
-                    • Eventos críticos: {pressureStats.eventos_criticos_total}
-                  </div>
-                </div>
-              </div>
+              {configError && (
+                <p className="text-xs text-red-600 mt-3 bg-red-50 px-3 py-2 rounded-lg">
+                  {configError}
+                </p>
+              )}
+              {configSuccess && (
+                <p className="text-xs text-green-700 mt-3 bg-green-50 px-3 py-2 rounded-lg font-medium">
+                  ✓ Guardado correctamente
+                </p>
+              )}
+
+              <button
+                onClick={saveConfig}
+                disabled={savingConfig}
+                className="w-full mt-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+              >
+                {savingConfig ? "Guardando..." : "Guardar cambios"}
+              </button>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
