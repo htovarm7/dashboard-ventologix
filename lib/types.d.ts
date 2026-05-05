@@ -444,6 +444,13 @@ export interface PressureStats {
   eventos_criticos_total: number;
 }
 
+export interface PressureConfig {
+  presion_max: number;
+  presion_min: number;
+  presion_alerta: number;
+  v_tanque: number;
+}
+
 export interface LineData {
   time: string;
   corriente: number;
