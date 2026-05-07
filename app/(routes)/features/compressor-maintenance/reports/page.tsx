@@ -54,24 +54,104 @@ interface DryerReport {
   created_at: string;
 }
 
+interface CompressorGroup {
+  key: string;
+  alias: string;
+  numeroSerie: string;
+  reports: OrdenServicio[];
+}
+
 interface ReportsByClient {
   clientName: string;
   numeroCliente: number;
-  reports: OrdenServicio[];
+  compressors: CompressorGroup[];
+  totalReports: number;
+}
+
+interface DryerGroup {
+  key: string;
+  equipo: string;
+  modelo: string;
+  noSerie: string;
+  reports: DryerReport[];
 }
 
 interface DryerReportsByClient {
   clientName: string;
   numeroCliente: string;
-  reports: DryerReport[];
+  dryers: DryerGroup[];
+  totalReports: number;
 }
+
+const groupOrdenesByCompressor = (
+  reports: OrdenServicio[],
+): CompressorGroup[] => {
+  const map = new Map<string, CompressorGroup>();
+  reports.forEach((orden) => {
+    const key =
+      orden.numero_serie ||
+      orden.alias_compresor ||
+      `__sin_compresor_${orden.folio}`;
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        alias: orden.alias_compresor || "Compresor",
+        numeroSerie: orden.numero_serie || "",
+        reports: [],
+      });
+    }
+    map.get(key)!.reports.push(orden);
+  });
+  return Array.from(map.values())
+    .map((group) => ({
+      ...group,
+      reports: group.reports.sort(
+        (a, b) =>
+          parseLocalDate(b.fecha_creacion || "").getTime() -
+          parseLocalDate(a.fecha_creacion || "").getTime(),
+      ),
+    }))
+    .sort((a, b) => a.alias.localeCompare(b.alias));
+};
+
+const groupDryersByEquipment = (reports: DryerReport[]): DryerGroup[] => {
+  const map = new Map<string, DryerGroup>();
+  reports.forEach((report) => {
+    const key =
+      report.no_serie || report.equipo || `__sin_equipo_${report.folio}`;
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        equipo: report.equipo || "Secadora",
+        modelo: report.modelo || "",
+        noSerie: report.no_serie || "",
+        reports: [],
+      });
+    }
+    map.get(key)!.reports.push(report);
+  });
+  return Array.from(map.values())
+    .map((group) => ({
+      ...group,
+      reports: group.reports.sort(
+        (a, b) =>
+          new Date(b.created_at || "").getTime() -
+          new Date(a.created_at || "").getTime(),
+      ),
+    }))
+    .sort((a, b) => a.equipo.localeCompare(b.equipo));
+};
 
 const Reports = () => {
   const router = useRouter();
   const [reportsByClient, setReportsByClient] = useState<ReportsByClient[]>([]);
-  const [flatReports, setFlatReports] = useState<OrdenServicio[]>([]);
+  const [flatCompressors, setFlatCompressors] = useState<CompressorGroup[]>([]);
+  const [flatReportsCount, setFlatReportsCount] = useState(0);
   const [userRole, setUserRole] = useState<number>(0);
   const [expandedClients, setExpandedClients] = useState<Set<string>>(
+    new Set(),
+  );
+  const [expandedCompressors, setExpandedCompressors] = useState<Set<string>>(
     new Set(),
   );
   const [loading, setLoading] = useState(true);
@@ -79,13 +159,15 @@ const Reports = () => {
   const [dryerReportsByClient, setDryerReportsByClient] = useState<
     DryerReportsByClient[]
   >([]);
-  const [flatDryerReports, setFlatDryerReports] = useState<DryerReport[]>([]);
+  const [flatDryers, setFlatDryers] = useState<DryerGroup[]>([]);
+  const [flatDryerReportsCount, setFlatDryerReportsCount] = useState(0);
   const [activeTab, setActiveTab] = useState<"compresores" | "secadoras">(
     "compresores",
   );
   const [expandedDryerClients, setExpandedDryerClients] = useState<Set<string>>(
     new Set(),
   );
+  const [expandedDryers, setExpandedDryers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadUserDataAndReports();
@@ -131,17 +213,16 @@ const Reports = () => {
         );
       }
 
-      // For client roles (3 & 4), show flat list; for others, group by client
+      // For client roles (3 & 4), show grouped-by-compressor list; for others,
+      // group by client and then by compressor.
       if ((rol === 3 || rol === 4) && numeroCliente) {
-        const sortedReports = filteredOrdenes.sort(
-          (a, b) =>
-            parseLocalDate(b.fecha_creacion || "").getTime() -
-            parseLocalDate(a.fecha_creacion || "").getTime(),
-        );
-        setFlatReports(sortedReports);
+        setFlatCompressors(groupOrdenesByCompressor(filteredOrdenes));
+        setFlatReportsCount(filteredOrdenes.length);
       } else {
-        // Group reports by client name
-        const clientsMap = new Map<string, ReportsByClient>();
+        const clientsMap = new Map<
+          string,
+          { clientName: string; numeroCliente: number; reports: OrdenServicio[] }
+        >();
 
         filteredOrdenes.forEach((orden) => {
           const clientName = orden.nombre_cliente || "Sin cliente";
@@ -158,17 +239,14 @@ const Reports = () => {
           clientsMap.get(clientKey)!.reports.push(orden);
         });
 
-        // Convert map to array and sort
         const groupedReports: ReportsByClient[] = Array.from(
           clientsMap.values(),
         )
           .map((group) => ({
-            ...group,
-            reports: group.reports.sort(
-              (a, b) =>
-                parseLocalDate(b.fecha_creacion || "").getTime() -
-                parseLocalDate(a.fecha_creacion || "").getTime(),
-            ),
+            clientName: group.clientName,
+            numeroCliente: group.numeroCliente,
+            compressors: groupOrdenesByCompressor(group.reports),
+            totalReports: group.reports.length,
           }))
           .sort((a, b) => a.clientName.localeCompare(b.clientName));
 
@@ -188,15 +266,17 @@ const Reports = () => {
               dryerData = dryerData.filter(
                 (r) => String(r.numero_cliente) === String(numeroCliente),
               );
-              const sorted = dryerData.sort(
-                (a, b) =>
-                  new Date(b.created_at || "").getTime() -
-                  new Date(a.created_at || "").getTime(),
-              );
-              setFlatDryerReports(sorted);
+              setFlatDryers(groupDryersByEquipment(dryerData));
+              setFlatDryerReportsCount(dryerData.length);
             } else {
-              // Group dryer reports by client for admin/technician
-              const dryerClientsMap = new Map<string, DryerReportsByClient>();
+              const dryerClientsMap = new Map<
+                string,
+                {
+                  clientName: string;
+                  numeroCliente: string;
+                  reports: DryerReport[];
+                }
+              >();
               dryerData.forEach((report) => {
                 const clientName = report.cliente || "Sin cliente";
                 const clientKey = `${clientName}-${report.numero_cliente}`;
@@ -210,14 +290,14 @@ const Reports = () => {
                 dryerClientsMap.get(clientKey)!.reports.push(report);
               });
 
-              const groupedDryer = Array.from(dryerClientsMap.values())
+              const groupedDryer: DryerReportsByClient[] = Array.from(
+                dryerClientsMap.values(),
+              )
                 .map((group) => ({
-                  ...group,
-                  reports: group.reports.sort(
-                    (a, b) =>
-                      new Date(b.created_at || "").getTime() -
-                      new Date(a.created_at || "").getTime(),
-                  ),
+                  clientName: group.clientName,
+                  numeroCliente: group.numeroCliente,
+                  dryers: groupDryersByEquipment(group.reports),
+                  totalReports: group.reports.length,
                 }))
                 .sort((a, b) => a.clientName.localeCompare(b.clientName));
 
@@ -253,6 +333,26 @@ const Reports = () => {
       newExpanded.add(clientName);
     }
     setExpandedDryerClients(newExpanded);
+  };
+
+  const toggleCompressor = (key: string) => {
+    const newExpanded = new Set(expandedCompressors);
+    if (newExpanded.has(key)) {
+      newExpanded.delete(key);
+    } else {
+      newExpanded.add(key);
+    }
+    setExpandedCompressors(newExpanded);
+  };
+
+  const toggleDryer = (key: string) => {
+    const newExpanded = new Set(expandedDryers);
+    if (newExpanded.has(key)) {
+      newExpanded.delete(key);
+    } else {
+      newExpanded.add(key);
+    }
+    setExpandedDryers(newExpanded);
   };
 
   const handleViewReport = (orden: OrdenServicio) => {
@@ -339,7 +439,7 @@ const Reports = () => {
 
   const isClientRole = userRole === 3 || userRole === 4;
   const hasNoReports = isClientRole
-    ? flatReports.length === 0 && flatDryerReports.length === 0
+    ? flatCompressors.length === 0 && flatDryers.length === 0
     : reportsByClient.length === 0 && dryerReportsByClient.length === 0;
 
   if (hasNoReports) {
@@ -376,8 +476,8 @@ const Reports = () => {
           >
             Compresores (
             {isClientRole
-              ? flatReports.length
-              : reportsByClient.reduce((sum, g) => sum + g.reports.length, 0)}
+              ? flatReportsCount
+              : reportsByClient.reduce((sum, g) => sum + g.totalReports, 0)}
             )
           </button>
           <button
@@ -390,9 +490,9 @@ const Reports = () => {
           >
             Secadoras (
             {isClientRole
-              ? flatDryerReports.length
+              ? flatDryerReportsCount
               : dryerReportsByClient.reduce(
-                  (sum, g) => sum + g.reports.length,
+                  (sum, g) => sum + g.totalReports,
                   0,
                 )}
             )
@@ -407,98 +507,145 @@ const Reports = () => {
           }}
         >
           {isClientRole ? (
-            /* Flat list for client roles (3 & 4) */
+            /* Flat list for client roles (3 & 4), grouped by compressor */
             <div className="bg-white rounded-lg shadow-md overflow-hidden p-6">
               <div className="space-y-3">
-                {flatReports.map((orden) => (
-                  <div
-                    key={orden.folio}
-                    className={`flex items-center justify-between p-4 rounded-lg transition-colors border ${
-                      orden.estado === "por_firmar"
-                        ? "bg-yellow-50 border-yellow-300 hover:bg-yellow-100"
-                        : "bg-gray-50 border-gray-200 hover:bg-gray-100"
-                    }`}
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-4 mb-2 flex-wrap gap-y-1">
-                        <div className="flex items-center space-x-2 text-gray-700">
-                          <Wrench size={18} />
-                          <span className="font-semibold">
-                            {orden.alias_compresor || "Compresor"}
-                          </span>
-                        </div>
-                        {orden.numero_serie && (
-                          <span className="text-sm text-gray-500">
-                            S/N: {orden.numero_serie}
-                          </span>
-                        )}
-                        <span className="text-sm text-blue-600 font-medium">
-                          Folio: {orden.folio}
-                        </span>
-                        {orden.estado === "por_firmar" && (
-                          <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-semibold rounded-full">
-                            Pendiente de firma
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-6 text-sm text-gray-600">
-                        <div className="flex items-center space-x-2">
-                          <Calendar size={16} />
-                          <span>{formatDate(orden.fecha_programada)}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <FileText size={16} />
-                          <span>{orden.tipo_visita || "Mantenimiento"}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <User size={16} />
-                          <span>{orden.tipo_mantenimiento || "N/A"}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {orden.estado === "por_firmar" ? (
-                        <button
-                          onClick={() => handleViewReport(orden)}
-                          className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium flex items-center space-x-2"
-                        >
-                          <span>✍️ Firmar Reporte</span>
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => handleDownloadPdf(orden.folio)}
-                            disabled={downloadingFolio === orden.folio}
-                            className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium flex items-center space-x-2 ${
-                              downloadingFolio === orden.folio
-                                ? "bg-red-400 cursor-not-allowed"
-                                : "bg-red-600 hover:bg-red-700"
-                            }`}
-                          >
-                            {downloadingFolio === orden.folio ? (
-                              <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                                <span>Generando...</span>
-                              </>
+                {flatCompressors.map((compressor) => {
+                  const compKey = `flat-${compressor.key}`;
+                  const isExpanded = expandedCompressors.has(compKey);
+                  return (
+                    <div
+                      key={compKey}
+                      className="border border-gray-200 rounded-lg overflow-hidden"
+                    >
+                      <div
+                        className="p-4 bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors"
+                        onClick={() => toggleCompressor(compKey)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3 flex-wrap gap-y-1">
+                            {isExpanded ? (
+                              <ChevronDown
+                                className="text-blue-700"
+                                size={20}
+                              />
                             ) : (
-                              <>
-                                <Download size={16} />
-                                <span>PDF</span>
-                              </>
+                              <ChevronRight
+                                className="text-blue-700"
+                                size={20}
+                              />
                             )}
-                          </button>
-                          <button
-                            onClick={() => handleViewReport(orden)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
-                          >
-                            <Eye size={16} />
-                            <span>Ver Reporte</span>
-                          </button>
-                        </>
+                            <Wrench className="text-blue-600" size={20} />
+                            <span className="font-semibold text-gray-900">
+                              {compressor.alias}
+                            </span>
+                            {compressor.numeroSerie && (
+                              <span className="text-sm text-gray-500">
+                                S/N: {compressor.numeroSerie}
+                              </span>
+                            )}
+                          </div>
+                          <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap">
+                            {compressor.reports.length} reporte
+                            {compressor.reports.length !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      </div>
+                      {isExpanded && (
+                        <div className="p-4 bg-white space-y-3">
+                          {compressor.reports.map((orden) => (
+                            <div
+                              key={orden.folio}
+                              className={`flex items-center justify-between p-4 rounded-lg transition-colors border ${
+                                orden.estado === "por_firmar"
+                                  ? "bg-yellow-50 border-yellow-300 hover:bg-yellow-100"
+                                  : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                              }`}
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-4 mb-2 flex-wrap gap-y-1">
+                                  <span className="text-sm text-blue-600 font-medium">
+                                    Folio: {orden.folio}
+                                  </span>
+                                  {orden.estado === "por_firmar" && (
+                                    <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-semibold rounded-full">
+                                      Pendiente de firma
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center space-x-6 text-sm text-gray-600 flex-wrap gap-y-1">
+                                  <div className="flex items-center space-x-2">
+                                    <Calendar size={16} />
+                                    <span>
+                                      {formatDate(orden.fecha_programada)}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <FileText size={16} />
+                                    <span>
+                                      {orden.tipo_visita || "Mantenimiento"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <User size={16} />
+                                    <span>
+                                      {orden.tipo_mantenimiento || "N/A"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                {orden.estado === "por_firmar" ? (
+                                  <button
+                                    onClick={() => handleViewReport(orden)}
+                                    className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                                  >
+                                    <span>✍️ Firmar Reporte</span>
+                                  </button>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() =>
+                                        handleDownloadPdf(orden.folio)
+                                      }
+                                      disabled={
+                                        downloadingFolio === orden.folio
+                                      }
+                                      className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium flex items-center space-x-2 ${
+                                        downloadingFolio === orden.folio
+                                          ? "bg-red-400 cursor-not-allowed"
+                                          : "bg-red-600 hover:bg-red-700"
+                                      }`}
+                                    >
+                                      {downloadingFolio === orden.folio ? (
+                                        <>
+                                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                                          <span>Generando...</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Download size={16} />
+                                          <span>PDF</span>
+                                        </>
+                                      )}
+                                    </button>
+                                    <button
+                                      onClick={() => handleViewReport(orden)}
+                                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                                    >
+                                      <Eye size={16} />
+                                      <span>Ver Reporte</span>
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ) : (
@@ -526,109 +673,159 @@ const Reports = () => {
                       </h2>
                     </div>
                     <span className="bg-gray-600 text-white px-4 py-2 rounded-full text-sm font-medium">
-                      {clientGroup.reports.length} reporte
-                      {clientGroup.reports.length !== 1 ? "s" : ""}
+                      {clientGroup.totalReports} reporte
+                      {clientGroup.totalReports !== 1 ? "s" : ""}
                     </span>
                   </div>
                 </div>
 
-                {/* Reports list */}
+                {/* Compressor groups */}
                 {expandedClients.has(clientGroup.clientName) && (
                   <div className="p-6 bg-white">
                     <div className="space-y-3">
-                      {clientGroup.reports.map((orden) => (
-                        <div
-                          key={orden.folio}
-                          className={`flex items-center justify-between p-4 rounded-lg transition-colors border ${
-                            orden.estado === "por_firmar"
-                              ? "bg-yellow-50 border-yellow-300 hover:bg-yellow-100"
-                              : "bg-gray-50 border-gray-200 hover:bg-gray-100"
-                          }`}
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-6 mb-2 flex-wrap gap-y-1">
-                              <div className="flex items-center space-x-2 text-gray-700">
-                                <Wrench size={18} />
-                                <span className="font-semibold">
-                                  {orden.alias_compresor || "Compresor"}
+                      {clientGroup.compressors.map((compressor) => {
+                        const compKey = `${clientGroup.numeroCliente}-${compressor.key}`;
+                        const isExpanded = expandedCompressors.has(compKey);
+                        return (
+                          <div
+                            key={compKey}
+                            className="border border-gray-200 rounded-lg overflow-hidden"
+                          >
+                            <div
+                              className="p-4 bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors"
+                              onClick={() => toggleCompressor(compKey)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3 flex-wrap gap-y-1">
+                                  {isExpanded ? (
+                                    <ChevronDown
+                                      className="text-blue-700"
+                                      size={20}
+                                    />
+                                  ) : (
+                                    <ChevronRight
+                                      className="text-blue-700"
+                                      size={20}
+                                    />
+                                  )}
+                                  <Wrench
+                                    className="text-blue-600"
+                                    size={20}
+                                  />
+                                  <span className="font-semibold text-gray-900">
+                                    {compressor.alias}
+                                  </span>
+                                  {compressor.numeroSerie && (
+                                    <span className="text-sm text-gray-500">
+                                      S/N: {compressor.numeroSerie}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap">
+                                  {compressor.reports.length} reporte
+                                  {compressor.reports.length !== 1 ? "s" : ""}
                                 </span>
-                              </div>
-                              {orden.numero_serie && (
-                                <span className="text-sm text-gray-500">
-                                  S/N: {orden.numero_serie}
-                                </span>
-                              )}
-                              <span className="text-sm text-blue-600 font-medium">
-                                Folio: {orden.folio}
-                              </span>
-                              {orden.estado === "por_firmar" && (
-                                <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-semibold rounded-full">
-                                  Pendiente de firma
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center space-x-6 text-sm text-gray-600">
-                              <div className="flex items-center space-x-2">
-                                <Calendar size={16} />
-                                <span>
-                                  {formatDate(orden.fecha_programada)}
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <FileText size={16} />
-                                <span>
-                                  {orden.tipo_visita || "Mantenimiento"}
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <User size={16} />
-                                <span>{orden.tipo_mantenimiento || "N/A"}</span>
                               </div>
                             </div>
+                            {isExpanded && (
+                              <div className="p-4 bg-white space-y-3">
+                                {compressor.reports.map((orden) => (
+                                  <div
+                                    key={orden.folio}
+                                    className={`flex items-center justify-between p-4 rounded-lg transition-colors border ${
+                                      orden.estado === "por_firmar"
+                                        ? "bg-yellow-50 border-yellow-300 hover:bg-yellow-100"
+                                        : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                                    }`}
+                                  >
+                                    <div className="flex-1">
+                                      <div className="flex items-center space-x-4 mb-2 flex-wrap gap-y-1">
+                                        <span className="text-sm text-blue-600 font-medium">
+                                          Folio: {orden.folio}
+                                        </span>
+                                        {orden.estado === "por_firmar" && (
+                                          <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-semibold rounded-full">
+                                            Pendiente de firma
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center space-x-6 text-sm text-gray-600 flex-wrap gap-y-1">
+                                        <div className="flex items-center space-x-2">
+                                          <Calendar size={16} />
+                                          <span>
+                                            {formatDate(
+                                              orden.fecha_programada,
+                                            )}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                          <FileText size={16} />
+                                          <span>
+                                            {orden.tipo_visita ||
+                                              "Mantenimiento"}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                          <User size={16} />
+                                          <span>
+                                            {orden.tipo_mantenimiento ||
+                                              "N/A"}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <button
+                                        onClick={() =>
+                                          handleDownloadPdf(orden.folio)
+                                        }
+                                        disabled={
+                                          downloadingFolio === orden.folio
+                                        }
+                                        className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium flex items-center space-x-2 ${
+                                          downloadingFolio === orden.folio
+                                            ? "bg-red-400 cursor-not-allowed"
+                                            : "bg-red-600 hover:bg-red-700"
+                                        }`}
+                                      >
+                                        {downloadingFolio === orden.folio ? (
+                                          <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                                            <span>Generando...</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Download size={16} />
+                                            <span>PDF</span>
+                                          </>
+                                        )}
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          router.push(
+                                            `/features/compressor-maintenance/reports/view?folio=${orden.folio}&edit=true`,
+                                          )
+                                        }
+                                        className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                                      >
+                                        <Pencil size={16} />
+                                        <span>Editar</span>
+                                      </button>
+                                      <button
+                                        onClick={() => handleViewReport(orden)}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                                      >
+                                        <Eye size={16} />
+                                        <span>Ver Reporte</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => handleDownloadPdf(orden.folio)}
-                              disabled={downloadingFolio === orden.folio}
-                              className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium flex items-center space-x-2 ${
-                                downloadingFolio === orden.folio
-                                  ? "bg-red-400 cursor-not-allowed"
-                                  : "bg-red-600 hover:bg-red-700"
-                              }`}
-                            >
-                              {downloadingFolio === orden.folio ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                                  <span>Generando...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Download size={16} />
-                                  <span>PDF</span>
-                                </>
-                              )}
-                            </button>
-                            <button
-                              onClick={() =>
-                                router.push(
-                                  `/features/compressor-maintenance/reports/view?folio=${orden.folio}&edit=true`,
-                                )
-                              }
-                              className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium flex items-center space-x-2"
-                            >
-                              <Pencil size={16} />
-                              <span>Editar</span>
-                            </button>
-                            <button
-                              onClick={() => handleViewReport(orden)}
-                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
-                            >
-                              <Eye size={16} />
-                              <span>Ver Reporte</span>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -637,100 +834,143 @@ const Reports = () => {
           )}
         </div>
 
-        {/* Dryer Reports Section - Flat list for clients */}
+        {/* Dryer Reports Section - Flat list for clients, grouped by dryer */}
         {isClientRole && activeTab === "secadoras" && (
           <div className="bg-white rounded-lg shadow-md overflow-hidden p-6">
-            {flatDryerReports.length === 0 ? (
+            {flatDryers.length === 0 ? (
               <div className="text-center py-8">
                 <FileText className="mx-auto text-gray-300 mb-4" size={48} />
                 <p className="text-gray-500">No hay reportes de secadoras</p>
               </div>
             ) : (
-            <div className="space-y-3">
-              {flatDryerReports.map((report) => (
-                <div
-                  key={report.folio}
-                  className={`flex items-center justify-between p-4 rounded-lg transition-colors border ${
-                    report.estado === "por_firmar"
-                      ? "bg-yellow-50 border-yellow-300 hover:bg-yellow-100"
-                      : "bg-gray-50 border-gray-200 hover:bg-gray-100"
-                  }`}
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-4 mb-2 flex-wrap gap-y-1">
-                      <div className="flex items-center space-x-2 text-gray-700">
-                        <Wrench size={18} />
-                        <span className="font-semibold">
-                          {report.equipo || "Secadora"}
-                        </span>
+              <div className="space-y-3">
+                {flatDryers.map((dryer) => {
+                  const dryerKey = `flat-dryer-${dryer.key}`;
+                  const isExpanded = expandedDryers.has(dryerKey);
+                  return (
+                    <div
+                      key={dryerKey}
+                      className="border border-gray-200 rounded-lg overflow-hidden"
+                    >
+                      <div
+                        className="p-4 bg-cyan-50 cursor-pointer hover:bg-cyan-100 transition-colors"
+                        onClick={() => toggleDryer(dryerKey)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3 flex-wrap gap-y-1">
+                            {isExpanded ? (
+                              <ChevronDown
+                                className="text-cyan-700"
+                                size={20}
+                              />
+                            ) : (
+                              <ChevronRight
+                                className="text-cyan-700"
+                                size={20}
+                              />
+                            )}
+                            <Wrench className="text-cyan-600" size={20} />
+                            <span className="font-semibold text-gray-900">
+                              {dryer.equipo}
+                            </span>
+                            {dryer.modelo && (
+                              <span className="text-sm text-gray-500">
+                                Modelo: {dryer.modelo}
+                              </span>
+                            )}
+                            {dryer.noSerie && (
+                              <span className="text-sm text-gray-500">
+                                S/N: {dryer.noSerie}
+                              </span>
+                            )}
+                          </div>
+                          <span className="bg-cyan-600 text-white px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap">
+                            {dryer.reports.length} reporte
+                            {dryer.reports.length !== 1 ? "s" : ""}
+                          </span>
+                        </div>
                       </div>
-                      {report.modelo && (
-                        <span className="text-sm text-gray-500">
-                          Modelo: {report.modelo}
-                        </span>
-                      )}
-                      {report.no_serie && (
-                        <span className="text-sm text-gray-500">
-                          S/N: {report.no_serie}
-                        </span>
-                      )}
-                      <span className="text-sm text-blue-600 font-medium">
-                        Folio: {report.folio}
-                      </span>
-                      {report.estado === "por_firmar" && (
-                        <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-semibold rounded-full">
-                          Pendiente de firma
-                        </span>
+                      {isExpanded && (
+                        <div className="p-4 bg-white space-y-3">
+                          {dryer.reports.map((report) => (
+                            <div
+                              key={report.folio}
+                              className={`flex items-center justify-between p-4 rounded-lg transition-colors border ${
+                                report.estado === "por_firmar"
+                                  ? "bg-yellow-50 border-yellow-300 hover:bg-yellow-100"
+                                  : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                              }`}
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-4 mb-2 flex-wrap gap-y-1">
+                                  <span className="text-sm text-blue-600 font-medium">
+                                    Folio: {report.folio}
+                                  </span>
+                                  {report.estado === "por_firmar" && (
+                                    <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-semibold rounded-full">
+                                      Pendiente de firma
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center space-x-6 text-sm text-gray-600 flex-wrap gap-y-1">
+                                  <div className="flex items-center space-x-2">
+                                    <Calendar size={16} />
+                                    <span>
+                                      {formatDate(
+                                        report.fecha || report.created_at,
+                                      )}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <FileText size={16} />
+                                    <span>Secadora</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() =>
+                                    handleDownloadDryerPdf(report.folio)
+                                  }
+                                  disabled={downloadingFolio === report.folio}
+                                  className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium flex items-center space-x-2 ${
+                                    downloadingFolio === report.folio
+                                      ? "bg-red-400 cursor-not-allowed"
+                                      : "bg-red-600 hover:bg-red-700"
+                                  }`}
+                                >
+                                  {downloadingFolio === report.folio ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                                      <span>Generando...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Download size={16} />
+                                      <span>PDF</span>
+                                    </>
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    router.push(
+                                      `/features/compressor-maintenance/reports/view-dryer?folio=${report.folio}`,
+                                    )
+                                  }
+                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                                >
+                                  <Eye size={16} />
+                                  <span>Ver Reporte</span>
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
-                    <div className="flex items-center space-x-6 text-sm text-gray-600">
-                      <div className="flex items-center space-x-2">
-                        <Calendar size={16} />
-                        <span>{formatDate(report.fecha || report.created_at)}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <FileText size={16} />
-                        <span>Secadora</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleDownloadDryerPdf(report.folio)}
-                      disabled={downloadingFolio === report.folio}
-                      className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium flex items-center space-x-2 ${
-                        downloadingFolio === report.folio
-                          ? "bg-red-400 cursor-not-allowed"
-                          : "bg-red-600 hover:bg-red-700"
-                      }`}
-                    >
-                      {downloadingFolio === report.folio ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                          <span>Generando...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Download size={16} />
-                          <span>PDF</span>
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={() =>
-                        router.push(
-                          `/features/compressor-maintenance/reports/view-dryer?folio=${report.folio}`,
-                        )
-                      }
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
-                    >
-                      <Eye size={16} />
-                      <span>Ver Reporte</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}
@@ -769,105 +1009,151 @@ const Reports = () => {
                         </h2>
                       </div>
                       <span className="bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium">
-                        {clientGroup.reports.length} reporte
-                        {clientGroup.reports.length !== 1 ? "s" : ""}
+                        {clientGroup.totalReports} reporte
+                        {clientGroup.totalReports !== 1 ? "s" : ""}
                       </span>
                     </div>
                   </div>
 
-                  {/* Reports list */}
+                  {/* Dryer groups */}
                   {expandedDryerClients.has(clientGroup.clientName) && (
                     <div className="p-6 bg-white">
                       <div className="space-y-3">
-                        {clientGroup.reports.map((report) => (
-                          <div
-                            key={report.folio}
-                            className={`flex items-center justify-between p-4 rounded-lg transition-colors border ${
-                              report.estado === "por_firmar"
-                                ? "bg-yellow-50 border-yellow-300 hover:bg-yellow-100"
-                                : "bg-gray-50 border-gray-200 hover:bg-gray-100"
-                            }`}
-                          >
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-4 mb-2 flex-wrap gap-y-1">
-                                <div className="flex items-center space-x-2 text-gray-700">
-                                  <Wrench size={18} />
-                                  <span className="font-semibold">
-                                    {report.equipo || "Secadora"}
-                                  </span>
-                                </div>
-                                {report.modelo && (
-                                  <span className="text-sm text-gray-500">
-                                    Modelo: {report.modelo}
-                                  </span>
-                                )}
-                                {report.no_serie && (
-                                  <span className="text-sm text-gray-500">
-                                    S/N: {report.no_serie}
-                                  </span>
-                                )}
-                                <span className="text-sm text-blue-600 font-medium">
-                                  Folio: {report.folio}
-                                </span>
-                                {report.estado === "por_firmar" && (
-                                  <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-semibold rounded-full">
-                                    Pendiente de firma
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center space-x-6 text-sm text-gray-600">
-                                <div className="flex items-center space-x-2">
-                                  <Calendar size={16} />
-                                  <span>
-                                    {formatDate(
-                                      report.fecha || report.created_at,
+                        {clientGroup.dryers.map((dryer) => {
+                          const dryerKey = `${clientGroup.numeroCliente}-dryer-${dryer.key}`;
+                          const isExpanded = expandedDryers.has(dryerKey);
+                          return (
+                            <div
+                              key={dryerKey}
+                              className="border border-gray-200 rounded-lg overflow-hidden"
+                            >
+                              <div
+                                className="p-4 bg-cyan-50 cursor-pointer hover:bg-cyan-100 transition-colors"
+                                onClick={() => toggleDryer(dryerKey)}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-3 flex-wrap gap-y-1">
+                                    {isExpanded ? (
+                                      <ChevronDown
+                                        className="text-cyan-700"
+                                        size={20}
+                                      />
+                                    ) : (
+                                      <ChevronRight
+                                        className="text-cyan-700"
+                                        size={20}
+                                      />
                                     )}
+                                    <Wrench
+                                      className="text-cyan-600"
+                                      size={20}
+                                    />
+                                    <span className="font-semibold text-gray-900">
+                                      {dryer.equipo}
+                                    </span>
+                                    {dryer.modelo && (
+                                      <span className="text-sm text-gray-500">
+                                        Modelo: {dryer.modelo}
+                                      </span>
+                                    )}
+                                    {dryer.noSerie && (
+                                      <span className="text-sm text-gray-500">
+                                        S/N: {dryer.noSerie}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="bg-cyan-600 text-white px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap">
+                                    {dryer.reports.length} reporte
+                                    {dryer.reports.length !== 1 ? "s" : ""}
                                   </span>
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                  <FileText size={16} />
-                                  <span>Secadora</span>
-                                </div>
                               </div>
+                              {isExpanded && (
+                                <div className="p-4 bg-white space-y-3">
+                                  {dryer.reports.map((report) => (
+                                    <div
+                                      key={report.folio}
+                                      className={`flex items-center justify-between p-4 rounded-lg transition-colors border ${
+                                        report.estado === "por_firmar"
+                                          ? "bg-yellow-50 border-yellow-300 hover:bg-yellow-100"
+                                          : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                                      }`}
+                                    >
+                                      <div className="flex-1">
+                                        <div className="flex items-center space-x-4 mb-2 flex-wrap gap-y-1">
+                                          <span className="text-sm text-blue-600 font-medium">
+                                            Folio: {report.folio}
+                                          </span>
+                                          {report.estado === "por_firmar" && (
+                                            <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-semibold rounded-full">
+                                              Pendiente de firma
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center space-x-6 text-sm text-gray-600 flex-wrap gap-y-1">
+                                          <div className="flex items-center space-x-2">
+                                            <Calendar size={16} />
+                                            <span>
+                                              {formatDate(
+                                                report.fecha ||
+                                                  report.created_at,
+                                              )}
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center space-x-2">
+                                            <FileText size={16} />
+                                            <span>Secadora</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        <button
+                                          onClick={() =>
+                                            handleDownloadDryerPdf(
+                                              report.folio,
+                                            )
+                                          }
+                                          disabled={
+                                            downloadingFolio === report.folio
+                                          }
+                                          className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium flex items-center space-x-2 ${
+                                            downloadingFolio === report.folio
+                                              ? "bg-red-400 cursor-not-allowed"
+                                              : "bg-red-600 hover:bg-red-700"
+                                          }`}
+                                        >
+                                          {downloadingFolio ===
+                                          report.folio ? (
+                                            <>
+                                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                                              <span>Generando...</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Download size={16} />
+                                              <span>PDF</span>
+                                            </>
+                                          )}
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            router.push(
+                                              `/features/compressor-maintenance/reports/view-dryer?folio=${report.folio}`,
+                                            )
+                                          }
+                                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                                        >
+                                          <Eye size={16} />
+                                          <span>Ver Reporte</span>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                            <div className="flex items-center space-x-2">
-                              <button
-                                onClick={() =>
-                                  handleDownloadDryerPdf(report.folio)
-                                }
-                                disabled={downloadingFolio === report.folio}
-                                className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium flex items-center space-x-2 ${
-                                  downloadingFolio === report.folio
-                                    ? "bg-red-400 cursor-not-allowed"
-                                    : "bg-red-600 hover:bg-red-700"
-                                }`}
-                              >
-                                {downloadingFolio === report.folio ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                                    <span>Generando...</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Download size={16} />
-                                    <span>PDF</span>
-                                  </>
-                                )}
-                              </button>
-                              <button
-                                onClick={() =>
-                                  router.push(
-                                    `/features/compressor-maintenance/reports/view-dryer?folio=${report.folio}`,
-                                  )
-                                }
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
-                              >
-                                <Eye size={16} />
-                                <span>Ver Reporte</span>
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}

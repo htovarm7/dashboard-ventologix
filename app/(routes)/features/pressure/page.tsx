@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import DatePicker from "react-datepicker";
@@ -49,6 +49,7 @@ const PressureAnalysis = () => {
   const [configSuccess, setConfigSuccess] = useState(false);
   const [devices, setDevices] = useState<RTUDevice[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<RTUDevice | null>(null);
+  const datePickerRef = useRef<DatePicker>(null);
   const router = useRouter();
 
   const minDate = new Date("2025-09-30");
@@ -472,7 +473,16 @@ const PressureAnalysis = () => {
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-4">
                     <div className="flex-1">
                       <div
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-colors ${
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => datePickerRef.current?.setOpen(true)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            datePickerRef.current?.setOpen(true);
+                          }
+                        }}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-colors cursor-pointer ${
                           selectedDate
                             ? "border-blue-500 bg-blue-50"
                             : "border-gray-200 bg-gray-50"
@@ -492,13 +502,14 @@ const PressureAnalysis = () => {
                           />
                         </svg>
                         <DatePicker
+                          ref={datePickerRef}
                           selected={selectedDate}
                           onChange={(date) => setSelectedDate(date)}
                           dateFormat="yyyy-MM-dd"
                           minDate={minDate}
                           maxDate={maxDate}
                           placeholderText="Selecciona una fecha"
-                          className={`w-full bg-transparent text-sm font-semibold focus:outline-none ${
+                          className={`w-full bg-transparent text-sm font-semibold focus:outline-none cursor-pointer ${
                             selectedDate ? "text-blue-700" : "text-gray-500"
                           }`}
                           showYearDropdown
