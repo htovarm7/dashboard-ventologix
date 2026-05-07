@@ -18,31 +18,23 @@ const AddRTU = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateMode, setIsCreateMode] = useState(true);
   const [selectedRTU, setSelectedRTU] = useState<RTUDevice | null>(null);
-  const [formData, setFormData] = useState<RTUFormData>({
+  const emptyForm: RTUFormData = {
     numero_serie_topico: "",
     RTU_id: "",
     numero_cliente: "",
     alias: "",
-    // Sensor C1
-    C1_Vmin: "",
-    C1_Vmax: "",
-    C1_Lmin: "",
-    C1_Lmax: "",
-    // Sensor C2
-    C2_Vmin: "",
-    C2_Vmax: "",
-    C2_Lmin: "",
-    C2_Lmax: "",
-    // Sensor C3
-    C3_Vmin: "",
-    C3_Vmax: "",
-    C3_Lmin: "",
-    C3_Lmax: "",
-    // Puertos ESP
-    P1: "",
-    P2: "",
-    P3: "",
-  });
+    voltaje_Amperaje: "",
+    presion_max: 120,
+    presion_min: 100,
+    presion_alerta: 95,
+    v_tanque: 700,
+    C1_Vmin: "", C1_Vmax: "", C1_Lmin: "", C1_Lmax: "",
+    C2_Vmin: "", C2_Vmax: "", C2_Lmin: "", C2_Lmax: "",
+    C3_Vmin: "", C3_Vmax: "", C3_Lmin: "", C3_Lmax: "",
+    P1: "", P2: "", P3: "",
+  };
+
+  const [formData, setFormData] = useState<RTUFormData>(emptyForm);
 
   const fetchRTUs = async (): Promise<void> => {
     try {
@@ -83,27 +75,7 @@ const AddRTU = () => {
   const handleOpenCreateModal = () => {
     setIsCreateMode(true);
     setSelectedRTU(null);
-    setFormData({
-      numero_serie_topico: "",
-      RTU_id: "",
-      numero_cliente: "",
-      alias: "",
-      C1_Vmin: "",
-      C1_Vmax: "",
-      C1_Lmin: "",
-      C1_Lmax: "",
-      C2_Vmin: "",
-      C2_Vmax: "",
-      C2_Lmin: "",
-      C2_Lmax: "",
-      C3_Vmin: "",
-      C3_Vmax: "",
-      C3_Lmin: "",
-      C3_Lmax: "",
-      P1: "",
-      P2: "",
-      P3: "",
-    });
+    setFormData(emptyForm);
     setIsModalOpen(true);
   };
 
@@ -145,6 +117,11 @@ const AddRTU = () => {
         RTU_id: rtu.RTU_id,
         numero_cliente: rtu.numero_cliente,
         alias: rtu.alias || "",
+        voltaje_Amperaje: rtu.voltaje_Amperaje || "",
+        presion_max: rtu.presion_max,
+        presion_min: rtu.presion_min,
+        presion_alerta: rtu.presion_alerta,
+        v_tanque: rtu.v_tanque,
         C1_Vmin: sensorData.C1?.Vmin ?? "",
         C1_Vmax: sensorData.C1?.Vmax ?? "",
         C1_Lmin: sensorData.C1?.Lmin ?? "",
@@ -192,6 +169,11 @@ const AddRTU = () => {
         RTU_id: Number(formData.RTU_id),
         numero_cliente: Number(formData.numero_cliente),
         alias: formData.alias || null,
+        voltaje_Amperaje: formData.voltaje_Amperaje || null,
+        presion_max: Number(formData.presion_max),
+        presion_min: Number(formData.presion_min),
+        presion_alerta: Number(formData.presion_alerta),
+        v_tanque: Number(formData.v_tanque),
       },
       sensors: [
         {
@@ -330,21 +312,14 @@ const AddRTU = () => {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-blue-600 text-white">
-                    <th className="border border-gray-300 p-3 text-left font-semibold">
-                      RTU ID
-                    </th>
-                    <th className="border border-gray-300 p-3 text-left font-semibold">
-                      Número Serie/Tópico
-                    </th>
-                    <th className="border border-gray-300 p-3 text-left font-semibold">
-                      Alias
-                    </th>
-                    <th className="border border-gray-300 p-3 text-left font-semibold">
-                      Cliente
-                    </th>
-                    <th className="border border-gray-300 p-3 text-center font-semibold">
-                      Acciones
-                    </th>
+                    <th className="border border-gray-300 p-3 text-left font-semibold">RTU ID</th>
+                    <th className="border border-gray-300 p-3 text-left font-semibold">Serie/Tópico</th>
+                    <th className="border border-gray-300 p-3 text-left font-semibold">Alias</th>
+                    <th className="border border-gray-300 p-3 text-left font-semibold">Cliente</th>
+                    <th className="border border-gray-300 p-3 text-center font-semibold">P. Máx (psi)</th>
+                    <th className="border border-gray-300 p-3 text-center font-semibold">P. Mín (psi)</th>
+                    <th className="border border-gray-300 p-3 text-center font-semibold">Alerta (psi)</th>
+                    <th className="border border-gray-300 p-3 text-center font-semibold">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -364,6 +339,15 @@ const AddRTU = () => {
                       </td>
                       <td className="border border-gray-300 p-3 text-gray-700">
                         {rtu.nombre_cliente || `ID: ${rtu.numero_cliente}`}
+                      </td>
+                      <td className="border border-gray-300 p-3 text-center text-gray-800">
+                        {rtu.presion_max}
+                      </td>
+                      <td className="border border-gray-300 p-3 text-center text-gray-800">
+                        {rtu.presion_min}
+                      </td>
+                      <td className="border border-gray-300 p-3 text-center text-gray-800">
+                        {rtu.presion_alerta}
                       </td>
                       <td className="border border-gray-300 p-3">
                         <div className="flex gap-2 justify-center">
@@ -463,7 +447,7 @@ const AddRTU = () => {
                       <option value="">Seleccione un cliente</option>
                       {clients.map((client) => (
                         <option
-                          key={client.id_cliente}
+                          key={client.numero_cliente}
                           value={client.numero_cliente}
                         >
                           {client.nombre_cliente} (#{client.numero_cliente})
@@ -488,239 +472,75 @@ const AddRTU = () => {
                 </div>
               </div>
 
-              {/* Configuración de Sensores */}
+              {/* Configuración Operacional de Presión */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  Configuración de Sensores
+                  Configuración Operacional
                 </h3>
-
-                {/* Sensor C1 */}
-                <div className="mb-6">
-                  <h4 className="text-md font-medium text-gray-700 mb-3 bg-blue-100 p-2 rounded">
-                    Sensor C1
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Voltaje Mínimo (Vmin)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="C1_Vmin"
-                        value={formData.C1_Vmin}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Voltaje Máximo (Vmax)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="C1_Vmax"
-                        value={formData.C1_Vmax}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Límite Mínimo (Lmin)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="C1_Lmin"
-                        value={formData.C1_Lmin}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Límite Máximo (Lmax)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="C1_Lmax"
-                        value={formData.C1_Lmax}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sensor C2 */}
-                <div className="mb-6">
-                  <h4 className="text-md font-medium text-gray-700 mb-3 bg-blue-100 p-2 rounded">
-                    Sensor C2
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Voltaje Mínimo (Vmin)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="C2_Vmin"
-                        value={formData.C2_Vmin}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Voltaje Máximo (Vmax)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="C2_Vmax"
-                        value={formData.C2_Vmax}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Límite Mínimo (Lmin)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="C2_Lmin"
-                        value={formData.C2_Lmin}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Límite Máximo (Lmax)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="C2_Lmax"
-                        value={formData.C2_Lmax}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sensor C3 */}
-                <div className="mb-6">
-                  <h4 className="text-md font-medium text-gray-700 mb-3 bg-blue-100 p-2 rounded">
-                    Sensor C3
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Voltaje Mínimo (Vmin)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="C3_Vmin"
-                        value={formData.C3_Vmin}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Voltaje Máximo (Vmax)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="C3_Vmax"
-                        value={formData.C3_Vmax}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Límite Mínimo (Lmin)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="C3_Lmin"
-                        value={formData.C3_Lmin}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Límite Máximo (Lmax)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="C3_Lmax"
-                        value={formData.C3_Lmax}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Configuración de Puertos ESP */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  Configuración de Puertos ESP
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Puerto P1
+                      Voltaje / Amperaje
                     </label>
                     <input
-                      type="number"
-                      name="P1"
-                      value={formData.P1}
+                      type="text"
+                      name="voltaje_Amperaje"
+                      value={formData.voltaje_Amperaje}
                       onChange={handleInputChange}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Pin GPIO"
+                      placeholder="Ej: 220V / 15A"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Puerto P2
+                      Volumen del Tanque (L)
                     </label>
                     <input
                       type="number"
-                      name="P2"
-                      value={formData.P2}
+                      step="0.1"
+                      name="v_tanque"
+                      value={formData.v_tanque}
                       onChange={handleInputChange}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Pin GPIO"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Puerto P3
+                      Presión Máxima (psi)
                     </label>
                     <input
                       type="number"
-                      name="P3"
-                      value={formData.P3}
+                      step="0.1"
+                      name="presion_max"
+                      value={formData.presion_max}
                       onChange={handleInputChange}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Pin GPIO"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Presión Mínima (psi)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="presion_min"
+                      value={formData.presion_min}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Presión de Alerta (psi)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="presion_alerta"
+                      value={formData.presion_alerta}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                 </div>

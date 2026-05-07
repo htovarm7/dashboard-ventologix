@@ -602,6 +602,11 @@ export interface RTUDevice {
   RTU_id: number;
   numero_cliente: number;
   alias: string | null;
+  voltaje_Amperaje: string | null;
+  presion_max: number;
+  presion_min: number;
+  presion_alerta: number;
+  v_tanque: number;
   nombre_cliente?: string;
 }
 
@@ -628,6 +633,11 @@ export interface RTUFormData {
   RTU_id: number | string;
   numero_cliente: number | string;
   alias: string;
+  voltaje_Amperaje: string;
+  presion_max: number | string;
+  presion_min: number | string;
+  presion_alerta: number | string;
+  v_tanque: number | string;
   // Sensores (C1, C2, C3)
   C1_Vmin: number | string;
   C1_Vmax: number | string;
