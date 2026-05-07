@@ -66,6 +66,11 @@ interface Secadora {
   nombre_cliente: string | null;
 }
 
+interface ClientOption {
+  numero_cliente: number | string;
+  nombre_cliente: string;
+}
+
 interface SecadoraFormData {
   tipo: string;
   alias: string;
@@ -130,6 +135,7 @@ const Compresors = () => {
   const [bulkVTOs, setBulkVTOs] = useState<DispositivoFormData[]>([
     { id_kpm: "", id_proyecto: "", id_cliente: "" },
   ]);
+  const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
 
   const fetchCompresores = async (): Promise<void> => {
     try {
@@ -201,6 +207,21 @@ const Compresors = () => {
       fetchSecadoras();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    const loadClients = async () => {
+      try {
+        const res = await fetch(`${URL_API}/clients/`);
+        if (res.ok) {
+          const response = await res.json();
+          setClientOptions(response.data || []);
+        }
+      } catch (error) {
+        console.error("Error cargando clientes:", error);
+      }
+    };
+    loadClients();
+  }, []);
 
   const handleOpenCreateSecadoraModal = () => {
     setIsSecadoraCreateMode(true);
@@ -1031,7 +1052,7 @@ const Compresors = () => {
 
       {/* Modal para Secadoras */}
       {isSecadoraModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 backdrop-blur-md bg-white/10 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="bg-purple-600 text-white p-6 rounded-t-lg">
               <h2 className="text-2xl font-bold">
@@ -1104,15 +1125,20 @@ const Compresors = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Número de Cliente</label>
-                  <input
-                    type="number"
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
+                  <select
                     name="numero_cliente"
                     value={secadoraFormData.numero_cliente}
                     onChange={handleSecadoraInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Número de cliente"
-                  />
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                  >
+                    <option value="">Selecciona un cliente</option>
+                    {clientOptions.map((c) => (
+                      <option key={c.numero_cliente} value={c.numero_cliente}>
+                        {c.nombre_cliente} (#{c.numero_cliente})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -1149,7 +1175,7 @@ const Compresors = () => {
 
       {/* Modal para Compresores */}
       {isModalOpen && activeTab === "compresores" && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 backdrop-blur-md bg-white/10 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="bg-blue-600 text-white p-6 rounded-t-lg">
               <h2 className="text-2xl font-bold">
@@ -1376,7 +1402,7 @@ const Compresors = () => {
 
       {/* Modal para VTOs */}
       {isModalOpen && activeTab === "vtos" && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 backdrop-blur-md bg-white/10 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="bg-blue-600 text-white p-6 rounded-t-lg">
               <h2 className="text-2xl font-bold">
@@ -1451,7 +1477,7 @@ const Compresors = () => {
 
       {/* Modal para Registro Masivo de VTOs */}
       {isBulkModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 backdrop-blur-md bg-white/10 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="bg-green-600 text-white p-6 rounded-t-lg">
               <h2 className="text-2xl font-bold">Registro Masivo de VTOs</h2>

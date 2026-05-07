@@ -4,7 +4,7 @@ from datetime import datetime, time
 from decimal import Decimal
 
 class Client(BaseModel):
-    id_cliente: int
+    id_cliente: Optional[int] = None
     numero_cliente: int
     nombre_cliente: str
     RFC: str
@@ -12,8 +12,8 @@ class Client(BaseModel):
     champion: Optional[str] = None
     id_compresor: Optional[int] = None
     CostokWh: Optional[float] = 0.17
-    demoDiario: Optional[bool] = None
-    demoSemanal: Optional[bool] = None
+    demoDiario: Optional[int] = None
+    demoSemanal: Optional[int] = None
 
 class ClienteEventual(BaseModel):
     nombre_cliente: str

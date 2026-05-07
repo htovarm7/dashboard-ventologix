@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import DatePicker from "react-datepicker";
@@ -49,6 +49,7 @@ const PressureAnalysis = () => {
   const [configSuccess, setConfigSuccess] = useState(false);
   const [devices, setDevices] = useState<RTUDevice[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<RTUDevice | null>(null);
+  const datePickerRef = useRef<DatePicker>(null);
   const router = useRouter();
 
   const minDate = new Date("2025-09-30");
@@ -395,71 +396,49 @@ const PressureAnalysis = () => {
                     <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">
                       Selecciona un dispositivo
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {devices.map((device) => {
-                        const isSelected =
-                          selectedDevice?.RTU_id === device.RTU_id;
-                        return (
-                          <button
-                            key={device.RTU_id}
-                            onClick={() => setSelectedDevice(device)}
-                            className={`relative flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all ${
-                              isSelected
-                                ? "border-blue-500 bg-blue-50 shadow-md"
-                                : "border-gray-200 bg-white hover:border-blue-300 hover:bg-gray-50"
-                            }`}
-                          >
-                            {/* Icono */}
-                            <div
-                              className={`shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
-                                isSelected ? "bg-blue-500" : "bg-gray-100"
-                              }`}
-                            >
-                              <svg
-                                className={`w-5 h-5 ${isSelected ? "text-white" : "text-gray-500"}`}
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"
-                                />
-                              </svg>
-                            </div>
-                            {/* Info */}
-                            <div className="flex-1 min-w-0">
-                              <p
-                                className={`font-semibold text-sm truncate ${
-                                  isSelected ? "text-blue-700" : "text-gray-800"
-                                }`}
-                              >
-                                {device.linea}
-                              </p>
-                            </div>
-                            {/* Check seleccionado */}
-                            {isSelected && (
-                              <div className="shrink-0 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                                <svg
-                                  className="w-3 h-3 text-white"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={3}
-                                    d="M5 13l4 4L19 7"
-                                  />
-                                </svg>
-                              </div>
-                            )}
-                          </button>
-                        );
-                      })}
+                    <div
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-colors ${
+                        selectedDevice
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 bg-gray-50"
+                      }`}
+                    >
+                      <div
+                        className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
+                          selectedDevice ? "bg-blue-500" : "bg-gray-200"
+                        }`}
+                      >
+                        <svg
+                          className={`w-5 h-5 ${selectedDevice ? "text-white" : "text-gray-500"}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"
+                          />
+                        </svg>
+                      </div>
+                      <select
+                        value={selectedDevice?.RTU_id ?? ""}
+                        onChange={(e) => {
+                          const id = Number(e.target.value);
+                          const device = devices.find((d) => d.RTU_id === id);
+                          if (device) setSelectedDevice(device);
+                        }}
+                        className={`w-full bg-transparent text-sm font-semibold focus:outline-none cursor-pointer ${
+                          selectedDevice ? "text-blue-700" : "text-gray-500"
+                        }`}
+                      >
+                        {devices.map((device) => (
+                          <option key={device.RTU_id} value={device.RTU_id}>
+                            {device.linea}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 )}
@@ -472,7 +451,16 @@ const PressureAnalysis = () => {
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-4">
                     <div className="flex-1">
                       <div
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-colors ${
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => datePickerRef.current?.setOpen(true)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            datePickerRef.current?.setOpen(true);
+                          }
+                        }}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-colors cursor-pointer ${
                           selectedDate
                             ? "border-blue-500 bg-blue-50"
                             : "border-gray-200 bg-gray-50"
@@ -492,13 +480,14 @@ const PressureAnalysis = () => {
                           />
                         </svg>
                         <DatePicker
+                          ref={datePickerRef}
                           selected={selectedDate}
                           onChange={(date) => setSelectedDate(date)}
                           dateFormat="yyyy-MM-dd"
                           minDate={minDate}
                           maxDate={maxDate}
                           placeholderText="Selecciona una fecha"
-                          className={`w-full bg-transparent text-sm font-semibold focus:outline-none ${
+                          className={`w-full bg-transparent text-sm font-semibold focus:outline-none cursor-pointer ${
                             selectedDate ? "text-blue-700" : "text-gray-500"
                           }`}
                           showYearDropdown

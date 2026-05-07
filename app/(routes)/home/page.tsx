@@ -289,7 +289,7 @@ const Home = () => {
                     onClick={() => router.push("/features/pressure")}
                     style={{ WebkitTapHighlightColor: "transparent" }}
                   >
-                    <span className="font-medium">Presión (BETA)</span>
+                    <span className="font-medium">Presión</span>
                   </button>
                 )}
                 {isModuleEnabled("Mantenimiento") && (
