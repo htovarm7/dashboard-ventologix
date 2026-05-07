@@ -43,7 +43,7 @@ const VentologixTeamPage = () => {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [rol, setRol] = useState<number | null>(null);
+  const [, setRol] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
@@ -104,6 +104,7 @@ const VentologixTeamPage = () => {
     if (isAuthorized) {
       fetchTeamMembers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthorized]);
 
   // Handle form input changes

@@ -81,10 +81,9 @@ function DryerReportForm() {
   const [isSaving, setIsSaving] = useState(false);
 
   // Client dropdown
-  const [allClients, setAllClients] = useState<ClientOption[]>([]);
-  const [clientSearch, setClientSearch] = useState("");
-  const [showClientDropdown, setShowClientDropdown] = useState(false);
-  const [loadingClients, setLoadingClients] = useState(false);
+  const [, setAllClients] = useState<ClientOption[]>([]);
+  const [, setShowClientDropdown] = useState(false);
+  const [, setLoadingClients] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Photo categories for dryer
@@ -98,10 +97,10 @@ function DryerReportForm() {
     OTROS: [],
   });
 
-  const [uploadStatus, setUploadStatus] = useState<{
+  const [uploadStatus] = useState<{
     [key: string]: "idle" | "uploading" | "success" | "error";
   }>({});
-  const [uploadProgress, setUploadProgress] = useState<{
+  const [uploadProgress] = useState<{
     [key: string]: number;
   }>({});
 
@@ -198,16 +197,6 @@ function DryerReportForm() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Filtrar clientes por búsqueda
-  const filteredClients = allClients.filter((c) => {
-    if (!clientSearch.trim()) return true;
-    const q = clientSearch.toLowerCase();
-    return (
-      String(c.numero_cliente).toLowerCase().includes(q) ||
-      (c.nombre_cliente || "").toLowerCase().includes(q)
-    );
-  });
-
   // Generate folio for dryer reports: SEC-{clientId}-{last4serial}-{YYYYMMDD}-{HHMM}
   const generateDryerFolio = (
     numCliente: string | number,
@@ -222,24 +211,6 @@ function DryerReportForm() {
     const hours = String(now.getHours()).padStart(2, "0");
     const minutes = String(now.getMinutes()).padStart(2, "0");
     return `SEC-${clientId}-${last4}-${year}${month}${day}-${hours}${minutes}`;
-  };
-
-  const selectClient = (client: ClientOption) => {
-    const numCliente = String(client.numero_cliente);
-    setFormData((prev) => {
-      const folio = prev.folio || generateDryerFolio(numCliente, prev.no_serie);
-      return {
-        ...prev,
-        numero_cliente: numCliente,
-        cliente: client.nombre_cliente || "",
-        rfc: client.RFC || "",
-        direccion: client.direccion || "",
-        ingeniero_obra: client.champion || "",
-        folio,
-      };
-    });
-    setClientSearch("");
-    setShowClientDropdown(false);
   };
 
   // Cargar reporte existente o pre-llenar desde orden de servicio

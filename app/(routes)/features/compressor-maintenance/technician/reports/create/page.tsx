@@ -34,6 +34,21 @@ interface MaintenanceType {
   tipo_compresor: string;
 }
 
+interface UserCompressor {
+  id_compresor?: number;
+  id?: string | number;
+  alias?: string;
+  Alias?: string;
+  linea?: string;
+  Linea?: string;
+}
+
+interface MaintenanceRecord {
+  id: number;
+  id_compresor: number;
+  id_mantenimiento: number;
+}
+
 function FillReport() {
   const { isAuthenticated, isLoading } = useAuth0();
   const router = useRouter();
@@ -1186,7 +1201,6 @@ function FillReport() {
     try {
       // Step 1: Get compressor data
       const compressorAlias = formData.compressorAlias;
-      const numeroSerie = formData.serialNumber;
       const numeroCliente = formData.clientId || formData.eventualClientId;
       const compressorType = formData.compressorType || "piston";
 
@@ -1205,7 +1219,7 @@ function FillReport() {
 
         // Find the compressor by alias
         const matchingCompressor = userCompresores.find(
-          (comp: any) =>
+          (comp: UserCompressor) =>
             comp.alias === compressorAlias ||
             comp.Alias === compressorAlias ||
             comp.linea === compressorAlias ||
@@ -1215,7 +1229,7 @@ function FillReport() {
         if (matchingCompressor) {
           idCompresor =
             matchingCompressor.id_compresor ||
-            parseInt(matchingCompressor.id) ||
+            (matchingCompressor.id ? parseInt(String(matchingCompressor.id)) : null) ||
             null;
         }
       }
@@ -1244,7 +1258,7 @@ function FillReport() {
 
       // Filter to get only this compressor's maintenance records
       const compressorMaintenances = maintenanceRecords.filter(
-        (record: any) => record.id_compresor === idCompresor,
+        (record: MaintenanceRecord) => record.id_compresor === idCompresor,
       );
 
       console.log("🔍 Found maintenance records:", compressorMaintenances);
@@ -1304,7 +1318,7 @@ function FillReport() {
 
         // Find the matching maintenance record
         const matchingRecord = compressorMaintenances.find(
-          (record: any) =>
+          (record: MaintenanceRecord) =>
             record.id_mantenimiento === matchingType!.id_mantenimiento,
         );
 

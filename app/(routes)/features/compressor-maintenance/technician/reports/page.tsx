@@ -265,6 +265,7 @@ const TypeReportes = () => {
     if (rol === 0 || rol === 1) {
       fetchAllOrdenes();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rol]);
 
   // Load ordenes for VAST view (rol 2)
@@ -272,6 +273,7 @@ const TypeReportes = () => {
     if (rol === 2) {
       fetchAllOrdenes();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rol]);
 
   // Filter state for orden search

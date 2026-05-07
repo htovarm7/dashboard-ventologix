@@ -102,6 +102,11 @@ class RTUDeviceModel(BaseModel):
     RTU_id: int
     numero_cliente: int
     alias: Optional[str] = None
+    voltaje_Amperaje: Optional[str] = None
+    presion_max: float = 120.0
+    presion_min: float = 100.0
+    presion_alerta: float = 95.0
+    v_tanque: float = 700.0
 
 
 class RTUCreateModel(BaseModel):
@@ -362,9 +367,13 @@ def get_rtu_devices():
                 d.RTU_id,
                 d.numero_cliente,
                 d.alias,
-                c.nombre_cliente
+                d.voltaje_Amperaje,
+                d.presion_max,
+                d.presion_min,
+                d.presion_alerta,
+                d.v_tanque,
+                (SELECT nombre_cliente FROM clientes WHERE numero_cliente = d.numero_cliente LIMIT 1) AS nombre_cliente
             FROM RTU_device d
-            LEFT JOIN Clientes c ON d.numero_cliente = c.numero_cliente
             ORDER BY d.RTU_id
         """)
 
@@ -392,9 +401,13 @@ def get_rtu_device(rtu_id: int):
                 d.RTU_id,
                 d.numero_cliente,
                 d.alias,
-                c.nombre_cliente
+                d.voltaje_Amperaje,
+                d.presion_max,
+                d.presion_min,
+                d.presion_alerta,
+                d.v_tanque,
+                (SELECT nombre_cliente FROM clientes WHERE numero_cliente = d.numero_cliente LIMIT 1) AS nombre_cliente
             FROM RTU_device d
-            LEFT JOIN Clientes c ON d.numero_cliente = c.numero_cliente
             WHERE d.RTU_id = %s
         """, (rtu_id,))
 
@@ -476,13 +489,18 @@ def create_rtu_device(rtu_data: RTUCreateModel):
 
         # Insertar dispositivo
         cursor.execute("""
-            INSERT INTO RTU_device (numero_serie_topico, RTU_id, numero_cliente, alias)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO RTU_device (numero_serie_topico, RTU_id, numero_cliente, alias, voltaje_Amperaje, presion_max, presion_min, presion_alerta, v_tanque)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             rtu_data.device.numero_serie_topico,
             rtu_data.device.RTU_id,
             rtu_data.device.numero_cliente,
-            rtu_data.device.alias
+            rtu_data.device.alias,
+            rtu_data.device.voltaje_Amperaje,
+            rtu_data.device.presion_max,
+            rtu_data.device.presion_min,
+            rtu_data.device.presion_alerta,
+            rtu_data.device.v_tanque,
         ))
 
         # Insertar sensores
@@ -545,12 +563,19 @@ def update_rtu_device(rtu_id: int, rtu_data: RTUCreateModel):
         # Actualizar dispositivo
         cursor.execute("""
             UPDATE RTU_device
-            SET numero_serie_topico = %s, numero_cliente = %s, alias = %s
+            SET numero_serie_topico = %s, numero_cliente = %s, alias = %s,
+                voltaje_Amperaje = %s, presion_max = %s, presion_min = %s,
+                presion_alerta = %s, v_tanque = %s
             WHERE RTU_id = %s
         """, (
             rtu_data.device.numero_serie_topico,
             rtu_data.device.numero_cliente,
             rtu_data.device.alias,
+            rtu_data.device.voltaje_Amperaje,
+            rtu_data.device.presion_max,
+            rtu_data.device.presion_min,
+            rtu_data.device.presion_alerta,
+            rtu_data.device.v_tanque,
             rtu_id
         ))
 

@@ -13,7 +13,6 @@ import {
   X,
   Pencil,
   Save,
-  XOctagon,
 } from "lucide-react";
 import SignatureCanvas from "react-signature-canvas";
 import { useDialog } from "@/hooks/useDialog";
@@ -223,6 +222,7 @@ function ViewReportContent() {
     if (searchParams.get("edit") === "true") {
       setIsEditing(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const loadAllReportData = async (folio: string) => {
