@@ -366,30 +366,90 @@ const PressureAnalysis = () => {
     );
   }
 
+  /** Collapsible Parámetros operacionales panel — reused in both phases */
+  const configPanel = (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <button
+        type="button"
+        onClick={() => setIsConfigOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 p-5 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 bg-blue-50 rounded-lg">
+            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+          </div>
+          <h2 className="text-sm font-bold text-gray-800">Parámetros operacionales</h2>
+        </div>
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isConfigOpen ? "rotate-180" : ""}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isConfigOpen && (
+        <div className="px-5 pb-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+            {(
+              [
+                { key: "presion_max",   label: "Presión máxima", unit: "psi", color: "green"  },
+                { key: "presion_min",   label: "Presión mínima", unit: "psi", color: "blue"   },
+                { key: "presion_alerta",label: "Presión alerta", unit: "psi", color: "yellow" },
+                { key: "v_tanque",      label: "Volumen tanque", unit: "L",   color: "purple" },
+              ] as const
+            ).map(({ key, label, unit, color }) => (
+              <div key={key}>
+                <label className="flex items-center justify-between text-xs font-medium text-gray-500 mb-1.5">
+                  <span>{label}</span>
+                  <span className={`px-1.5 py-0.5 bg-${color}-50 text-${color}-700 rounded text-xs font-semibold`}>
+                    {unit}
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  value={configDraft[key]}
+                  onChange={(e) => setConfigDraft((d) => ({ ...d, [key]: parseFloat(e.target.value) }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors"
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-4 flex-wrap">
+            <p className="text-xs text-gray-400">Alerta &lt; Mínima &lt; Máxima</p>
+            {configError && <p className="text-xs text-red-600 bg-red-50 px-3 py-1.5 rounded-lg">{configError}</p>}
+            {configSuccess && <p className="text-xs text-green-700 bg-green-50 px-3 py-1.5 rounded-lg font-medium">✓ Guardado correctamente</p>}
+            <button
+              onClick={saveConfig}
+              disabled={savingConfig}
+              className="ml-auto px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+            >
+              {savingConfig ? "Guardando..." : "Guardar cambios"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <BackButton />
 
         {/* Header */}
-        <div className="mt-6 mb-4">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Análisis de Presión
-          </h1>
+        <div className="mt-6 mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Análisis de Presión</h1>
           {selectedDevice && (
-            <p className="text-sm text-gray-500 mt-1">
-              Dispositivo:{" "}
-              <span className="font-medium text-gray-700">
-                {selectedDevice.linea}
-              </span>
+            <p className="text-xl font-semibold text-blue-700 mt-1">
+              {selectedDevice.linea}
             </p>
           )}
         </div>
 
-        {/* Layout principal + sidebar */}
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
-          {/* ── Contenido principal ── */}
-          <div className="flex-1 min-w-0 space-y-5">
+        <div className="space-y-5">
             {/* Selector de Dispositivo + Fecha */}
             {showDateSelector && (
               <div className="space-y-4">
@@ -594,16 +654,9 @@ const PressureAnalysis = () => {
 
                 {/* Título + botón nuevo análisis */}
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-bold text-gray-900">
-                      {selectedDate ? formatDateForAPI(selectedDate) : ""}
-                    </h2>
-                    {selectedDevice && devices.length > 1 && (
-                      <p className="text-sm text-gray-500">
-                        {selectedDevice.linea}
-                      </p>
-                    )}
-                  </div>
+                  <h2 className="text-lg font-bold text-gray-900">
+                    {selectedDate ? formatDateForAPI(selectedDate) : ""}
+                  </h2>
                   <button
                     onClick={handleNewAnalysis}
                     className="px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
@@ -612,13 +665,14 @@ const PressureAnalysis = () => {
                   </button>
                 </div>
 
-                {/* Gráfica */}
+                {/* Parámetros operacionales — arriba de la gráfica */}
+                {configPanel}
+
+                {/* Gráfica — ancho completo */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                   <Image
                     src={imageUrl}
-                    alt={`Análisis de presión para ${
-                      selectedDate ? formatDateForAPI(selectedDate) : ""
-                    }`}
+                    alt={`Análisis de presión para ${selectedDate ? formatDateForAPI(selectedDate) : ""}`}
                     width={1800}
                     height={1000}
                     className="w-full h-auto rounded-lg"
@@ -633,183 +687,23 @@ const PressureAnalysis = () => {
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {[
-                      {
-                        label: "Presión promedio",
-                        value: `${pressureStats.presion_promedio.toFixed(2)} psi`,
-                        color: "blue",
-                      },
-                      {
-                        label: "Tiempo total",
-                        value: `${pressureStats.tiempo_total_horas}h ${pressureStats.tiempo_total_minutos ?? 0}min`,
-                        color: "indigo",
-                      },
-                      {
-                        label: "Pendiente subida",
-                        value: `${pressureStats.pendiente_subida.toFixed(2)} psi/min`,
-                        color: "green",
-                      },
-                      {
-                        label: "Pendiente bajada",
-                        value: `${pressureStats.pendiente_bajada.toFixed(2)} psi/min`,
-                        color: "orange",
-                      },
-                      {
-                        label: "Variabilidad relativa",
-                        value: pressureStats.variabilidad_relativa.toFixed(3),
-                        color: "purple",
-                      },
-                      {
-                        label: "Estabilidad ±5 psi",
-                        value: `${pressureStats.indice_estabilidad.toFixed(2)}%`,
-                        color: "teal",
-                      },
-                      {
-                        label: "Eventos críticos",
-                        value: pressureStats.eventos_criticos_total.toString(),
-                        color:
-                          pressureStats.eventos_criticos_total > 0
-                            ? "red"
-                            : "green",
-                      },
+                      { label: "Presión promedio",    value: `${pressureStats.presion_promedio.toFixed(2)} psi`,                                    color: "blue"   },
+                      { label: "Tiempo total",        value: `${pressureStats.tiempo_total_horas}h ${pressureStats.tiempo_total_minutos ?? 0}min`,   color: "indigo" },
+                      { label: "Pendiente subida",    value: `${pressureStats.pendiente_subida.toFixed(2)} psi/min`,                                color: "green"  },
+                      { label: "Pendiente bajada",    value: `${pressureStats.pendiente_bajada.toFixed(2)} psi/min`,                                color: "orange" },
+                      { label: "Variabilidad relativa", value: pressureStats.variabilidad_relativa.toFixed(3),                                      color: "purple" },
+                      { label: "Estabilidad ±5 psi", value: `${pressureStats.indice_estabilidad.toFixed(2)}%`,                                     color: "teal"   },
+                      { label: "Eventos críticos",   value: pressureStats.eventos_criticos_total.toString(), color: pressureStats.eventos_criticos_total > 0 ? "red" : "green" },
                     ].map(({ label, value, color }) => (
-                      <div
-                        key={label}
-                        className="bg-gray-50 rounded-lg p-3 border border-gray-100"
-                      >
+                      <div key={label} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
                         <p className="text-xs text-gray-500 mb-1">{label}</p>
-                        <p className={`text-lg font-bold text-${color}-600`}>
-                          {value}
-                        </p>
+                        <p className={`text-lg font-bold text-${color}-600`}>{value}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
             )}
-          </div>
-
-          {/* ── Sidebar derecho: Configuración ── */}
-          <div className="w-full lg:w-72 shrink-0">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 sticky top-6">
-              <button
-                type="button"
-                onClick={() => setIsConfigOpen((v) => !v)}
-                className="w-full flex items-center justify-between gap-2 p-5 text-left"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-blue-50 rounded-lg">
-                    <svg
-                      className="w-4 h-4 text-blue-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-                      />
-                    </svg>
-                  </div>
-                  <h2 className="text-sm font-bold text-gray-800">
-                    Parámetros operacionales
-                  </h2>
-                </div>
-                <svg
-                  className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isConfigOpen ? "rotate-180" : ""}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-
-              {isConfigOpen && (
-                <div className="px-5 pb-5 space-y-4">
-                  {(
-                    [
-                      {
-                        key: "presion_max",
-                        label: "Presión máxima",
-                        unit: "psi",
-                        color: "green",
-                      },
-                      {
-                        key: "presion_min",
-                        label: "Presión mínima",
-                        unit: "psi",
-                        color: "blue",
-                      },
-                      {
-                        key: "presion_alerta",
-                        label: "Presión alerta",
-                        unit: "psi",
-                        color: "yellow",
-                      },
-                      {
-                        key: "v_tanque",
-                        label: "Volumen tanque",
-                        unit: "L",
-                        color: "purple",
-                      },
-                    ] as const
-                  ).map(({ key, label, unit, color }) => (
-                    <div key={key}>
-                      <label className="flex items-center justify-between text-xs font-medium text-gray-500 mb-1.5">
-                        <span>{label}</span>
-                        <span
-                          className={`px-1.5 py-0.5 bg-${color}-50 text-${color}-700 rounded text-xs font-semibold`}
-                        >
-                          {unit}
-                        </span>
-                      </label>
-                      <input
-                        type="number"
-                        value={configDraft[key]}
-                        onChange={(e) =>
-                          setConfigDraft((d) => ({
-                            ...d,
-                            [key]: parseFloat(e.target.value),
-                          }))
-                        }
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors"
-                      />
-                    </div>
-                  ))}
-
-                  <p className="text-xs text-gray-400 leading-relaxed">
-                    Alerta &lt; Mínima &lt; Máxima
-                  </p>
-
-                  {configError && (
-                    <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">
-                      {configError}
-                    </p>
-                  )}
-                  {configSuccess && (
-                    <p className="text-xs text-green-700 bg-green-50 px-3 py-2 rounded-lg font-medium">
-                      ✓ Guardado correctamente
-                    </p>
-                  )}
-
-                  <button
-                    onClick={saveConfig}
-                    disabled={savingConfig}
-                    className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
-                  >
-                    {savingConfig ? "Guardando..." : "Guardar cambios"}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </div>
