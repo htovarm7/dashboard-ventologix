@@ -53,6 +53,7 @@ interface DisplayUser {
   name: string;
   email: string;
   numero_cliente: number;
+  rol: number; // 3 = Gerente, 4 = Ingeniero
   envio_diario: boolean;
   envio_semanal: boolean;
   compressors: string[]; // compresor IDs stored in ingenieros
@@ -153,7 +154,9 @@ const AdminView = () => {
       const compJson = compRes.ok ? await compRes.json() : [];
 
       const authList: UsuarioAuth[] = (authJson.data ?? []).filter(
-        (u: UsuarioAuth) => u.numeroCliente === numero_cliente
+        (u: UsuarioAuth) =>
+          u.numeroCliente === numero_cliente &&
+          !u.email.toLowerCase().endsWith("@ventologix.com"),
       );
       const ingList: Ingeniero[] = ingJson;
       const compList: Compressor[] = compJson;
@@ -171,13 +174,15 @@ const AdminView = () => {
   const mergeUsers = (
     authList: UsuarioAuth[],
     ingList: Ingeniero[],
-    compList: Compressor[]
+    compList: Compressor[],
   ): DisplayUser[] => {
     const ingByEmail = new Map(ingList.map((i) => [i.email.toLowerCase(), i]));
 
     const merged: DisplayUser[] = authList.map((auth) => {
       const ing = ingByEmail.get(auth.email.toLowerCase());
-      const compIds = ing ? extractCompressorIds(ing.compressors, compList) : [];
+      const compIds = ing
+        ? extractCompressorIds(ing.compressors, compList)
+        : [];
       const compAliases = ing
         ? extractCompressorAliases(ing.compressors, compList)
         : [];
@@ -187,6 +192,7 @@ const AdminView = () => {
         name: auth.name,
         email: auth.email,
         numero_cliente: auth.numeroCliente,
+        rol: auth.rol ?? 4,
         envio_diario: auth.envio_diario,
         envio_semanal: auth.envio_semanal,
         compressors: compIds,
@@ -199,28 +205,33 @@ const AdminView = () => {
       };
     });
 
-    // Also include any ingenieros NOT present in usuarios-auth
+    // Also include any ingenieros NOT present in usuarios-auth (skip ventologix.com)
     for (const ing of ingList) {
-      if (!authList.find((a) => a.email.toLowerCase() === ing.email.toLowerCase())) {
-        const compIds = extractCompressorIds(ing.compressors, compList);
-        const compAliases = extractCompressorAliases(ing.compressors, compList);
-        merged.push({
-          authId: null,
-          engineerId: ing.id,
-          name: ing.name,
-          email: ing.email,
-          numero_cliente: ing.numero_cliente,
-          envio_diario: ing.emailPreferences?.daily ?? false,
-          envio_semanal: ing.emailPreferences?.weekly ?? false,
-          compressors: compIds,
-          compressorAliases: compAliases,
-          emailPreferences: ing.emailPreferences ?? {
-            daily: false,
-            weekly: false,
-            monthly: false,
-          },
-        });
+      if (
+        ing.email.toLowerCase().endsWith("@ventologix.com") ||
+        authList.find((a) => a.email.toLowerCase() === ing.email.toLowerCase())
+      ) {
+        continue;
       }
+      const compIds = extractCompressorIds(ing.compressors, compList);
+      const compAliases = extractCompressorAliases(ing.compressors, compList);
+      merged.push({
+        authId: null,
+        engineerId: ing.id,
+        name: ing.name,
+        email: ing.email,
+        numero_cliente: ing.numero_cliente,
+        rol: ing.rol ?? 4,
+        envio_diario: ing.emailPreferences?.daily ?? false,
+        envio_semanal: ing.emailPreferences?.weekly ?? false,
+        compressors: compIds,
+        compressorAliases: compAliases,
+        emailPreferences: ing.emailPreferences ?? {
+          daily: false,
+          weekly: false,
+          monthly: false,
+        },
+      });
     }
 
     return merged;
@@ -228,7 +239,7 @@ const AdminView = () => {
 
   const extractCompressorIds = (
     raw: Ingeniero["compressors"],
-    compList: Compressor[]
+    compList: Compressor[],
   ): string[] => {
     if (!raw || raw.length === 0) return [];
     if (typeof raw[0] === "object") {
@@ -236,7 +247,7 @@ const AdminView = () => {
     }
     return (raw as string[]).reduce<string[]>((acc, nameOrId) => {
       const found = compList.find(
-        (c) => c.alias === nameOrId || String(c.id) === nameOrId
+        (c) => c.alias === nameOrId || String(c.id) === nameOrId,
       );
       if (found) acc.push(found.id.toString());
       return acc;
@@ -245,7 +256,7 @@ const AdminView = () => {
 
   const extractCompressorAliases = (
     raw: Ingeniero["compressors"],
-    compList: Compressor[]
+    compList: Compressor[],
   ): string[] => {
     if (!raw || raw.length === 0) return [];
     if (typeof raw[0] === "object") {
@@ -314,7 +325,7 @@ const AdminView = () => {
         editingUser ? "Usuario actualizado" : "Usuario agregado",
         editingUser
           ? "Los datos han sido actualizados correctamente."
-          : "El usuario ha sido agregado exitosamente."
+          : "El usuario ha sido agregado exitosamente.",
       );
     } catch (err) {
       console.error(err);
@@ -380,7 +391,7 @@ const AdminView = () => {
             envio_diario: formData.envio_diario,
             envio_semanal: formData.envio_semanal,
           }),
-        })
+        }),
       );
     }
 
@@ -397,7 +408,7 @@ const AdminView = () => {
             numeroCliente: num,
             rol: 4,
           }),
-        })
+        }),
       );
     } else {
       // User exists only in auth — also create them in ingenieros
@@ -412,7 +423,7 @@ const AdminView = () => {
             numeroCliente: num,
             rol: 4,
           }),
-        })
+        }),
       );
     }
 
@@ -439,7 +450,7 @@ const AdminView = () => {
               fetch(`${URL_API}/web/usuarios-auth/${user.authId}`, {
                 method: "DELETE",
                 headers: headers(),
-              })
+              }),
             );
           }
 
@@ -450,8 +461,8 @@ const AdminView = () => {
                 {
                   method: "DELETE",
                   headers: headers(),
-                }
-              )
+                },
+              ),
             );
           }
 
@@ -460,7 +471,7 @@ const AdminView = () => {
             await fetchAll(num);
             showSuccess(
               "Usuario eliminado",
-              "El usuario ha sido eliminado exitosamente."
+              "El usuario ha sido eliminado exitosamente.",
             );
           } else {
             showError("Error al eliminar", "No se pudo eliminar el usuario.");
@@ -471,14 +482,14 @@ const AdminView = () => {
       },
       undefined,
       "Eliminar",
-      "Cancelar"
+      "Cancelar",
     );
   };
 
   const handleEmailPreference = async (
     user: DisplayUser,
     preference: "daily" | "weekly" | "monthly",
-    value: boolean
+    value: boolean,
   ) => {
     const updates: Promise<Response>[] = [];
 
@@ -489,12 +500,15 @@ const AdminView = () => {
           method: "PATCH",
           headers: headers(),
           body: JSON.stringify({ [preference]: value }),
-        })
+        }),
       );
     }
 
     // Sync envio_diario / envio_semanal to usuarios-auth
-    if (user.authId !== null && (preference === "daily" || preference === "weekly")) {
+    if (
+      user.authId !== null &&
+      (preference === "daily" || preference === "weekly")
+    ) {
       updates.push(
         fetch(`${URL_API}/web/usuarios-auth/${user.authId}`, {
           method: "PUT",
@@ -505,10 +519,9 @@ const AdminView = () => {
             rol: 2,
             name: user.name,
             envio_diario: preference === "daily" ? value : user.envio_diario,
-            envio_semanal:
-              preference === "weekly" ? value : user.envio_semanal,
+            envio_semanal: preference === "weekly" ? value : user.envio_semanal,
           }),
-        })
+        }),
       );
     }
 
@@ -521,13 +534,11 @@ const AdminView = () => {
           ? {
               ...u,
               emailPreferences: { ...u.emailPreferences, [preference]: value },
-              envio_diario:
-                preference === "daily" ? value : u.envio_diario,
-              envio_semanal:
-                preference === "weekly" ? value : u.envio_semanal,
+              envio_diario: preference === "daily" ? value : u.envio_diario,
+              envio_semanal: preference === "weekly" ? value : u.envio_semanal,
             }
-          : u
-      )
+          : u,
+      ),
     );
   };
 
@@ -541,10 +552,7 @@ const AdminView = () => {
     );
   }
 
-  const totalAssigned = users.reduce(
-    (acc, u) => acc + u.compressors.length,
-    0
-  );
+  const totalAssigned = users.reduce((acc, u) => acc + u.compressors.length, 0);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -573,7 +581,7 @@ const AdminView = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
           <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
             <div className="p-3 bg-blue-50 rounded-lg">
               <Users className="h-6 w-6 text-blue-600" />
@@ -592,15 +600,6 @@ const AdminView = () => {
               <p className="text-2xl font-bold text-gray-900">
                 {compressors.length}
               </p>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
-            <div className="p-3 bg-purple-50 rounded-lg">
-              <CheckCircle2 className="h-6 w-6 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Asignaciones totales</p>
-              <p className="text-2xl font-bold text-gray-900">{totalAssigned}</p>
             </div>
           </div>
         </div>
@@ -688,9 +687,15 @@ const AdminView = () => {
 
                     {/* Role badge */}
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border bg-blue-50 text-blue-700 border-blue-200">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                          user.rol === 3
+                            ? "bg-purple-50 text-purple-700 border-purple-200"
+                            : "bg-blue-50 text-blue-700 border-blue-200"
+                        }`}
+                      >
                         <User className="h-3 w-3" />
-                        Usuario
+                        {user.rol === 3 ? "Gerente" : "Ingeniero"}
                       </span>
                     </td>
 
@@ -702,14 +707,16 @@ const AdminView = () => {
                         </span>
                       ) : (
                         <div className="flex flex-wrap gap-1.5">
-                          {user.compressorAliases.slice(0, 3).map((alias, i) => (
-                            <span
-                              key={i}
-                              className="inline-block px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded text-xs font-medium"
-                            >
-                              {alias}
-                            </span>
-                          ))}
+                          {user.compressorAliases
+                            .slice(0, 3)
+                            .map((alias, i) => (
+                              <span
+                                key={i}
+                                className="inline-block px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded text-xs font-medium"
+                              >
+                                {alias}
+                              </span>
+                            ))}
                           {user.compressorAliases.length > 3 && (
                             <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
                               +{user.compressorAliases.length - 3} más
@@ -726,7 +733,6 @@ const AdminView = () => {
                           [
                             { key: "daily", label: "Diario" },
                             { key: "weekly", label: "Semanal" },
-                            { key: "monthly", label: "Mensual" },
                           ] as const
                         ).map(({ key, label }) => (
                           <label
@@ -738,10 +744,16 @@ const AdminView = () => {
                               className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                               checked={user.emailPreferences?.[key] || false}
                               onChange={(e) =>
-                                handleEmailPreference(user, key, e.target.checked)
+                                handleEmailPreference(
+                                  user,
+                                  key,
+                                  e.target.checked,
+                                )
                               }
                             />
-                            <span className="text-xs text-gray-500">{label}</span>
+                            <span className="text-xs text-gray-500">
+                              {label}
+                            </span>
                           </label>
                         ))}
                       </div>
@@ -773,6 +785,12 @@ const AdminView = () => {
           </div>
         )}
       </div>
+
+      {/* Info note */}
+      <p className="mt-3 text-l text-gray-400 italic px-1">
+        * Se le puede asignar compresores a ingenieros para que solamente ellos
+        puedan visualizarlo.
+      </p>
 
       {/* Create / Edit modal */}
       {isModalOpen && (
@@ -874,7 +892,7 @@ const AdminView = () => {
                       ) : (
                         compressors.map((comp) => {
                           const selected = formData.compressors.includes(
-                            comp.id.toString()
+                            comp.id.toString(),
                           );
                           return (
                             <label
@@ -910,7 +928,7 @@ const AdminView = () => {
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {formData.compressors.map((id) => {
                       const comp = compressors.find(
-                        (c) => c.id.toString() === id
+                        (c) => c.id.toString() === id,
                       );
                       return comp ? (
                         <span
