@@ -347,9 +347,16 @@ def finalizar_reporte(folio: str):
             "UPDATE reportes_secadora SET estado='terminado', updated_at=NOW() WHERE folio=%s",
             (folio,),
         )
-        conn.commit()
         if cursor.rowcount == 0:
+            conn.rollback()
             return {"success": False, "error": "Reporte no encontrado"}
+
+        cursor.execute(
+            "UPDATE ordenes_servicio SET estado='terminado' WHERE folio=%s",
+            (folio,),
+        )
+
+        conn.commit()
         return {"success": True}
     except Exception as e:
         conn.rollback()
