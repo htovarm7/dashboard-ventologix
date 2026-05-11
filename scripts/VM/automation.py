@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from google.cloud import storage
 from google.oauth2 import service_account
 import mysql.connector
+import requests
 import smtplib
 import time
 import os
@@ -52,7 +53,6 @@ FECHA_HOY = datetime.now()
 
 @contextmanager
 def db_connection():
-    """Context manager para conexion a MySQL usando variables de entorno."""
     conn = mysql.connector.connect(
         host=os.getenv("DB_HOST", "localhost"),
         port=int(os.getenv("DB_PORT", "3306")),
@@ -67,9 +67,6 @@ def db_connection():
 
 
 def upload_to_gcs(file_path: str, client_name: str = "", folio: str = "") -> bool:
-    """Sube un archivo PDF a Google Cloud Storage dentro de la carpeta del folio.
-    Path: mantenimiento/{year}/{month}/{client_name}/{folio}/{filename}
-    """
     try:
         credentials = service_account.Credentials.from_service_account_file(GCS_KEY_FILE)
         gcs_client = storage.Client(credentials=credentials, project=credentials.project_id)
@@ -95,11 +92,6 @@ def upload_to_gcs(file_path: str, client_name: str = "", folio: str = "") -> boo
 
 
 def generar_pdf(url: str, output_path: str, timeout: int = 300000) -> str | None:
-    """
-    Genera un PDF a partir de una URL usando Playwright.
-    Espera la senal window.status === 'pdf-ready' o 'data-error'.
-    Retorna la ruta del PDF o None si falla.
-    """
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
@@ -148,7 +140,6 @@ def generar_pdf(url: str, output_path: str, timeout: int = 300000) -> str | None
 
 
 def get_fecha_reporte(tipo: str, fecha_base: datetime = None) -> str:
-    """Genera etiqueta de fecha para nombres de archivo."""
     fecha_base = fecha_base or datetime.now()
     if tipo == "diario":
         return (fecha_base - timedelta(days=1)).strftime("%Y-%m-%d")
@@ -164,36 +155,12 @@ def get_fecha_reporte(tipo: str, fecha_base: datetime = None) -> str:
 
 # ==================== CONSULTAS BD ====================
 
-def obtener_clientes(tipo: str) -> list[dict]:
-    """
-    Obtiene clientes+compresores que necesitan reportes.
-    Solo incluye compresores con al menos un destinatario válido en usuarios_auth.
-    """
-    flag = "envio_diario" if tipo == "diario" else "envio_semanal"
-    with db_connection() as conn:
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute(f"""
-            SELECT DISTINCT c.id_cliente, c.nombre_cliente, comp.linea, comp.Alias AS alias
-            FROM clientes c
-            JOIN compresores comp ON comp.id_cliente = c.id_cliente
-            JOIN usuarios_auth ua ON ua.numeroCliente = c.numero_cliente
-            WHERE ua.{flag} = 1
-              AND ua.email IS NOT NULL AND ua.email != ''
-              AND ua.email NOT LIKE '##%%'
-        """)
-        rows = cursor.fetchall()
-        cursor.close()
-    return rows
-
-
 def obtener_destinatarios(tipo: str) -> dict:
     """
-    Obtiene destinatarios desde BD agrupados por (id_cliente, linea).
-    Usa tablas: clientes, compresores, usuarios_auth.
     Retorna: {(id_cliente, linea): {'nombre_cliente', 'alias', 'to': [...], 'cc': [...]}}
+    Sirve como fuente unica para saber que generar y a quien enviar.
     """
     flag = "envio_diario" if tipo == "diario" else "envio_semanal"
-
     query = f"""
         SELECT DISTINCT
             c.id_cliente, c.nombre_cliente,
@@ -207,7 +174,6 @@ def obtener_destinatarios(tipo: str) -> dict:
           AND ua.email NOT LIKE '##%%'
         ORDER BY c.id_cliente, comp.Alias
     """
-
     with db_connection() as conn:
         cursor = conn.cursor(dictionary=True)
         cursor.execute(query)
@@ -234,7 +200,6 @@ def obtener_destinatarios(tipo: str) -> dict:
 
 
 def obtener_registros_mtto_pendientes() -> list[dict]:
-    """Registros de mantenimiento donde Generado IS NULL o 0."""
     with db_connection() as conn:
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
@@ -249,7 +214,6 @@ def obtener_registros_mtto_pendientes() -> list[dict]:
 
 
 def marcar_reporte_generado(registro_id: int, link_pdf: str = None) -> bool:
-    """Marca un registro de mantenimiento como generado."""
     with db_connection() as conn:
         cursor = conn.cursor()
         if link_pdf:
@@ -272,7 +236,6 @@ def marcar_reporte_generado(registro_id: int, link_pdf: str = None) -> bool:
 
 def send_mail(to: list[str], cc: list[str], bcc: list[str],
               subject: str, body_html: str, pdf_path: str = None) -> bool:
-    """Envia un correo con PDF adjunto y logos embebidos."""
     if not to:
         return False
 
@@ -311,8 +274,7 @@ def send_mail(to: list[str], cc: list[str], bcc: list[str],
             )
 
     all_addrs = list(to) + list(cc) + list(bcc)
-    max_retries = 3
-    for attempt in range(1, max_retries + 1):
+    for attempt in range(1, 4):
         try:
             with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=30) as smtp:
                 smtp.starttls()
@@ -320,8 +282,8 @@ def send_mail(to: list[str], cc: list[str], bcc: list[str],
                 smtp.send_message(msg, to_addrs=all_addrs)
             return True
         except Exception as e:
-            print(f"  Error SMTP enviando a {to} (intento {attempt}/{max_retries}): {e}")
-            if attempt < max_retries:
+            print(f"  Error SMTP enviando a {to} (intento {attempt}/3): {e}")
+            if attempt < 3:
                 wait = attempt * 5
                 print(f"  Reintentando en {wait}s...")
                 time.sleep(wait)
@@ -329,7 +291,6 @@ def send_mail(to: list[str], cc: list[str], bcc: list[str],
 
 
 def send_error_mail(failed_pdfs: list = None, missing_files: list = None):
-    """Envia alerta de errores a admins."""
     if not failed_pdfs and not missing_files:
         return
 
@@ -360,7 +321,6 @@ def send_error_mail(failed_pdfs: list = None, missing_files: list = None):
 
 def generar_pdf_cliente(id_cliente: int, linea: str, nombre_cliente: str,
                         alias: str, tipo: str, etiqueta_fecha: str) -> str | None:
-    """Genera PDF de reporte diario o semanal para un compresor."""
     alias_limpio = (alias or "").strip()
     tipo_label = "Diario" if tipo == "diario" else "Semanal"
     nombre_archivo = f"Reporte {tipo_label} {nombre_cliente} {alias_limpio} {etiqueta_fecha}.pdf"
@@ -375,7 +335,6 @@ def generar_pdf_cliente(id_cliente: int, linea: str, nombre_cliente: str,
 
 def generar_pdf_mantenimiento(registro_id: int, numero_serie: str,
                               cliente: str, fecha: str) -> str | None:
-    """Genera PDF de reporte de mantenimiento."""
     cliente_limpio = cliente.replace("/", "-").replace("\\", "-")
     nombre_archivo = f"Reporte Mantenimiento {cliente_limpio} {numero_serie} {fecha}.pdf"
     pdf_path = os.path.join(DOWNLOADS_FOLDER, nombre_archivo)
@@ -391,23 +350,22 @@ def generar_pdf_mantenimiento(registro_id: int, numero_serie: str,
 
 # ==================== ORQUESTACION ====================
 
-def generar_todos_los_pdfs(clientes: list[dict], tipo: str) -> tuple[dict, list]:
+def generar_todos_los_pdfs(destinatarios: dict, tipo: str) -> tuple[dict, list]:
     """
-    Genera PDFs para cada cliente. Sube a Drive si es semanal.
+    Genera PDFs para cada compresor en destinatarios. Sube a GCS si es semanal.
     Retorna: (pdfs_generados: {(id_cliente,linea): path}, fallidos: list)
     """
     os.makedirs(DOWNLOADS_FOLDER, exist_ok=True)
     generados = {}
     fallidos = []
+    items = list(destinatarios.items())
 
-    for i, c in enumerate(clientes, 1):
-        id_cliente = c['id_cliente']
-        linea = c['linea']
-        nombre_cliente = c['nombre_cliente']
-        alias = (c.get('alias') or "").strip()
+    for i, ((id_cliente, linea), dest) in enumerate(items, 1):
+        nombre_cliente = dest['nombre_cliente']
+        alias = dest['alias']
         etiqueta = get_fecha_reporte(tipo, FECHA_HOY)
 
-        print(f"\n[{i}/{len(clientes)}] {nombre_cliente} - {alias}")
+        print(f"\n[{i}/{len(items)}] {nombre_cliente} - {alias}")
         inicio = time.time()
 
         pdf_path = generar_pdf_cliente(id_cliente, linea, nombre_cliente, alias, tipo, etiqueta)
@@ -429,12 +387,12 @@ def generar_todos_los_pdfs(clientes: list[dict], tipo: str) -> tuple[dict, list]
     return generados, fallidos
 
 
-def enviar_reportes(tipo: str, pdfs_generados: dict):
+def enviar_reportes(tipo: str, pdfs_generados: dict, destinatarios: dict):
     """
-    Envia los PDFs generados a los destinatarios obtenidos de BD.
+    Envia los PDFs generados a los destinatarios ya cargados desde BD.
     pdfs_generados: {(id_cliente, linea): pdf_path}
+    destinatarios:  {(id_cliente, linea): {nombre_cliente, alias, to, cc}}
     """
-    destinatarios = obtener_destinatarios(tipo)
     tipo_label = "Diario" if tipo == "diario" else "Semanal"
     fecha_str = get_fecha_reporte(tipo, FECHA_HOY)
     enviados = 0
@@ -474,7 +432,7 @@ def enviar_reportes(tipo: str, pdfs_generados: dict):
 
 
 def procesar_mantenimientos() -> tuple[int, int]:
-    """Genera PDFs de mantenimiento pendientes y los sube a Drive."""
+    """Genera PDFs de mantenimiento pendientes y los sube a GCS."""
     registros = obtener_registros_mtto_pendientes()
     if not registros:
         print("No hay reportes de mantenimiento pendientes")
@@ -513,16 +471,11 @@ def procesar_mantenimientos() -> tuple[int, int]:
 
 def verificar_conectividad():
     """Verifica que Next.js y Playwright esten disponibles."""
-    import requests
-    checks = [
-        ("Next.js (3000)", "http://localhost:3000/"),
-    ]
-    for name, url in checks:
-        try:
-            r = requests.get(url, timeout=10)
-            print(f"  {name}: {'OK' if r.status_code == 200 else f'codigo {r.status_code}'}")
-        except Exception as e:
-            print(f"  {name}: NO DISPONIBLE - {e}")
+    try:
+        r = requests.get("http://localhost:3000/", timeout=10)
+        print(f"  Next.js (3000): {'OK' if r.status_code == 200 else f'codigo {r.status_code}'}")
+    except Exception as e:
+        print(f"  Next.js (3000): NO DISPONIBLE - {e}")
 
     try:
         with sync_playwright() as p:
@@ -551,81 +504,6 @@ def clean_pdfs_folder():
 def debe_generar_semanales(fecha: datetime) -> bool:
     return FORZAR_SEMANALES or fecha.weekday() == 0
 
-# ==================== TEST ====================
-TEST_EMAILS = [
-    "andres.mirazo@ventologix.com",
-    "octavio.murillo@ventologix.com",
-    "hector.tovar@ventologix.com",
-]
-
-
-def test():
-    """
-    Genera TODOS los reportes diarios y los envia unicamente
-    a los correos de prueba (TEST_EMAILS), sin tocar a los clientes.
-    """
-    print("=== TEST MODE - REPORTES DIARIOS ===")
-    print(f"Destinatarios de prueba: {TEST_EMAILS}")
-    print(f"Fecha: {FECHA_HOY.strftime('%Y-%m-%d %H:%M:%S')}")
-
-    print("\n--- Verificando conectividad ---")
-    verificar_conectividad()
-
-    print("\n--- Limpiando PDFs ---")
-    clean_pdfs_folder()
-
-    inicio = time.time()
-
-    clientes = obtener_clientes("diario")
-    print(f"\nClientes diarios: {len(clientes)}")
-
-    if not clientes:
-        print("No hay clientes con reportes diarios.")
-        return
-
-    pdfs, fallidos = generar_todos_los_pdfs(clientes, "diario")
-
-    if not pdfs:
-        print("No se genero ningun PDF.")
-        if fallidos:
-            send_error_mail(failed_pdfs=fallidos)
-        return
-
-    # Enviar todos los PDFs a los correos de prueba
-    tipo_label = "Diario"
-    fecha_str = get_fecha_reporte("diario", FECHA_HOY)
-    enviados = 0
-
-    for i, (_, pdf_path) in enumerate(pdfs.items()):
-        nombre_archivo = os.path.basename(pdf_path)
-
-        subject = f"[TEST] Reporte {tipo_label} - {nombre_archivo} ({fecha_str})"
-        body = f"""
-        <p><b>[MODO TEST]</b> - Este correo es solo de prueba.</p>
-        <p>Adjunto el reporte <b>{tipo_label.lower()}</b> correspondiente al {fecha_str}.</p>
-        <p>Archivo: <b>{nombre_archivo}</b></p>
-        """
-
-        if i > 0:
-            time.sleep(2)
-
-        if send_mail(
-            to=TEST_EMAILS, cc=[], bcc=[],
-            subject=subject, body_html=body, pdf_path=pdf_path,
-        ):
-            enviados += 1
-            try:
-                os.remove(pdf_path)
-            except Exception:
-                pass
-
-    elapsed = time.time() - inicio
-    print(f"\n=== TEST COMPLETADO en {elapsed:.1f}s ===")
-    print(f"PDFs generados: {len(pdfs)} | Fallidos: {len(fallidos)} | Correos enviados: {enviados}")
-
-    if fallidos:
-        send_error_mail(failed_pdfs=fallidos)
-
 
 # ==================== MAIN ====================
 
@@ -648,16 +526,15 @@ def main():
     # --- DIARIOS ---
     if ejecutar_diarios:
         print("\n========== REPORTES DIARIOS ==========")
-        clientes = obtener_clientes("diario")
-        print(f"Clientes diarios: {len(clientes)}")
+        destinatarios = obtener_destinatarios("diario")
+        print(f"Clientes diarios: {len(destinatarios)}")
 
-        if clientes:
-            pdfs, fallidos = generar_todos_los_pdfs(clientes, "diario")
-            enviar_reportes("diario", pdfs)
+        if destinatarios:
+            pdfs, fallidos = generar_todos_los_pdfs(destinatarios, "diario")
+            enviar_reportes("diario", pdfs, destinatarios)
             if fallidos:
                 send_error_mail(failed_pdfs=fallidos)
 
-        # Mantenimientos se ejecutan junto con diarios
         print("\n========== MANTENIMIENTOS PENDIENTES ==========")
         procesar_mantenimientos()
     else:
@@ -666,12 +543,12 @@ def main():
     # --- SEMANALES ---
     if ejecutar_semanales:
         print("\n========== REPORTES SEMANALES ==========")
-        clientes = obtener_clientes("semanal")
-        print(f"Clientes semanales: {len(clientes)}")
+        destinatarios = obtener_destinatarios("semanal")
+        print(f"Clientes semanales: {len(destinatarios)}")
 
-        if clientes:
-            pdfs, fallidos = generar_todos_los_pdfs(clientes, "semanal")
-            enviar_reportes("semanal", pdfs)
+        if destinatarios:
+            pdfs, fallidos = generar_todos_los_pdfs(destinatarios, "semanal")
+            enviar_reportes("semanal", pdfs, destinatarios)
             if fallidos:
                 send_error_mail(failed_pdfs=fallidos)
     else:
@@ -683,14 +560,8 @@ def main():
 
 
 if __name__ == "__main__":
-    import sys
-    modo = sys.argv[1] if len(sys.argv) > 1 else "main"
-
     try:
-        if modo == "test":
-            test()
-        else:
-            main()
+        main()
     except KeyboardInterrupt:
         print("\nCancelado por el usuario.")
         clean_pdfs_folder()

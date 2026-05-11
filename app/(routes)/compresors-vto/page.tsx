@@ -101,6 +101,7 @@ const Compresors = () => {
     fecha_ultimo_mtto: "",
   });
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateMode, setIsCreateMode] = useState(true);
   const [selectedCompresor, setSelectedCompresor] = useState<Compresor | null>(
@@ -140,21 +141,21 @@ const Compresors = () => {
   const fetchCompresores = async (): Promise<void> => {
     try {
       setLoading(true);
+      setFetchError(null);
       const res = await fetch(`${URL_API}/compresores/`);
       if (res.ok) {
         const response = await res.json();
-        console.log("API Response:", response);
-        console.log("First compresor:", response.data?.[0]);
-        setCompresores(response.data || []);
+        if (response.error) {
+          setFetchError(response.error);
+          setCompresores([]);
+        } else {
+          setCompresores(response.data || []);
+        }
       } else {
-        console.error(
-          "Failed to fetch compresores",
-          res.status,
-          res.statusText,
-        );
+        setFetchError(`HTTP ${res.status}: ${res.statusText}`);
       }
     } catch (error) {
-      console.error("Error fetching compresores", error);
+      setFetchError(String(error));
     } finally {
       setLoading(false);
     }
@@ -710,6 +711,12 @@ const Compresors = () => {
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
                   <p className="text-gray-600 mt-4">Cargando compresores...</p>
+                </div>
+              ) : fetchError ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">⚠️</div>
+                  <p className="text-lg font-medium text-red-600">Error al cargar compresores</p>
+                  <p className="text-sm mt-2 text-gray-500 font-mono bg-gray-100 rounded p-2 max-w-lg mx-auto">{fetchError}</p>
                 </div>
               ) : compresores.length > 0 ? (
                 <div className="overflow-x-auto">

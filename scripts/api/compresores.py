@@ -27,9 +27,10 @@ def get_all_compresores():
         cursor = conn.cursor()
 
         cursor.execute(
-            """SELECT cl.nombre_cliente, c.hp, c.tipo, c.voltaje, c.marca, c.numero_serie, 
-                      c.anio, c.proyecto, c.linea, c.LOAD_NO_LOAD, c.Alias, c.fecha_utlimo_mtto,
-                      c.id, c.id_cliente
+            """SELECT c.id, c.hp, c.tipo, c.voltaje, c.marca, c.numero_serie,
+                      c.anio, c.id_cliente, c.Amp_Load, c.Amp_No_Load,
+                      c.proyecto, c.linea, c.LOAD_NO_LOAD, c.Alias, c.fecha_ultimo_mtto,
+                      cl.nombre_cliente
                FROM compresores c
                LEFT JOIN clientes cl ON c.id_cliente = cl.id_cliente"""
         )
@@ -39,29 +40,28 @@ def get_all_compresores():
         cursor.close()
         conn.close()
 
-        if not res:
-            return {"error": "Check connection to DB"}
-        
         compresores = [
             {
-                "id": row[12],
-                "id_cliente": row[13],
-                "nombre_cliente": row[0],
+                "id": row[0],
                 "hp": row[1],
                 "tipo": row[2],
                 "voltaje": row[3],
                 "marca": row[4],
                 "numero_serie": row[5],
                 "anio": row[6],
-                "proyecto": row[7],
-                "linea": row[8],
-                "LOAD_NO_LOAD": row[9],
-                "Alias": row[10],
-                "fecha_utlimo_mtto": row[11]
+                "id_cliente": row[7],
+                "Amp_Load": row[8],
+                "Amp_No_Load": row[9],
+                "proyecto": row[10],
+                "linea": row[11],
+                "LOAD_NO_LOAD": row[12],
+                "Alias": row[13],
+                "fecha_utlimo_mtto": row[14],  # mantiene el nombre que espera el frontend
+                "nombre_cliente": row[15]
             }
             for row in res
         ]
-        
+
         return{
             "data": compresores
         }

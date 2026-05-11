@@ -19,8 +19,8 @@ import {
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { URL_API } from "@/lib/global";
 import Image from "next/image";
+import BackButton from "@/components/BackButton";
 
-// Registrar componentes de Chart.js
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -60,91 +60,113 @@ interface VoltajeDiarioData {
   uc: number;
 }
 
+const MONTHS = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+
+const PHASE_COLORS = {
+  a: { border: "rgba(6, 71, 176, 1)", bg: "rgba(6, 71, 176, 0.1)" },
+  b: { border: "rgba(16, 185, 129, 1)", bg: "rgba(16, 185, 129, 0.1)" },
+  c: { border: "rgba(239, 68, 68, 1)", bg: "rgba(239, 68, 68, 0.1)" },
+};
+
 const mensualChartOptions = {
   responsive: true,
   maintainAspectRatio: true,
   plugins: {
     legend: {
       position: "top" as const,
-      labels: {
-        font: {
-          size: 12,
-        },
-        usePointStyle: true,
-        padding: 15,
-      },
+      labels: { font: { size: 12 }, usePointStyle: true, padding: 15 },
     },
     tooltip: {
       mode: "index" as const,
       intersect: false,
-      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      backgroundColor: "rgba(15, 23, 42, 0.9)",
       padding: 12,
-      titleFont: {
-        size: 14,
-      },
-      bodyFont: {
-        size: 13,
+      titleFont: { size: 13, weight: "bold" as const },
+      bodyFont: { size: 12 },
+      callbacks: {
+        label: (ctx: { parsed: { y: number }; dataset: { label?: string } }) =>
+          ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} kWh`,
       },
     },
     datalabels: {
       anchor: "end" as const,
       align: "end" as const,
-      color: "#000",
-      font: {
-        size: 12,
-      },
-      formatter: (value: number) => value.toFixed(2),
+      color: "#374151",
+      font: { size: 10 },
+      formatter: (value: number) => value.toFixed(1),
     },
   },
   scales: {
     y: {
       beginAtZero: true,
-      grid: {
-        color: "rgba(0, 0, 0, 0.05)",
-      },
+      grid: { color: "rgba(0, 0, 0, 0.04)" },
+      ticks: { font: { size: 11 } },
     },
     x: {
-      grid: {
-        color: "rgba(0, 0, 0, 0.05)",
-      },
+      grid: { color: "rgba(0, 0, 0, 0.04)" },
+      ticks: { font: { size: 10 } },
     },
   },
 };
 
-const diarioChartOptions = {
+const buildDiarioOptions = (unit: string) => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
     legend: {
       position: "top" as const,
-      labels: {
-        font: {
-          size: 12,
-        },
-        usePointStyle: false,
-        padding: 15,
-      },
+      labels: { font: { size: 12 }, usePointStyle: true, padding: 15 },
     },
     tooltip: {
-      enabled: false,
+      mode: "index" as const,
+      intersect: false,
+      backgroundColor: "rgba(15, 23, 42, 0.9)",
+      padding: 10,
+      titleFont: { size: 12 },
+      bodyFont: { size: 11 },
+      callbacks: {
+        label: (ctx: { parsed: { y: number }; dataset: { label?: string } }) =>
+          ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} ${unit}`,
+      },
     },
-    datalabels: {
-      display: false,
-    },
+    datalabels: { display: false },
   },
   scales: {
     y: {
       beginAtZero: true,
-      grid: {
-        color: "rgba(0, 0, 0, 0.05)",
-      },
+      grid: { color: "rgba(0, 0, 0, 0.04)" },
+      ticks: { font: { size: 11 } },
     },
     x: {
-      grid: {
-        color: "rgba(0, 0, 0, 0.05)",
-      },
+      grid: { color: "rgba(0, 0, 0, 0.04)" },
+      ticks: { font: { size: 10 }, maxTicksLimit: 12 },
     },
   },
+});
+
+const Spinner = () => (
+  <div className="flex flex-col items-center justify-center py-16 gap-3">
+    <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-200 border-t-blue-600" />
+    <p className="text-sm text-gray-400">Cargando datos...</p>
+  </div>
+);
+
+const ErrorState = ({ message }: { message: string }) => (
+  <div className="flex flex-col items-center justify-center py-16 gap-2">
+    <svg className="w-10 h-10 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+    </svg>
+    <p className="text-sm text-red-500">{message}</p>
+  </div>
+);
+
+const getTodayDate = () => {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 };
 
 const ConsumptionKwH = () => {
@@ -153,16 +175,6 @@ const ConsumptionKwH = () => {
   const [rol, setRol] = useState<number | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
-  // Función para obtener fecha de hoy en formato YYYY-MM-DD considerando zona horaria local
-  const getTodayDate = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  // Estados para datos
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
@@ -171,10 +183,12 @@ const ConsumptionKwH = () => {
   const [diarioData, setDiarioData] = useState<KwhDiarioData[]>([]);
   const [amperageData, setAmperageData] = useState<AmperajeDiarioData[]>([]);
   const [voltageData, setVoltageData] = useState<VoltajeDiarioData[]>([]);
+
   const [loadingMensual, setLoadingMensual] = useState(false);
   const [loadingDiario, setLoadingDiario] = useState(false);
   const [loadingAmperaje, setLoadingAmperaje] = useState(false);
   const [loadingVoltaje, setLoadingVoltaje] = useState(false);
+
   const [errorMensual, setErrorMensual] = useState<string | null>(null);
   const [errorDiario, setErrorDiario] = useState<string | null>(null);
   const [errorAmperaje, setErrorAmperaje] = useState<string | null>(null);
@@ -182,513 +196,297 @@ const ConsumptionKwH = () => {
 
   useEffect(() => {
     const userData = sessionStorage.getItem("userData");
-
     if (userData) {
       try {
         const parsedData = JSON.parse(userData);
         setRol(parsedData.rol);
         setIsAuthorized(true);
-      } catch (error) {
-        console.error("Error parsing userData from sessionStorage:", error);
+      } catch {
         sessionStorage.removeItem("userData");
       }
     }
   }, [isAuthenticated, user, isLoading, router]);
 
-  // Fetch datos mensuales
   useEffect(() => {
     if (!isAuthorized) return;
-
     const fetchMensualData = async () => {
       setLoadingMensual(true);
       setErrorMensual(null);
       try {
-        const response = await fetch(
-          `${URL_API}/report/kwh-mensual-por-dia?año=${selectedYear}&mes=${selectedMonth}`
-        );
-        if (!response.ok) throw new Error("Error fetching monthly data");
-        const result = await response.json();
+        const res = await fetch(`${URL_API}/report/kwh-mensual-por-dia?año=${selectedYear}&mes=${selectedMonth}`);
+        if (!res.ok) throw new Error("Error fetching monthly data");
+        const result = await res.json();
         setMensualData(result.data || []);
-      } catch (error) {
-        console.error("Error fetching monthly data:", error);
+      } catch {
         setErrorMensual("Error al cargar datos mensuales");
       } finally {
         setLoadingMensual(false);
       }
     };
-
     fetchMensualData();
   }, [isAuthorized, selectedYear, selectedMonth]);
 
-  // Fetch datos diarios
   useEffect(() => {
     if (!isAuthorized) return;
-
     const fetchDiarioData = async () => {
       setLoadingDiario(true);
       setErrorDiario(null);
       try {
-        const response = await fetch(
-          `${URL_API}/report/kwh-diario-fases?fecha=${selectedDate}`
-        );
-        const result = await response.json();
-
-        if (!response.ok)
-          throw new Error(result.error || "Error fetching daily data");
+        const res = await fetch(`${URL_API}/report/kwh-diario-fases?fecha=${selectedDate}`);
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || "Error fetching daily data");
         setDiarioData(result.data || []);
-      } catch (error) {
-        console.error("Error fetching daily data:", error);
-        setErrorDiario(
-          `Error: ${error instanceof Error ? error.message : "Unknown error"}`
-        );
+      } catch (e) {
+        setErrorDiario(`Error: ${e instanceof Error ? e.message : "Unknown error"}`);
       } finally {
         setLoadingDiario(false);
       }
     };
-
     fetchDiarioData();
   }, [isAuthorized, selectedDate]);
 
-  // Fetch datos de amperaje
   useEffect(() => {
     if (!isAuthorized) return;
-
     const fetchAmperageData = async () => {
       setLoadingAmperaje(true);
       setErrorAmperaje(null);
       try {
-        const response = await fetch(
-          `${URL_API}/report/amperaje-diario-fases?fecha=${selectedDate}`
-        );
-        const result = await response.json();
-
-        if (!response.ok)
-          throw new Error(result.error || "Error fetching amperage data");
+        const res = await fetch(`${URL_API}/report/amperaje-diario-fases?fecha=${selectedDate}`);
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || "Error fetching amperage data");
         setAmperageData(result.data || []);
-      } catch (error) {
-        console.error("Error fetching amperage data:", error);
-        setErrorAmperaje(
-          `Error: ${error instanceof Error ? error.message : "Unknown error"}`
-        );
+      } catch (e) {
+        setErrorAmperaje(`Error: ${e instanceof Error ? e.message : "Unknown error"}`);
       } finally {
         setLoadingAmperaje(false);
       }
     };
-
     fetchAmperageData();
   }, [isAuthorized, selectedDate]);
 
-  // Fetch datos de voltaje
   useEffect(() => {
     if (!isAuthorized) return;
-
     const fetchVoltageData = async () => {
       setLoadingVoltaje(true);
       setErrorVoltaje(null);
       try {
-        const response = await fetch(
-          `${URL_API}/report/voltaje-diario-fases?fecha=${selectedDate}`
-        );
-        const result = await response.json();
-
-        if (!response.ok)
-          throw new Error(result.error || "Error fetching voltage data");
+        const res = await fetch(`${URL_API}/report/voltaje-diario-fases?fecha=${selectedDate}`);
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || "Error fetching voltage data");
         setVoltageData(result.data || []);
-      } catch (error) {
-        console.error("Error fetching voltage data:", error);
-        setErrorVoltaje(
-          `Error: ${error instanceof Error ? error.message : "Unknown error"}`
-        );
+      } catch (e) {
+        setErrorVoltaje(`Error: ${e instanceof Error ? e.message : "Unknown error"}`);
       } finally {
         setLoadingVoltaje(false);
       }
     };
-
     fetchVoltageData();
   }, [isAuthorized, selectedDate]);
 
-  // Calcular total KWH mensual
   const totalKwhMensual = mensualData.reduce((sum, item) => sum + item.kwh, 0);
+  const maxKwhDia = mensualData.length > 0 ? Math.max(...mensualData.map((d) => d.kwh)) : 0;
+  const avgKwhDia = mensualData.length > 0 ? totalKwhMensual / mensualData.length : 0;
 
-  // Preparar datos para gráfica mensual
   const mensualChartData = {
     labels: mensualData.map((item) => {
-      const [year, month, day] = item.fecha.split("-");
-      return `${day}/${month}/${year}`;
+      const [, , day] = item.fecha.split("-");
+      return day;
     }),
     datasets: [
       {
         label: "kWh",
         data: mensualData.map((item) => item.kwh),
-        backgroundColor: "rgba(0, 72, 255, 0.8)",
-        borderColor: "rgba(0, 72, 255, 0.8)",
+        backgroundColor: "rgba(37, 99, 235, 0.8)",
+        borderColor: "rgba(37, 99, 235, 1)",
         borderWidth: 1,
+        borderRadius: 4,
       },
     ],
   };
+
+  const buildTimeLabels = (data: { time: string }[]) =>
+    data.map((item) =>
+      new Date(item.time).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
+    );
 
   const diarioChartData = {
-    labels: diarioData.map((item) => {
-      const time = new Date(item.time);
-      return time.toLocaleTimeString("es-ES", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    }),
+    labels: buildTimeLabels(diarioData),
     datasets: [
-      {
-        label: "Fase A (kW)",
-        data: diarioData.map((item) => item.kWa),
-        borderColor: "rgba(6, 71, 176, 1)",
-        backgroundColor: "rgba(6, 71, 176, 1)",
-        borderWidth: 0.8,
-        pointRadius: 0,
-        fill: false,
-      },
-      {
-        label: "Fase B (kW)",
-        data: diarioData.map((item) => item.kWb),
-        borderColor: "rgba(0, 255, 94, 1)",
-        backgroundColor: "rgba(0, 255, 94, 1)",
-        borderWidth: 0.8,
-        pointRadius: 0,
-        fill: false,
-      },
-      {
-        label: "Fase C (kW)",
-        data: diarioData.map((item) => item.kWc),
-        borderColor: "rgba(255, 0, 123, 1)",
-        backgroundColor: "rgba(255, 0, 123, 1)",
-        borderWidth: 0.8,
-        pointRadius: 0,
-        fill: false,
-      },
+      { label: "Fase A (kW)", data: diarioData.map((d) => d.kWa), borderColor: PHASE_COLORS.a.border, backgroundColor: PHASE_COLORS.a.bg, borderWidth: 1.5, pointRadius: 0, fill: false },
+      { label: "Fase B (kW)", data: diarioData.map((d) => d.kWb), borderColor: PHASE_COLORS.b.border, backgroundColor: PHASE_COLORS.b.bg, borderWidth: 1.5, pointRadius: 0, fill: false },
+      { label: "Fase C (kW)", data: diarioData.map((d) => d.kWc), borderColor: PHASE_COLORS.c.border, backgroundColor: PHASE_COLORS.c.bg, borderWidth: 1.5, pointRadius: 0, fill: false },
     ],
   };
 
-  // Función para ir atrás
-  const handleGoBack = () => {
-    if (window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/home");
-    }
+  const amperajeChartData = {
+    labels: buildTimeLabels(amperageData),
+    datasets: [
+      { label: "Fase A (A)", data: amperageData.map((d) => d.ia), borderColor: PHASE_COLORS.a.border, backgroundColor: PHASE_COLORS.a.bg, borderWidth: 1.5, pointRadius: 0, fill: false },
+      { label: "Fase B (A)", data: amperageData.map((d) => d.ib), borderColor: PHASE_COLORS.b.border, backgroundColor: PHASE_COLORS.b.bg, borderWidth: 1.5, pointRadius: 0, fill: false },
+      { label: "Fase C (A)", data: amperageData.map((d) => d.ic), borderColor: PHASE_COLORS.c.border, backgroundColor: PHASE_COLORS.c.bg, borderWidth: 1.5, pointRadius: 0, fill: false },
+    ],
   };
 
-  // Obtener nombre del mes en español
-  const getMonthName = (month: number) => {
-    const months = [
-      "Enero",
-      "Febrero",
-      "Marzo",
-      "Abril",
-      "Mayo",
-      "Junio",
-      "Julio",
-      "Agosto",
-      "Septiembre",
-      "Octubre",
-      "Noviembre",
-      "Diciembre",
-    ];
-    return months[month - 1];
+  const voltajeChartData = {
+    labels: buildTimeLabels(voltageData),
+    datasets: [
+      { label: "Fase A (V)", data: voltageData.map((d) => d.ua), borderColor: PHASE_COLORS.a.border, backgroundColor: PHASE_COLORS.a.bg, borderWidth: 1.5, pointRadius: 0, fill: false },
+      { label: "Fase B (V)", data: voltageData.map((d) => d.ub), borderColor: PHASE_COLORS.b.border, backgroundColor: PHASE_COLORS.b.bg, borderWidth: 1.5, pointRadius: 0, fill: false },
+      { label: "Fase C (V)", data: voltageData.map((d) => d.uc), borderColor: PHASE_COLORS.c.border, backgroundColor: PHASE_COLORS.c.bg, borderWidth: 1.5, pointRadius: 0, fill: false },
+    ],
   };
 
   if (rol === null) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 flex items-center justify-center">
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Verificando permisos...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-200 border-t-blue-600 mx-auto" />
+          <p className="mt-4 text-gray-500 text-sm">Verificando permisos...</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen w-full p-0">
-      {/* Header Section - Título y Logo */}
-      <div className="bg-gradient-to-br from-blue-700 to-white-900 p-8 relative">
-        <div className="max-w-7xl mx-auto">
-          <button
-            onClick={handleGoBack}
-            className="absolute left-8 top-8 flex items-center gap-2 text-white hover:text-white-900 transition-colors duration-200 hover:bg-white/10 px-4 py-3 rounded-lg"
-            title="Atrás"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            <span className="text-lg font-medium">Atrás</span>
-          </button>
-
-          <div className="flex justify-between items-center">
-            <div className="flex-1">
-              <h1 className="text-4xl font-bold text-gray-800">
-                Monitoreo de Consumo Eléctrico
-              </h1>
+    <main className="min-h-screen w-full bg-gray-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-700 to-blue-500 shadow-lg">
+        <div className="max-w-7xl mx-auto px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <BackButton variant="ghost" className="text-white border-white/40 hover:bg-white/20 hover:border-white/60" />
+              <div>
+                <h1 className="text-3xl font-bold text-white">Monitoreo Eléctrico</h1>
+                <p className="text-blue-100 text-sm mt-0.5">Consumo de energía por fases</p>
+              </div>
             </div>
-            <div className="flex-1 flex justify-end">
-              <Image
-                src="/Ventologix_04.png"
-                alt="Ventologix Logo"
-                width={300}
-                height={150}
-                priority
-              />
-            </div>
+            <Image src="/Ventologix_04.png" alt="Ventologix Logo" width={220} height={110} priority />
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="w-full px-8 py-8">
-        <div className="max-w-7xl mx-auto">
-          {/* SECCIÓN CONSUMO MENSUAL */}
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-gray-800 mb-6">
-              Consumo Mensual
-            </h2>
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-8 py-8 space-y-10">
 
-            {/* Tarjeta Consumo Total Mensual */}
-            <div className="bg-gradient-to-br from-blue-700 to-blue-600 rounded-xl shadow-lg p-8 text-white mb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-5xl font-bold">
-                    {totalKwhMensual.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}{" "}
-                    kWh
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg opacity-90">
-                    Consumo {getMonthName(selectedMonth)}
-                  </p>
-                </div>
+        {/* ── CONSUMO MENSUAL ── */}
+        <section>
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800">Consumo Mensual</h2>
+              <p className="text-sm text-gray-400 mt-0.5">{MONTHS[selectedMonth - 1]} {selectedYear}</p>
+            </div>
+            <div className="flex gap-2">
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {[2024, 2025, 2026].map((y) => <option key={y} value={y}>{y}</option>)}
+              </select>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {MONTHS.map((name, i) => <option key={i + 1} value={i + 1}>{name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+            <div className="bg-gradient-to-br from-blue-600 to-blue-500 rounded-xl p-5 text-white shadow">
+              <p className="text-xs font-medium text-blue-100 uppercase tracking-wider mb-1">Total del mes</p>
+              <p className="text-3xl font-bold">{totalKwhMensual.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p className="text-sm text-blue-200 mt-1">kWh</p>
+            </div>
+            <div className="bg-white rounded-xl p-5 shadow border border-gray-100">
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Día pico</p>
+              <p className="text-3xl font-bold text-gray-800">{maxKwhDia.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p className="text-sm text-gray-400 mt-1">kWh</p>
+            </div>
+            <div className="bg-white rounded-xl p-5 shadow border border-gray-100">
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Promedio diario</p>
+              <p className="text-3xl font-bold text-gray-800">{avgKwhDia.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p className="text-sm text-gray-400 mt-1">kWh / día</p>
+            </div>
+          </div>
+
+          {/* Monthly Chart */}
+          <div className="bg-white rounded-xl shadow border border-gray-100 p-6">
+            <h3 className="text-base font-semibold text-gray-700 mb-5">
+              Consumo por día — {MONTHS[selectedMonth - 1]} {selectedYear}
+            </h3>
+            {loadingMensual ? <Spinner /> : errorMensual ? <ErrorState message={errorMensual} /> : (
+              <Bar data={mensualChartData} options={mensualChartOptions} />
+            )}
+          </div>
+        </section>
+
+        {/* Divider */}
+        <div className="border-t border-gray-200" />
+
+        {/* ── CONSUMO DIARIO ── */}
+        <section>
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800">Consumo Diario</h2>
+              <p className="text-sm text-gray-400 mt-0.5">Potencia, corriente y voltaje por fase</p>
+            </div>
+            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="text-sm text-gray-700 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            {/* Potencia */}
+            <div className="bg-white rounded-xl shadow border border-gray-100 p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-2 h-6 rounded-full bg-blue-600" />
+                <h3 className="text-base font-semibold text-gray-700">Potencia por Fase (kW)</h3>
               </div>
+              {loadingDiario ? <Spinner /> : errorDiario ? <ErrorState message={errorDiario} /> : (
+                <div style={{ height: 420 }}>
+                  <Line data={diarioChartData} options={buildDiarioOptions("kW")} />
+                </div>
+              )}
             </div>
 
-            {/* Gráfica Mensual */}
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-2xl font-bold text-gray-800">
-                  Consumo Mensual - {getMonthName(selectedMonth)}
-                </h3>
-                <div className="flex gap-4">
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {[2024, 2025, 2026].map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => (
-                      <option key={month} value={month}>
-                        {String(month).padStart(2, "0")}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            {/* Corriente */}
+            <div className="bg-white rounded-xl shadow border border-gray-100 p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-2 h-6 rounded-full bg-emerald-500" />
+                <h3 className="text-base font-semibold text-gray-700">Corriente por Fase (A)</h3>
               </div>
+              {loadingAmperaje ? <Spinner /> : errorAmperaje ? <ErrorState message={errorAmperaje} /> : (
+                <div style={{ height: 420 }}>
+                  <Line data={amperajeChartData} options={buildDiarioOptions("A")} />
+                </div>
+              )}
+            </div>
 
-              {loadingMensual ? (
-                <div className="flex items-center justify-center py-12">
-                  <p className="text-gray-500">Cargando datos mensuales...</p>
-                </div>
-              ) : errorMensual ? (
-                <div className="flex items-center justify-center py-12">
-                  <p className="text-red-500">{errorMensual}</p>
-                </div>
-              ) : (
-                <div className="relative w-full">
-                  <Bar data={mensualChartData} options={mensualChartOptions} />
+            {/* Voltaje */}
+            <div className="bg-white rounded-xl shadow border border-gray-100 p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-2 h-6 rounded-full bg-red-400" />
+                <h3 className="text-base font-semibold text-gray-700">Voltaje por Fase (V)</h3>
+              </div>
+              {loadingVoltaje ? <Spinner /> : errorVoltaje ? <ErrorState message={errorVoltaje} /> : (
+                <div style={{ height: 420 }}>
+                  <Line data={voltajeChartData} options={buildDiarioOptions("V")} />
                 </div>
               )}
             </div>
           </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-3xl font-bold text-gray-800">
-                Consumo Diario
-              </h2>
-              <div className="bg-white rounded-lg p-4 shadow">
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            {/* Grid de 3 Gráficas Diarias */}
-            <div className="grid grid-cols-1 gap-8">
-              {/* Gráfica de Potencia (kWh) */}
-              <div className="bg-white rounded-xl shadow-lg p-8">
-                <h3 className="text-2xl font-bold text-gray-800 mb-6">
-                  Potencia por Fase (kW) - Diario
-                </h3>
-
-                {loadingDiario ? (
-                  <div className="flex items-center justify-center py-12">
-                    <p className="text-gray-500">Cargando datos...</p>
-                  </div>
-                ) : errorDiario ? (
-                  <div className="flex items-center justify-center py-12">
-                    <p className="text-red-500">{errorDiario}</p>
-                  </div>
-                ) : (
-                  <div className="relative w-full" style={{ height: "500px" }}>
-                    <Line data={diarioChartData} options={diarioChartOptions} />
-                  </div>
-                )}
-              </div>
-
-              {/* Gráfica de Corriente (Amperaje) */}
-              <div className="bg-white rounded-xl shadow-lg p-8">
-                <h3 className="text-2xl font-bold text-gray-800 mb-6">
-                  Corriente por Fase (A) - Diario
-                </h3>
-
-                {loadingAmperaje ? (
-                  <div className="flex items-center justify-center py-12">
-                    <p className="text-gray-500">Cargando datos...</p>
-                  </div>
-                ) : errorAmperaje ? (
-                  <div className="flex items-center justify-center py-12">
-                    <p className="text-red-500">{errorAmperaje}</p>
-                  </div>
-                ) : (
-                  <div className="relative w-full" style={{ height: "500px" }}>
-                    <Line
-                      data={{
-                        labels: amperageData.map((item) => {
-                          const time = new Date(item.time);
-                          return time.toLocaleTimeString("es-ES", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          });
-                        }),
-                        datasets: [
-                          {
-                            label: "Fase A (A)",
-                            data: amperageData.map((item) => item.ia),
-                            borderColor: "rgba(6, 71, 176, 1)",
-                            backgroundColor: "rgba(6, 71, 176, 1)",
-                            borderWidth: 0.8,
-                            pointRadius: 0,
-                            fill: false,
-                          },
-                          {
-                            label: "Fase B (A)",
-                            data: amperageData.map((item) => item.ib),
-                            borderColor: "rgba(0, 255, 94, 1)",
-                            backgroundColor: "rgba(0, 255, 94, 1)",
-                            borderWidth: 0.8,
-                            pointRadius: 0,
-                            fill: false,
-                          },
-                          {
-                            label: "Fase C (A)",
-                            data: amperageData.map((item) => item.ic),
-                            borderColor: "rgba(255, 0, 123, 1)",
-                            backgroundColor: "rgba(255, 0, 123, 1)",
-                            borderWidth: 0.8,
-                            pointRadius: 0,
-                            fill: false,
-                          },
-                        ],
-                      }}
-                      options={diarioChartOptions}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Gráfica de Voltaje */}
-              <div className="bg-white rounded-xl shadow-lg p-8">
-                <h3 className="text-2xl font-bold text-gray-800 mb-6">
-                  Voltaje por Fase (V) - Diario
-                </h3>
-
-                {loadingVoltaje ? (
-                  <div className="flex items-center justify-center py-12">
-                    <p className="text-gray-500">Cargando datos...</p>
-                  </div>
-                ) : errorVoltaje ? (
-                  <div className="flex items-center justify-center py-12">
-                    <p className="text-red-500">{errorVoltaje}</p>
-                  </div>
-                ) : (
-                  <div className="relative w-full" style={{ height: "500px" }}>
-                    <Line
-                      data={{
-                        labels: voltageData.map((item) => {
-                          const time = new Date(item.time);
-                          return time.toLocaleTimeString("es-ES", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          });
-                        }),
-                        datasets: [
-                          {
-                            label: "Fase A (V)",
-                            data: voltageData.map((item) => item.ua),
-                            borderColor: "rgba(6, 71, 176, 1)",
-                            backgroundColor: "rgba(6, 71, 176, 1)",
-                            borderWidth: 0.8,
-                            pointRadius: 0,
-                            fill: false,
-                          },
-                          {
-                            label: "Fase B (V)",
-                            data: voltageData.map((item) => item.ub),
-                            borderColor: "rgba(0, 255, 94, 1)",
-                            backgroundColor: "rgba(0, 255, 94, 1)",
-                            borderWidth: 0.8,
-                            pointRadius: 0,
-                            fill: false,
-                          },
-                          {
-                            label: "Fase C (V)",
-                            data: voltageData.map((item) => item.uc),
-                            borderColor: "rgba(255, 0, 123, 1)",
-                            backgroundColor: "rgba(255, 0, 123, 1)",
-                            borderWidth: 0.8,
-                            pointRadius: 0,
-                            fill: false,
-                          },
-                        ],
-                      }}
-                      options={diarioChartOptions}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        </section>
       </div>
     </main>
   );
