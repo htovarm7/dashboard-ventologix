@@ -74,15 +74,22 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
     setUpdateError("");
     setUpdateMessage("");
     try {
-      const response = await fetch(`${URL_API}/web/usuarios/update-client-number`, {
-        method: "PUT",
-        headers: { accept: "application/json", "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: user.email,
-          nuevo_numero_cliente: parseInt(newClientNumber),
-        }),
-      });
-      if (!response.ok) throw new Error(`Error del servidor: ${response.status}`);
+      const response = await fetch(
+        `${URL_API}/web/usuarios/update-client-number`,
+        {
+          method: "PUT",
+          headers: {
+            accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: user.email,
+            nuevo_numero_cliente: parseInt(newClientNumber),
+          }),
+        },
+      );
+      if (!response.ok)
+        throw new Error(`Error del servidor: ${response.status}`);
       setUpdateMessage("Número de cliente actualizado exitosamente");
       setNewClientNumber("");
       const storedUserData = sessionStorage.getItem("userData");
@@ -98,7 +105,9 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
       }, 1500);
     } catch (error) {
       console.error("Error updating client number:", error);
-      setUpdateError("Error al actualizar el número de cliente. Inténtelo nuevamente.");
+      setUpdateError(
+        "Error al actualizar el número de cliente. Inténtelo nuevamente.",
+      );
     } finally {
       setIsUpdating(false);
     }
@@ -140,9 +149,18 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
       id: "home",
       title: "Inicio",
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+          />
         </svg>
       ),
       route: "/home",
@@ -158,7 +176,7 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
           },
           {
             id: "admin view",
-            title: "Panel de Administración",
+            title: "Panel de Administración de Ingenieros",
             icon: <UserPen className="w-5 h-5" />,
             route: "/admin-view",
           },
@@ -254,7 +272,8 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
       if (item.isSectionLabel) return true;
       if (item.id === "home") return true;
       if (secciones.length === 0) return true;
-      if (item.id === "consumption-kwh") return secciones.includes("ConsumoKwH");
+      if (item.id === "consumption-kwh")
+        return secciones.includes("ConsumoKwH");
       return true;
     });
   };
@@ -265,7 +284,8 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
     if (secciones.length === 0) return betaItem.children;
     return betaItem.children.filter((child) => {
       if (child.id === "prediction") return secciones.includes("Prediccion");
-      if (child.id === "pressure-prediction") return secciones.includes("Presion");
+      if (child.id === "pressure-prediction")
+        return secciones.includes("Presion");
       return true;
     });
   };
@@ -310,8 +330,18 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
         onClick={() => setIsExpanded(!isExpanded)}
         data-exclude-pdf="true"
       >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 6h16M4 12h16M4 18h16"
+          />
         </svg>
       </button>
 
@@ -340,10 +370,17 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shrink-0">
-                  <Image src="/Ventologix_05.png" alt="Logo" width={22} height={22} />
+                  <Image
+                    src="/Ventologix_05.png"
+                    alt="Logo"
+                    width={22}
+                    height={22}
+                  />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white leading-tight">Ventologix</h2>
+                  <h2 className="text-lg font-bold text-white leading-tight">
+                    Ventologix
+                  </h2>
                   <p className="text-xs text-slate-400">Dashboard</p>
                 </div>
               </div>
@@ -352,8 +389,18 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
                 onClick={() => setIsExpanded(false)}
                 aria-label="Cerrar menú"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -391,7 +438,9 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
                     >
                       <div className="flex items-center gap-3">
                         {item.icon}
-                        <span className="text-sm font-medium">{item.title}</span>
+                        <span className="text-sm font-medium">
+                          {item.title}
+                        </span>
                         {item.badge && (
                           <span
                             className={`px-1.5 py-0.5 text-[10px] rounded font-semibold ${
@@ -407,9 +456,22 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
                         )}
                       </div>
                       {item.isExpandable && (
-                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                            d={item.isExpanded ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
+                        <svg
+                          className="w-4 h-4 transition-transform duration-200"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d={
+                              item.isExpanded
+                                ? "M19 9l-7 7-7-7"
+                                : "M9 5l7 7-7 7"
+                            }
+                          />
                         </svg>
                       )}
                     </div>
@@ -417,11 +479,16 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
                     {item.isExpandable && item.children && (
                       <div
                         className={`overflow-hidden transition-all duration-300 ${
-                          item.isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                          item.isExpanded
+                            ? "max-h-96 opacity-100"
+                            : "max-h-0 opacity-0"
                         }`}
                       >
                         <div className="ml-4 mt-1 space-y-0.5">
-                          {(item.id === "beta" ? getFilteredBetaChildren() : item.children).map((child) => (
+                          {(item.id === "beta"
+                            ? getFilteredBetaChildren()
+                            : item.children
+                          ).map((child) => (
                             <div
                               key={child.id}
                               className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-all duration-200 text-sm ${
@@ -432,7 +499,8 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
                                     : "hover:bg-slate-600 text-slate-400 hover:text-white"
                               }`}
                               onClick={() => {
-                                if (!child.disabled) handleNavigation(child.route);
+                                if (!child.disabled)
+                                  handleNavigation(child.route);
                               }}
                             >
                               {child.icon}
@@ -460,10 +528,24 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
                 onClick={handleSuperAdminClick}
                 className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
                 </svg>
                 SuperAdmin
               </button>
@@ -476,9 +558,18 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
               onClick={handleLogout}
               className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
               </svg>
               Cerrar Sesión
             </button>
@@ -499,8 +590,18 @@ const SideBar: React.FC<SideBarProps> = ({ rol, secciones = [] }) => {
                   onClick={() => setShowSuperAdminModal(false)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
