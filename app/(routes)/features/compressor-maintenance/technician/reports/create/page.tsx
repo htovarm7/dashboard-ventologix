@@ -181,6 +181,7 @@ function FillReport() {
     intercoolerTemp: "",
     supplyVoltage: "",
     mainMotorAmperage: "",
+    mainMotorAmperageLoad: "",
     fanAmperage: "",
     powerFactorLoadOk: "",
     powerFactorUnloadOk: "",
@@ -275,6 +276,7 @@ function FillReport() {
           maintenanceRequired: savedData.mantenimiento_proximo || "",
           isMaster: savedData.compresor_es_master || "Master",
           mainMotorAmperage: savedData.amperaje_maximo_motor?.toString() || "",
+          mainMotorAmperageLoad: savedData.amperaje_motor_carga?.toString() || "",
           location: savedData.ubicacion_compresor || "",
           hotAirExpulsion: savedData.expulsion_aire_caliente || "",
           highDustOperation: savedData.operacion_muchos_polvos || "",
@@ -660,8 +662,8 @@ function FillReport() {
           voltaje_alimentacion: formData.supplyVoltage
             ? parseFloat(formData.supplyVoltage)
             : undefined,
-          amperaje_motor_carga: formData.mainMotorAmperage
-            ? parseFloat(formData.mainMotorAmperage)
+          amperaje_motor_carga: formData.mainMotorAmperageLoad
+            ? parseFloat(formData.mainMotorAmperageLoad)
             : undefined,
           amperaje_ventilador: formData.fanAmperage
             ? parseFloat(formData.fanAmperage)
@@ -2229,8 +2231,8 @@ function FillReport() {
                     <input
                       type="number"
                       step="0.1"
-                      name="mainMotorAmperage"
-                      value={formData.mainMotorAmperage}
+                      name="mainMotorAmperageLoad"
+                      value={formData.mainMotorAmperageLoad}
                       onChange={handleInputChange}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       placeholder="0.0"
@@ -3512,7 +3514,7 @@ function FillReport() {
                         },
                         {
                           label: "Amperaje Motor en Carga (A)",
-                          pre: formData.mainMotorAmperage,
+                          pre: formData.mainMotorAmperageLoad,
                           post: formData.mainMotorAmperageFinal,
                         },
                         {

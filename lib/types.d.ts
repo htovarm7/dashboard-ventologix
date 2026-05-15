@@ -198,6 +198,7 @@ export interface ReportFormData {
   // Mediciones eléctricas
   supplyVoltage: string;
   mainMotorAmperage: string;
+  mainMotorAmperageLoad: string;
   fanAmperage: string;
   photo3?: File | null;
   powerFactorLoadOk: string;
