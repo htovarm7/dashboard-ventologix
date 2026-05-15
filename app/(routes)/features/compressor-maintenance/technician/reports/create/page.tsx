@@ -9,7 +9,6 @@ import React, {
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LoadingOverlay from "@/components/LoadingOverlay";
-import BackButton from "@/components/BackButton";
 import Image from "next/image";
 import { URL_API } from "@/lib/global";
 import { ReportFormData } from "@/lib/types";
@@ -55,15 +54,16 @@ function FillReport() {
   const searchParams = useSearchParams();
   const { savePreMantenimiento, loading: savingPreMaintenance } =
     usePreMantenimiento();
-  const { savePostMantenimiento } = usePostMantenimiento();
+  const { savePostMantenimiento, getPostMantenimiento } = usePostMantenimiento();
   const { uploadPhotos, uploadStatus, uploadProgress } = usePhotoUpload();
 
   // Guard to prevent re-loading data on re-renders
   const dataLoadedRef = useRef<string | null>(null);
 
-  const [showMaintenanceSection, setShowMaintenanceSection] = useState(false);
-  const [showPostMaintenanceSection, setShowPostMaintenanceSection] =
-    useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [showMaintenanceSection] = useState(true);
+  const [showPostMaintenanceSection] = useState(true);
+  const [saveCompressorInfo, setSaveCompressorInfo] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -287,6 +287,7 @@ function FillReport() {
           oilLeaks: savedData.fugas_aceite_visibles || "",
           airLeaks: savedData.fugas_aire_audibles || "",
           aceiteOscuro: savedData.aceite_oscuro_degradado || "",
+          airIntakeTemp: savedData.temp_ambiente?.toString() || "",
           compressionTempDisplay:
             savedData.temp_compresion_display?.toString() || "",
           compressionTempLaser:
@@ -432,11 +433,43 @@ function FillReport() {
           }));
         }
 
-        // Show maintenance section if data exists
-        setShowMaintenanceSection(true);
+        // maintenance section is always visible
       }
     } catch (error) {
       console.error("Error loading maintenance data:", error);
+    }
+  };
+
+  const loadPostMaintenanceData = async (folio: string) => {
+    try {
+      const saved = await getPostMantenimiento(folio);
+      if (!saved) return;
+
+      setFormData((prev) => ({
+        ...prev,
+        displayPowersFinal: saved.display_enciende_final || "",
+        generalHoursFinal: saved.horas_totales_final?.toString() || "",
+        loadHoursFinal: saved.horas_carga_final?.toString() || "",
+        unloadHoursFinal: saved.horas_descarga_final?.toString() || "",
+        supplyVoltageFinal: saved.voltaje_alimentacion_final?.toString() || "",
+        mainMotorAmperageFinal: saved.amperaje_motor_carga_final?.toString() || "",
+        fanAmperageFinal: saved.amperaje_ventilador_final?.toString() || "",
+        oilLeaksFinal: saved.fugas_aceite_final || "",
+        aceiteOscuroFinal: saved.aceite_oscuro_final || "",
+        airIntakeTempFinal: saved.temp_ambiente_final?.toString() || "",
+        compressionTempDisplayFinal: saved.temp_compresion_display_final?.toString() || "",
+        compressionTempLaserFinal: saved.temp_compresion_laser_final?.toString() || "",
+        finalCompressionTempFinal: saved.temp_separador_aceite_final?.toString() || "",
+        internalTempFinal: saved.temp_interna_cuarto_final?.toString() || "",
+        deltaTAceiteFinal: saved.delta_t_enfriador_aceite_final?.toString() || "",
+        tempMotorFinal: saved.temp_motor_electrico_final?.toString() || "",
+        loadPressureFinal: saved.presion_carga_final?.toString() || "",
+        unloadPressureFinal: saved.presion_descarga_final?.toString() || "",
+        deltaPSeparadorFinal: saved.delta_p_separador_final?.toString() || "",
+        airLeaksFinal: saved.fugas_aire_final || "",
+      }));
+    } catch (error) {
+      console.error("Error loading post-maintenance data:", error);
     }
   };
 
@@ -448,6 +481,7 @@ function FillReport() {
     if (folio && dataLoadedRef.current === folio) return;
 
     if (folio) {
+      setIsLoadingData(true);
       fetch(`${URL_API}/ordenes/${folio}`)
         .then((response) => response.json())
         .then(async (result) => {
@@ -485,6 +519,9 @@ function FillReport() {
             // Load previously saved maintenance data (uses the loaded types)
             await loadMaintenanceData(orden.folio, compressorType);
 
+            // Load previously saved post-maintenance data
+            await loadPostMaintenanceData(orden.folio);
+
             // Mark as loaded so we don't re-fetch on re-renders
             dataLoadedRef.current = folio;
           }
@@ -492,6 +529,9 @@ function FillReport() {
         .catch((error) => {
           console.error("Error fetching orden de servicio:", error);
           alert("❌ Error al cargar la información de la orden de servicio");
+        })
+        .finally(() => {
+          setIsLoadingData(false);
         });
     }
 
@@ -507,19 +547,6 @@ function FillReport() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
-
-  // Auto-save every 30 seconds
-  useEffect(() => {
-    if (!formData.folio || !hasUnsavedChanges) return;
-
-    const autoSaveInterval = setInterval(() => {
-      console.log("🔄 Auto-guardando borrador...");
-      handleSaveDraft(false); // false = no mostrar alerta
-    }, 30000); // 30 segundos
-
-    return () => clearInterval(autoSaveInterval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.folio, hasUnsavedChanges]);
 
   // Warn before leaving page with unsaved changes
   useEffect(() => {
@@ -671,6 +698,9 @@ function FillReport() {
           fugas_aceite_visibles: formData.oilLeaks || undefined,
           fugas_aire_audibles: formData.airLeaks || undefined,
           aceite_oscuro_degradado: formData.aceiteOscuro || undefined,
+          temp_ambiente: formData.airIntakeTemp
+            ? parseFloat(formData.airIntakeTemp)
+            : undefined,
           temp_compresion_display: formData.compressionTempDisplay
             ? parseFloat(formData.compressionTempDisplay)
             : undefined,
@@ -967,139 +997,117 @@ function FillReport() {
 
   const handleSaveDraft = useCallback(
     async (showAlert: boolean = true) => {
+      if (!formData.folio) return;
+      setIsSaving(true);
+
+      const errors: string[] = [];
+
       try {
-        setIsSaving(true);
-
-        // First, save pre-maintenance data to database
+        // Save pre-maintenance data
         console.log("💾 Saving pre-maintenance data...");
-        const result = await savePreMaintenanceData();
-
-        if (result?.success) {
-          // Save maintenance data if section is shown
-          if (showMaintenanceSection && formData.folio) {
-            console.log("💾 Saving maintenance data to database...");
-
-            // Convert maintenance items to database format
-            const mantenimientoDbData: Record<string, string | null> = {
-              folio: formData.folio,
-              comentarios_generales: maintenanceData.comentarios_generales,
-              comentario_cliente: maintenanceData.comentario_cliente,
-              // Store all maintenance items as JSON for dynamic types
-              mantenimientos_json: JSON.stringify(
-                maintenanceData.mantenimientos.map((item) => ({
-                  nombre: item.nombre,
-                  realizado: item.realizado,
-                  id_mantenimiento: item.id_mantenimiento,
-                  frecuencia_horas: item.frecuencia_horas,
-                })),
-              ),
-            };
-
-            // Legacy field mapping for backwards compatibility
-            const itemFieldMap: { [key: string]: string } = {
-              "Cambio de aceite": "cambio_aceite",
-              "Cambio de filtro de aceite": "cambio_filtro_aceite",
-              "Cambio de filtro de aire": "cambio_filtro_aire",
-              "Cambio de separador de aceite": "cambio_separador_aceite",
-              "Revisión de válvula de admisión": "revision_valvula_admision",
-              "Revisión de válvula de descarga": "revision_valvula_descarga",
-              "Limpieza de radiador": "limpieza_radiador",
-              "Revisión de bandas/correas": "revision_bandas_correas",
-              "Revisión de fugas de aire": "revision_fugas_aire",
-              "Revisión de fugas de aceite": "revision_fugas_aceite",
-              "Revisión de conexiones eléctricas":
-                "revision_conexiones_electricas",
-              "Revisión de presostato": "revision_presostato",
-              "Revisión de manómetros": "revision_manometros",
-              "Lubricación general": "lubricacion_general",
-              "Limpieza general del equipo": "limpieza_general",
-            };
-
-            // Add maintenance items to legacy fields (for old reports)
-            maintenanceData.mantenimientos.forEach((item) => {
-              const dbField = itemFieldMap[item.nombre];
-              if (dbField) {
-                mantenimientoDbData[dbField] = item.realizado ? "Sí" : "No";
-              }
-            });
-
-            try {
-              const maintenanceResponse = await fetch(
-                `${URL_API}/reporte_mantenimiento/`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify(mantenimientoDbData),
-                },
-              );
-
-              const maintenanceResult = await maintenanceResponse.json();
-              if (maintenanceResponse.ok) {
-                console.log("✅ Maintenance data saved:", maintenanceResult);
-              } else {
-                console.error(
-                  "⚠️ Error saving maintenance data:",
-                  maintenanceResult,
-                );
-              }
-            } catch (mttoError) {
-              console.error("❌ Error saving maintenance data:", mttoError);
-            }
-          }
-
-          // Save post-maintenance data if section is shown
-          if (showPostMaintenanceSection && formData.folio) {
-            console.log("💾 Saving post-maintenance data to database...");
-            try {
-              const postResult = await savePostMaintenanceData();
-              if (postResult?.success) {
-                console.log("✅ Post-maintenance data saved:", postResult);
-              } else {
-                console.error(
-                  "⚠️ Error saving post-maintenance data:",
-                  postResult,
-                );
-              }
-            } catch (postError) {
-              console.error(
-                "❌ Error saving post-maintenance data:",
-                postError,
-              );
-            }
-          }
-
-          setLastSaved(new Date());
-          setHasUnsavedChanges(false);
-          if (showAlert) {
-            alert("💾 Borrador guardado exitosamente");
-          }
+        const preResult = await savePreMaintenanceData();
+        if (!preResult?.success) {
+          errors.push(`Pre-mtto: ${preResult?.error || "Error desconocido"}`);
         } else {
-          if (showAlert) {
-            alert(
-              `❌ Error al guardar: ${result?.error || "Error desconocido"}`,
-            );
+          console.log("✅ Pre-maintenance saved");
+        }
+      } catch (e) {
+        errors.push(`Pre-mtto: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
+      try {
+        // Save maintenance data independently
+        console.log("💾 Saving maintenance data...");
+        const mantenimientoDbData: Record<string, string | null> = {
+          folio: formData.folio,
+          comentarios_generales: maintenanceData.comentarios_generales,
+          comentario_cliente: maintenanceData.comentario_cliente,
+          mantenimientos_json: JSON.stringify(
+            maintenanceData.mantenimientos.map((item) => ({
+              nombre: item.nombre,
+              realizado: item.realizado,
+              id_mantenimiento: item.id_mantenimiento,
+              frecuencia_horas: item.frecuencia_horas,
+            })),
+          ),
+        };
+
+        const itemFieldMap: { [key: string]: string } = {
+          "Cambio de aceite": "cambio_aceite",
+          "Cambio de filtro de aceite": "cambio_filtro_aceite",
+          "Cambio de filtro de aire": "cambio_filtro_aire",
+          "Cambio de separador de aceite": "cambio_separador_aceite",
+          "Revisión de válvula de admisión": "revision_valvula_admision",
+          "Revisión de válvula de descarga": "revision_valvula_descarga",
+          "Limpieza de radiador": "limpieza_radiador",
+          "Revisión de bandas/correas": "revision_bandas_correas",
+          "Revisión de fugas de aire": "revision_fugas_aire",
+          "Revisión de fugas de aceite": "revision_fugas_aceite",
+          "Revisión de conexiones eléctricas": "revision_conexiones_electricas",
+          "Revisión de presostato": "revision_presostato",
+          "Revisión de manómetros": "revision_manometros",
+          "Lubricación general": "lubricacion_general",
+          "Limpieza general del equipo": "limpieza_general",
+        };
+
+        maintenanceData.mantenimientos.forEach((item) => {
+          const dbField = itemFieldMap[item.nombre];
+          if (dbField) {
+            mantenimientoDbData[dbField] = item.realizado ? "Sí" : "No";
           }
+        });
+
+        const maintenanceResponse = await fetch(
+          `${URL_API}/reporte_mantenimiento/`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(mantenimientoDbData),
+          },
+        );
+        const maintenanceResult = await maintenanceResponse.json();
+        if (!maintenanceResponse.ok || !maintenanceResult?.success) {
+          errors.push(`Mantenimiento: ${maintenanceResult?.error || "Error desconocido"}`);
+        } else {
+          console.log("✅ Maintenance data saved");
         }
-      } catch (error) {
-        const errorMsg =
-          error instanceof Error ? error.message : "Error desconocido";
-        console.error("Error saving draft:", error);
+      } catch (e) {
+        errors.push(`Mantenimiento: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
+      try {
+        // Save post-maintenance data independently
+        console.log("💾 Saving post-maintenance data...");
+        const postResult = await savePostMaintenanceData();
+        if (!postResult?.success) {
+          errors.push(`Post-mtto: ${postResult?.error || "Error desconocido"}`);
+        } else {
+          console.log("✅ Post-maintenance saved");
+        }
+      } catch (e) {
+        errors.push(`Post-mtto: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
+      setIsSaving(false);
+
+      if (errors.length === 0) {
+        setLastSaved(new Date());
+        setHasUnsavedChanges(false);
         if (showAlert) {
-          alert(`❌ Error al guardar el borrador: ${errorMsg}`);
+          alert("💾 Borrador guardado exitosamente");
         }
-      } finally {
-        setIsSaving(false);
+      } else {
+        console.error("❌ Save errors:", errors);
+        if (showAlert) {
+          alert(`⚠️ Errores al guardar:\n${errors.join("\n")}`);
+        }
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      showMaintenanceSection,
       maintenanceData,
-      photosByCategory,
-      uploadAllPhotos,
       savePreMaintenanceData,
+      savePostMaintenanceData,
       formData.folio,
     ],
   );
@@ -1115,30 +1123,6 @@ function FillReport() {
 
     return () => clearInterval(autoSaveInterval);
   }, [formData.folio, hasUnsavedChanges, handleSaveDraft]);
-
-  const handleNextSection = async () => {
-    if (!showMaintenanceSection) {
-      // Transition: Pre-maintenance → Maintenance
-      await savePreMaintenanceData();
-      setShowMaintenanceSection(true);
-      setTimeout(() => {
-        const section = document.getElementById("maintenance-section");
-        if (section) {
-          section.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-      }, 100);
-    } else if (!showPostMaintenanceSection) {
-      // Transition: Maintenance → Post-maintenance
-      await handleSaveDraft(false);
-      setShowPostMaintenanceSection(true);
-      setTimeout(() => {
-        const section = document.getElementById("post-maintenance-section");
-        if (section) {
-          section.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-      }, 100);
-    }
-  };
 
   const handleMaintenanceToggle = (index: number) => {
     const updatedMantenimientos = [...maintenanceData.mantenimientos];
@@ -1750,59 +1734,214 @@ function FillReport() {
 
           {/* Sección Compresor */}
           <div className="p-4">
-            <h3 className="font-bold text-blue-900 mb-4 text-lg">
-              INFORMACIÓN DEL COMPRESOR
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-blue-900 text-lg">
+                INFORMACIÓN DEL COMPRESOR
+              </h3>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={saveCompressorInfo}
+                  onChange={(e) => setSaveCompressorInfo(e.target.checked)}
+                  className="w-4 h-4 accent-blue-700"
+                />
+                <span className="text-sm font-medium text-blue-800">
+                  Guardar info del compresor
+                </span>
+              </label>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-m font-medium text-blue-800 mb-1">
                   Alias Compresor
                 </label>
-                <p className="text-gray-800 font-semibold">
-                  {formData.compressorAlias || "N/A"}
-                </p>
+                {saveCompressorInfo ? (
+                  <input
+                    type="text"
+                    value={formData.compressorAlias || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        compressorAlias: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-blue-300 rounded-lg text-blue-900 text-sm focus:outline-none focus:border-blue-700"
+                  />
+                ) : (
+                  <p className="text-gray-800 font-semibold">
+                    {formData.compressorAlias || "N/A"}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-m font-medium text-blue-800 mb-1">
                   Número de Serie
                 </label>
-                <p className="text-gray-800 font-semibold">
-                  {formData.serialNumber || "N/A"}
-                </p>
+                {saveCompressorInfo ? (
+                  <input
+                    type="text"
+                    value={formData.serialNumber || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        serialNumber: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-blue-300 rounded-lg text-blue-900 text-sm focus:outline-none focus:border-blue-700"
+                  />
+                ) : (
+                  <p className="text-gray-800 font-semibold">
+                    {formData.serialNumber || "N/A"}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-m font-medium text-blue-800 mb-1">
                   HP
                 </label>
-                <p className="text-gray-800 font-semibold">
-                  {formData.equipmentHp || "N/A"}
-                </p>
+                {saveCompressorInfo ? (
+                  <input
+                    type="text"
+                    value={formData.equipmentHp || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        equipmentHp: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-blue-300 rounded-lg text-blue-900 text-sm focus:outline-none focus:border-blue-700"
+                  />
+                ) : (
+                  <p className="text-gray-800 font-semibold">
+                    {formData.equipmentHp || "N/A"}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-m font-medium text-blue-800 mb-1">
                   Tipo
                 </label>
-                <p className="text-gray-800 font-semibold">
-                  {formData.compressorType || "N/A"}
-                </p>
+                {saveCompressorInfo ? (
+                  <select
+                    value={formData.compressorType || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        compressorType: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-blue-300 rounded-lg text-blue-900 text-sm focus:outline-none focus:border-blue-700"
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="tornillo">Tornillo</option>
+                    <option value="piston">Piston</option>
+                  </select>
+                ) : (
+                  <p className="text-gray-800 font-semibold">
+                    {formData.compressorType || "N/A"}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-m font-medium text-blue-800 mb-1">
                   Marca
                 </label>
-                <p className="text-gray-800 font-semibold">
-                  {formData.brand || "N/A"}
-                </p>
+                {saveCompressorInfo ? (
+                  <input
+                    type="text"
+                    value={formData.brand || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        brand: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-blue-300 rounded-lg text-blue-900 text-sm focus:outline-none focus:border-blue-700"
+                  />
+                ) : (
+                  <p className="text-gray-800 font-semibold">
+                    {formData.brand || "N/A"}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-m font-medium text-blue-800 mb-1">
                   Año
                 </label>
-                <p className="text-gray-800 font-semibold">
-                  {formData.yearManufactured || "N/A"}
-                </p>
+                {saveCompressorInfo ? (
+                  <input
+                    type="text"
+                    value={formData.yearManufactured || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        yearManufactured: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-blue-300 rounded-lg text-blue-900 text-sm focus:outline-none focus:border-blue-700"
+                  />
+                ) : (
+                  <p className="text-gray-800 font-semibold">
+                    {formData.yearManufactured || "N/A"}
+                  </p>
+                )}
               </div>
             </div>
+            {saveCompressorInfo && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!formData.folio) return;
+                    try {
+                      // Update the orden so the data persists on reload
+                      const ordenRes = await fetch(
+                        `${URL_API}/ordenes/${formData.folio}`,
+                      );
+                      const ordenJson = await ordenRes.json();
+                      const ordenActual =
+                        ordenJson.data?.[0] || ordenJson.data || {};
+
+                      const updateRes = await fetch(
+                        `${URL_API}/ordenes/${formData.folio}`,
+                        {
+                          method: "PUT",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            ...ordenActual,
+                            alias_compresor: formData.compressorAlias,
+                            numero_serie: formData.serialNumber,
+                            hp: formData.equipmentHp
+                              ? parseInt(formData.equipmentHp)
+                              : ordenActual.hp,
+                            tipo: formData.compressorType || ordenActual.tipo,
+                            marca: formData.brand || ordenActual.marca,
+                            anio: formData.yearManufactured
+                              ? parseInt(formData.yearManufactured)
+                              : ordenActual.anio,
+                          }),
+                        },
+                      );
+
+                      if (updateRes.ok) {
+                        setSaveCompressorInfo(false);
+                        alert("✅ Información del compresor guardada");
+                      } else {
+                        const err = await updateRes.json();
+                        alert(
+                          `❌ Error: ${err.detail || err.message || "No se pudo guardar"}`,
+                        );
+                      }
+                    } catch {
+                      alert("❌ Error de conexión al guardar el compresor");
+                    }
+                  }}
+                  className="px-5 py-2 bg-blue-700 text-white rounded-lg text-sm font-medium hover:bg-blue-800 transition-colors"
+                >
+                  Guardar cambios del compresor
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Sección Orden de Servicio */}
@@ -1886,9 +2025,32 @@ function FillReport() {
     return null;
   }
 
+  if (isLoadingData) {
+    return <LoadingOverlay isVisible={true} message="Cargando reporte..." />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <BackButton />
+      <button
+        type="button"
+        onClick={async () => {
+          if (hasUnsavedChanges && formData.folio) {
+            await handleSaveDraft(false);
+          }
+          if (window.history.length > 1) {
+            router.back();
+          } else {
+            router.push("/home");
+          }
+        }}
+        className="flex items-center gap-2 px-4 py-3 bg-blue-800 text-white rounded-lg shadow-md hover:bg-blue-900 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
+        data-exclude-pdf="true"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        <span className="text-lg font-medium">Atrás</span>
+      </button>
 
       <div className="max-w-7xl mx-auto mt-4">
         {/* Header Principal */}
@@ -4118,18 +4280,16 @@ function FillReport() {
             <div className="flex gap-4 justify-between">
               <button
                 type="button"
-                onClick={() => {
-                  if (hasUnsavedChanges) {
-                    if (confirm("¿Salir sin guardar los cambios?")) {
-                      router.back();
-                    }
-                  } else {
-                    router.back();
+                onClick={async () => {
+                  if (hasUnsavedChanges && formData.folio) {
+                    await handleSaveDraft(false);
                   }
+                  router.back();
                 }}
-                className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
+                disabled={isSaving}
+                className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Cancelar
+                Salir
               </button>
               <div className="flex gap-4">
                 <button
@@ -4162,18 +4322,6 @@ function FillReport() {
                     <>💾 Guardar Borrador</>
                   )}
                 </button>
-                {!showPostMaintenanceSection ? (
-                  <button
-                    type="button"
-                    onClick={handleNextSection}
-                    disabled={savingPreMaintenance || isSaving}
-                    className="px-6 py-3 bg-blue-800 text-white rounded-lg hover:bg-blue-900 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {savingPreMaintenance || isSaving
-                      ? "Guardando..."
-                      : "Siguiente Sección →"}
-                  </button>
-                ) : (
                   <button
                     type="button"
                     onClick={async () => {
@@ -4283,7 +4431,6 @@ function FillReport() {
                   >
                     {isSaving ? "Guardando..." : "✍️ Enviar a Firma"}
                   </button>
-                )}
               </div>
             </div>
           </div>

@@ -524,12 +524,23 @@ def finalizar_reporte(folio: str = Path(..., description="Folio del reporte")):
             )
             mtto_items = cursor.fetchone() or {}
 
-            # Build set of nombre_tipo that were performed (column value == "Sí")
+            # Build set of nombre_tipo that were performed
+            # First check legacy columns (col value == "Sí")
             done_nombres = {
                 tipo_nombre
                 for col, tipo_nombre in column_to_tipo.items()
                 if mtto_items.get(col) == "Sí"
             }
+            # Then merge with dynamic JSON items (realizado == True)
+            mantenimientos_json_str = mtto_items.get("mantenimientos_json")
+            if mantenimientos_json_str:
+                try:
+                    json_items = json.loads(mantenimientos_json_str)
+                    for item in json_items:
+                        if item.get("realizado"):
+                            done_nombres.add(item.get("nombre", ""))
+                except (json.JSONDecodeError, TypeError):
+                    pass
 
             # 5. Process every type defined for this compressor type
             for tipo in all_tipos:

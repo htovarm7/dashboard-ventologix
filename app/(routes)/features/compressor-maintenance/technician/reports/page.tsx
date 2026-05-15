@@ -52,16 +52,6 @@ interface OrdenServicio {
   id_tecnico?: number | null;
 }
 
-interface EventualClient {
-  id: number;
-  nombre: string;
-  nombre_cliente?: string;
-  direccion?: string;
-  contacto?: string;
-  telefono?: string;
-  email?: string;
-}
-
 interface ClientOption {
   numero_cliente: string | number;
   nombre_cliente: string;
@@ -130,11 +120,7 @@ const TypeReportes = () => {
   const { showSuccess, showError } = useDialog();
   const [rol, setRol] = useState<number | null>(null);
   const [technicians, setTechnicians] = useState<TeamMember[]>([]);
-  const [isClienteEventual, setIsClienteEventual] = useState(false);
-  const [isNewEventual, setIsNewEventual] = useState(true);
-  const [eventualClients, setEventualClients] = useState<EventualClient[]>([]);
-  const [selectedEventualClient, setSelectedEventualClient] =
-    useState<EventualClient | null>(null);
+  const [isNewClient, setIsNewClient] = useState(false);
   const [selectedCompressor, setSelectedCompressor] =
     useState<CompressorSearchResult | null>(null);
   const [showResults, setShowResults] = useState(false);
@@ -162,7 +148,7 @@ const TypeReportes = () => {
     hora: "no-aplica",
     technician: "",
   });
-  const [eventualClientInfo, setEventualClientInfo] = useState({
+  const [newClientInfo, setNewClientInfo] = useState({
     telefono: "",
     email: "",
     direccion: "",
@@ -225,24 +211,6 @@ const TypeReportes = () => {
     }
     setIsLoading(false);
   }, [router]);
-
-  // Fetch eventual clients
-  const fetchEventualClients = async () => {
-    try {
-      const response = await fetch(`${URL_API}/clients/eventuales`);
-      const data = await response.json();
-      if (data.data) {
-        setEventualClients(data.data);
-      }
-    } catch (error) {
-      console.error("Error fetching eventual clients:", error);
-    }
-  };
-
-  // Load eventual clients when component mounts
-  useEffect(() => {
-    fetchEventualClients();
-  }, []);
 
   // Load technicians from ventologix team
   useEffect(() => {
@@ -357,8 +325,7 @@ const TypeReportes = () => {
     idCliente: number | string,
     serialNumber: string,
   ): string => {
-    const clientId =
-      idCliente === "EVENTUAL" ? "00" : String(idCliente).padStart(2, "0");
+    const clientId = String(idCliente || "00").padStart(2, "0");
     const last4Digits = (serialNumber ?? "").slice(-4).padStart(4, "0");
     const now = new Date();
     const year = now.getFullYear();
@@ -491,7 +458,7 @@ const TypeReportes = () => {
   const handleSelectCompressor = (compressor: CompressorSearchResult) => {
     setSelectedCompressor(compressor);
     setShowResults(false);
-    setIsClienteEventual(false);
+    setIsNewClient(false);
     const folio = generateFolio(compressor.id_cliente, compressor.numero_serie);
     setTicketData({
       folio: folio,
@@ -513,18 +480,16 @@ const TypeReportes = () => {
     });
   };
 
-  // Toggle cliente eventual
-  const handleClienteEventual = () => {
-    setIsClienteEventual(true);
-    setIsNewEventual(true);
+  // Show form to register a new client + compressor
+  const handleNewClient = () => {
+    setIsNewClient(true);
     setSelectedCompressor(null);
-    setSelectedEventualClient(null);
-    setSearchQuery("");
     setShowResults(false);
+    setSearchQuery("");
     setTicketData({
       folio: "",
       clientName: "",
-      numeroCliente: "EVENTUAL",
+      numeroCliente: "",
       alias: "",
       serialNumber: "",
       hp: "",
@@ -539,29 +504,10 @@ const TypeReportes = () => {
       hora: "no-aplica",
       technician: "",
     });
-    setEventualClientInfo({
+    setNewClientInfo({
       telefono: "",
       email: "",
       direccion: "",
-      rfc: "",
-    });
-    fetchEventualClients();
-  };
-
-  // Handle eventual client selection
-  const handleSelectEventualClient = (client: EventualClient) => {
-    setSelectedEventualClient(client);
-    setIsNewEventual(false);
-    const clientName = client.nombre_cliente || client.nombre || "";
-    setTicketData((prev) => ({
-      ...prev,
-      clientName: clientName,
-      numeroCliente: "EVENTUAL",
-    }));
-    setEventualClientInfo({
-      telefono: String(client.telefono || ""),
-      email: String(client.email || ""),
-      direccion: String(client.direccion || ""),
       rfc: "",
     });
   };
@@ -579,9 +525,9 @@ const TypeReportes = () => {
         [name]: value,
       };
 
-      // Regenerate folio for eventual clients when serial number changes
-      if (isClienteEventual && name === "serialNumber" && value.length >= 4) {
-        updated.folio = generateFolio("EVENTUAL", value);
+      // Regenerate folio for new clients when serial number changes
+      if (isNewClient && name === "serialNumber" && value.length >= 4) {
+        updated.folio = generateFolio("00", value);
       }
 
       // Regenerate folio for dryer orders when serial number changes
@@ -602,55 +548,42 @@ const TypeReportes = () => {
     e.preventDefault();
 
     try {
-      let eventualClientId = 0;
+      let newClientId = 0;
 
-      // If it's a new eventual client, create it first
-      if (isClienteEventual && isNewEventual) {
-        const eventualClientData = {
+      // If it's a new client, create them first
+      if (isNewClient) {
+        const clientData = {
           nombre_cliente: ticketData.clientName,
-          telefono: eventualClientInfo.telefono,
-          email: eventualClientInfo.email,
-          direccion: eventualClientInfo.direccion,
+          telefono: newClientInfo.telefono,
+          email: newClientInfo.email,
+          direccion: newClientInfo.direccion,
         };
 
-        const eventualResponse = await fetch(`${URL_API}/clients/eventuales`, {
+        const clientResponse = await fetch(`${URL_API}/clients/eventuales`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(eventualClientData),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(clientData),
         });
 
-        const eventualResult = await eventualResponse.json();
+        const clientResult = await clientResponse.json();
 
-        if (eventualResponse.ok) {
-          eventualClientId = eventualResult.id;
-          console.log("Eventual client created with ID:", eventualClientId);
+        if (clientResponse.ok) {
+          newClientId = clientResult.id;
         } else {
           throw new Error(
-            `Error creating eventual client: ${
-              eventualResult.detail || eventualResult.error
-            }`,
+            `Error al crear cliente: ${clientResult.detail || clientResult.error}`,
           );
         }
-      } else if (
-        isClienteEventual &&
-        !isNewEventual &&
-        selectedEventualClient
-      ) {
-        eventualClientId = Number(selectedEventualClient.id) || 0;
-      }
 
-      // If it's an eventual client, also create the compressor
-      if (isClienteEventual && eventualClientId > 0) {
-        const eventualCompressorData = {
+        // Then create the compressor linked to this new client
+        const compressorData = {
           hp: ticketData.hp ? parseInt(ticketData.hp) : null,
           tipo: ticketData.tipo || null,
           voltaje: null,
           marca: ticketData.marca || null,
           numero_serie: ticketData.serialNumber || null,
           anio: ticketData.anio ? parseInt(ticketData.anio) : null,
-          id_cliente: eventualClientId,
+          id_cliente: newClientId,
           Amp_Load: null,
           Amp_No_Load: null,
           proyecto: null,
@@ -666,25 +599,16 @@ const TypeReportes = () => {
           `${URL_API}/compresores/eventuales`,
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(eventualCompressorData),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(compressorData),
           },
         );
 
         const compressorResult = await compressorResponse.json();
 
-        if (compressorResponse.ok) {
-          console.log(
-            "Eventual compressor created with ID:",
-            compressorResult.id,
-          );
-        } else {
+        if (!compressorResponse.ok) {
           throw new Error(
-            `Error creating eventual compressor: ${
-              compressorResult.detail || compressorResult.error
-            }`,
+            `Error al crear compresor: ${compressorResult.detail || compressorResult.error}`,
           );
         }
       }
@@ -722,10 +646,10 @@ const TypeReportes = () => {
         id_cliente:
           tipoEquipo === "secadora"
             ? 0
-            : isClienteEventual
+            : isNewClient
               ? 0
               : selectedCompressor?.id_cliente || 0,
-        id_cliente_eventual: isClienteEventual ? eventualClientId : 0,
+        id_cliente_eventual: isNewClient ? newClientId : 0,
         nombre_cliente: ticketData.clientName,
         numero_cliente: parseInt(ticketData.numeroCliente) || 0,
         alias_compresor: ticketData.alias,
@@ -772,7 +696,7 @@ const TypeReportes = () => {
         setDryerSearchResults([]);
         setSelectedNewDryerClient(null);
         setNewDryerClientSearch("");
-        setIsClienteEventual(false);
+        setIsNewClient(false);
         setSearchQuery("");
         setShowResults(false);
         setTipoEquipo("compresor");
@@ -794,7 +718,7 @@ const TypeReportes = () => {
           hora: "no-aplica",
           technician: "",
         });
-        setEventualClientInfo({
+        setNewClientInfo({
           telefono: "",
           email: "",
           direccion: "",
@@ -1358,64 +1282,6 @@ const TypeReportes = () => {
                     )}
                   </div>
 
-                  {/* FILTER SECTION - Search by client and equipment type */}
-                  <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-                    <h3 className="text-lg font-semibold text-blue-900 mb-4">
-                      Filtrar Órdenes
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* Search by client/name */}
-                      <div>
-                        <label className="block text-sm font-medium text-blue-800 mb-2">
-                          Buscar por Cliente o Equipo
-                        </label>
-                        <input
-                          type="text"
-                          value={ordenFilterSearch}
-                          onChange={(e) => setOrdenFilterSearch(e.target.value)}
-                          placeholder="Nombre cliente, alias o serie..."
-                          className="w-full px-3 py-2 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-sm"
-                        />
-                      </div>
-
-                      {/* Filter by equipment type */}
-                      <div>
-                        <label className="block text-sm font-medium text-blue-800 mb-2">
-                          Tipo de Equipo
-                        </label>
-                        <select
-                          value={ordenFilterEquipo}
-                          onChange={(e) =>
-                            setOrdenFilterEquipo(
-                              e.target.value as
-                                | "todos"
-                                | "compresor"
-                                | "secadora",
-                            )
-                          }
-                          className="w-full px-3 py-2 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-sm"
-                        >
-                          <option value="todos">Todos los equipos</option>
-                          <option value="compresor">🔵 Compresores</option>
-                          <option value="secadora">🟣 Secadoras</option>
-                        </select>
-                      </div>
-
-                      {/* Clear filters button */}
-                      <div className="flex items-end">
-                        <button
-                          onClick={() => {
-                            setOrdenFilterSearch("");
-                            setOrdenFilterEquipo("todos");
-                          }}
-                          className="w-full px-4 py-2 bg-white text-blue-800 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors font-medium text-sm"
-                        >
-                          Limpiar Filtros
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
                   {loadingOrdenes ? (
                     <div className="text-center py-12">
                       <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-800 mx-auto mb-3"></div>
@@ -1676,7 +1542,7 @@ const TypeReportes = () => {
                           setSelectedNewDryerClient(null);
                           setNewDryerClientSearch("");
                           setSelectedCompressor(null);
-                          setIsClienteEventual(false);
+                          setIsNewClient(false);
                           setSearchQuery("");
                           setShowResults(false);
                           setTicketData((prev) => ({
@@ -1733,7 +1599,7 @@ const TypeReportes = () => {
                         onClick={() => {
                           setTipoEquipo("secadora");
                           setSelectedCompressor(null);
-                          setIsClienteEventual(false);
+                          setIsNewClient(false);
                           setSearchQuery("");
                           setShowResults(false);
                           setSelectedDryer(null);
@@ -1798,22 +1664,14 @@ const TypeReportes = () => {
                       <h2 className="text-lg font-semibold text-blue-900 mb-3">
                         Buscar Compresor
                       </h2>
-                      <div className="flex gap-3 mb-4">
-                        <div className="flex-1">
-                          <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => handleSearch(e.target.value)}
-                            placeholder="Buscar por nombre de cliente, alias, número de serie o número de cliente..."
-                            className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
-                          />
-                        </div>
-                        <button
-                          onClick={handleClienteEventual}
-                          className="px-5 py-3 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors font-medium border border-blue-300 text-base"
-                        >
-                          Cliente Eventual
-                        </button>
+                      <div className="mb-4">
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => handleSearch(e.target.value)}
+                          placeholder="Buscar por nombre de cliente, alias, número de serie o número de cliente..."
+                          className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
+                        />
                       </div>
                     </>
                   )}
@@ -2000,9 +1858,16 @@ const TypeReportes = () => {
 
                   {showResults && searchResults.length === 0 && (
                     <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-center">
-                      <p className="text-blue-700 text-base">
-                        No se encontraron resultados
+                      <p className="text-blue-700 text-base mb-3">
+                        No se encontró ningún compresor registrado
                       </p>
+                      <button
+                        type="button"
+                        onClick={handleNewClient}
+                        className="px-4 py-2 bg-blue-700 text-white rounded-lg text-sm font-medium hover:bg-blue-800 transition-colors"
+                      >
+                        + Registrar nuevo cliente
+                      </button>
                     </div>
                   )}
                 </div>
@@ -2010,7 +1875,7 @@ const TypeReportes = () => {
 
               {/* Ticket Form */}
               {(selectedCompressor ||
-                isClienteEventual ||
+                isNewClient ||
                 selectedDryer ||
                 isNewDryer) && (
                 <div className="mb-6">
@@ -2019,193 +1884,93 @@ const TypeReportes = () => {
                       <h2 className="text-xl font-semibold text-blue-900">
                         Datos del Ticket
                       </h2>
-                      {isClienteEventual && (
+                      {isNewClient && (
                         <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-base font-medium">
-                          Cliente Eventual
+                          Nuevo Cliente
                         </span>
                       )}
                     </div>
 
-                    {/* Eventual Client Selection */}
-                    {isClienteEventual && (
+                    {/* New Client Info */}
+                    {isNewClient && (
                       <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                         <h3 className="text-base font-semibold text-blue-900 mb-3">
-                          Tipo de Cliente Eventual
+                          Datos de Contacto del Cliente
                         </h3>
-                        <div className="flex gap-3 mb-3">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsNewEventual(true);
-                              setSelectedEventualClient(null);
-                              setTicketData((prev) => ({
-                                ...prev,
-                                clientName: "",
-                              }));
-                            }}
-                            className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors text-base ${
-                              isNewEventual
-                                ? "bg-blue-800 text-white"
-                                : "bg-white text-blue-800 border border-blue-300 hover:bg-blue-50"
-                            }`}
-                          >
-                            Nuevo Cliente
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsNewEventual(false);
-                              setSelectedEventualClient(null);
-                            }}
-                            className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors text-base ${
-                              !isNewEventual
-                                ? "bg-blue-800 text-white"
-                                : "bg-white text-blue-800 border border-blue-300 hover:bg-blue-50"
-                            }`}
-                          >
-                            Cliente Existente
-                          </button>
+                        <div className="grid grid-cols-2 gap-3">
+                          <label className="block">
+                            <span className="text-blue-800 text-base font-medium mb-1 block">
+                              Teléfono
+                            </span>
+                            <input
+                              type="tel"
+                              value={newClientInfo.telefono}
+                              onChange={(e) =>
+                                setNewClientInfo((prev) => ({
+                                  ...prev,
+                                  telefono: e.target.value,
+                                }))
+                              }
+                              placeholder="555-1234-5678"
+                              className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 text-base"
+                            />
+                          </label>
+
+                          <label className="block">
+                            <span className="text-blue-800 text-base font-medium mb-1 block">
+                              Email
+                            </span>
+                            <input
+                              type="email"
+                              value={newClientInfo.email}
+                              onChange={(e) =>
+                                setNewClientInfo((prev) => ({
+                                  ...prev,
+                                  email: e.target.value,
+                                }))
+                              }
+                              placeholder="cliente@ejemplo.com"
+                              className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 text-base"
+                            />
+                          </label>
+
+                          <label className="block col-span-2">
+                            <span className="text-blue-800 text-base font-medium mb-1 block">
+                              Dirección
+                            </span>
+                            <input
+                              type="text"
+                              value={newClientInfo.direccion}
+                              onChange={(e) =>
+                                setNewClientInfo((prev) => ({
+                                  ...prev,
+                                  direccion: e.target.value,
+                                }))
+                              }
+                              placeholder="Calle, Número, Colonia, Ciudad"
+                              className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 text-base"
+                            />
+                          </label>
+
+                          <label className="block col-span-2">
+                            <span className="text-blue-800 text-base font-medium mb-1 block">
+                              RFC (opcional)
+                            </span>
+                            <input
+                              type="text"
+                              value={newClientInfo.rfc}
+                              onChange={(e) =>
+                                setNewClientInfo((prev) => ({
+                                  ...prev,
+                                  rfc: e.target.value.toUpperCase(),
+                                }))
+                              }
+                              placeholder="XAXX010101000"
+                              maxLength={13}
+                              className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 text-base"
+                            />
+                          </label>
                         </div>
-
-                        {!isNewEventual && (
-                          <div>
-                            <label className="block text-blue-800 text-base font-medium mb-1">
-                              Seleccionar Cliente Eventual
-                            </label>
-                            <select
-                              value={String(selectedEventualClient?.id || "")}
-                              onChange={(e) => {
-                                const client = eventualClients.find(
-                                  (c) =>
-                                    Number(c.id) === parseInt(e.target.value),
-                                );
-                                if (client) {
-                                  handleSelectEventualClient(client);
-                                }
-                              }}
-                              className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
-                              required={!isNewEventual}
-                            >
-                              <option value="">
-                                -- Seleccionar cliente --
-                              </option>
-                              {eventualClients.map((client) => (
-                                <option
-                                  key={String(client.id)}
-                                  value={String(client.id)}
-                                >
-                                  {String(client.nombre_cliente || "")}
-                                  {client.telefono
-                                    ? ` - ${String(client.telefono || "")}`
-                                    : ""}
-                                </option>
-                              ))}
-                            </select>
-                            {selectedEventualClient && (
-                              <div className="mt-2 p-3 bg-white rounded-lg border border-blue-200">
-                                <p className="text-blue-800 text-base">
-                                  <span className="font-medium text-blue-900">
-                                    Teléfono:
-                                  </span>{" "}
-                                  {eventualClientInfo.telefono || "N/A"}
-                                </p>
-                                <p className="text-blue-800 text-base">
-                                  <span className="font-medium text-blue-900">
-                                    Email:
-                                  </span>{" "}
-                                  {eventualClientInfo.email || "N/A"}
-                                </p>
-                                <p className="text-blue-800 text-base">
-                                  <span className="font-medium text-blue-900">
-                                    Dirección:
-                                  </span>{" "}
-                                  {eventualClientInfo.direccion || "N/A"}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Contact information fields for new eventual clients */}
-                        {isNewEventual && (
-                          <div className="grid grid-cols-2 gap-3 mt-3">
-                            <label className="block">
-                              <span className="text-blue-800 text-base font-medium mb-1 block">
-                                Teléfono *
-                              </span>
-                              <input
-                                type="tel"
-                                value={eventualClientInfo.telefono}
-                                onChange={(e) =>
-                                  setEventualClientInfo((prev) => ({
-                                    ...prev,
-                                    telefono: e.target.value,
-                                  }))
-                                }
-                                placeholder="555-1234-5678"
-                                required
-                                className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 text-base"
-                              />
-                            </label>
-
-                            <label className="block">
-                              <span className="text-blue-800 text-base font-medium mb-1 block">
-                                Email *
-                              </span>
-                              <input
-                                type="email"
-                                value={eventualClientInfo.email}
-                                onChange={(e) =>
-                                  setEventualClientInfo((prev) => ({
-                                    ...prev,
-                                    email: e.target.value,
-                                  }))
-                                }
-                                placeholder="cliente@ejemplo.com"
-                                required
-                                className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 text-base"
-                              />
-                            </label>
-
-                            <label className="block col-span-2">
-                              <span className="text-blue-800 text-base font-medium mb-1 block">
-                                Dirección *
-                              </span>
-                              <input
-                                type="text"
-                                value={eventualClientInfo.direccion}
-                                onChange={(e) =>
-                                  setEventualClientInfo((prev) => ({
-                                    ...prev,
-                                    direccion: e.target.value,
-                                  }))
-                                }
-                                placeholder="Calle, Número, Colonia, Ciudad"
-                                required
-                                className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 text-base"
-                              />
-                            </label>
-
-                            <label className="block col-span-2">
-                              <span className="text-blue-800 text-base font-medium mb-1 block">
-                                RFC (opcional)
-                              </span>
-                              <input
-                                type="text"
-                                value={eventualClientInfo.rfc}
-                                onChange={(e) =>
-                                  setEventualClientInfo((prev) => ({
-                                    ...prev,
-                                    rfc: e.target.value.toUpperCase(),
-                                  }))
-                                }
-                                placeholder="XAXX010101000"
-                                maxLength={13}
-                                className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 text-base"
-                              />
-                            </label>
-                          </div>
-                        )}
                       </div>
                     )}
 
@@ -2236,12 +2001,7 @@ const TypeReportes = () => {
                             value={ticketData.clientName}
                             onChange={handleInputChange}
                             required
-                            disabled={
-                              isClienteEventual &&
-                              !isNewEventual &&
-                              !!selectedEventualClient
-                            }
-                            className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors disabled:bg-blue-50 disabled:cursor-not-allowed text-base"
+                            className="w-full px-4 py-3 bg-white text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                             placeholder="Nombre del cliente"
                           />
                         </div>
@@ -2255,7 +2015,7 @@ const TypeReportes = () => {
                             name="numeroCliente"
                             value={ticketData.numeroCliente}
                             onChange={handleInputChange}
-                            readOnly={!isClienteEventual}
+                            readOnly={!isNewClient}
                             className="w-full px-4 py-3 bg-blue-50 text-blue-900 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-800 focus:ring-1 focus:ring-blue-800 transition-colors text-base"
                             placeholder="Número de cliente"
                           />
@@ -2564,7 +2324,7 @@ const TypeReportes = () => {
                             setDryerSearchResults([]);
                             setSelectedNewDryerClient(null);
                             setNewDryerClientSearch("");
-                            setIsClienteEventual(false);
+                            setIsNewClient(false);
                             setSearchQuery("");
                             setShowResults(false);
                           }}
