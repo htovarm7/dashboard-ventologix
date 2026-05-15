@@ -9,7 +9,6 @@ import React, {
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LoadingOverlay from "@/components/LoadingOverlay";
-import BackButton from "@/components/BackButton";
 import Image from "next/image";
 import { URL_API } from "@/lib/global";
 import { ReportFormData } from "@/lib/types";
@@ -55,7 +54,7 @@ function FillReport() {
   const searchParams = useSearchParams();
   const { savePreMantenimiento, loading: savingPreMaintenance } =
     usePreMantenimiento();
-  const { savePostMantenimiento } = usePostMantenimiento();
+  const { savePostMantenimiento, getPostMantenimiento } = usePostMantenimiento();
   const { uploadPhotos, uploadStatus, uploadProgress } = usePhotoUpload();
 
   // Guard to prevent re-loading data on re-renders
@@ -287,6 +286,7 @@ function FillReport() {
           oilLeaks: savedData.fugas_aceite_visibles || "",
           airLeaks: savedData.fugas_aire_audibles || "",
           aceiteOscuro: savedData.aceite_oscuro_degradado || "",
+          airIntakeTemp: savedData.temp_ambiente?.toString() || "",
           compressionTempDisplay:
             savedData.temp_compresion_display?.toString() || "",
           compressionTempLaser:
@@ -439,6 +439,39 @@ function FillReport() {
     }
   };
 
+  const loadPostMaintenanceData = async (folio: string) => {
+    try {
+      const saved = await getPostMantenimiento(folio);
+      if (!saved) return;
+
+      setFormData((prev) => ({
+        ...prev,
+        displayPowersFinal: saved.display_enciende_final || "",
+        generalHoursFinal: saved.horas_totales_final?.toString() || "",
+        loadHoursFinal: saved.horas_carga_final?.toString() || "",
+        unloadHoursFinal: saved.horas_descarga_final?.toString() || "",
+        supplyVoltageFinal: saved.voltaje_alimentacion_final?.toString() || "",
+        mainMotorAmperageFinal: saved.amperaje_motor_carga_final?.toString() || "",
+        fanAmperageFinal: saved.amperaje_ventilador_final?.toString() || "",
+        oilLeaksFinal: saved.fugas_aceite_final || "",
+        aceiteOscuroFinal: saved.aceite_oscuro_final || "",
+        airIntakeTempFinal: saved.temp_ambiente_final?.toString() || "",
+        compressionTempDisplayFinal: saved.temp_compresion_display_final?.toString() || "",
+        compressionTempLaserFinal: saved.temp_compresion_laser_final?.toString() || "",
+        finalCompressionTempFinal: saved.temp_separador_aceite_final?.toString() || "",
+        internalTempFinal: saved.temp_interna_cuarto_final?.toString() || "",
+        deltaTAceiteFinal: saved.delta_t_enfriador_aceite_final?.toString() || "",
+        tempMotorFinal: saved.temp_motor_electrico_final?.toString() || "",
+        loadPressureFinal: saved.presion_carga_final?.toString() || "",
+        unloadPressureFinal: saved.presion_descarga_final?.toString() || "",
+        deltaPSeparadorFinal: saved.delta_p_separador_final?.toString() || "",
+        airLeaksFinal: saved.fugas_aire_final || "",
+      }));
+    } catch (error) {
+      console.error("Error loading post-maintenance data:", error);
+    }
+  };
+
   // Load compressor data from URL parameters
   useEffect(() => {
     const folio = searchParams.get("folio");
@@ -484,6 +517,9 @@ function FillReport() {
             // Load previously saved maintenance data (uses the loaded types)
             await loadMaintenanceData(orden.folio, compressorType);
 
+            // Load previously saved post-maintenance data
+            await loadPostMaintenanceData(orden.folio);
+
             // Mark as loaded so we don't re-fetch on re-renders
             dataLoadedRef.current = folio;
           }
@@ -506,19 +542,6 @@ function FillReport() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
-
-  // Auto-save every 30 seconds
-  useEffect(() => {
-    if (!formData.folio || !hasUnsavedChanges) return;
-
-    const autoSaveInterval = setInterval(() => {
-      console.log("🔄 Auto-guardando borrador...");
-      handleSaveDraft(false); // false = no mostrar alerta
-    }, 30000); // 30 segundos
-
-    return () => clearInterval(autoSaveInterval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.folio, hasUnsavedChanges]);
 
   // Warn before leaving page with unsaved changes
   useEffect(() => {
@@ -670,6 +693,9 @@ function FillReport() {
           fugas_aceite_visibles: formData.oilLeaks || undefined,
           fugas_aire_audibles: formData.airLeaks || undefined,
           aceite_oscuro_degradado: formData.aceiteOscuro || undefined,
+          temp_ambiente: formData.airIntakeTemp
+            ? parseFloat(formData.airIntakeTemp)
+            : undefined,
           temp_compresion_display: formData.compressionTempDisplay
             ? parseFloat(formData.compressionTempDisplay)
             : undefined,
@@ -966,139 +992,117 @@ function FillReport() {
 
   const handleSaveDraft = useCallback(
     async (showAlert: boolean = true) => {
+      if (!formData.folio) return;
+      setIsSaving(true);
+
+      const errors: string[] = [];
+
       try {
-        setIsSaving(true);
-
-        // First, save pre-maintenance data to database
+        // Save pre-maintenance data
         console.log("💾 Saving pre-maintenance data...");
-        const result = await savePreMaintenanceData();
-
-        if (result?.success) {
-          // Save maintenance data if section is shown
-          if (showMaintenanceSection && formData.folio) {
-            console.log("💾 Saving maintenance data to database...");
-
-            // Convert maintenance items to database format
-            const mantenimientoDbData: Record<string, string | null> = {
-              folio: formData.folio,
-              comentarios_generales: maintenanceData.comentarios_generales,
-              comentario_cliente: maintenanceData.comentario_cliente,
-              // Store all maintenance items as JSON for dynamic types
-              mantenimientos_json: JSON.stringify(
-                maintenanceData.mantenimientos.map((item) => ({
-                  nombre: item.nombre,
-                  realizado: item.realizado,
-                  id_mantenimiento: item.id_mantenimiento,
-                  frecuencia_horas: item.frecuencia_horas,
-                })),
-              ),
-            };
-
-            // Legacy field mapping for backwards compatibility
-            const itemFieldMap: { [key: string]: string } = {
-              "Cambio de aceite": "cambio_aceite",
-              "Cambio de filtro de aceite": "cambio_filtro_aceite",
-              "Cambio de filtro de aire": "cambio_filtro_aire",
-              "Cambio de separador de aceite": "cambio_separador_aceite",
-              "Revisión de válvula de admisión": "revision_valvula_admision",
-              "Revisión de válvula de descarga": "revision_valvula_descarga",
-              "Limpieza de radiador": "limpieza_radiador",
-              "Revisión de bandas/correas": "revision_bandas_correas",
-              "Revisión de fugas de aire": "revision_fugas_aire",
-              "Revisión de fugas de aceite": "revision_fugas_aceite",
-              "Revisión de conexiones eléctricas":
-                "revision_conexiones_electricas",
-              "Revisión de presostato": "revision_presostato",
-              "Revisión de manómetros": "revision_manometros",
-              "Lubricación general": "lubricacion_general",
-              "Limpieza general del equipo": "limpieza_general",
-            };
-
-            // Add maintenance items to legacy fields (for old reports)
-            maintenanceData.mantenimientos.forEach((item) => {
-              const dbField = itemFieldMap[item.nombre];
-              if (dbField) {
-                mantenimientoDbData[dbField] = item.realizado ? "Sí" : "No";
-              }
-            });
-
-            try {
-              const maintenanceResponse = await fetch(
-                `${URL_API}/reporte_mantenimiento/`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify(mantenimientoDbData),
-                },
-              );
-
-              const maintenanceResult = await maintenanceResponse.json();
-              if (maintenanceResponse.ok) {
-                console.log("✅ Maintenance data saved:", maintenanceResult);
-              } else {
-                console.error(
-                  "⚠️ Error saving maintenance data:",
-                  maintenanceResult,
-                );
-              }
-            } catch (mttoError) {
-              console.error("❌ Error saving maintenance data:", mttoError);
-            }
-          }
-
-          // Save post-maintenance data if section is shown
-          if (showPostMaintenanceSection && formData.folio) {
-            console.log("💾 Saving post-maintenance data to database...");
-            try {
-              const postResult = await savePostMaintenanceData();
-              if (postResult?.success) {
-                console.log("✅ Post-maintenance data saved:", postResult);
-              } else {
-                console.error(
-                  "⚠️ Error saving post-maintenance data:",
-                  postResult,
-                );
-              }
-            } catch (postError) {
-              console.error(
-                "❌ Error saving post-maintenance data:",
-                postError,
-              );
-            }
-          }
-
-          setLastSaved(new Date());
-          setHasUnsavedChanges(false);
-          if (showAlert) {
-            alert("💾 Borrador guardado exitosamente");
-          }
+        const preResult = await savePreMaintenanceData();
+        if (!preResult?.success) {
+          errors.push(`Pre-mtto: ${preResult?.error || "Error desconocido"}`);
         } else {
-          if (showAlert) {
-            alert(
-              `❌ Error al guardar: ${result?.error || "Error desconocido"}`,
-            );
+          console.log("✅ Pre-maintenance saved");
+        }
+      } catch (e) {
+        errors.push(`Pre-mtto: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
+      try {
+        // Save maintenance data independently
+        console.log("💾 Saving maintenance data...");
+        const mantenimientoDbData: Record<string, string | null> = {
+          folio: formData.folio,
+          comentarios_generales: maintenanceData.comentarios_generales,
+          comentario_cliente: maintenanceData.comentario_cliente,
+          mantenimientos_json: JSON.stringify(
+            maintenanceData.mantenimientos.map((item) => ({
+              nombre: item.nombre,
+              realizado: item.realizado,
+              id_mantenimiento: item.id_mantenimiento,
+              frecuencia_horas: item.frecuencia_horas,
+            })),
+          ),
+        };
+
+        const itemFieldMap: { [key: string]: string } = {
+          "Cambio de aceite": "cambio_aceite",
+          "Cambio de filtro de aceite": "cambio_filtro_aceite",
+          "Cambio de filtro de aire": "cambio_filtro_aire",
+          "Cambio de separador de aceite": "cambio_separador_aceite",
+          "Revisión de válvula de admisión": "revision_valvula_admision",
+          "Revisión de válvula de descarga": "revision_valvula_descarga",
+          "Limpieza de radiador": "limpieza_radiador",
+          "Revisión de bandas/correas": "revision_bandas_correas",
+          "Revisión de fugas de aire": "revision_fugas_aire",
+          "Revisión de fugas de aceite": "revision_fugas_aceite",
+          "Revisión de conexiones eléctricas": "revision_conexiones_electricas",
+          "Revisión de presostato": "revision_presostato",
+          "Revisión de manómetros": "revision_manometros",
+          "Lubricación general": "lubricacion_general",
+          "Limpieza general del equipo": "limpieza_general",
+        };
+
+        maintenanceData.mantenimientos.forEach((item) => {
+          const dbField = itemFieldMap[item.nombre];
+          if (dbField) {
+            mantenimientoDbData[dbField] = item.realizado ? "Sí" : "No";
           }
+        });
+
+        const maintenanceResponse = await fetch(
+          `${URL_API}/reporte_mantenimiento/`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(mantenimientoDbData),
+          },
+        );
+        const maintenanceResult = await maintenanceResponse.json();
+        if (!maintenanceResponse.ok || !maintenanceResult?.success) {
+          errors.push(`Mantenimiento: ${maintenanceResult?.error || "Error desconocido"}`);
+        } else {
+          console.log("✅ Maintenance data saved");
         }
-      } catch (error) {
-        const errorMsg =
-          error instanceof Error ? error.message : "Error desconocido";
-        console.error("Error saving draft:", error);
+      } catch (e) {
+        errors.push(`Mantenimiento: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
+      try {
+        // Save post-maintenance data independently
+        console.log("💾 Saving post-maintenance data...");
+        const postResult = await savePostMaintenanceData();
+        if (!postResult?.success) {
+          errors.push(`Post-mtto: ${postResult?.error || "Error desconocido"}`);
+        } else {
+          console.log("✅ Post-maintenance saved");
+        }
+      } catch (e) {
+        errors.push(`Post-mtto: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
+      setIsSaving(false);
+
+      if (errors.length === 0) {
+        setLastSaved(new Date());
+        setHasUnsavedChanges(false);
         if (showAlert) {
-          alert(`❌ Error al guardar el borrador: ${errorMsg}`);
+          alert("💾 Borrador guardado exitosamente");
         }
-      } finally {
-        setIsSaving(false);
+      } else {
+        console.error("❌ Save errors:", errors);
+        if (showAlert) {
+          alert(`⚠️ Errores al guardar:\n${errors.join("\n")}`);
+        }
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      showMaintenanceSection,
       maintenanceData,
-      photosByCategory,
-      uploadAllPhotos,
       savePreMaintenanceData,
+      savePostMaintenanceData,
       formData.folio,
     ],
   );
@@ -2018,7 +2022,26 @@ function FillReport() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <BackButton />
+      <button
+        type="button"
+        onClick={async () => {
+          if (hasUnsavedChanges && formData.folio) {
+            await handleSaveDraft(false);
+          }
+          if (window.history.length > 1) {
+            router.back();
+          } else {
+            router.push("/home");
+          }
+        }}
+        className="flex items-center gap-2 px-4 py-3 bg-blue-800 text-white rounded-lg shadow-md hover:bg-blue-900 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
+        data-exclude-pdf="true"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        <span className="text-lg font-medium">Atrás</span>
+      </button>
 
       <div className="max-w-7xl mx-auto mt-4">
         {/* Header Principal */}
@@ -4248,18 +4271,16 @@ function FillReport() {
             <div className="flex gap-4 justify-between">
               <button
                 type="button"
-                onClick={() => {
-                  if (hasUnsavedChanges) {
-                    if (confirm("¿Salir sin guardar los cambios?")) {
-                      router.back();
-                    }
-                  } else {
-                    router.back();
+                onClick={async () => {
+                  if (hasUnsavedChanges && formData.folio) {
+                    await handleSaveDraft(false);
                   }
+                  router.back();
                 }}
-                className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
+                disabled={isSaving}
+                className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Cancelar
+                Salir
               </button>
               <div className="flex gap-4">
                 <button

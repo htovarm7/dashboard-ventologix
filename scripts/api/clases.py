@@ -219,28 +219,6 @@ class PostMantenimientoRequest(BaseModel):
     fugas_aceite_final: Optional[str] = None
     aceite_oscuro_final: Optional[str] = None
 
-
-class TeamMember(BaseModel):
-    """Modelo para miembros del equipo Ventologix"""
-    id: Optional[int] = None
-    nombre: str
-    puesto: str
-    correo: EmailStr
-    telefono: Optional[str] = None
-    tecnico: int = 0  # 0 o 1
-    rol: int  # 0: SuperADMIN, 1: Ingeniero, 2: Técnico Supervisor, 3: Gerente, 4: Cliente/Ingeniero
-
-
-class TeamMemberResponse(BaseModel):
-    """Respuesta con datos del miembro del equipo"""
-    id: int
-    nombre: str
-    puesto: str
-    correo: str
-    telefono: Optional[str] = None
-    tecnico: int
-    rol: int
-
     # Temperaturas
     temp_ambiente_final: Optional[Decimal] = None
     temp_compresion_display_final: Optional[Decimal] = None
@@ -262,3 +240,25 @@ class TeamMemberResponse(BaseModel):
     nombre_persona_cargo: Optional[str] = None
     firma_persona_cargo: Optional[str] = None
     firma_tecnico_ventologix: Optional[str] = None
+
+
+class TeamMember(BaseModel):
+    """Modelo para miembros del equipo Ventologix"""
+    id: Optional[int] = None
+    nombre: str
+    puesto: str
+    correo: EmailStr
+    telefono: Optional[str] = None
+    tecnico: int = 0
+    rol: int
+
+
+class TeamMemberResponse(BaseModel):
+    """Respuesta con datos del miembro del equipo"""
+    id: int
+    nombre: str
+    puesto: str
+    correo: str
+    telefono: Optional[str] = None
+    tecnico: int
+    rol: int
