@@ -7,6 +7,7 @@ import { Client, ClientFormData } from "@/lib/types";
 
 const ShowClients = () => {
   const [clients, setClients] = useState<Client[]>([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateMode, setIsCreateMode] = useState(true);
@@ -136,6 +137,17 @@ const ShowClients = () => {
     }
   };
 
+  const filteredClients = clients.filter((c) => {
+    const q = search.toLowerCase();
+    return (
+      !q ||
+      c.nombre_cliente?.toLowerCase().includes(q) ||
+      String(c.numero_cliente).includes(q) ||
+      c.RFC?.toLowerCase().includes(q) ||
+      c.champion?.toLowerCase().includes(q)
+    );
+  });
+
   const handleDelete = async (numero_cliente: number) => {
     if (
       !confirm(
@@ -171,7 +183,7 @@ const ShowClients = () => {
 
       <div className="w-full">
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-800">
                 Gestión de Clientes
@@ -199,6 +211,39 @@ const ShowClients = () => {
               </svg>
               Nuevo Cliente
             </button>
+          </div>
+
+          <div className="mb-6">
+            <div className="relative max-w-md">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"
+                />
+              </svg>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nombre, número, RFC o champion..."
+                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
 
           {loading ? (
@@ -235,7 +280,7 @@ const ShowClients = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {clients.map((client) => (
+                  {filteredClients.map((client) => (
                     <tr
                       key={client.numero_cliente}
                       className="hover:bg-blue-50 transition-colors"
@@ -278,6 +323,13 @@ const ShowClients = () => {
                       </td>
                     </tr>
                   ))}
+                  {search && filteredClients.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="text-center py-8 text-gray-500">
+                        No se encontraron clientes con &quot;{search}&quot;
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

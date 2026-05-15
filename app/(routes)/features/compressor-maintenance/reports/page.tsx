@@ -376,7 +376,7 @@ const Reports = () => {
     setDownloadingFolio(folio);
     try {
       const response = await fetch(
-        `${URL_API}/reporte_mtto/descargar-pdf/${folio}`,
+        `${URL_API}/reporte_mtto/descargar-pdf-react/${folio}`,
       );
       if (!response.ok) {
         alert("Error al descargar el PDF");

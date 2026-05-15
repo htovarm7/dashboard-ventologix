@@ -2033,53 +2033,51 @@ function ViewReportContent() {
               </div>
             </div>
 
-            {/* Signatures */}
-            {(postMaintenanceData.nombre_persona_cargo ||
-              postMaintenanceData.firma_persona_cargo ||
-              postMaintenanceData.firma_tecnico_ventologix) && (
-              <div className="p-4">
-                <h3 className="font-bold text-orange-900 mb-4 text-lg">
-                  FIRMAS
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Signatures — always render; technician signature falls back to /firma_ivan.png */}
+            <div className="p-4">
+              <h3 className="font-bold text-orange-900 mb-4 text-lg">
+                FIRMAS
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Persona a Cargo
+                  </label>
                   {postMaintenanceData.nombre_persona_cargo && (
-                    <div>
-                      <label className="block text-sm font-medium text-orange-800 mb-1">
-                        Persona a Cargo
-                      </label>
-                      <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded mb-2">
-                        {postMaintenanceData.nombre_persona_cargo}
-                      </p>
-                      {postMaintenanceData.firma_persona_cargo && (
-                        <div className="border rounded-lg p-2 bg-white">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={postMaintenanceData.firma_persona_cargo}
-                            alt="Firma del cliente"
-                            className="mx-auto max-w-[200px] h-auto"
-                          />
-                        </div>
-                      )}
-                    </div>
+                    <p className="text-gray-800 font-semibold bg-gray-100 p-2 rounded mb-2">
+                      {postMaintenanceData.nombre_persona_cargo}
+                    </p>
                   )}
-                  {postMaintenanceData.firma_tecnico_ventologix && (
-                    <div>
-                      <label className="block text-sm font-medium text-orange-800 mb-1">
-                        Técnico Ventologix
-                      </label>
-                      <div className="border rounded-lg p-2 bg-white">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={postMaintenanceData.firma_tecnico_ventologix}
-                          alt="Firma del técnico"
-                          className="mx-auto max-w-[200px] h-auto"
-                        />
-                      </div>
+                  {postMaintenanceData.firma_persona_cargo ? (
+                    <div className="border rounded-lg p-2 bg-white">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={postMaintenanceData.firma_persona_cargo}
+                        alt="Firma del cliente"
+                        className="mx-auto max-w-[200px] h-auto"
+                      />
+                    </div>
+                  ) : (
+                    <div className="border rounded-lg p-2 bg-gray-50 h-20 flex items-center justify-center">
+                      <span className="text-gray-400 text-sm">Pendiente de firma</span>
                     </div>
                   )}
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-orange-800 mb-1">
+                    Técnico Ventologix
+                  </label>
+                  <div className="border rounded-lg p-2 bg-white">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/firma_ivan.png"
+                      alt="Firma del técnico"
+                      className="mx-auto max-w-[200px] h-auto"
+                    />
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         )}
 
