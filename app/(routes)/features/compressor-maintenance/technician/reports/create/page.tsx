@@ -60,6 +60,7 @@ function FillReport() {
   // Guard to prevent re-loading data on re-renders
   const dataLoadedRef = useRef<string | null>(null);
 
+  const [isLoadingData, setIsLoadingData] = useState(false);
   const [showMaintenanceSection] = useState(true);
   const [showPostMaintenanceSection] = useState(true);
   const [saveCompressorInfo, setSaveCompressorInfo] = useState(false);
@@ -480,6 +481,7 @@ function FillReport() {
     if (folio && dataLoadedRef.current === folio) return;
 
     if (folio) {
+      setIsLoadingData(true);
       fetch(`${URL_API}/ordenes/${folio}`)
         .then((response) => response.json())
         .then(async (result) => {
@@ -527,6 +529,9 @@ function FillReport() {
         .catch((error) => {
           console.error("Error fetching orden de servicio:", error);
           alert("❌ Error al cargar la información de la orden de servicio");
+        })
+        .finally(() => {
+          setIsLoadingData(false);
         });
     }
 
@@ -2018,6 +2023,10 @@ function FillReport() {
   if (!isAuthenticated) {
     router.push("/");
     return null;
+  }
+
+  if (isLoadingData) {
+    return <LoadingOverlay isVisible={true} message="Cargando reporte..." />;
   }
 
   return (
